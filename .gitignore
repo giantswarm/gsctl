@@ -22,3 +22,9 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+# Mac OS stuff
+.DS_Store
+
+# Generated files
+.gobuild
