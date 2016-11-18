@@ -21,10 +21,10 @@ notifications:
 
 before_install:
     # Grab builder from the cache, or download it if we can't.
-    - cp ./builder-cache/builder-$BUILDER_VERSION ./builder || wget https://downloads.giantswarm.io/builder/$BUILDER_VERSION/builder && chmod +x ./builder
+    - cp ./builder-cache/builder-$BUILDER_VERSION ./builder || wget https://github.com/giantswarm/builder/releases/download/$BUILDER_VERSION/builder.$BUILDER_VERSION.linux.tar.gz && tar xzf builder.$BUILDER_VERSION.linux.tar.gz ./builder
     - chmod +x ./builder
     - export PATH=$PATH:$PWD
-    - go get -u github.com/golang/lint/golint
+    #- go get -u github.com/golang/lint/golint
 
 install: make get-deps
 
