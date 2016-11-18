@@ -1,3 +1,6 @@
+[![Travis-CI Build Badge](https://api.travis-ci.org/giantswarm/gsctl.svg?branch=master)](https://travis-ci.org/giantswarm/gsctl)
+
+
 # `gsctl` - The Giant Swarm CLI
 
 `gsctl` is the cross-platform command line utility to manage your Kubernetes clusters at Giant Swarm.
