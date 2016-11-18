@@ -1,4 +1,7 @@
-sudo: false # Explicitly use container-based infrastructure
+sudo: required # needed for docker
+
+services:
+  - docker
 
 language: go
 
