@@ -31,7 +31,9 @@ before_install:
 
 install: make get-deps
 
-script: make build
+script:
+    - make build
+    - make test
 
 before_cache:
     - cp ./builder ./builder-cache/builder-$BUILDER_VERSION

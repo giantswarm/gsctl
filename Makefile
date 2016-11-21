@@ -13,25 +13,29 @@ ifndef GOARCH
 	GOARCH := $(shell go env GOARCH)
 endif
 
-.PHONY: clean .gobuild
+# binary to test with
+TESTBIN := .gobuild/bin/${BIN}-${GOOS}-${GOARCH}
+
+.PHONY: clean .gobuild test
 
 all: .gobuild build
 
 get-deps: .gobuild
 
+# create Go directory and fetch dependencies
 .gobuild:
 	@mkdir -p $(GS_PATH)
 	@rm -f $(GS_PATH)/$(PROJECT) && cd "$(GS_PATH)" && ln -s ../../../.. $(PROJECT)
-	builder get dep -b first-version https://github.com/giantswarm/go-client-gen.git $(GS_PATH)/go-client-gen
+	builder get dep -b first-version https://github.com/giantswarm/gsclientgen.git $(GS_PATH)/gsclientgen
+	go get github.com/bradfitz/slice
 	go get github.com/fatih/color
-	go get github.com/go-resty/resty
 	go get github.com/howeyc/gopass
 	go get github.com/inconshreveable/mousetrap
 	go get github.com/ryanuber/columnize
 	go get github.com/spf13/cobra/cobra
 	go get gopkg.in/yaml.v2
-	go get github.com/bradfitz/slice
 
+# build binaries
 build:
 	mkdir -p .gobuild/bin
 	docker run \
@@ -43,7 +47,7 @@ build:
 		-e CGO_ENABLED=0 \
 		-w /usr/code \
 		golang:$(GOVERSION) \
-		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-darwin-amd64 -ldflags "-X main.version=TODO -X main.buildDate=${BUILDDATE}"
+		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-darwin-amd64 -ldflags "-X config.Version=TODO -X config.BuildDate=${BUILDDATE}"
 
 	docker run \
 		--rm \
@@ -54,7 +58,7 @@ build:
 		-e CGO_ENABLED=0 \
 		-w /usr/code \
 		golang:$(GOVERSION) \
-		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN).exe -ldflags "-X main.version=TODO -X main.buildDate=${BUILDDATE}"
+		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN).exe -ldflags "-X config.Version=TODO -X config.BuildDate=${BUILDDATE}"
 
 	docker run \
 		--rm \
@@ -65,7 +69,25 @@ build:
 		-e CGO_ENABLED=0 \
 		-w /usr/code \
 		golang:$(GOVERSION) \
-		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-linux-amd64 -ldflags "-X main.version=TODO -X main.buildDate=${BUILDDATE}"
+		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-linux-amd64 -ldflags "-X config.Version=TODO -X config.BuildDate=${BUILDDATE}"
 
+# run some tests
+test:
+	@${TESTBIN} >> /dev/null && echo "OK"
+	@${TESTBIN} help >> /dev/null && echo "OK"
+	@${TESTBIN} --help >> /dev/null && echo "OK"
+	@${TESTBIN} -h >> /dev/null && echo "OK"
+
+	@${TESTBIN} create --help >> /dev/null && echo "OK"
+	@${TESTBIN} info --help >> /dev/null && echo "OK"
+	@${TESTBIN} list --help >> /dev/null && echo "OK"
+	@${TESTBIN} login --help >> /dev/null && echo "OK"
+	@${TESTBIN} logout --help >> /dev/null && echo "OK"
+	@${TESTBIN} ping --help >> /dev/null && echo "OK"
+
+	@${TESTBIN} ping >> /dev/null && echo "OK"
+	@${TESTBIN} info >> /dev/null && echo "OK"
+
+# remove generated stuff
 clean:
 	rm -rf $(BUILD_PATH)

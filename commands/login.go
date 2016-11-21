@@ -1,0 +1,91 @@
+package commands
+
+import (
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"log"
+
+	"github.com/fatih/color"
+	"github.com/giantswarm/gsclientgen"
+	"github.com/howeyc/gopass"
+	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/config"
+)
+
+var (
+	// password given via command line flag
+	password string
+
+	// LoginCommand is the "login" CLI command
+	LoginCommand = &cobra.Command{
+		Use:     "login <email>",
+		Short:   "Sign in as a user",
+		Long:    `Sign in with email address and password. Password has to be entered interactively or given as -p flag.`,
+		PreRunE: checkLogin,
+		Run:     login,
+	}
+)
+
+func init() {
+	LoginCommand.Flags().StringVarP(&password, "password", "p", "", "Password. If not given, will be prompted interactively.")
+}
+
+// checks if all arguments for the login command are given
+func checkLogin(cmd *cobra.Command, args []string) error {
+	if len(args) < 1 {
+		return errors.New(color.RedString("The email argument is required"))
+	}
+
+	// using auth token flag?
+	if cmdToken != "" {
+		return errors.New(color.RedString("The 'login' command cannot be used with the '--auth-token' flag"))
+	}
+
+	// already logged in?
+	if config.Config.Token != "" {
+		return errors.New(color.RedString("You are already logged in"))
+	}
+
+	return nil
+}
+
+// login creates a new session token
+func login(cmd *cobra.Command, args []string) {
+	var email = args[0]
+
+	// interactive password prompt
+	if password == "" {
+		fmt.Printf("Password: ")
+		pass, err := gopass.GetPasswdMasked()
+		if err != nil {
+			log.Fatal(err)
+		}
+		password = string(pass)
+	}
+
+	encodedPassword := base64.StdEncoding.EncodeToString([]byte(password))
+
+	client := gsclientgen.NewDefaultApi()
+	requestBody := gsclientgen.LoginBody{Password: string(encodedPassword)}
+	loginResponse, apiResponse, err := client.UserLogin(email, requestBody)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if loginResponse.StatusCode == 10000 {
+		// successful login
+		fmt.Println(color.GreenString("Successfully logged in"))
+		config.Config.Token = loginResponse.Data.Id
+		config.Config.Email = email
+	} else if loginResponse.StatusCode == 10010 {
+		// bad credentials
+		fmt.Println(color.RedString("Incorrect password submitted. Please try again."))
+	} else {
+		fmt.Printf("Unhandled response code: %v", loginResponse.StatusCode)
+		fmt.Printf("Status text: %v", loginResponse.StatusText)
+		fmt.Printf("apiResponse: %s\n", apiResponse)
+	}
+
+	config.WriteToFile()
+}
