@@ -29,6 +29,7 @@ get-deps: .gobuild
 	builder get dep -b first-version https://github.com/giantswarm/gsclientgen.git $(GS_PATH)/gsclientgen
 	go get github.com/bradfitz/slice
 	go get github.com/fatih/color
+	go get github.com/go-resty/resty
 	go get github.com/howeyc/gopass
 	go get github.com/inconshreveable/mousetrap
 	go get github.com/ryanuber/columnize
