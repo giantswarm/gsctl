@@ -12,8 +12,6 @@ go:
 env:
     global:
         - BUILDER_VERSION=0.15.2
-    matrix:
-        - TEST_SUITE=unit
 
 cache:
     directories:
