@@ -68,7 +68,7 @@ func login(cmd *cobra.Command, args []string) {
 	encodedPassword := base64.StdEncoding.EncodeToString([]byte(password))
 
 	client := gsclientgen.NewDefaultApi()
-	requestBody := gsclientgen.LoginBody{Password: string(encodedPassword)}
+	requestBody := gsclientgen.LoginBodyModel{Password: string(encodedPassword)}
 	loginResponse, apiResponse, err := client.UserLogin(email, requestBody)
 	if err != nil {
 		log.Fatal(err)
