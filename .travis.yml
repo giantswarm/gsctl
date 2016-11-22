@@ -35,3 +35,6 @@ script:
 
 before_cache:
     - cp ./builder ./builder-cache/builder-$BUILDER_VERSION
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
