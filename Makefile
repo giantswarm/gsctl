@@ -1,6 +1,7 @@
 PROJECT=gsctl
 BIN = $(PROJECT)
 BUILD_PATH := $(shell pwd)/.gobuild
+RELEASE_PATH := $(shell pwd)/release
 GOPATH := $(BUILD_PATH)
 GOVERSION := 1.7.3
 GS_PATH := "$(BUILD_PATH)/src/github.com/giantswarm"
@@ -18,7 +19,7 @@ endif
 # binary to test with
 TESTBIN := .gobuild/bin/${BIN}-${GOOS}-${GOARCH}
 
-.PHONY: clean .gobuild test
+.PHONY: clean .gobuild build test
 
 all: .gobuild build
 
@@ -41,6 +42,7 @@ get-deps: .gobuild
 
 # build binaries
 build:
+	rm -rf ./build
 	mkdir -p .gobuild/bin
 	docker run \
 		--rm \
@@ -62,7 +64,7 @@ build:
 		-e CGO_ENABLED=0 \
 		-w /usr/code \
 		golang:$(GOVERSION) \
-		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN).exe -ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
+		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-windows-386.exe -ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 	docker run \
 		--rm \
@@ -92,6 +94,39 @@ test:
 	@${TESTBIN} ping >> /dev/null && echo "OK"
 	@${TESTBIN} info >> /dev/null && echo "OK"
 
+# Create binary files for releases
+bin-dist:
+	rm -rf build
+
+	mkdir bin-dist
+
+	for OS in darwin-amd64 linux-amd64; do \
+		mkdir -p build/$(BIN)-$(VERSION)-$$OS; \
+		cp README.md build/$(BIN)-$(VERSION)-$$OS/; \
+		cp LICENSE build/$(BIN)-$(VERSION)-$$OS/; \
+		cp .gobuild/bin/$(BIN)-$$OS build/$(BIN)-$(VERSION)-$$OS/$(BIN); \
+		cd build/; \
+		tar -cvzf ./$(BIN)-$(VERSION)-$$OS.tar.gz $(BIN)-$(VERSION)-$$OS; \
+		mv ./$(BIN)-$(VERSION)-$$OS.tar.gz ../bin-dist/; \
+		cd ..; \
+	done
+
+	# little different treatment for windows
+	mkdir -p build/$(BIN)-$(VERSION)-windows-386
+	cp README.md build/$(BIN)-$(VERSION)-windows-386/
+	cp LICENSE build/$(BIN)-$(VERSION)-windows-386/
+	cp .gobuild/bin/$(BIN)-windows-386.exe build/$(BIN)-$(VERSION)-windows-386/$(BIN).exe
+	cd build && zip $(BIN)-$(VERSION)-windows-386.zip $(BIN)-$(VERSION)-windows-386/*
+	mv build/$(BIN)-$(VERSION)-windows-386.zip bin-dist/
+
+
+# This should, at some point, automate releases.
+release: bin-dist
+	# file uploads to S3
+	aws s3 cp bin-dist s3://downloads.giantswarm.io/gsctl/$(VERSION)/ --recursive --exclude="*" --include="*.tar.gz" --acl=public-read
+	aws s3 cp bin-dist s3://downloads.giantswarm.io/gsctl/$(VERSION)/ --recursive --exclude="*" --include="*.zip" --acl=public-read
+	aws s3 cp VERSION s3://downloads.giantswarm.io/gsctl/VERSION --acl=public-read
+
 # remove generated stuff
 clean:
-	rm -rf $(BUILD_PATH)
+	rm -rf bin-dist $(BUILD_PATH) $(RELEASE_PATH)
