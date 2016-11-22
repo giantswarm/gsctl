@@ -14,7 +14,7 @@ Call `gsctl` without any arguments to get an overview on commands. Some usage ex
 
 ```nohighlight
 $ gsctl login demo@example.com
-Password: ************
+Password:
 Successfully logged in!
 ```
 

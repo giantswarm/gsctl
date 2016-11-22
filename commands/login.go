@@ -58,7 +58,7 @@ func login(cmd *cobra.Command, args []string) {
 	// interactive password prompt
 	if password == "" {
 		fmt.Printf("Password: ")
-		pass, err := gopass.GetPasswdMasked()
+		pass, err := gopass.GetPasswd()
 		if err != nil {
 			log.Fatal(err)
 		}
