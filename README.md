@@ -57,7 +57,32 @@ Successfully logged out
 
 ## Install
 
-TODO
+#### Mac OS using Homebrew
+
+```nohighlight
+brew tap giantswarm/giantswarm && brew update && brew install gsctl
+```
+
+#### Mac OS without Homebrew
+
+```nohighlight
+curl -O http://downloads.giantswarm.io/gsctl/0.0.1/gsctl-0.0.1-darwin-amd64.tar.gz
+tar xzf gsctl-0.0.1-darwin-amd64.tar.gz
+sudo cp gsctl-0.0.1-darwin-amd64/gsctl /usr/local/bin/
+```
+
+#### Linux
+
+```nohighlight
+curl -O http://downloads.giantswarm.io/gsctl/0.0.1/gsctl-0.0.1-linux-amd64.tar.gz
+tar xzf gsctl-0.0.1-linux-amd64.tar.gz
+sudo cp gsctl-0.0.1-linux-amd64/gsctl /usr/local/bin/
+```
+
+#### Windows
+
+- Download http://downloads.giantswarm.io/gsctl/0.0.1/gsctl-0.0.1-windows-386.zip
+- Copy the contained `gsctl.exe` to a convenient location
 
 ## Changelog
 
