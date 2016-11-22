@@ -59,4 +59,6 @@ func logout(cmd *cobra.Command, args []string) {
 		fmt.Printf("Status text: %v", logoutResponse.StatusText)
 		fmt.Printf("apiResponse: %s\n", apiResponse)
 	}
+
+	config.WriteToFile()
 }
