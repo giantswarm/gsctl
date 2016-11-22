@@ -39,6 +39,9 @@ var (
 	// BuildDate is the build date, to be set on build by the go linker
 	BuildDate string
 
+	// Commit is the latest git commit hash, to be set on build by the go linker
+	Commit string
+
 	// Config holds the configuration variables
 	Config *configStruct
 
