@@ -1,10 +1,12 @@
 PROJECT=gsctl
+BIN = $(PROJECT)
 BUILD_PATH := $(shell pwd)/.gobuild
 GOPATH := $(BUILD_PATH)
 GOVERSION := 1.7.3
-BIN = $(PROJECT)
 GS_PATH := "$(BUILD_PATH)/src/github.com/giantswarm"
 BUILDDATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+VERSION := $(shell cat VERSION)
+COMMIT := $(shell git rev-parse HEAD | cut -c1-10)
 
 ifndef GOOS
 	GOOS := $(shell go env GOOS)
@@ -48,7 +50,7 @@ build:
 		-e CGO_ENABLED=0 \
 		-w /usr/code \
 		golang:$(GOVERSION) \
-		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-darwin-amd64 -ldflags "-X config.Version=TODO -X config.BuildDate=${BUILDDATE}"
+		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-darwin-amd64 -ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 	docker run \
 		--rm \
@@ -59,7 +61,7 @@ build:
 		-e CGO_ENABLED=0 \
 		-w /usr/code \
 		golang:$(GOVERSION) \
-		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN).exe -ldflags "-X config.Version=TODO -X config.BuildDate=${BUILDDATE}"
+		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN).exe -ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 	docker run \
 		--rm \
@@ -70,7 +72,7 @@ build:
 		-e CGO_ENABLED=0 \
 		-w /usr/code \
 		golang:$(GOVERSION) \
-		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-linux-amd64 -ldflags "-X config.Version=TODO -X config.BuildDate=${BUILDDATE}"
+		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-linux-amd64 -ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 # run some tests
 test:
