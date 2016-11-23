@@ -44,12 +44,14 @@ func printInfo(cmd *cobra.Command, args []string) {
 		output = append(output, color.YellowString("Email:")+"|"+color.CyanString(config.Config.Email))
 	}
 
-	if cmdToken != "" {
-		output = append(output, color.YellowString("Auth token:")+"|"+color.CyanString(cmdToken))
-	} else if config.Config.Token != "" {
-		output = append(output, color.YellowString("Auth token:")+"|"+color.CyanString(config.Config.Token))
-	} else {
-		output = append(output, color.YellowString("Auth token:")+"|n/a")
+	if cmdVerbose {
+		if cmdToken != "" {
+			output = append(output, color.YellowString("Auth token:")+"|"+color.CyanString(cmdToken))
+		} else if config.Config.Token != "" {
+			output = append(output, color.YellowString("Auth token:")+"|"+color.CyanString(config.Config.Token))
+		} else {
+			output = append(output, color.YellowString("Auth token:")+"|n/a")
+		}
 	}
 
 	output = append(output, color.YellowString("%s version:", config.ProgramName)+"|"+config.Version)
