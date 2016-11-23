@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"syscall"
 
 	"github.com/fatih/color"
@@ -17,6 +18,8 @@ const (
 
 	// url to intallatzion instructions
 	kubectlInstallURL string = "http://kubernetes.io/docs/user-guide/prereqs/"
+
+	kubectlWindowsInstallURL string = "https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md"
 )
 
 // CheckKubectl checks if kubectl exists, is silent if yes, reports error if not
@@ -33,10 +36,17 @@ func CheckKubectl() {
 		if exitStatus == 0 {
 			return
 		}
-		// some error
+		// kubectl not installed
 		fmt.Println(color.RedString(binaryName + " does not appear to be installed"))
-		fmt.Println("Please install via 'brew install kubernetes-cli' or visit")
-		fmt.Println(kubectlInstallURL + " for information on how to install " + binaryName + ".")
+		if runtime.GOOS == "darwin" {
+			fmt.Println("Please install via 'brew install kubernetes-cli' or visit")
+			fmt.Println(kubectlInstallURL + " for information on how to install " + binaryName + ".")
+		} else if runtime.GOOS == "linux" {
+			fmt.Println("Please install via 'brew install kubernetes-cli' or visit")
+			fmt.Println(kubectlInstallURL + " for information on how to install " + binaryName + ".")
+		} else if runtime.GOOS == "windows" {
+			fmt.Printf("Please visit %s to download a recent %s binary.\n", kubectlWindowsInstallURL, binaryName)
+		}
 		os.Exit(1)
 	}
 }
