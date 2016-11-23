@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen"
@@ -81,10 +82,16 @@ func login(cmd *cobra.Command, args []string) {
 	} else if loginResponse.StatusCode == 10010 {
 		// bad credentials
 		fmt.Println(color.RedString("Incorrect password submitted. Please try again."))
+		os.Exit(1)
+	} else if loginResponse.StatusCode == 10013 {
+		// empty password
+		fmt.Println(color.RedString("The password must not be empty. Please try again."))
+		os.Exit(1)
 	} else {
 		fmt.Printf("Unhandled response code: %v", loginResponse.StatusCode)
 		fmt.Printf("Status text: %v", loginResponse.StatusText)
 		fmt.Printf("apiResponse: %s\n", apiResponse)
+		os.Exit(1)
 	}
 
 	config.WriteToFile()
