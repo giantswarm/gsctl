@@ -110,3 +110,7 @@ Then commands like this should work fine:
 ```nohighlight
 go run main.go info
 ```
+
+## Contributing
+
+We welcome contributions! Please read our additional information on [how to contribute](https://github.com/giantswarm/gsctl/blob/master/CONTRIBUTING.md) for details.
