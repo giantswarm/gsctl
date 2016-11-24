@@ -63,8 +63,8 @@ func init() {
 	SystemUser, userErr := user.Current()
 	checkErr(userErr)
 
-	ConfigDirPath = SystemUser.HomeDir + string(os.PathSeparator) + "." + ProgramName
-	ConfigFilePath = ConfigDirPath + string(os.PathSeparator) + ConfigFileName
+	ConfigDirPath = path.Join(SystemUser.HomeDir, "."+ProgramName)
+	ConfigFilePath = path.Join(ConfigDirPath, ConfigFileName)
 	KubeConfigPaths = getKubeconfigPaths(SystemUser.HomeDir)
 
 	myConfig, err := readFromFile(ConfigFilePath)
