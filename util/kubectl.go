@@ -22,7 +22,7 @@ const (
 	kubectlWindowsInstallURL string = "https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md"
 )
 
-// CheckKubectl checks if kubectl exists, is silent if yes, reports error if not
+// CheckKubectl checks if kubectl exists, is silent if yes, prints error and exits if not
 func CheckKubectl() {
 	cmd := exec.Command(binaryName)
 	if err := cmd.Run(); err != nil {
