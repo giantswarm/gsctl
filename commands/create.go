@@ -75,8 +75,7 @@ func checkAddKeypair(cmd *cobra.Command, args []string) error {
 func addKeypair(cmd *cobra.Command, args []string) {
 	client := gsclientgen.NewDefaultApi()
 	authHeader := "giantswarm " + config.Config.Token
-	// TODO: Make ttl configurable
-	ttlHours := int32(3)
+	ttlHours := int32(cmdTTLDays * 24)
 	addKeyPairBody := gsclientgen.AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
 	keypairResponse, _, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody)
 
