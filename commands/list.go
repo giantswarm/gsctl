@@ -58,6 +58,7 @@ func init() {
 	// subcommands
 	ListCommand.AddCommand(ListOrgsCommand, ListClustersCommand, ListKeypairsCommand)
 
+	RootCommand.AddCommand(ListCommand)
 }
 
 func checkListOrgs(cmd *cobra.Command, args []string) error {

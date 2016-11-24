@@ -31,6 +31,7 @@ var (
 
 func init() {
 	LoginCommand.Flags().StringVarP(&password, "password", "p", "", "Password. If not given, will be prompted interactively.")
+	RootCommand.AddCommand(LoginCommand)
 }
 
 // checks if all arguments for the login command are given

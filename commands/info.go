@@ -21,6 +21,10 @@ var (
 	}
 )
 
+func init() {
+	RootCommand.AddCommand(InfoCommand)
+}
+
 // printInfo prints some information on the current user and configuration
 func printInfo(cmd *cobra.Command, args []string) {
 

@@ -20,14 +20,5 @@ func init() {
 }
 
 func main() {
-	// top level commands
-	commands.RootCommand.AddCommand(
-		commands.ListCommand,
-		commands.CreateCommand,
-		commands.InfoCommand,
-		commands.PingCommand,
-		commands.LoginCommand,
-		commands.LogoutCommand,
-	)
 	commands.RootCommand.Execute()
 }

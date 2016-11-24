@@ -23,6 +23,10 @@ var (
 	}
 )
 
+func init() {
+	RootCommand.AddCommand(LogoutCommand)
+}
+
 func checkLogout(cmd *cobra.Command, args []string) error {
 	if config.Config.Token == "" && cmdToken == "" {
 		return errors.New("You are not logged in")

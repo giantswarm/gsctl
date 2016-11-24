@@ -51,6 +51,8 @@ func init() {
 
 	// subcommands
 	CreateCommand.AddCommand(CreateKeypairCommand, CreateKubeconfigCommand)
+
+	RootCommand.AddCommand(CreateCommand)
 }
 
 func checkAddKeypair(cmd *cobra.Command, args []string) error {

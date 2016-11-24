@@ -20,6 +20,10 @@ var (
 	}
 )
 
+func init() {
+	RootCommand.AddCommand(PingCommand)
+}
+
 // ping checks the API connections
 func ping(cmd *cobra.Command, args []string) {
 	uri := "https://api.giantswarm.io/v1/ping"
