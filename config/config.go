@@ -65,7 +65,7 @@ func init() {
 
 	ConfigDirPath = SystemUser.HomeDir + string(os.PathSeparator) + "." + ProgramName
 	ConfigFilePath = ConfigDirPath + string(os.PathSeparator) + ConfigFileName
-	KubeConfigPaths, _ = getKubeconfigPaths(SystemUser.HomeDir)
+	KubeConfigPaths = getKubeconfigPaths(SystemUser.HomeDir)
 
 	myConfig, err := readFromFile(ConfigFilePath)
 	checkErr(err)
@@ -122,8 +122,8 @@ func readFromFile(filePath string) (*configStruct, error) {
 	return myConfig, nil
 }
 
-// getKubeconfigPaths returns a slice of paths to known kubeconfig files.
-func getKubeconfigPaths(homeDir string) ([]string, error) {
+// getKubeconfigPaths returns a slice of paths to known kubeconfig files
+func getKubeconfigPaths(homeDir string) []string {
 
 	// check if KUBECONFIG environment variable is set
 	kubeconfigEnv := os.Getenv("KUBECONFIG")
@@ -144,7 +144,7 @@ func getKubeconfigPaths(homeDir string) ([]string, error) {
 				out = append(out, myPath)
 			}
 		}
-		return out, nil
+		return out
 	}
 
 	// KUBECONFIG is not set.
@@ -153,11 +153,11 @@ func getKubeconfigPaths(homeDir string) ([]string, error) {
 
 	if _, err := os.Stat(filePath); err == nil {
 		// file exists in default location
-		return []string{filePath}, nil
+		return []string{filePath}
 	}
 
 	// No kubeconfig file. Return empty slice.
-	return nil, nil
+	return nil
 }
 
 // GetDefaultCluster determines which is the default cluster. This can be either
