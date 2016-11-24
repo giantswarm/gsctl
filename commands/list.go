@@ -9,6 +9,7 @@ import (
 
 	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
+	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/gsclientgen"
 	"github.com/ryanuber/columnize"
 	"github.com/spf13/cobra"
@@ -84,7 +85,7 @@ func listOrgs(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	if orgsResponse.StatusCode == 10000 {
+	if orgsResponse.StatusCode == apischema.STATUS_CODE_DATA {
 		var organizations = orgsResponse.Data
 		if len(organizations) == 0 {
 			fmt.Println(color.YellowString("No organizations available"))
@@ -117,7 +118,7 @@ func listClusters(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if orgsResponse.StatusCode == 10000 {
+	if orgsResponse.StatusCode == apischema.STATUS_CODE_DATA {
 		var organizations = orgsResponse.Data
 		if len(organizations) == 0 {
 			fmt.Println(color.YellowString("No organizations available"))
@@ -170,7 +171,7 @@ func listKeypairs(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if keypairsResponse.StatusCode == 10000 {
+	if keypairsResponse.StatusCode == apischema.STATUS_CODE_DATA {
 		// sort result
 		slice.Sort(keypairsResponse.Data.KeyPairs[:], func(i, j int) bool {
 			return keypairsResponse.Data.KeyPairs[i].CreateDate < keypairsResponse.Data.KeyPairs[j].CreateDate

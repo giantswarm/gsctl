@@ -30,6 +30,7 @@ get-deps: .gobuild
 	@rm -f $(GS_PATH)/$(PROJECT) && cd "$(GS_PATH)" && ln -s ../../../.. $(PROJECT)
 	#builder get dep -b branch-name https://github.com/giantswarm/gsclientgen.git $(GS_PATH)/gsclientgen
 	go get -v github.com/giantswarm/gsclientgen
+	go get -v github.com/giantswarm/api-schema
 	go get -v github.com/bradfitz/slice
 	go get -v github.com/fatih/color
 	go get -v github.com/go-resty/resty

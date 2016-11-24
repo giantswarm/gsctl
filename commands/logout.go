@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/fatih/color"
+	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/gsclientgen"
 	"github.com/spf13/cobra"
 
@@ -50,7 +51,7 @@ func logout(cmd *cobra.Command, args []string) {
 		fmt.Println("Error details:")
 		log.Fatal(err)
 	}
-	if logoutResponse.StatusCode == 10007 {
+	if logoutResponse.StatusCode == apischema.STATUS_CODE_RESOURCE_DELETED {
 		// remove token from settings
 		// unless we unathenticated the token from flags
 		if cmdToken == "" {

@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/fatih/color"
+	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/gsclientgen"
 	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
@@ -75,16 +76,16 @@ func login(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if loginResponse.StatusCode == 10000 {
+	if loginResponse.StatusCode == apischema.STATUS_CODE_DATA {
 		// successful login
 		fmt.Println(color.GreenString("Successfully logged in"))
 		config.Config.Token = loginResponse.Data.Id
 		config.Config.Email = email
-	} else if loginResponse.StatusCode == 10010 {
+	} else if loginResponse.StatusCode == apischema.STATUS_CODE_RESOURCE_INVALID_CREDENTIALS {
 		// bad credentials
 		fmt.Println(color.RedString("Incorrect password submitted. Please try again."))
 		os.Exit(1)
-	} else if loginResponse.StatusCode == 10013 {
+	} else if loginResponse.StatusCode == apischema.STATUS_CODE_WRONG_INPUT {
 		// empty password
 		fmt.Println(color.RedString("The password must not be empty. Please try again."))
 		os.Exit(1)
