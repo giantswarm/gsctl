@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/user"
 	"path"
-	"runtime"
 	"strings"
 	"time"
 
@@ -129,7 +128,7 @@ func getKubeconfigPaths(homeDir string) []string {
 		// KUBECONFIG is set.
 		// Now check all the paths included for file existence
 
-		paths := strings.Split(kubeconfigEnv, os.PathListSeparator)
+		paths := strings.Split(kubeconfigEnv, string(os.PathListSeparator))
 		out := []string{}
 		for _, myPath := range paths {
 			if _, err := os.Stat(myPath); err == nil {
