@@ -29,15 +29,15 @@ get-deps: .gobuild
 	@mkdir -p $(GS_PATH)
 	@rm -f $(GS_PATH)/$(PROJECT) && cd "$(GS_PATH)" && ln -s ../../../.. $(PROJECT)
 	#builder get dep -b branch-name https://github.com/giantswarm/gsclientgen.git $(GS_PATH)/gsclientgen
-	go get github.com/giantswarm/gsclientgen
-	go get github.com/bradfitz/slice
-	go get github.com/fatih/color
-	go get github.com/go-resty/resty
-	go get github.com/howeyc/gopass
-	go get github.com/inconshreveable/mousetrap
-	go get github.com/ryanuber/columnize
-	go get github.com/spf13/cobra/cobra
-	go get gopkg.in/yaml.v2
+	go get -v github.com/giantswarm/gsclientgen
+	go get -v github.com/bradfitz/slice
+	go get -v github.com/fatih/color
+	go get -v github.com/go-resty/resty
+	go get -v github.com/howeyc/gopass
+	go get -v github.com/inconshreveable/mousetrap
+	go get -v github.com/ryanuber/columnize
+	go get -v github.com/spf13/cobra/cobra
+	go get -v gopkg.in/yaml.v2
 
 # build binary for current platform
 build: .gobuild/bin/$(BIN)-$(GOOS)-$(GOARCH)
