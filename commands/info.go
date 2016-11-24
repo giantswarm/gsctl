@@ -58,8 +58,8 @@ func printInfo(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	output = append(output, color.YellowString("%s version:", config.ProgramName)+"|"+config.Version)
-	output = append(output, color.YellowString("%s build:", config.ProgramName)+"|"+config.BuildDate)
+	output = append(output, color.YellowString("%s version:", config.ProgramName)+"|"+color.CyanString(config.Version))
+	output = append(output, color.YellowString("%s build:", config.ProgramName)+"|"+color.CyanString(config.BuildDate))
 
 	output = append(output, color.YellowString("Config path:")+"|"+color.CyanString(config.ConfigFilePath))
 
