@@ -80,7 +80,6 @@ func checkErr(err error) {
 
 // WriteToFile writes the configuration data to a YAML file
 func WriteToFile() error {
-
 	// ensure directory
 	os.MkdirAll(ConfigDirPath, 0700)
 
@@ -124,20 +123,13 @@ func readFromFile(filePath string) (*configStruct, error) {
 
 // getKubeconfigPaths returns a slice of paths to known kubeconfig files
 func getKubeconfigPaths(homeDir string) []string {
-
 	// check if KUBECONFIG environment variable is set
 	kubeconfigEnv := os.Getenv("KUBECONFIG")
 	if kubeconfigEnv != "" {
 		// KUBECONFIG is set.
 		// Now check all the paths included for file existence
 
-		// "windows" is really the value for the windows platform.
-		// No constant for that in runtime.
-		pathSep := ":"
-		if runtime.GOOS == "windows" {
-			pathSep = ";"
-		}
-		paths := strings.Split(kubeconfigEnv, pathSep)
+		paths := strings.Split(kubeconfigEnv, os.PathListSeparator)
 		out := []string{}
 		for _, myPath := range paths {
 			if _, err := os.Stat(myPath); err == nil {
