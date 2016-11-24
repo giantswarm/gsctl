@@ -39,7 +39,8 @@ func ping(cmd *cobra.Command, args []string) {
 	if resp.StatusCode == 200 {
 		fmt.Println(color.GreenString("API connection is fine"))
 		fmt.Printf("Ping took %v\n", elapsed)
+	} else {
+		fmt.Println(color.RedString("API returned unexpected response status %v", resp.StatusCode))
+		os.Exit(2)
 	}
-	fmt.Println(color.RedString("API returned unexpected response status %v", resp.StatusCode))
-	os.Exit(2)
 }
