@@ -114,3 +114,7 @@ go run main.go info
 ## Contributing
 
 We welcome contributions! Please read our additional information on [how to contribute](https://github.com/giantswarm/gsctl/blob/master/CONTRIBUTING.md) for details.
+
+## Publishing a Release
+
+See [RELEASE.md](https://github.com/giantswarm/gsctl/blob/master/RELEASE.md)
