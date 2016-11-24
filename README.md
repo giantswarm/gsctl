@@ -82,7 +82,7 @@ sudo cp gsctl-0.0.1-linux-amd64/gsctl /usr/local/bin/
 
 #### Windows
 
-- Download http://downloads.giantswarm.io/gsctl/0.0.1/gsctl-0.0.1-windows-386.zip
+- Download [`gsctl` for Windows (64 Bit)](http://downloads.giantswarm.io/gsctl/0.0.1/gsctl-0.0.1-windows-amd64.zip) or [32 Bit](http://downloads.giantswarm.io/gsctl/0.0.1/gsctl-0.0.1-windows-386.zip)
 - Copy the contained `gsctl.exe` to a convenient location
 
 ## Changelog
