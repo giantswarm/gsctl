@@ -131,7 +131,7 @@ ifeq ($(shell cat VERSION|grep git),)
 	@exit 1
 endif
 
-# This should, at some point, automate releases.
+# This automates a release (except for a GitHub release)
 release: assert-tagged-version bin-dist
 	# file uploads to S3
 	aws s3 cp bin-dist s3://downloads.giantswarm.io/gsctl/$(VERSION)/ --recursive --exclude="*" --include="*.tar.gz" --acl=public-read
@@ -141,6 +141,16 @@ release: assert-tagged-version bin-dist
 	# homebrew
 	./update-homebrew.sh
 
+	# Update version number occurrences in README.md
+	perl -pi -e "s:gsctl\/[0-9]+\.[0-9]+\.[0-9]+\/:gsctl\/${VERSION}\/:g" README.md
+	perl -pi -e "s:gsctl\-[0-9]+\.[0-9]+\.[0-9]+\-:gsctl\-${VERSION}\-:g" README.md
+
+	@echo ""
+	@echo "README.md has changed. Please commit and push this change using these commands:"
+	@echo ""
+	@echo "  git commit -m \"Updated version number in README.md to ${VERSION}\" README.md"
+	@echo "git push origin master"
+	@echo ""
 
 # remove generated stuff
 clean:
