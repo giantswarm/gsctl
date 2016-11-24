@@ -3,27 +3,17 @@ package util
 // TODO: not sure how the Kubectl wrapper functions deal with whitespace in arguments.
 
 import (
-	"fmt"
-	"os"
 	"os/exec"
-	"runtime"
 	"syscall"
-
-	"github.com/fatih/color"
 )
 
 const (
 	// name of the kubectl executable
 	binaryName string = "kubectl"
-
-	// url to intallatzion instructions
-	kubectlInstallURL string = "http://kubernetes.io/docs/user-guide/prereqs/"
-
-	kubectlWindowsInstallURL string = "https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md"
 )
 
 // CheckKubectl checks if kubectl exists, is silent if yes, prints error and exits if not
-func CheckKubectl() {
+func CheckKubectl() bool {
 	cmd := exec.Command(binaryName)
 	if err := cmd.Run(); err != nil {
 		// Did the command fail because of an unsuccessful exit code
@@ -34,25 +24,15 @@ func CheckKubectl() {
 			exitStatus = waitStatus.ExitStatus()
 		}
 		if exitStatus == 0 {
-			return
+			return true
 		}
-		// kubectl not installed
-		fmt.Println(color.RedString(binaryName + " does not appear to be installed"))
-		if runtime.GOOS == "darwin" {
-			fmt.Println("Please install via 'brew install kubernetes-cli' or visit")
-			fmt.Println(kubectlInstallURL + " for information on how to install " + binaryName + ".")
-		} else if runtime.GOOS == "linux" {
-			fmt.Println("Please install via 'brew install kubernetes-cli' or visit")
-			fmt.Println(kubectlInstallURL + " for information on how to install " + binaryName + ".")
-		} else if runtime.GOOS == "windows" {
-			fmt.Printf("Please visit %s to download a recent %s binary.\n", kubectlWindowsInstallURL, binaryName)
-		}
-		os.Exit(1)
+		return false
 	}
+	return true
 }
 
 // KubectlSetCluster is a wrapper for the `kubectl config set-cluster` command
-func KubectlSetCluster(clusterID, apiEndpoint, caCertificatePath string) {
+func KubectlSetCluster(clusterID, apiEndpoint, caCertificatePath string) error {
 	clusterName := "giantswarm-" + clusterID
 	serverArgument := "--server=" + apiEndpoint
 	certificateAuthorityArgument := "--certificate-authority=" + caCertificatePath
@@ -61,16 +41,12 @@ func KubectlSetCluster(clusterID, apiEndpoint, caCertificatePath string) {
 		clusterName,
 		serverArgument,
 		certificateAuthorityArgument)
-	if err := cmd.Run(); err != nil {
-		fmt.Println(color.RedString("Could not set cluster using 'kubectl config set-cluster ...'"))
-		fmt.Println("Error:")
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	err := cmd.Run()
+	return err
 }
 
 // KubectlSetCredentials is a wrapper for the `kubectl config set-credentials` command
-func KubectlSetCredentials(clusterID, keyPath, certificatePath string) {
+func KubectlSetCredentials(clusterID, keyPath, certificatePath string) error {
 	clientKeyArgument := "--client-key=" + keyPath
 	clientCertificateArgument := "--client-certificate=" + certificatePath
 	userName := "giantswarm-" + clusterID + "-user"
@@ -79,16 +55,12 @@ func KubectlSetCredentials(clusterID, keyPath, certificatePath string) {
 		userName,
 		clientKeyArgument,
 		clientCertificateArgument)
-	if err := cmd.Run(); err != nil {
-		fmt.Println(color.RedString("Could not set credentials using 'kubectl config set-credentials ...'"))
-		fmt.Println("Error:")
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	err := cmd.Run()
+	return err
 }
 
 // KubectlSetContext is a wrapper for the `kubectl config set-context` command
-func KubectlSetContext(clusterID string) {
+func KubectlSetContext(clusterID string) error {
 	contextName := "giantswarm-" + clusterID
 	clusterArgument := "--cluster=giantswarm-" + clusterID
 	userArgument := "--user=giantswarm-" + clusterID + "-user"
@@ -97,22 +69,14 @@ func KubectlSetContext(clusterID string) {
 		contextName,
 		clusterArgument,
 		userArgument)
-	if err := cmd.Run(); err != nil {
-		fmt.Println(color.RedString("Could not set context using 'kubectl config set-context ...'"))
-		fmt.Println("Error:")
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	err := cmd.Run()
+	return err
 }
 
 // KubectlUseContext applies the context for the given cluster ID
-func KubectlUseContext(clusterID string) {
+func KubectlUseContext(clusterID string) error {
 	contextName := "giantswarm-" + clusterID
 	cmd := exec.Command(binaryName, "config", "use-context", contextName)
-	if err := cmd.Run(); err != nil {
-		fmt.Println(color.RedString("Could not apply context using 'kubectl config use-context " + contextName + "'"))
-		fmt.Println("Error:")
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	err := cmd.Run()
+	return err
 }

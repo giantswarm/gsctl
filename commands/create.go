@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
@@ -40,6 +41,14 @@ var (
 		PreRunE: checkCreateKubeconfig,
 		Run:     createKubeconfig,
 	}
+)
+
+const (
+	// url to intallation instructions
+	kubectlInstallURL string = "http://kubernetes.io/docs/user-guide/prereqs/"
+
+	// windows download page
+	kubectlWindowsInstallURL string = "https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md"
 )
 
 func init() {
@@ -109,7 +118,21 @@ func addKeypair(cmd *cobra.Command, args []string) {
 
 // Pre-check before creating a new kubeconfig
 func checkCreateKubeconfig(cmd *cobra.Command, args []string) error {
-	util.CheckKubectl()
+	kubectlOkay := util.CheckKubectl()
+	if !kubectlOkay {
+		// kubectl not installed
+		errorMessage := color.RedString("kubectl does not appear to be installed") + "\n"
+		if runtime.GOOS == "darwin" {
+			errorMessage += "Please install via 'brew install kubernetes-cli' or visit\n"
+			errorMessage += fmt.Sprintf("%s for information on how to install kubectl", kubectlInstallURL)
+		} else if runtime.GOOS == "linux" {
+			errorMessage += fmt.Sprintf("Please visit %s for information on how to install kubectl", kubectlInstallURL)
+		} else if runtime.GOOS == "windows" {
+			errorMessage += fmt.Sprintf("Please visit %s to download a recent kubectl binary.", kubectlWindowsInstallURL)
+		}
+		return errors.New(errorMessage)
+	}
+
 	if config.Config.Token == "" {
 		return errors.New("You are not logged in. Use '" + config.ProgramName + " login' to log in.")
 	}
@@ -172,11 +195,33 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		apiEndpoint := "https://api." + cmdClusterID + ".k8s.gigantic.io"
 
 		// edit kubectl config
-		util.KubectlSetCluster(cmdClusterID, apiEndpoint, caCertPath)
-		util.KubectlSetCredentials(cmdClusterID, clientKeyPath, clientCertPath)
-		util.KubectlSetContext(cmdClusterID)
-		util.KubectlUseContext(cmdClusterID)
+		if err := util.KubectlSetCluster(cmdClusterID, apiEndpoint, caCertPath); err != nil {
+			fmt.Println(color.RedString("Could not set cluster using 'kubectl config set-cluster ...'"))
+			fmt.Println("Error:")
+			fmt.Println(err)
+			os.Exit(1)
+		}
 
+		if err := util.KubectlSetCredentials(cmdClusterID, clientKeyPath, clientCertPath); err != nil {
+			fmt.Println(color.RedString("Could not set credentials using 'kubectl config set-credentials ...'"))
+			fmt.Println("Error:")
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		if err := util.KubectlSetContext(cmdClusterID); err != nil {
+			fmt.Println(color.RedString("Could not set context using 'kubectl config set-context ...'"))
+			fmt.Println("Error:")
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		if err := util.KubectlUseContext(cmdClusterID); err != nil {
+			fmt.Println(color.RedString("Could not apply context using 'kubectl config use-context giantswarm-%s'", cmdClusterID))
+			fmt.Println("Error:")
+			fmt.Println(err)
+			os.Exit(1)
+		}
 		fmt.Printf("Switched to kubectl context 'giantswarm-%s'\n\n", cmdClusterID)
 
 		// final success message
