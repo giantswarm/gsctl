@@ -191,7 +191,8 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		fmt.Println(clientCertPath)
 		fmt.Println(clientKeyPath)
 
-		// TODO: Take this from the cluster object
+		// TODO: Take this from the cluster object.
+		// See https://github.com/giantswarm/gsctl/issues/3
 		apiEndpoint := "https://api." + cmdClusterID + ".k8s.gigantic.io"
 
 		// edit kubectl config
