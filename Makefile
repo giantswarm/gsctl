@@ -1,7 +1,6 @@
 PROJECT=gsctl
 BIN = $(PROJECT)
 BUILD_PATH := $(shell pwd)/.gobuild
-RELEASE_PATH := $(shell pwd)/release
 GOPATH := $(BUILD_PATH)
 GOVERSION := 1.7.3
 GS_PATH := "$(BUILD_PATH)/src/github.com/giantswarm"
@@ -19,7 +18,7 @@ endif
 # binary to test with
 TESTBIN := .gobuild/bin/${BIN}-${GOOS}-${GOARCH}
 
-.PHONY: clean .gobuild build test
+.PHONY: clean .gobuild build test crosscompile assert-tagged-version
 
 all: .gobuild build
 
@@ -40,42 +39,44 @@ get-deps: .gobuild
 	go get github.com/spf13/cobra/cobra
 	go get gopkg.in/yaml.v2
 
-# build binaries
-build:
-	rm -rf ./build
+# build binary for current platform
+build: .gobuild/bin/$(BIN)-$(GOOS)-$(GOARCH)
+
+# install binary for current platform (not expected to work on Win)
+install: .gobuild/bin/$(BIN)-$(GOOS)-$(GOARCH)
+	cp .gobuild/bin/$(BIN)-$(GOOS)-$(GOARCH) /usr/local/bin/$(BIN)
+
+# build for all platforms
+crosscompile: .gobuild/bin/$(BIN)-darwin-amd64 .gobuild/bin/$(BIN)-linux-amd64 .gobuild/bin/$(BIN)-windows-386 .gobuild/bin/$(BIN)-windows-amd64
+
+# platform-specific build
+.gobuild/bin/$(BIN)-darwin-amd64:
 	mkdir -p .gobuild/bin
-	docker run \
-		--rm \
-		-v $(shell pwd):/usr/code \
-		-e GOPATH=/usr/code/.gobuild \
-		-e GOOS=darwin \
-		-e GOARCH=amd64 \
-		-e CGO_ENABLED=0 \
-		-w /usr/code \
-		golang:$(GOVERSION) \
-		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-darwin-amd64 -ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
+	docker run --rm -v $(shell pwd):/usr/code -w /usr/code \
+		-e GOPATH=/usr/code/.gobuild -e GOOS=darwin -e GOARCH=amd64 -e CGO_ENABLED=0 \
+		golang:$(GOVERSION) go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-darwin-amd64 \
+		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
-	docker run \
-		--rm \
-		-v $(shell pwd):/usr/code \
-		-e GOPATH=/usr/code/.gobuild \
-		-e GOOS=windows \
-		-e GOARCH=386 \
-		-e CGO_ENABLED=0 \
-		-w /usr/code \
-		golang:$(GOVERSION) \
-		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-windows-386.exe -ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
+# platform-specific build
+.gobuild/bin/$(BIN)-linux-amd64:
+	docker run --rm -v $(shell pwd):/usr/code -w /usr/code \
+		-e GOPATH=/usr/code/.gobuild -e GOOS=linux -e GOARCH=amd64 -e CGO_ENABLED=0 \
+		golang:$(GOVERSION) go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-linux-amd64 \
+		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
-	docker run \
-		--rm \
-		-v $(shell pwd):/usr/code \
-		-e GOPATH=/usr/code/.gobuild \
-		-e GOOS=linux \
-		-e GOARCH=amd64 \
-		-e CGO_ENABLED=0 \
-		-w /usr/code \
-		golang:$(GOVERSION) \
-		go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-linux-amd64 -ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
+# platform-specific build
+.gobuild/bin/$(BIN)-windows-386:
+	docker run --rm -v $(shell pwd):/usr/code -w /usr/code \
+		-e GOPATH=/usr/code/.gobuild -e GOOS=windows -e GOARCH=386 -e CGO_ENABLED=0 \
+		golang:$(GOVERSION) go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-windows-386 \
+		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
+
+# platform-specific build
+.gobuild/bin/$(BIN)-windows-amd64:
+	docker run --rm -v $(shell pwd):/usr/code -w /usr/code \
+		-e GOPATH=/usr/code/.gobuild -e GOOS=windows -e GOARCH=amd64 -e CGO_ENABLED=0 \
+		golang:$(GOVERSION) go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-windows-amd64 \
+		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 # run some tests
 test:
@@ -112,21 +113,35 @@ bin-dist:
 	done
 
 	# little different treatment for windows
-	mkdir -p build/$(BIN)-$(VERSION)-windows-386
-	cp README.md build/$(BIN)-$(VERSION)-windows-386/
-	cp LICENSE build/$(BIN)-$(VERSION)-windows-386/
-	cp .gobuild/bin/$(BIN)-windows-386.exe build/$(BIN)-$(VERSION)-windows-386/$(BIN).exe
-	cd build && zip $(BIN)-$(VERSION)-windows-386.zip $(BIN)-$(VERSION)-windows-386/*
-	mv build/$(BIN)-$(VERSION)-windows-386.zip bin-dist/
+	for OS in windows-386 windows-amd64; do \
+		mkdir -p build/$(BIN)-$(VERSION)-$$OS; \
+		cp README.md build/$(BIN)-$(VERSION)-$$OS/; \
+		cp LICENSE build/$(BIN)-$(VERSION)-$$OS/; \
+		cp .gobuild/bin/$(BIN)-$$OS build/$(BIN)-$(VERSION)-$$OS/$(BIN).exe; \
+		cd build; \
+		zip $(BIN)-$(VERSION)-$$OS.zip $(BIN)-$(VERSION)-$$OS/*; \
+		mv ./$(BIN)-$(VERSION)-$$OS.zip ../bin-dist/; \
+		cd .. ; \
+	done
 
+assert-tagged-version:
+ifeq ($(shell cat VERSION|grep git),)
+	@echo "You are not on a tagged version."
+	@echo "Perform a 'git checkout <release-tag>' first."
+	@exit 1
+endif
 
 # This should, at some point, automate releases.
-release: bin-dist
+release: assert-tagged-version bin-dist
 	# file uploads to S3
 	aws s3 cp bin-dist s3://downloads.giantswarm.io/gsctl/$(VERSION)/ --recursive --exclude="*" --include="*.tar.gz" --acl=public-read
 	aws s3 cp bin-dist s3://downloads.giantswarm.io/gsctl/$(VERSION)/ --recursive --exclude="*" --include="*.zip" --acl=public-read
 	aws s3 cp VERSION s3://downloads.giantswarm.io/gsctl/VERSION --acl=public-read
 
+	# homebrew
+	./update-homebrew.sh
+
+
 # remove generated stuff
 clean:
-	rm -rf bin-dist $(BUILD_PATH) $(RELEASE_PATH)
+	rm -rf bin-dist .gobuild release
