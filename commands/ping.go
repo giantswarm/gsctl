@@ -29,15 +29,13 @@ func ping(cmd *cobra.Command, args []string) {
 		fmt.Println(color.RedString("API cannot be reached"))
 		fmt.Println(err.Error())
 		os.Exit(1)
-	} else {
-		defer resp.Body.Close()
-		elapsed := time.Since(start)
-		if resp.StatusCode == 200 {
-			fmt.Println(color.GreenString("API connection is fine"))
-			fmt.Printf("Ping took %v\n", elapsed)
-		} else {
-			fmt.Println(color.RedString("API returned unexpected response status %v", resp.StatusCode))
-			os.Exit(2)
-		}
 	}
+	defer resp.Body.Close()
+	elapsed := time.Since(start)
+	if resp.StatusCode == 200 {
+		fmt.Println(color.GreenString("API connection is fine"))
+		fmt.Printf("Ping took %v\n", elapsed)
+	}
+	fmt.Println(color.RedString("API returned unexpected response status %v", resp.StatusCode))
+	os.Exit(2)
 }
