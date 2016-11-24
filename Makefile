@@ -96,7 +96,7 @@ test:
 	@${TESTBIN} info >> /dev/null && echo "OK"
 
 # Create binary files for releases
-bin-dist:
+bin-dist: crosscompile
 	rm -rf build
 
 	mkdir bin-dist
