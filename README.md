@@ -67,22 +67,22 @@ brew tap giantswarm/giantswarm && brew update && brew install gsctl
 #### Mac OS without Homebrew
 
 ```nohighlight
-curl -O http://downloads.giantswarm.io/gsctl/0.0.1/gsctl-0.0.1-darwin-amd64.tar.gz
-tar xzf gsctl-0.0.1-darwin-amd64.tar.gz
-sudo cp gsctl-0.0.1-darwin-amd64/gsctl /usr/local/bin/
+curl -O http://downloads.giantswarm.io/gsctl/0.1.0/gsctl-0.1.0-darwin-amd64.tar.gz
+tar xzf gsctl-0.1.0-darwin-amd64.tar.gz
+sudo cp gsctl-0.1.0-darwin-amd64/gsctl /usr/local/bin/
 ```
 
 #### Linux
 
 ```nohighlight
-curl -O http://downloads.giantswarm.io/gsctl/0.0.1/gsctl-0.0.1-linux-amd64.tar.gz
-tar xzf gsctl-0.0.1-linux-amd64.tar.gz
-sudo cp gsctl-0.0.1-linux-amd64/gsctl /usr/local/bin/
+curl -O http://downloads.giantswarm.io/gsctl/0.1.0/gsctl-0.1.0-linux-amd64.tar.gz
+tar xzf gsctl-0.1.0-linux-amd64.tar.gz
+sudo cp gsctl-0.1.0-linux-amd64/gsctl /usr/local/bin/
 ```
 
 #### Windows
 
-- Download [`gsctl` for Windows (64 Bit)](http://downloads.giantswarm.io/gsctl/0.0.1/gsctl-0.0.1-windows-amd64.zip) or [32 Bit](http://downloads.giantswarm.io/gsctl/0.0.1/gsctl-0.0.1-windows-386.zip)
+- Download [`gsctl` for Windows (64 Bit)](http://downloads.giantswarm.io/gsctl/0.1.0/gsctl-0.1.0-windows-amd64.zip) or [32 Bit](http://downloads.giantswarm.io/gsctl/0.1.0/gsctl-0.1.0-windows-386.zip)
 - Copy the contained `gsctl.exe` to a convenient location
 
 ## Changelog
