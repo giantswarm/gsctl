@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/ryanuber/columnize"
+	"github.com/giantswarm/columnize"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/config"

@@ -5,7 +5,7 @@ import (
 	"runtime"
 
 	"github.com/fatih/color"
-	"github.com/ryanuber/columnize"
+	"github.com/giantswarm/columnize"
 
 	"github.com/giantswarm/gsctl/commands"
 )
