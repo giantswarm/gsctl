@@ -54,6 +54,12 @@ var (
 	}
 )
 
+const (
+	listKeypairsActivityName      string = "list-keypairs"
+	listClustersActivityName      string = "list-clusters"
+	listOrganizationsActivityName string = "list-organizations"
+)
+
 func init() {
 	ListKeypairsCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to list key-pairs for")
 	// subcommands
@@ -79,7 +85,7 @@ func listOrgs(cmd *cobra.Command, args []string) {
 		authHeader = "giantswarm " + cmdToken
 	}
 
-	orgsResponse, apiResponse, err := client.GetUserOrganizations(authHeader)
+	orgsResponse, apiResponse, err := client.GetUserOrganizations(authHeader, requestIDHeader, listOrganizationsActivityName, cmdLine)
 	if err != nil {
 		fmt.Println("Error details:")
 		log.Fatal(err)
@@ -114,7 +120,7 @@ func checkListClusters(cmd *cobra.Command, args []string) error {
 func listClusters(cmd *cobra.Command, args []string) {
 	client := gsclientgen.NewDefaultApi()
 	authHeader := "giantswarm " + config.Config.Token
-	orgsResponse, apiResponse, err := client.GetUserOrganizations(authHeader)
+	orgsResponse, apiResponse, err := client.GetUserOrganizations(authHeader, requestIDHeader, listClustersActivityName, cmdLine)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -126,7 +132,7 @@ func listClusters(cmd *cobra.Command, args []string) {
 			sort.Strings(organizations)
 			output := []string{color.YellowString("Id") + "|" + color.YellowString("Name") + "|" + color.YellowString("Created") + "|" + color.YellowString("Organization")}
 			for _, orgName := range organizations {
-				clustersResponse, _, err := client.GetOrganizationClusters(authHeader, orgName)
+				clustersResponse, _, err := client.GetOrganizationClusters(authHeader, orgName, requestIDHeader, listClustersActivityName, cmdLine)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -154,7 +160,7 @@ func checkListKeypairs(cmd *cobra.Command, args []string) error {
 	}
 	if cmdClusterID == "" {
 		// use default cluster if possible
-		clusterID, _ := config.GetDefaultCluster()
+		clusterID, _ := config.GetDefaultCluster(requestIDHeader, listKeypairsActivityName, cmdLine)
 		if clusterID != "" {
 			cmdClusterID = clusterID
 		} else {
@@ -167,7 +173,7 @@ func checkListKeypairs(cmd *cobra.Command, args []string) error {
 func listKeypairs(cmd *cobra.Command, args []string) {
 	client := gsclientgen.NewDefaultApi()
 	authHeader := "giantswarm " + config.Config.Token
-	keypairsResponse, _, err := client.GetKeyPairs(authHeader, cmdClusterID)
+	keypairsResponse, _, err := client.GetKeyPairs(authHeader, cmdClusterID, requestIDHeader, listKeypairsActivityName, cmdLine)
 	if err != nil {
 		log.Fatal(err)
 	}

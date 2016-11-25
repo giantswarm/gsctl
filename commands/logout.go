@@ -13,6 +13,10 @@ import (
 	"github.com/giantswarm/gsctl/config"
 )
 
+const (
+	logoutActivityName string = "login"
+)
+
 var (
 	// LogoutCommand performs a logout
 	LogoutCommand = &cobra.Command{
@@ -44,7 +48,7 @@ func logout(cmd *cobra.Command, args []string) {
 		authHeader = "giantswarm " + cmdToken
 	}
 
-	logoutResponse, apiResponse, err := client.UserLogout(authHeader)
+	logoutResponse, apiResponse, err := client.UserLogout(authHeader, requestIDHeader, logoutActivityName, cmdLine)
 	if err != nil {
 		fmt.Println("Info: The client doesn't handle the API's 401 response yet.")
 		fmt.Println("Seeing this error likely means: The passed token was no longer valid.")
