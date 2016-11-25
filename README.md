@@ -87,7 +87,7 @@ sudo cp gsctl-0.1.0-linux-amd64/gsctl /usr/local/bin/
 
 ## Changelog
 
-TODO: Link to changelog
+See [Releases](https://github.com/giantswarm/gsctl/releases)
 
 ## Development
 
