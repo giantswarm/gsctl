@@ -9,9 +9,8 @@ import (
 	"strings"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
-
 	"github.com/giantswarm/gsclientgen"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // struct used for YAML serialization of settings
@@ -151,9 +150,14 @@ func getKubeconfigPaths(homeDir string) []string {
 	return nil
 }
 
-// GetDefaultCluster determines which is the default cluster. This can be either
-// the only cluster accessible, or a cluster selected explicitly.
-func GetDefaultCluster() (clusterID string, err error) {
+// GetDefaultCluster determines which is the default cluster
+//
+// This can be either the only cluster accessible, or a cluster selected explicitly.
+//
+// @param requestIDHeader  Request ID to pass with API requests
+// @param activityName     Name of the activity calling this function (for tracking)
+// @param cmdLine          Command line content used to run the CLI (for tracking)
+func GetDefaultCluster(requestIDHeader, activityName, cmdLine string) (clusterID string, err error) {
 	// Check selected cluster
 	if Config.Cluster != "" {
 		return Config.Cluster, nil
@@ -164,7 +168,7 @@ func GetDefaultCluster() (clusterID string, err error) {
 	}
 	client := gsclientgen.NewDefaultApi()
 	authHeader := "giantswarm " + Config.Token
-	orgsResponse, _, err := client.GetUserOrganizations(authHeader)
+	orgsResponse, _, err := client.GetUserOrganizations(authHeader, requestIDHeader, activityName, cmdLine)
 	if err != nil {
 		return "", err
 	}
@@ -172,7 +176,7 @@ func GetDefaultCluster() (clusterID string, err error) {
 		if len(orgsResponse.Data) > 0 {
 			clusterIDs := []string{}
 			for _, orgName := range orgsResponse.Data {
-				clustersResponse, _, err := client.GetOrganizationClusters(authHeader, orgName)
+				clustersResponse, _, err := client.GetOrganizationClusters(authHeader, orgName, requestIDHeader, activityName, cmdLine)
 				if err != nil {
 					return "", err
 				}

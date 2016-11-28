@@ -10,8 +10,8 @@ import (
 	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
+	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gsclientgen"
-	"github.com/ryanuber/columnize"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/config"
@@ -54,6 +54,12 @@ var (
 	}
 )
 
+const (
+	listKeypairsActivityName      string = "list-keypairs"
+	listClustersActivityName      string = "list-clusters"
+	listOrganizationsActivityName string = "list-organizations"
+)
+
 func init() {
 	ListKeypairsCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to list key-pairs for")
 	// subcommands
@@ -79,7 +85,7 @@ func listOrgs(cmd *cobra.Command, args []string) {
 		authHeader = "giantswarm " + cmdToken
 	}
 
-	orgsResponse, apiResponse, err := client.GetUserOrganizations(authHeader)
+	orgsResponse, apiResponse, err := client.GetUserOrganizations(authHeader, requestIDHeader, listOrganizationsActivityName, cmdLine)
 	if err != nil {
 		fmt.Println("Error details:")
 		log.Fatal(err)
@@ -91,9 +97,9 @@ func listOrgs(cmd *cobra.Command, args []string) {
 			fmt.Println(color.YellowString("No organizations available"))
 		} else {
 			sort.Strings(organizations)
-			fmt.Println(color.YellowString("Organization"))
+			fmt.Println(color.CyanString("ORGANIZATION"))
 			for _, orgName := range organizations {
-				fmt.Println(color.CyanString(orgName))
+				fmt.Println(orgName)
 			}
 		}
 	} else {
@@ -114,7 +120,7 @@ func checkListClusters(cmd *cobra.Command, args []string) error {
 func listClusters(cmd *cobra.Command, args []string) {
 	client := gsclientgen.NewDefaultApi()
 	authHeader := "giantswarm " + config.Config.Token
-	orgsResponse, apiResponse, err := client.GetUserOrganizations(authHeader)
+	orgsResponse, apiResponse, err := client.GetUserOrganizations(authHeader, requestIDHeader, listClustersActivityName, cmdLine)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -124,19 +130,19 @@ func listClusters(cmd *cobra.Command, args []string) {
 			fmt.Println(color.YellowString("No organizations available"))
 		} else {
 			sort.Strings(organizations)
-			output := []string{color.YellowString("Id") + "|" + color.YellowString("Name") + "|" + color.YellowString("Created") + "|" + color.YellowString("Organization")}
+			output := []string{color.CyanString("ID") + "|" + color.CyanString("NAME") + "|" + color.CyanString("CREATED") + "|" + color.CyanString("ORGANIZATION")}
 			for _, orgName := range organizations {
-				clustersResponse, _, err := client.GetOrganizationClusters(authHeader, orgName)
+				clustersResponse, _, err := client.GetOrganizationClusters(authHeader, orgName, requestIDHeader, listClustersActivityName, cmdLine)
 				if err != nil {
 					log.Fatal(err)
 				}
 				for _, cluster := range clustersResponse.Data.Clusters {
 					created := util.ShortDate(util.ParseDate(cluster.CreateDate))
 					output = append(output,
-						color.CyanString(cluster.Id)+"|"+
-							color.CyanString(cluster.Name)+"|"+
-							color.CyanString(created)+"|"+
-							color.CyanString(orgName))
+						cluster.Id+"|"+
+							cluster.Name+"|"+
+							created+"|"+
+							orgName)
 				}
 			}
 			fmt.Println(columnize.SimpleFormat(output))
@@ -154,7 +160,7 @@ func checkListKeypairs(cmd *cobra.Command, args []string) error {
 	}
 	if cmdClusterID == "" {
 		// use default cluster if possible
-		clusterID, _ := config.GetDefaultCluster()
+		clusterID, _ := config.GetDefaultCluster(requestIDHeader, listKeypairsActivityName, cmdLine)
 		if clusterID != "" {
 			cmdClusterID = clusterID
 		} else {
@@ -167,7 +173,7 @@ func checkListKeypairs(cmd *cobra.Command, args []string) error {
 func listKeypairs(cmd *cobra.Command, args []string) {
 	client := gsclientgen.NewDefaultApi()
 	authHeader := "giantswarm " + config.Config.Token
-	keypairsResponse, _, err := client.GetKeyPairs(authHeader, cmdClusterID)
+	keypairsResponse, _, err := client.GetKeyPairs(authHeader, cmdClusterID, requestIDHeader, listKeypairsActivityName, cmdLine)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -178,16 +184,16 @@ func listKeypairs(cmd *cobra.Command, args []string) {
 		})
 
 		// create output
-		output := []string{color.YellowString("Created") + "|" + color.YellowString("Expires") + "|" + color.YellowString("Id") + "|" + color.YellowString("Description")}
+		output := []string{color.CyanString("CREATED") + "|" + color.CyanString("EXPIRES") + "|" + color.CyanString("ID") + "|" + color.CyanString("DESCRIPTION")}
 		for _, keypair := range keypairsResponse.Data.KeyPairs {
 			created := util.ShortDate(util.ParseDate(keypair.CreateDate))
 			expires := util.ParseDate(keypair.CreateDate).Add(time.Duration(keypair.TtlHours) * time.Hour)
 
 			// skip if expired
-			output = append(output, color.CyanString(created)+"|"+
-				color.CyanString(util.ShortDate(expires))+"|"+
-				color.CyanString(util.Truncate(util.CleanKeypairID(keypair.Id), 10))+"|"+
-				color.CyanString(keypair.Description))
+			output = append(output, created+"|"+
+				util.ShortDate(expires)+"|"+
+				util.Truncate(util.CleanKeypairID(keypair.Id), 10)+"|"+
+				keypair.Description)
 		}
 		fmt.Println(columnize.SimpleFormat(output))
 

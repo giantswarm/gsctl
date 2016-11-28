@@ -85,6 +85,15 @@ sudo cp gsctl-0.1.0-linux-amd64/gsctl /usr/local/bin/
 - Download [`gsctl` for Windows (64 Bit)](http://downloads.giantswarm.io/gsctl/0.1.0/gsctl-0.1.0-windows-amd64.zip) or [32 Bit](http://downloads.giantswarm.io/gsctl/0.1.0/gsctl-0.1.0-windows-386.zip)
 - Copy the contained `gsctl.exe` to a convenient location
 
+## Configuration
+
+`gsctl` keeps it's own settings under `$HOME/.gsctl/config.yaml`.
+
+Additionally, the following environment variables can be used:
+
+- `GSCTL_DISABLE_COLORS`: When this variable is set to any non-empty string, all terminal output will be monochrome.
+- `GSCTL_DISABLE_CMDLINE_TRACKING`: When this variable is set to any non-empty string, command lines won't be submitted to the API. Otherwise command lines are submitted to learn about the tool's usage and find ways to improve.
+
 ## Changelog
 
 See [Releases](https://github.com/giantswarm/gsctl/releases)

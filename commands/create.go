@@ -49,6 +49,9 @@ const (
 
 	// windows download page
 	kubectlWindowsInstallURL string = "https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md"
+
+	addKeyPairActivityName       string = "add-keypair"
+	createKubeconfigActivityName string = "create-kubeconfig"
 )
 
 func init() {
@@ -71,7 +74,7 @@ func checkAddKeypair(cmd *cobra.Command, args []string) error {
 	}
 	if cmdClusterID == "" {
 		// use default cluster if possible
-		clusterID, _ := config.GetDefaultCluster()
+		clusterID, _ := config.GetDefaultCluster(requestIDHeader, addKeyPairActivityName, cmdLine)
 		if clusterID != "" {
 			cmdClusterID = clusterID
 		} else {
@@ -89,7 +92,7 @@ func addKeypair(cmd *cobra.Command, args []string) {
 	authHeader := "giantswarm " + config.Config.Token
 	ttlHours := int32(cmdTTLDays * 24)
 	addKeyPairBody := gsclientgen.AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
-	keypairResponse, _, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody)
+	keypairResponse, _, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, addKeyPairActivityName, cmdLine)
 
 	if err != nil {
 		log.Fatal(err)
@@ -138,7 +141,7 @@ func checkCreateKubeconfig(cmd *cobra.Command, args []string) error {
 	}
 	if cmdClusterID == "" {
 		// use default cluster if possible
-		clusterID, _ := config.GetDefaultCluster()
+		clusterID, _ := config.GetDefaultCluster(requestIDHeader, createKubeconfigActivityName, cmdLine)
 		if clusterID != "" {
 			cmdClusterID = clusterID
 		} else {
@@ -163,7 +166,7 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Creating new key-pair…")
 
-	keypairResponse, _, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody)
+	keypairResponse, _, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, createKubeconfigActivityName, cmdLine)
 
 	if err != nil {
 		fmt.Println(color.RedString("Error in createKubeconfig:"))

@@ -16,6 +16,10 @@ import (
 	"github.com/giantswarm/gsctl/config"
 )
 
+const (
+	loginActivityName string = "login"
+)
+
 var (
 	// password given via command line flag
 	password string
@@ -72,7 +76,7 @@ func login(cmd *cobra.Command, args []string) {
 
 	client := gsclientgen.NewDefaultApi()
 	requestBody := gsclientgen.LoginBodyModel{Password: string(encodedPassword)}
-	loginResponse, apiResponse, err := client.UserLogin(email, requestBody)
+	loginResponse, apiResponse, err := client.UserLogin(email, requestBody, requestIDHeader, loginActivityName, cmdLine)
 	if err != nil {
 		log.Fatal(err)
 	}
