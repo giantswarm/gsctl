@@ -21,7 +21,7 @@ var (
 	// LogoutCommand performs a logout
 	LogoutCommand = &cobra.Command{
 		Use:     "logout",
-		Short:   "Sign out the current user",
+		Short:   "Sign the current user out",
 		Long:    `This will terminate the current user's session and invalidate the authentication token.`,
 		PreRunE: checkLogout,
 		Run:     logout,
