@@ -31,7 +31,7 @@ const (
 )
 
 var (
-	// APIEndpoint is the swagger base path, to access the API.
+	// APIEndpoint is the URL base path, to access the API.
 	APIEndpoint string
 
 	// Version is the version number, to be set on build by the go linker
