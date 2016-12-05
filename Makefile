@@ -7,6 +7,7 @@ GS_PATH := "$(BUILD_PATH)/src/github.com/giantswarm"
 BUILDDATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 VERSION := $(shell cat VERSION)
 COMMIT := $(shell git rev-parse HEAD | cut -c1-10)
+SOURCE=$(shell find . -name '*.go')
 
 ifndef GOOS
 	GOOS := $(shell go env GOOS)
@@ -41,10 +42,10 @@ get-deps: .gobuild
 	go get -v gopkg.in/yaml.v2
 
 # build binary for current platform
-build: .gobuild/bin/$(BIN)-$(GOOS)-$(GOARCH)
+build: $(SOURCE) .gobuild/bin/$(BIN)-$(GOOS)-$(GOARCH)
 
 # install binary for current platform (not expected to work on Win)
-install: .gobuild/bin/$(BIN)-$(GOOS)-$(GOARCH)
+install: .gobuild $(SOURCE) .gobuild/bin/$(BIN)-$(GOOS)-$(GOARCH)
 	cp .gobuild/bin/$(BIN)-$(GOOS)-$(GOARCH) /usr/local/bin/$(BIN)
 
 # build for all platforms
