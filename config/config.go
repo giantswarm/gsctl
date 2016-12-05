@@ -31,6 +31,9 @@ const (
 )
 
 var (
+	// APIEndpoint is the URL base path, to access the API.
+	APIEndpoint string
+
 	// Version is the version number, to be set on build by the go linker
 	Version string
 
@@ -57,10 +60,10 @@ var (
 )
 
 func init() {
-
 	SystemUser, userErr := user.Current()
 	checkErr(userErr)
 
+	APIEndpoint = "https://api.giantswarm.io"
 	ConfigDirPath = path.Join(SystemUser.HomeDir, "."+ProgramName)
 	ConfigFilePath = path.Join(ConfigDirPath, ConfigFileName)
 	KubeConfigPaths = getKubeconfigPaths(SystemUser.HomeDir)
@@ -157,7 +160,7 @@ func getKubeconfigPaths(homeDir string) []string {
 // @param requestIDHeader  Request ID to pass with API requests
 // @param activityName     Name of the activity calling this function (for tracking)
 // @param cmdLine          Command line content used to run the CLI (for tracking)
-func GetDefaultCluster(requestIDHeader, activityName, cmdLine string) (clusterID string, err error) {
+func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint string) (clusterID string, err error) {
 	// Check selected cluster
 	if Config.Cluster != "" {
 		return Config.Cluster, nil
@@ -166,7 +169,7 @@ func GetDefaultCluster(requestIDHeader, activityName, cmdLine string) (clusterID
 	if Config.Token == "" {
 		return "", errors.New("User not logged in.")
 	}
-	client := gsclientgen.NewDefaultApi()
+	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
 	authHeader := "giantswarm " + Config.Token
 	orgsResponse, _, err := client.GetUserOrganizations(authHeader, requestIDHeader, activityName, cmdLine)
 	if err != nil {

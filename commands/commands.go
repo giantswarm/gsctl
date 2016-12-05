@@ -10,6 +10,9 @@ import (
 )
 
 var (
+	// API endpoint flag
+	cmdAPIEndpoint string
+
 	// token flag
 	cmdToken string
 
