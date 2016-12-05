@@ -74,7 +74,7 @@ func checkAddKeypair(cmd *cobra.Command, args []string) error {
 	}
 	if cmdClusterID == "" {
 		// use default cluster if possible
-		clusterID, _ := config.GetDefaultCluster(requestIDHeader, addKeyPairActivityName, cmdLine)
+		clusterID, _ := config.GetDefaultCluster(requestIDHeader, addKeyPairActivityName, cmdLine, cmdAPIEndpoint)
 		if clusterID != "" {
 			cmdClusterID = clusterID
 		} else {
@@ -88,7 +88,7 @@ func checkAddKeypair(cmd *cobra.Command, args []string) error {
 }
 
 func addKeypair(cmd *cobra.Command, args []string) {
-	client := gsclientgen.NewDefaultApi()
+	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
 	authHeader := "giantswarm " + config.Config.Token
 	ttlHours := int32(cmdTTLDays * 24)
 	addKeyPairBody := gsclientgen.AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
@@ -141,7 +141,7 @@ func checkCreateKubeconfig(cmd *cobra.Command, args []string) error {
 	}
 	if cmdClusterID == "" {
 		// use default cluster if possible
-		clusterID, _ := config.GetDefaultCluster(requestIDHeader, createKubeconfigActivityName, cmdLine)
+		clusterID, _ := config.GetDefaultCluster(requestIDHeader, createKubeconfigActivityName, cmdLine, cmdAPIEndpoint)
 		if clusterID != "" {
 			cmdClusterID = clusterID
 		} else {
@@ -153,7 +153,7 @@ func checkCreateKubeconfig(cmd *cobra.Command, args []string) error {
 
 // createKubeconfig adds configuration for kubectl
 func createKubeconfig(cmd *cobra.Command, args []string) {
-	client := gsclientgen.NewDefaultApi()
+	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
 	authHeader := "giantswarm " + config.Config.Token
 
 	// parameters given by the user

@@ -77,7 +77,7 @@ func checkListOrgs(cmd *cobra.Command, args []string) error {
 
 // list organizations the user is member of
 func listOrgs(cmd *cobra.Command, args []string) {
-	client := gsclientgen.NewDefaultApi()
+	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
 
 	// if token is set via flags, we unauthenticate using this token
 	authHeader := "giantswarm " + config.Config.Token
@@ -118,7 +118,7 @@ func checkListClusters(cmd *cobra.Command, args []string) error {
 
 // list all clusters the user has access to
 func listClusters(cmd *cobra.Command, args []string) {
-	client := gsclientgen.NewDefaultApi()
+	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
 	authHeader := "giantswarm " + config.Config.Token
 	orgsResponse, apiResponse, err := client.GetUserOrganizations(authHeader, requestIDHeader, listClustersActivityName, cmdLine)
 	if err != nil {
@@ -160,7 +160,7 @@ func checkListKeypairs(cmd *cobra.Command, args []string) error {
 	}
 	if cmdClusterID == "" {
 		// use default cluster if possible
-		clusterID, _ := config.GetDefaultCluster(requestIDHeader, listKeypairsActivityName, cmdLine)
+		clusterID, _ := config.GetDefaultCluster(requestIDHeader, listKeypairsActivityName, cmdLine, cmdAPIEndpoint)
 		if clusterID != "" {
 			cmdClusterID = clusterID
 		} else {
@@ -171,7 +171,7 @@ func checkListKeypairs(cmd *cobra.Command, args []string) error {
 }
 
 func listKeypairs(cmd *cobra.Command, args []string) {
-	client := gsclientgen.NewDefaultApi()
+	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
 	authHeader := "giantswarm " + config.Config.Token
 	keypairsResponse, _, err := client.GetKeyPairs(authHeader, cmdClusterID, requestIDHeader, listKeypairsActivityName, cmdLine)
 	if err != nil {

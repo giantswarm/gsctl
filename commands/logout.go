@@ -40,7 +40,7 @@ func checkLogout(cmd *cobra.Command, args []string) error {
 }
 
 func logout(cmd *cobra.Command, args []string) {
-	client := gsclientgen.NewDefaultApi()
+	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
 
 	// if token is set via flags, we unauthenticate using this token
 	authHeader := "giantswarm " + config.Config.Token

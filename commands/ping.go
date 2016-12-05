@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -26,9 +27,19 @@ func init() {
 
 // ping checks the API connections
 func ping(cmd *cobra.Command, args []string) {
-	uri := "https://api.giantswarm.io/v1/ping"
+	u, err := url.Parse(cmdAPIEndpoint)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+	u, err = u.Parse("/v1/ping")
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
 	start := time.Now()
-	resp, err := http.Get(uri)
+	resp, err := http.Get(u.String())
 	if err != nil {
 		fmt.Println(color.RedString("API cannot be reached"))
 		fmt.Println(err.Error())
