@@ -1,5 +1,3 @@
-sudo: required # needed for docker
-
 services:
   - docker
 
@@ -9,32 +7,12 @@ go:
     - 1.6
     - 1.7
 
-env:
-    global:
-        - BUILDER_VERSION=0.15.2
-
-cache:
-    directories:
-        - ./builder-cache
-
 notifications:
     email: false
-
-before_install:
-    # Grab builder from the cache, or download it if we can't.
-    - cp ./builder-cache/builder-$BUILDER_VERSION ./builder || (wget https://github.com/giantswarm/builder/releases/download/$BUILDER_VERSION/builder.$BUILDER_VERSION.linux.tar.gz && tar xzf builder.$BUILDER_VERSION.linux.tar.gz ./builder && rm builder.$BUILDER_VERSION.linux.tar.gz)
-    - chmod +x ./builder
-    - export PATH=$PATH:$PWD
-    #- go get -u github.com/golang/lint/golint
-
-install: make get-deps
 
 script:
     - make build
     - make test
-
-before_cache:
-    - cp ./builder ./builder-cache/builder-$BUILDER_VERSION
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
