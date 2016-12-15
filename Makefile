@@ -1,9 +1,7 @@
 PROJECT=gsctl
-BIN = $(PROJECT)
-BUILD_PATH := $(shell pwd)/.gobuild
-GOPATH := $(BUILD_PATH)
-GOVERSION := 1.7.3
-GS_PATH := "$(BUILD_PATH)/src/github.com/giantswarm"
+ORGANISATION=giantswarm
+BIN=$(PROJECT)
+GOVERSION := 1.7.4
 BUILDDATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 VERSION := $(shell cat VERSION)
 COMMIT := $(shell git rev-parse HEAD | cut -c1-10)
@@ -17,67 +15,56 @@ ifndef GOARCH
 endif
 
 # binary to test with
-TESTBIN := .gobuild/bin/${BIN}-${GOOS}-${GOARCH}
+TESTBIN := build/bin/${BIN}-${GOOS}-${GOARCH}
 
-.PHONY: clean .gobuild build test crosscompile assert-tagged-version
+.PHONY: clean build test crosscompile assert-tagged-version
 
-all: .gobuild build
-
-get-deps: .gobuild
-
-# create Go directory and fetch dependencies
-.gobuild:
-	@mkdir -p $(GS_PATH)
-	@rm -f $(GS_PATH)/$(PROJECT) && cd "$(GS_PATH)" && ln -s ../../../.. $(PROJECT)
-	#builder get dep -b branch-name https://github.com/giantswarm/gsclientgen.git $(GS_PATH)/gsclientgen
-	go get -v github.com/giantswarm/gsclientgen
-	go get -v github.com/bradfitz/slice
-	go get -v github.com/fatih/color
-	go get -v github.com/giantswarm/api-schema
-	go get -v github.com/giantswarm/columnize
-	go get -v github.com/go-resty/resty
-	go get -v github.com/howeyc/gopass
-	go get -v github.com/inconshreveable/mousetrap
-	go get -v github.com/spf13/cobra/cobra
-	go get -v gopkg.in/yaml.v2
+all: build
 
 # build binary for current platform
-build: $(SOURCE) .gobuild/bin/$(BIN)-$(GOOS)-$(GOARCH)
+build: $(SOURCE) build/bin/$(BIN)-$(GOOS)-$(GOARCH)
 
 # install binary for current platform (not expected to work on Win)
-install: .gobuild $(SOURCE) .gobuild/bin/$(BIN)-$(GOOS)-$(GOARCH)
-	cp .gobuild/bin/$(BIN)-$(GOOS)-$(GOARCH) /usr/local/bin/$(BIN)
+install: $(SOURCE) build/bin/$(BIN)-$(GOOS)-$(GOARCH)
+	cp build/bin/$(BIN)-$(GOOS)-$(GOARCH) /usr/local/bin/$(BIN)
 
 # build for all platforms
-crosscompile: .gobuild/bin/$(BIN)-darwin-amd64 .gobuild/bin/$(BIN)-linux-amd64 .gobuild/bin/$(BIN)-windows-386 .gobuild/bin/$(BIN)-windows-amd64
+crosscompile: build/bin/$(BIN)-darwin-amd64 build/bin/$(BIN)-linux-amd64 build/bin/$(BIN)-windows-386 build/bin/$(BIN)-windows-amd64
 
 # platform-specific build
-.gobuild/bin/$(BIN)-darwin-amd64:
-	mkdir -p .gobuild/bin
-	docker run --rm -v $(shell pwd):/usr/code -w /usr/code \
-		-e GOPATH=/usr/code/.gobuild -e GOOS=darwin -e GOARCH=amd64 -e CGO_ENABLED=0 \
-		golang:$(GOVERSION) go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-darwin-amd64 \
+build/bin/$(BIN)-darwin-amd64:
+	@mkdir -p build/bin
+	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		-e GOPATH=/go -e GOOS=darwin -e GOARCH=amd64 -e CGO_ENABLED=0 \
+		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		golang:$(GOVERSION) go build -a -installsuffix cgo -o build/bin/$(BIN)-darwin-amd64 \
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 # platform-specific build
-.gobuild/bin/$(BIN)-linux-amd64:
-	docker run --rm -v $(shell pwd):/usr/code -w /usr/code \
-		-e GOPATH=/usr/code/.gobuild -e GOOS=linux -e GOARCH=amd64 -e CGO_ENABLED=0 \
-		golang:$(GOVERSION) go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-linux-amd64 \
+build/bin/$(BIN)-linux-amd64:
+	@mkdir -p build/bin
+	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		-e GOPATH=/go -e GOOS=linux -e GOARCH=amd64 -e CGO_ENABLED=0 \
+		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		golang:$(GOVERSION) go build -a -installsuffix cgo -o build/bin/$(BIN)-linux-amd64 \
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 # platform-specific build
-.gobuild/bin/$(BIN)-windows-386:
-	docker run --rm -v $(shell pwd):/usr/code -w /usr/code \
-		-e GOPATH=/usr/code/.gobuild -e GOOS=windows -e GOARCH=386 -e CGO_ENABLED=0 \
-		golang:$(GOVERSION) go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-windows-386 \
+build/bin/$(BIN)-windows-386:
+	@mkdir -p build/bin
+	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		-e GOPATH=/go -e GOOS=windows -e GOARCH=386 -e CGO_ENABLED=0 \
+		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		golang:$(GOVERSION) go build -a -installsuffix cgo -o build/bin/$(BIN)-windows-386 \
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 # platform-specific build
-.gobuild/bin/$(BIN)-windows-amd64:
-	docker run --rm -v $(shell pwd):/usr/code -w /usr/code \
-		-e GOPATH=/usr/code/.gobuild -e GOOS=windows -e GOARCH=amd64 -e CGO_ENABLED=0 \
-		golang:$(GOVERSION) go build -a -installsuffix cgo -o .gobuild/bin/$(BIN)-windows-amd64 \
+build/bin/$(BIN)-windows-amd64:
+	@mkdir -p build/bin
+	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		-e GOPATH=/go -e GOOS=windows -e GOARCH=amd64 -e CGO_ENABLED=0 \
+		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		golang:$(GOVERSION) go build -a -installsuffix cgo -o build/bin/$(BIN)-windows-amd64 \
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 # run some tests
@@ -107,7 +94,7 @@ bin-dist: crosscompile
 		mkdir -p build/$(BIN)-$(VERSION)-$$OS; \
 		cp README.md build/$(BIN)-$(VERSION)-$$OS/; \
 		cp LICENSE build/$(BIN)-$(VERSION)-$$OS/; \
-		cp .gobuild/bin/$(BIN)-$$OS build/$(BIN)-$(VERSION)-$$OS/$(BIN); \
+		cp build/bin/$(BIN)-$$OS build/$(BIN)-$(VERSION)-$$OS/$(BIN); \
 		cd build/; \
 		tar -cvzf ./$(BIN)-$(VERSION)-$$OS.tar.gz $(BIN)-$(VERSION)-$$OS; \
 		mv ./$(BIN)-$(VERSION)-$$OS.tar.gz ../bin-dist/; \
@@ -119,7 +106,7 @@ bin-dist: crosscompile
 		mkdir -p build/$(BIN)-$(VERSION)-$$OS; \
 		cp README.md build/$(BIN)-$(VERSION)-$$OS/; \
 		cp LICENSE build/$(BIN)-$(VERSION)-$$OS/; \
-		cp .gobuild/bin/$(BIN)-$$OS build/$(BIN)-$(VERSION)-$$OS/$(BIN).exe; \
+		cp build/bin/$(BIN)-$$OS build/$(BIN)-$(VERSION)-$$OS/$(BIN).exe; \
 		cd build; \
 		zip $(BIN)-$(VERSION)-$$OS.zip $(BIN)-$(VERSION)-$$OS/*; \
 		mv ./$(BIN)-$(VERSION)-$$OS.zip ../bin-dist/; \
@@ -156,4 +143,4 @@ release: assert-tagged-version bin-dist
 
 # remove generated stuff
 clean:
-	rm -rf bin-dist .gobuild release
+	rm -rf bin-dist build release
