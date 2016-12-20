@@ -27,7 +27,8 @@ _testmain.go
 .DS_Store
 
 # Generated files
-.gobuild
 bin-dist
 build
 release
+/gsctl
+/gsctl.exe
