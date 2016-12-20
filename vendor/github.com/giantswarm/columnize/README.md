@@ -3,7 +3,9 @@ Columnize
 
 Easy column-formatted output for golang
 
-[![Build Status](https://travis-ci.org/ryanuber/columnize.svg)](https://travis-ci.org/ryanuber/columnize)
+Note: this fork of https://github.com/ryanuber/columnize adds a cheap implementation to work with coloured text using some ANSII excape codes
+
+[![Build Status](https://travis-ci.org/giantswarm/columnize.svg)](https://travis-ci.org/giantswarm/columnize)
 
 Columnize is a really small Go package that makes building CLI's a little bit
 easier. In some CLI designs, you want to output a number similar items in a
@@ -17,7 +19,7 @@ package main
 
 import (
     "fmt"
-    "github.com/ryanuber/columnize"
+    "github.com/giantswarm/columnize"
 )
 
 func main() {
@@ -53,7 +55,14 @@ Columnize is configured using a `Config`, which can be obtained by calling the
 config := columnize.DefaultConfig()
 config.Delim = "|"
 config.Glue = "  "
+config.Prefix = ""
+config.Empty = ""
 ```
+
+* `Delim` is the string by which columns of **input** are delimited
+* `Glue` is the string by which columns of **output** are delimited
+* `Prefix` is a string by which each line of **output** is prefixed
+* `Empty` is a string used to replace blank values found in output
 
 You can then pass the `Config` in using the `Format` method (signature below) to
 have text formatted to your liking.

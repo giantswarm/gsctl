@@ -1,5 +1,5 @@
-hash: 64e9dfcd4a2afcb176b5cec9170dac20b8b8656bb9b7fe5d170ceedd421d26b7
-updated: 2016-12-15T12:39:51.177483148+01:00
+hash: edcebc5b1aea48f33468bc1416a5d3bdc30679a6ebc934621d4e368fc91d2ed8
+updated: 2016-12-20T15:08:17.559204793+01:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -8,7 +8,7 @@ imports:
 - name: github.com/giantswarm/api-schema
   version: f8468345e621ea9f5af6965919449dbbe827a841
 - name: github.com/giantswarm/columnize
-  version: 785d943a7b6886e0bb2f139a60487b823dd8d9de
+  version: 822fe83f8e3222d9cee96ad5d10aad8e00dccc8a
 - name: github.com/giantswarm/gsclientgen
   version: 7b4a4b14fc2afabdf257cffaf5157c65dfcc49dd
 - name: github.com/go-resty/resty
@@ -32,11 +32,11 @@ imports:
   subpackages:
   - reflectutil
 - name: golang.org/x/crypto
-  version: 9a6f0a01987842989747adff311d80750ba25530
+  version: 2b786ab9e9649dc660afa3bd580fd05a05e20d95
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 468bac874d80e6ca892ecbb9bf09c72519b5b751
+  version: 45e771701b814666a7eb299e6c7a57d0b1799e91
   subpackages:
   - publicsuffix
 - name: golang.org/x/sys
