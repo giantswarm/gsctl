@@ -6,7 +6,8 @@ import:
 - package: github.com/giantswarm/api-schema
   version: ^0.7.1
 - package: github.com/giantswarm/columnize
-  version: fix-length-calculation
+  version: =2.0.2
+  repo: https://github.com/giantswarm/columnize.git
 - package: github.com/giantswarm/gsclientgen
 - package: github.com/howeyc/gopass
 - package: github.com/spf13/cobra

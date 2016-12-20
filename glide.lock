@@ -1,5 +1,5 @@
-hash: edcebc5b1aea48f33468bc1416a5d3bdc30679a6ebc934621d4e368fc91d2ed8
-updated: 2016-12-20T15:08:17.559204793+01:00
+hash: 343c27101a557ee06942270897ab0d9c37fbdc28837f6667cb17a95b83a018b6
+updated: 2016-12-20T16:20:59.155314151+01:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -8,7 +8,8 @@ imports:
 - name: github.com/giantswarm/api-schema
   version: f8468345e621ea9f5af6965919449dbbe827a841
 - name: github.com/giantswarm/columnize
-  version: 822fe83f8e3222d9cee96ad5d10aad8e00dccc8a
+  version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
+  repo: https://github.com/giantswarm/columnize.git
 - name: github.com/giantswarm/gsclientgen
   version: 7b4a4b14fc2afabdf257cffaf5157c65dfcc49dd
 - name: github.com/go-resty/resty
