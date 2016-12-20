@@ -1,0 +1,336 @@
+swagger: "2.0"
+host: api.giantswarm.io
+schemes:
+  - https
+info:
+  title: Giant Swarm legacy API
+  version: "legacy"
+  description: "Caution: This is an incomplete description of some legacy API functions."
+consumes:
+  - application/json
+produces:
+  - application/json
+
+paths:
+  /v1/user/{email}/login:
+    post:
+      operationId: userLogin
+      summary: Log in as a user
+      description: This method takes email and password of a user and returns a new session token. The token can be found in the `data.Id` field of the response object.
+      externalDocs:
+        description: More information
+        url: "http://firstgen-docs.giantswarm.io/reference/api/v1/#password-authentication"
+      parameters:
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+        - name: email
+          in: path
+          type: string
+          required: true
+          description: User email address
+        - name: payload
+          in: body
+          required: true
+          description: base64 encoded password
+          schema:
+            $ref: '#/definitions/LoginBodyModel'
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/LoginResponseModel'
+        "400":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+        default:
+          description: Unknown error
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+  /v1/token/logout:
+    post:
+      operationId: userLogout
+      summary: Expire the currently used auth token
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+      produces:
+        - application/json
+        - text/plain
+      responses:
+        "200":
+          description: Success. A `response_code=10007` indicates that the token has been deleted.
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/EmptyObjectModel'
+        default:
+          description: Unknown error
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+  /v1/user/me/memberships:
+    get:
+      operationId: getUserOrganizations
+      summary: Get organizations for user
+      description: Returns a list of organizations of which the current user is a member
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/UserOrganizationsResponseModel'
+        default:
+          description: Unknown error
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+  /v3/orgs/{organization_name}/clusters/:
+    get:
+      operationId: getOrganizationClusters
+      summary: Get clusters for organization
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+        - name: organization_name
+          in: path
+          required: true
+          type: string
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/OrganizationClustersResponseModel'
+        default:
+          description: Unknown error
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+  /v3/clusters/{cluster_id}/key-pairs/:
+    get:
+      operationId: getKeyPairs
+      summary: Get key-pairs for cluster
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+        - name: cluster_id
+          in: path
+          required: true
+          type: string
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/KeyPairsResponseModel'
+        default:
+          description: Unknown error
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+    post:
+      operationId: addKeyPair
+      summary: Add key-pair for cluster
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+        - name: cluster_id
+          in: path
+          required: true
+          type: string
+          description: ID of the cluster to create the key-pair for
+        - name: body
+          in: body
+          required: true
+          description: Description and expiry time for the new key-pair
+          schema:
+            $ref: '#/definitions/AddKeyPairBody'
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/AddKeyPairResponseModel'
+        default:
+          description: Unknown error
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+
+
+definitions:
+  GenericResponseModel:
+    type: object
+    required: ["status_code", "status_text"]
+    properties:
+      status_code:
+        type: integer
+      status_text:
+        type: string
+  LoginResponseModel:
+    type: object
+    required: ["data", "status_code", "status_text"]
+    properties:
+      data:
+        type: object
+        required: ["Id"]
+        properties:
+          Id:
+            type: string
+            description: New session token
+      status_code:
+        type: integer
+      status_text:
+        type: string
+  UserOrganizationsResponseModel:
+    type: object
+    required: ["data", "status_code", "status_text"]
+    properties:
+      data:
+        type: array
+        items:
+          type: string
+      status_code:
+        type: integer
+      status_text:
+        type: string
+  ClusterModel:
+    type: object
+    required: ["id"]
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      create_date:
+        type: string
+  KeyPairModel:
+    type: object
+    required: ["id", "description", "ttl_hours"]
+    properties:
+      id:
+        type: string
+      description:
+        type: string
+      ttl_hours:
+        type: integer
+      create_date:
+        type: string
+      certificate_authority_data:
+        type: string
+      client_key_data:
+        type: string
+      client_certificate_data:
+        type: string
+  AddKeyPairBody:
+    type: object
+    required: ["description"]
+    properties:
+      description:
+        type: string
+      ttl_hours:
+        type: integer
+        format: int32
+  AddKeyPairResponseModel:
+    type: object
+    required: ["status_code", "status_text", "data"]
+    properties:
+      status_code:
+        type: integer
+      status_text:
+        type: string
+      data:
+        type: object
+        required: ["id"]
+        properties:
+          id:
+            type: string
+          description:
+            type: string
+          ttl_hours:
+            type: integer
+          create_date:
+            type: string
+          certificate_authority_data:
+            type: string
+          client_key_data:
+            type: string
+          client_certificate_data:
+            type: string
+  KeyPairsResponseModel:
+    type: object
+    required: ["data", "status_code", "status_text"]
+    properties:
+      data:
+        type: object
+        properties:
+          KeyPairs:
+            type: array
+            items:
+              $ref: '#/definitions/KeyPairModel'
+      status_code:
+        type: integer
+      status_text:
+        type: string
+  OrganizationClustersResponseModel:
+    type: object
+    required: ["data", "status_code", "status_text"]
+    properties:
+      data:
+        type: object
+        properties:
+          clusters:
+            type: array
+            items:
+              $ref: '#/definitions/ClusterModel'
+      status_code:
+        type: integer
+      status_text:
+        type: string
+  LoginBodyModel:
+    type: object
+    required: ["password"]
+    properties:
+      password:
+        type: string
+        description: base64 encoded password
+  EmptyObjectModel:
+    type: object
+    properties:
+      none:
+        type: string
+
+parameters:
+  RequiredAuthorizationHeader:
+    name: Authorization
+    in: header
+    type: string
+    required: true
+    description: Header to pass an authorization token. The value has to be in the form `giantswarm <token>`.
+  XRequestIDHeader:
+    name: X-Request-ID
+    in: header
+    type: string
+    required: false
+    description: A randomly generated key that can be used to track a request throughout services of Giant Swarm
+  XGiantSwarmActivityHeader:
+    name: X-Giant-Swarm-Activity
+    in: header
+    type: string
+    required: false
+    description: Name of an activity to track, like "list-clusters"
+  XGiantSwarmCmdLineHeader:
+    name: X-Giant-Swarm-CmdLine
+    in: header
+    type: string
+    required: false
+    description: If activity has been issued by a CLI, this header can contain the command line
+
