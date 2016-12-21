@@ -1,0 +1,4 @@
+# This YAML file is an invalid cluster specification
+# because it doesn't contain any known key. It might
+# result in an error, as it misses the "owner" attribute.
+foo: bar

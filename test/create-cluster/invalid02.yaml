@@ -1,0 +1,6 @@
+# This YAML file is an invalid cluster specification
+# as it contain unknown keys. However the unknown
+# key will be ignored and this shouldn't create
+# a problem.
+name: Invalid cluster spec
+foo: bar

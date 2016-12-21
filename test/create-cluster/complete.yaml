@@ -1,0 +1,37 @@
+# This YAML file is a most complete specification for a cluster
+# to be passed via the `gsctl create cluster -f` command
+name: Complete cluster spec
+owner: giantswarm
+kubernetes_version: 1.4.6
+workers:
+  - memory:
+      size_gb: 2
+    storage:
+      size_gb: 20
+    cpu:
+      cores: 2
+    labels:
+      nodetype: standard
+  - memory:
+      size_gb: 8
+    storage:
+      size_gb: 20
+    cpu:
+      cores: 2
+    labels:
+      nodetype: hiram
+  - memory:
+      size_gb: 2
+    storage:
+      size_gb: 20
+    cpu:
+      cores: 6
+    labels:
+      nodetype: hicpu
+masters:
+  - memory:
+      size_gb: 2
+    storage:
+      size_gb: 20
+    cpu:
+      cores: 6
