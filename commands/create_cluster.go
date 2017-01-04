@@ -1,15 +1,18 @@
 package commands
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/spf13/cobra"
 )
@@ -48,6 +51,8 @@ const (
 	defaultWorkerNumCPUs       int = 1
 	defaultWorkerMemorySizeGB  int = 2
 	defaultWorkerStorageSizeGB int = 10
+
+	createClusterActivityName string = "create-cluster"
 )
 
 var (
@@ -91,10 +96,12 @@ Examples:
 	cmdWorkerMemorySizeGB int
 	// Local storage in GB per worker as required via flag on execution
 	cmdWorkerStorageSizeGB int
+	// dry run command line flag
+	cmdDryRun bool
 )
 
 func init() {
-	CreateClusterCommand.Flags().StringVarP(&cmdInputYAMLFile, "file", "f", "", "Path to a YAML file containing the cluster specification")
+	CreateClusterCommand.Flags().StringVarP(&cmdInputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file")
 	CreateClusterCommand.Flags().StringVarP(&cmdClusterName, "name", "", "", "Cluster name")
 	CreateClusterCommand.Flags().StringVarP(&cmdKubernetesVersion, "kubernetes-version", "", "", "Kubernetes version of the cluster")
 	CreateClusterCommand.Flags().StringVarP(&cmdOwner, "owner", "", "", "Organization to own the cluster")
@@ -102,6 +109,7 @@ func init() {
 	CreateClusterCommand.Flags().IntVarP(&cmdWorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().IntVarP(&cmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().IntVarP(&cmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
+	CreateClusterCommand.Flags().BoolVarP(&cmdDryRun, "dry-run", "", false, "If set, the cluster won't be created. Useful with -v|--versbose.")
 
 	CreateCommand.AddCommand(CreateClusterCommand)
 }
@@ -128,24 +136,25 @@ func checkAddCluster(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// readClusterDefinitionFromFile reads a cluster definition from a YAML config file
-func readClusterDefinitionFromFile(filePath string) (*clusterDefinition, error) {
+// readDefinitionFromFile reads a cluster definition from a YAML config file
+func readDefinitionFromFile(filePath string) (clusterDefinition, error) {
+	myDef := clusterDefinition{}
 	data, readErr := ioutil.ReadFile(filePath)
 	if readErr != nil {
-		return nil, readErr
+		return myDef, readErr
 	}
 
-	myDef := new(clusterDefinition)
 	yamlErr := yaml.Unmarshal(data, &myDef)
 	if yamlErr != nil {
-		return nil, yamlErr
+		return myDef, yamlErr
 	}
 	return myDef, nil
 }
 
-// mergeDefinitionAndFlags takes a definition specified by file and
-// overwrites some settings given via flags
-func mergeDefinitionAndFlags(def *clusterDefinition) *clusterDefinition {
+// enhanceDefinitionWithFlags takes a definition specified by file and
+// overwrites some settings given via flags.
+// Note that only a few attributes can be overridden by flags.
+func enhanceDefinitionWithFlags(def *clusterDefinition) {
 	if cmdClusterName != "" {
 		def.Name = cmdClusterName
 	}
@@ -155,12 +164,11 @@ func mergeDefinitionAndFlags(def *clusterDefinition) *clusterDefinition {
 	if cmdOwner != "" {
 		def.Owner = cmdOwner
 	}
-	return def
 }
 
 // createDefinitionFromFlags creates a clusterDefinition based on the
 // flags the user has given
-func createDefinitionFromFlags() *clusterDefinition {
+func createDefinitionFromFlags() clusterDefinition {
 	def := clusterDefinition{}
 	if cmdClusterName != "" {
 		def.Name = cmdClusterName
@@ -185,37 +193,119 @@ func createDefinitionFromFlags() *clusterDefinition {
 				worker.Memory = memoryDefinition{SizeGB: cmdWorkerMemorySizeGB}
 			}
 			workers = append(workers, worker)
-			fmt.Printf("%#v\n", worker)
+			//fmt.Printf("%#v\n", worker)
 		}
 		def.Workers = workers
 	}
-	return &def
+	return def
+}
+
+// creates a gsclientgen.AddClusterBodyModel from clusterDefinition
+func createAddClusterBody(d clusterDefinition) gsclientgen.AddClusterBodyModel {
+	a := gsclientgen.AddClusterBodyModel{}
+	a.Name = d.Name
+	a.Owner = d.Owner
+	a.KubernetesVersion = d.KubernetesVersion
+
+	for _, dWorker := range d.Workers {
+		ndmWorker := gsclientgen.NodeDefinitionModel{}
+		ndmWorker.Memory = gsclientgen.NodeDefinitionModelMemory{SizeGb: int32(dWorker.Memory.SizeGB)}
+		ndmWorker.Cpu = gsclientgen.NodeDefinitionModelCpu{Cores: int32(dWorker.CPU.Cores)}
+		ndmWorker.Storage = gsclientgen.NodeDefinitionModelStorage{SizeGb: int32(dWorker.Storage.SizeGB)}
+		ndmWorker.Labels = dWorker.Labels
+		a.Workers = append(a.Workers, ndmWorker)
+	}
+
+	for _, dMaster := range d.Masters {
+		ndmMaster := gsclientgen.NodeDefinitionModel{}
+		ndmMaster.Memory = gsclientgen.NodeDefinitionModelMemory{SizeGb: int32(dMaster.Memory.SizeGB)}
+		ndmMaster.Cpu = gsclientgen.NodeDefinitionModelCpu{Cores: int32(dMaster.CPU.Cores)}
+		ndmMaster.Storage = gsclientgen.NodeDefinitionModelStorage{SizeGb: int32(dMaster.Storage.SizeGB)}
+		a.Masters = append(a.Masters, ndmMaster)
+	}
+
+	return a
 }
 
 // interprets arguments/flags, shows validation results, eventually submits create request
 func addCluster(cmd *cobra.Command, args []string) {
-	var definition *clusterDefinition
+	var definition clusterDefinition
+	var err error
 	if cmdInputYAMLFile != "" {
 		// definition from file (and optionally flags)
-		definition, err := readClusterDefinitionFromFile(cmdInputYAMLFile)
+		definition, err = readDefinitionFromFile(cmdInputYAMLFile)
 		if err != nil {
 			fmt.Println(color.RedString("Could not read file '%s'", cmdInputYAMLFile))
 			fmt.Printf("Error: %s\n", err)
 			os.Exit(1)
 		}
-		definition = mergeDefinitionAndFlags(definition)
+		enhanceDefinitionWithFlags(&definition)
 	} else {
 		// definition from flags only
 		definition = createDefinitionFromFlags()
 	}
 
-	d, err := yaml.Marshal(&definition)
-	if err != nil {
-		log.Fatalf("error: %v", err)
+	// Validate result and give feedback
+	if definition.Owner == "" {
+		// try using default organization
+		if config.Config.Organization != "" {
+			definition.Owner = config.Config.Organization
+		} else {
+			fmt.Println(color.RedString("No owner organization set"))
+			if cmdInputYAMLFile != "" {
+				fmt.Println("Please specify an owner organization for the cluster in your definition file or set one via the --owner flag.")
+			} else {
+				fmt.Println("Please specify an owner organization for the cluster via the --owner flag.")
+			}
+			os.Exit(1)
+		}
 	}
 
-	// Preview for dev purposes
-	fmt.Printf(string(d))
+	// Preview in YAML format
+	if cmdVerbose {
+		fmt.Println("\nDefinition for the requested cluster:")
+		d, err := yaml.Marshal(definition)
+		if err != nil {
+			log.Fatalf("error: %v", err)
+		}
+		fmt.Printf(color.CyanString(string(d)))
+		fmt.Println()
+	}
 
-	// TODO: Print returned cluster ID at least
+	// create JSON API call payload to catch and handle errors early
+	addClusterBody := createAddClusterBody(definition)
+	if cmdVerbose {
+		_, err := json.Marshal(addClusterBody)
+		if err != nil {
+			fmt.Println()
+			fmt.Println(color.RedString("Could not create JSON body for API request"))
+			fmt.Printf("Error message: %s\n\n", err)
+			fmt.Println("Please contact Giant Swarm via support@giantswarm.io in case you need any help.")
+			os.Exit(1)
+		}
+	}
+
+	if !cmdDryRun {
+		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(definition.Owner))
+
+		// perform API call
+		authHeader := "giantswarm " + config.Config.Token
+		client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
+		responseBody, apiResponse, _ := client.AddCluster(authHeader, addClusterBody, requestIDHeader, createClusterActivityName, cmdLine)
+
+		// handle API result
+		if responseBody.Code == 201 {
+			clusterID := strings.Split(apiResponse.Header["Location"][0], "/")[3]
+			fmt.Printf("New cluster with ID '%s' is launching\n", color.CyanString(clusterID))
+		} else {
+			fmt.Println()
+			fmt.Println(color.RedString("Could not create cluster"))
+			fmt.Printf("Error message: %s\n", responseBody.Message)
+			fmt.Printf("Response code: %d\n", responseBody.Code)
+			fmt.Printf("Request ID: %s\n\n", requestIDHeader)
+			fmt.Println("Please contact Giant Swarm via support@giantswarm.io in case you need any help.")
+			os.Exit(1)
+		}
+	}
+
 }
