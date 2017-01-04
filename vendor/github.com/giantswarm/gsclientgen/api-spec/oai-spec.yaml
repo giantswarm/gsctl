@@ -165,6 +165,42 @@ paths:
           schema:
             $ref: '#/definitions/GenericResponseModel'
 
+  /v4/clusters/:
+    post:
+      operationId: addCluster
+      summary: Add cluster
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+        - name: body
+          in: body
+          required: true
+          description: Cluster definition
+          schema:
+            $ref: '#/definitions/AddClusterBodyModel'
+      responses:
+        "201":
+          description: Cluster created
+          headers:
+            Location:
+              type: string
+              description: URI for details of the new cluster
+          schema:
+            $ref: '#/definitions/V4GenericResponseModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/V4GenericResponseModel'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/V4GenericResponseModel'
+        default:
+          description: Unknown error
+          schema:
+            $ref: '#/definitions/V4GenericResponseModel'
 
 definitions:
   GenericResponseModel:
@@ -174,6 +210,14 @@ definitions:
       status_code:
         type: integer
       status_text:
+        type: string
+  V4GenericResponseModel:
+    type: object
+    required: ["code", "message"]
+    properties:
+      code:
+        type: integer
+      message:
         type: string
   LoginResponseModel:
     type: object
@@ -302,6 +346,53 @@ definitions:
       password:
         type: string
         description: base64 encoded password
+  AddClusterBodyModel:
+    type: object
+    description: Model for creating a new cluster
+    properties:
+      name:
+        type: string
+        description: Cluster name
+      kubernetes_version:
+        type: string
+        description: Kubernetes version number
+      owner:
+        type: string
+        description: Organization ID of the owning organization
+      workers:
+        type: array
+        items:
+          $ref: '#/definitions/NodeDefinitionModel'
+      masters:
+        type: array
+        items:
+          $ref: '#/definitions/NodeDefinitionModel'
+  NodeDefinitionModel:
+    type: object
+    description: Defines capabilities of a cluster node, usable both for worker and master nodes
+    properties:
+      memory:
+        type: object
+        properties:
+          size_gb:
+            type: integer
+            description: RAM size in GB
+      storage:
+        type: object
+        properties:
+          size_gb:
+            type: integer
+            description: Node storage size in GB
+      cpu:
+        type: object
+        properties:
+          cores:
+            type: integer
+            description: Number of CPU cores
+      labels:
+        type: object
+        additionalProperties: true
+
   EmptyObjectModel:
     type: object
     properties:
@@ -333,4 +424,3 @@ parameters:
     type: string
     required: false
     description: If activity has been issued by a CLI, this header can contain the command line
-
