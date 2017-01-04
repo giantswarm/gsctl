@@ -73,9 +73,11 @@ extend/overwrite the definition given as a file.
 
 Examples:
 
-  gsctl create cluster --num-workers=5 --num-cpus=2 --memory-gb=8 --storage-gb=100
+  gsctl create cluster --owner=myorg --num-workers=5 --num-cpus=2 --memory-gb=8 --storage-gb=100
 
-  gsctl create cluster --file my-cluster.yaml`,
+  gsctl create cluster --file my-cluster.yaml
+
+	gsctl create cluster --num-workers=2 --dry-run --verbose`,
 		PreRunE: checkAddCluster,
 		Run:     addCluster,
 	}
@@ -296,7 +298,8 @@ func addCluster(cmd *cobra.Command, args []string) {
 		// handle API result
 		if responseBody.Code == 201 {
 			clusterID := strings.Split(apiResponse.Header["Location"][0], "/")[3]
-			fmt.Printf("New cluster with ID '%s' is launching\n", color.CyanString(clusterID))
+			fmt.Printf("New cluster with ID '%s' is launching. You can go ahead and add kubectl credentials using\n\n", color.CyanString(clusterID))
+			fmt.Printf("    %s\n\n", color.YellowString("gsctl create kubeconfig -c "+clusterID))
 		} else {
 			fmt.Println()
 			fmt.Println(color.RedString("Could not create cluster"))
