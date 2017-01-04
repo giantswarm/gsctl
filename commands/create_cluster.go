@@ -294,7 +294,7 @@ func addCluster(cmd *cobra.Command, args []string) {
 		authHeader := "giantswarm " + config.Config.Token
 		if cmdToken != "" {
 			// command line flag overwrites
-			authHeader := "giantswarm " + cmdToken
+			authHeader = "giantswarm " + cmdToken
 		}
 		client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
 		responseBody, apiResponse, _ := client.AddCluster(authHeader, addClusterBody, requestIDHeader, createClusterActivityName, cmdLine)
