@@ -66,10 +66,13 @@ var (
 For simple specification of a set of equal worker nodes, command line flags can
 be used.
 
-Alternatively, if detailed specification of individual worker nodes and/or the
-master node is required, a YAML file can be passed using the --file|-f flag. In
-this case, some command line flags like --name and --owner can be used to
-extend/overwrite the definition given as a file.
+Alternatively, the --file|-f flag allows to pass a detailed definition YAML file
+that can contain specs for each individual worker node, like number of CPUs,
+memory size, local storage size, and node labels.
+
+When using a definition file, some command line flags like --name and --owner
+can be used to extend the definition given as a file. Command line flags take
+precedence.
 
 Examples:
 
