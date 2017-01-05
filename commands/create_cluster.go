@@ -51,6 +51,11 @@ const (
 	defaultWorkerNumCPUs       int = 1
 	defaultWorkerMemorySizeGB  int = 2
 	defaultWorkerStorageSizeGB int = 10
+	minimumNumWorkers          int = 2
+	minimumNumMasters          int = 1
+	minimumWorkerNumCPUs       int = 1
+	minimumWorkerMemorySizeGB  int = 1
+	minimumWorkerStorageSizeGB int = 1
 
 	createClusterActivityName string = "create-cluster"
 )
@@ -138,6 +143,35 @@ func checkAddCluster(cmd *cobra.Command, args []string) error {
 			return errors.New(s + "When requiring specific worker node specification details, you must also specify the number of worker nodes.\n")
 		}
 	}
+
+	// validate number of workers specified by flag
+	if cmdNumWorkers > 0 && cmdNumWorkers < minimumNumWorkers {
+		s := color.RedString("\nNot enough worker nodes specified\n")
+		s = s + "You'll need at least " + string(minimumNumWorkers) + " worker nodes for a useful cluster.\n\n"
+		return errors.New(s)
+	}
+
+	// validate number of CPUs specified by flag
+	if cmdWorkerNumCPUs > 0 && cmdWorkerNumCPUs < minimumWorkerNumCPUs {
+		s := color.RedString("\nNot enough CPUs per worker specified\n")
+		s = s + "You'll need at least " + string(minimumWorkerNumCPUs) + " CPU cores per worker node.\n\n"
+		return errors.New(s)
+	}
+
+	// validate memory size specified by flag
+	if cmdWorkerMemorySizeGB > 0 && cmdWorkerMemorySizeGB < minimumWorkerMemorySizeGB {
+		s := color.RedString("\nNot enough Memory per worker specified\n")
+		s = s + "You'll need at least " + string(minimumWorkerMemorySizeGB) + " GB per worker node.\n\n"
+		return errors.New(s)
+	}
+
+	// validate storage size specified by flag
+	if cmdWorkerStorageSizeGB > 0 && cmdWorkerStorageSizeGB < minimumWorkerStorageSizeGB {
+		s := color.RedString("\nNot enough Memory per worker specified\n")
+		s = s + "You'll need at least " + string(minimumWorkerStorageSizeGB) + " GB per worker node.\n\n"
+		return errors.New(s)
+	}
+
 	return nil
 }
 
@@ -256,12 +290,23 @@ func addCluster(cmd *cobra.Command, args []string) {
 		if config.Config.Organization != "" {
 			definition.Owner = config.Config.Organization
 		} else {
-			fmt.Println(color.RedString("No owner organization set"))
+			fmt.Printf("\n%s\n", color.RedString("No owner organization set"))
 			if cmdInputYAMLFile != "" {
-				fmt.Println("Please specify an owner organization for the cluster in your definition file or set one via the --owner flag.")
+				fmt.Println("Please specify an owner organization for the cluster in your definition file or set one via the --owner flag.\n")
 			} else {
-				fmt.Println("Please specify an owner organization for the cluster via the --owner flag.")
+				fmt.Println("Please specify an owner organization for the cluster via the --owner flag.\n")
 			}
+			os.Exit(1)
+		}
+	}
+
+	// Validations based on definition file.
+	// For validations based on command line flags, see checkAddCluster()
+	if cmdInputYAMLFile != "" {
+		// number of workers
+		if len(definition.Workers) > 0 && len(definition.Workers) < minimumNumWorkers {
+			fmt.Printf("\n%s\n", color.RedString("Not enough worker nodes specified"))
+			fmt.Printf("If you specify workers in your definition file, you'll have to specify at least %d worker nodes for a useful cluster.\n\n", minimumNumWorkers)
 			os.Exit(1)
 		}
 	}
