@@ -40,14 +40,20 @@ func checkLogout(cmd *cobra.Command, args []string) error {
 }
 
 func logout(cmd *cobra.Command, args []string) {
-	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
 
-	// if token is set via flags, we unauthenticate using this token
-	authHeader := "giantswarm " + config.Config.Token
+	currentToken := config.Config.Token
 	if cmdToken != "" {
-		authHeader = "giantswarm " + cmdToken
+		currentToken = cmdToken
 	}
 
+	// erase local credentials in any case
+	config.Config.Token = ""
+	config.Config.Email = ""
+	config.WriteToFile()
+
+	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
+
+	authHeader := "giantswarm " + currentToken
 	logoutResponse, apiResponse, err := client.UserLogout(authHeader, requestIDHeader, logoutActivityName, cmdLine)
 	if err != nil {
 		fmt.Println("Info: The client doesn't handle the API's 401 response yet.")
@@ -58,16 +64,10 @@ func logout(cmd *cobra.Command, args []string) {
 	if logoutResponse.StatusCode == apischema.STATUS_CODE_RESOURCE_DELETED {
 		// remove token from settings
 		// unless we unathenticated the token from flags
-		if cmdToken == "" {
-			config.Config.Token = ""
-			config.Config.Email = ""
-		}
 		fmt.Println(color.GreenString("Successfully logged out"))
 	} else {
 		fmt.Printf("Unhandled response code: %v", logoutResponse.StatusCode)
 		fmt.Printf("Status text: %v", logoutResponse.StatusText)
 		fmt.Printf("apiResponse: %s\n", apiResponse)
 	}
-
-	config.WriteToFile()
 }
