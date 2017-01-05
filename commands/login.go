@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/gsclientgen"
 	"github.com/howeyc/gopass"
+	keychain "github.com/lunixbochs/go-keychain"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/config"
@@ -60,7 +62,19 @@ func checkLogin(cmd *cobra.Command, args []string) error {
 
 // login creates a new session token
 func login(cmd *cobra.Command, args []string) {
-	var email = args[0]
+	email := args[0]
+	keychainServiceName := "gsctl password for " + email
+
+	// find keychain entry
+	if runtime.GOOS == "darwin" {
+		foundPassword, findErr := keychain.Find(keychainServiceName, email)
+		if findErr == nil {
+			if cmdVerbose {
+				fmt.Println("Using password from Keychain")
+			}
+			password = foundPassword
+		}
+	}
 
 	// interactive password prompt
 	if password == "" {
@@ -85,6 +99,10 @@ func login(cmd *cobra.Command, args []string) {
 		fmt.Println(color.GreenString("Successfully logged in"))
 		config.Config.Token = loginResponse.Data.Id
 		config.Config.Email = email
+		// store password in keychain
+		if runtime.GOOS == "darwin" {
+			keychain.Add(keychainServiceName, email, password)
+		}
 	} else if loginResponse.StatusCode == apischema.STATUS_CODE_RESOURCE_INVALID_CREDENTIALS {
 		// bad credentials
 		fmt.Println(color.RedString("Incorrect password submitted. Please try again."))
