@@ -88,6 +88,10 @@ func checkAddKeypair(cmd *cobra.Command, args []string) error {
 }
 
 func addKeypair(cmd *cobra.Command, args []string) {
+	if cmdDescription == "" {
+		cmdDescription = "Added by user " + config.Config.Email + " using 'gsctl create keypair'"
+	}
+
 	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
 	authHeader := "giantswarm " + config.Config.Token
 	ttlHours := int32(cmdTTLDays * 24)
