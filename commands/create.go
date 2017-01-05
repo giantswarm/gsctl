@@ -159,7 +159,7 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 	// parameters given by the user
 	ttlHours := int32(cmdTTLDays * 24)
 	if cmdDescription == "" {
-		cmdDescription = "Added by user " + config.Config.Email + " using 'g8m create kubeconfig'"
+		cmdDescription = "Added by user " + config.Config.Email + " using 'gsctl create kubeconfig'"
 	}
 
 	addKeyPairBody := gsclientgen.AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
