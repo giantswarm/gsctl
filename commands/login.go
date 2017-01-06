@@ -20,11 +20,20 @@ import (
 
 const (
 	loginActivityName string = "login"
+
+	// to store how the user has provided the password
+	passwordEntryMethodUnknown  int32 = 0
+	passwordEntryMethodFlag     int32 = 1
+	passwordEntryMethodPrompt   int32 = 2
+	passwordEntryMethodKeychain int32 = 3
 )
 
 var (
 	// password given via command line flag
 	password string
+
+	// how the password was provided
+	passwordEntryMethod int32
 
 	// LoginCommand is the "login" CLI command
 	LoginCommand = &cobra.Command{
@@ -65,6 +74,11 @@ func login(cmd *cobra.Command, args []string) {
 	email := args[0]
 	keychainServiceName := "gsctl password for " + email
 
+	if password != "" {
+		// given via command line
+		passwordEntryMethod = passwordEntryMethodFlag
+	}
+
 	// find keychain entry
 	if runtime.GOOS == "darwin" {
 		foundPassword, findErr := keychain.Find(keychainServiceName, email)
@@ -73,17 +87,19 @@ func login(cmd *cobra.Command, args []string) {
 				fmt.Println("Using password from Keychain")
 			}
 			password = foundPassword
+			passwordEntryMethod = passwordEntryMethodKeychain
 		}
 	}
 
-	// interactive password prompt
 	if password == "" {
+		// interactive password prompt
 		fmt.Printf("Password: ")
 		pass, err := gopass.GetPasswd()
 		if err != nil {
 			log.Fatal(err)
 		}
 		password = string(pass)
+		passwordEntryMethod = passwordEntryMethodPrompt
 	}
 
 	encodedPassword := base64.StdEncoding.EncodeToString([]byte(password))
@@ -96,12 +112,18 @@ func login(cmd *cobra.Command, args []string) {
 	}
 	if loginResponse.StatusCode == apischema.STATUS_CODE_DATA {
 		// successful login
-		fmt.Println(color.GreenString("Successfully logged in"))
 		config.Config.Token = loginResponse.Data.Id
 		config.Config.Email = email
+		fmt.Println(color.GreenString("Successfully logged in"))
 		// store password in keychain
-		if runtime.GOOS == "darwin" {
-			keychain.Add(keychainServiceName, email, password)
+		if runtime.GOOS == "darwin" && passwordEntryMethod == passwordEntryMethodPrompt {
+			c := askForConfirmation("Do you want to store this password to the Mac OS Keychain to speed up future logins?")
+			if c {
+				keychain.Add(keychainServiceName, email, password)
+				if cmdVerbose {
+					fmt.Println("Password stored to Keychain")
+				}
+			}
 		}
 	} else if loginResponse.StatusCode == apischema.STATUS_CODE_RESOURCE_INVALID_CREDENTIALS {
 		// bad credentials
