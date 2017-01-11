@@ -11,42 +11,10 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"reflect"
 	"strings"
-	"time"
 )
-
-// Request type is used to compose and send individual request from client
-// go-resty is provide option override client level settings such as
-//		Auth Token, Basic Auth credentials, Header, Query Param, Form Data, Error object
-// and also you can add more options for that particular request
-//
-type Request struct {
-	URL        string
-	Method     string
-	QueryParam url.Values
-	FormData   url.Values
-	Header     http.Header
-	UserInfo   *User
-	Token      string
-	Body       interface{}
-	Result     interface{}
-	Error      interface{}
-	Time       time.Time
-	RawRequest *http.Request
-
-	client           *Client
-	bodyBuf          *bytes.Buffer
-	isMultiPart      bool
-	isFormData       bool
-	setContentLength bool
-	isSaveResponse   bool
-	outputFile       string
-	proxyURL         *url.URL
-	multipartFiles   []*File
-}
 
 // SetHeader method is to set a single header field and its value in the current request.
 // Example: To set `Content-Type` and `Accept` as `application/json`.
@@ -383,37 +351,37 @@ func (r *Request) SetProxy(proxyURL string) *Request {
 
 // Get method does GET HTTP request. It's defined in section 4.3.1 of RFC7231.
 func (r *Request) Get(url string) (*Response, error) {
-	return r.Execute(GET, url)
+	return r.Execute(MethodGet, url)
 }
 
 // Head method does HEAD HTTP request. It's defined in section 4.3.2 of RFC7231.
 func (r *Request) Head(url string) (*Response, error) {
-	return r.Execute(HEAD, url)
+	return r.Execute(MethodHead, url)
 }
 
 // Post method does POST HTTP request. It's defined in section 4.3.3 of RFC7231.
 func (r *Request) Post(url string) (*Response, error) {
-	return r.Execute(POST, url)
+	return r.Execute(MethodPost, url)
 }
 
 // Put method does PUT HTTP request. It's defined in section 4.3.4 of RFC7231.
 func (r *Request) Put(url string) (*Response, error) {
-	return r.Execute(PUT, url)
+	return r.Execute(MethodPut, url)
 }
 
 // Delete method does DELETE HTTP request. It's defined in section 4.3.5 of RFC7231.
 func (r *Request) Delete(url string) (*Response, error) {
-	return r.Execute(DELETE, url)
+	return r.Execute(MethodDelete, url)
 }
 
 // Options method does OPTIONS HTTP request. It's defined in section 4.3.7 of RFC7231.
 func (r *Request) Options(url string) (*Response, error) {
-	return r.Execute(OPTIONS, url)
+	return r.Execute(MethodOptions, url)
 }
 
 // Patch method does PATCH HTTP request. It's defined in section 2 of RFC5789.
 func (r *Request) Patch(url string) (*Response, error) {
-	return r.Execute(PATCH, url)
+	return r.Execute(MethodPatch, url)
 }
 
 // Execute method performs the HTTP request with given HTTP method and URL
@@ -421,7 +389,7 @@ func (r *Request) Patch(url string) (*Response, error) {
 // 		resp, err := resty.R().Execute(resty.GET, "http://httpbin.org/get")
 //
 func (r *Request) Execute(method, url string) (*Response, error) {
-	if r.isMultiPart && !(method == POST || method == PUT) {
+	if r.isMultiPart && !(method == MethodPost || method == MethodPut) {
 		return nil, fmt.Errorf("Multipart content is not allowed in HTTP verb [%v]", method)
 	}
 
@@ -440,6 +408,11 @@ func (r *Request) Execute(method, url string) (*Response, error) {
 		resp, err = r.client.execute(r)
 		if err != nil {
 			r.client.Log.Printf("ERROR [%v] Attempt [%v]", err, attempt)
+			if r.isContextCancelledIfAvailable() {
+				// stop Backoff from retrying request if request has been
+				// canceled by context
+				return resp, nil
+			}
 		}
 
 		return resp, err
