@@ -28,6 +28,9 @@ var (
 	// TTL (time to live) flag
 	cmdTTLDays int
 
+	// Key pair ID flag
+	cmdKeypairID string
+
 	randomStringCharset = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 	requestIDHeader string

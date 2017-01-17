@@ -12,7 +12,7 @@ const (
 	binaryName string = "kubectl"
 )
 
-// CheckKubectl checks if kubectl exists, is silent if yes, prints error and exits if not
+// CheckKubectl checks if kubectl exists, returns true yes, false otherwise
 func CheckKubectl() bool {
 	cmd := exec.Command(binaryName)
 	if err := cmd.Run(); err != nil {

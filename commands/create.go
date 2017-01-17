@@ -1,11 +1,14 @@
 package commands
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"runtime"
+	"syscall"
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
@@ -41,6 +44,15 @@ var (
 		PreRunE: checkCreateKubeconfig,
 		Run:     createKubeconfig,
 	}
+
+	// CreateKeyBundleCommand performs the "create keybundle" function
+	CreateKeyBundleCommand = &cobra.Command{
+		Use:     "keybundle",
+		Short:   "Create a P12 key bundle",
+		Long:    `Creates a P12 key bundle from a key pair`,
+		PreRunE: checkCreateKeyBundle,
+		Run:     createKeyBundle,
+	}
 )
 
 const (
@@ -62,10 +74,54 @@ func init() {
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key-pair")
 	CreateKubeconfigCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key-pair in days")
 
+	CreateKeyBundleCommand.Flags().StringVarP(&cmdKeypairID, "keypair", "k", "", "ID of the keypair")
+
 	// subcommands
-	CreateCommand.AddCommand(CreateKeypairCommand, CreateKubeconfigCommand)
+	CreateCommand.AddCommand(CreateKeypairCommand, CreateKubeconfigCommand, CreateKeyBundleCommand)
 
 	RootCommand.AddCommand(CreateCommand)
+}
+
+func checkOpenSSL() bool {
+	cmd := exec.Command("openssl")
+	if err := cmd.Run(); err != nil {
+		var waitStatus syscall.WaitStatus
+		exitStatus := 1
+		if exitError, ok := err.(*exec.ExitError); ok {
+			waitStatus = exitError.Sys().(syscall.WaitStatus)
+			exitStatus = waitStatus.ExitStatus()
+		}
+		if exitStatus == 0 {
+			return true
+		}
+		return false
+	}
+	return true
+}
+
+func createPkcs12Bundle(keypairID string) (string, error) {
+	privateKeyPath := "/Users/marian/.gsctl/certs/l8-25edbe4129-client.key"
+	clientCertificatePath := "/Users/marian/.gsctl/certs/l8-25edbe4129-client.crt"
+	outputFilePath := "/Users/marian/.gsctl/certs/l8-25edbe4129.p12"
+	bundleName := "\"Giant Swarm l8-25edbe4129\""
+	password := "giantswarm"
+	cmd := exec.Command("openssl",
+		"pkcs12", "-export", "-clcerts",
+		"-inkey", privateKeyPath,
+		"-in", clientCertificatePath,
+		"-out", outputFilePath,
+		"-passout", "pass:"+password,
+		"-name", bundleName)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err == nil {
+		return out.String(), nil
+	}
+	return stderr.String(), err
+
 }
 
 func checkAddKeypair(cmd *cobra.Command, args []string) error {
@@ -241,5 +297,34 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Printf("Unhandled response code: %v", keypairResponse.StatusCode)
 		fmt.Printf("Status text: %v", keypairResponse.StatusText)
+	}
+}
+
+func checkCreateKeyBundle(cmd *cobra.Command, args []string) error {
+	if checkOpenSSL() == false {
+		return errors.New("OpenSSL is not installed.")
+	}
+	return nil
+}
+
+func createKeyBundle(cmd *cobra.Command, args []string) {
+	result, err := createPkcs12Bundle("foo")
+	if err != nil {
+		fmt.Println("Error:", result)
+	}
+	if runtime.GOOS == "darwin" {
+		cmd := exec.Command("security", "import",
+			"/Users/marian/.gsctl/certs/l8-25edbe4129.p12",
+			"-P", "giantswarm")
+		var out bytes.Buffer
+		var stderr bytes.Buffer
+		cmd.Stdout = &out
+		cmd.Stderr = &stderr
+		err := cmd.Run()
+		if err == nil {
+			fmt.Println(out.String())
+		} else {
+			fmt.Println(stderr.String())
+		}
 	}
 }
