@@ -85,7 +85,7 @@ Examples:
 
   gsctl create cluster --file my-cluster.yaml
 
-	gsctl create cluster --num-workers=2 --dry-run --verbose`,
+  gsctl create cluster --num-workers=2 --dry-run --verbose`,
 		PreRunE: checkAddCluster,
 		Run:     addCluster,
 	}
