@@ -356,8 +356,7 @@ func addCluster(cmd *cobra.Command, args []string) {
 			fmt.Println()
 			fmt.Println(color.RedString("Could not create cluster"))
 			fmt.Printf("Error message: %s\n", responseBody.Message)
-			fmt.Printf("Response code: %d\n", responseBody.Code)
-			fmt.Printf("Request ID: %s\n\n", requestIDHeader)
+			fmt.Printf("Error code: %d\n", responseBody.Code)
 			fmt.Println("Please contact Giant Swarm via support@giantswarm.io in case you need any help.")
 			os.Exit(1)
 		}
