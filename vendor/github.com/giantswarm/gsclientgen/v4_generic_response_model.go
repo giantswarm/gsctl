@@ -11,7 +11,7 @@
 package gsclientgen
 
 type V4GenericResponseModel struct {
-	Code int32 `json:"code,omitempty"`
+	Code string `json:"code,omitempty"`
 
 	Message string `json:"message,omitempty"`
 }
