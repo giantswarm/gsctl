@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2016 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2017 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -11,7 +11,6 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
-	"sync"
 	"time"
 
 	"golang.org/x/net/publicsuffix"
@@ -34,11 +33,12 @@ func New() *Client {
 		Cookies:    make([]*http.Cookie, 0),
 		Debug:      false,
 		Log:        getLogger(os.Stderr),
+		RetryCount: 0,
 		httpClient: &http.Client{Jar: cookieJar},
 		transport:  &http.Transport{},
-		mutex:      &sync.Mutex{},
-		RetryCount: 0,
 	}
+
+	c.httpClient.Transport = c.transport
 
 	// Default redirect policy
 	c.SetRedirectPolicy(NoRedirectPolicy())
@@ -52,6 +52,9 @@ func New() *Client {
 		addCredentials,
 		requestLogger,
 	}
+
+	// user defined request middlewares
+	c.udBeforeRequest = []func(*Client, *Request) error{}
 
 	// default after response middlewares
 	c.afterResponse = []func(*Client, *Response) error{
@@ -99,7 +102,7 @@ func SetQueryParam(param, value string) *Client {
 	return DefaultClient.SetQueryParam(param, value)
 }
 
-// SetQueryParams method sets multiple paramaters and its value. See `Client.SetQueryParams` for more information.
+// SetQueryParams method sets multiple parameters and its value. See `Client.SetQueryParams` for more information.
 func SetQueryParams(params map[string]string) *Client {
 	return DefaultClient.SetQueryParams(params)
 }
@@ -237,6 +240,12 @@ func SetScheme(scheme string) *Client {
 // See `Client.SetCloseConnection` for more information.
 func SetCloseConnection(close bool) *Client {
 	return DefaultClient.SetCloseConnection(close)
+}
+
+// IsProxySet method returns the true if proxy is set on client otherwise false.
+// See `Client.IsProxySet` for more information.
+func IsProxySet() bool {
+	return DefaultClient.IsProxySet()
 }
 
 func init() {

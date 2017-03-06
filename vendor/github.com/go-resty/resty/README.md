@@ -1,17 +1,13 @@
-# resty  [![Build Status](https://travis-ci.org/go-resty/resty.svg?branch=master)](https://travis-ci.org/go-resty/resty) [![codecov](https://codecov.io/gh/go-resty/resty/branch/master/graph/badge.svg)](https://codecov.io/gh/go-resty/resty/branch/master)  [![GoReport](https://goreportcard.com/badge/go-resty/resty)](https://goreportcard.com/report/go-resty/resty)  [![GoDoc](https://godoc.org/github.com/go-resty/resty?status.svg)](https://godoc.org/github.com/go-resty/resty)  [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+# resty  [![Build Status](https://travis-ci.org/go-resty/resty.svg?branch=master)](https://travis-ci.org/go-resty/resty) [![codecov](https://codecov.io/gh/go-resty/resty/branch/master/graph/badge.svg)](https://codecov.io/gh/go-resty/resty/branch/master)  [![GoReport](https://goreportcard.com/badge/go-resty/resty)](https://goreportcard.com/report/go-resty/resty)  [![Version](https://img.shields.io/badge/version-0.10-blue.svg)](https://github.com/go-resty/resty/releases/latest)  [![GoDoc](https://godoc.org/github.com/go-resty/resty?status.svg)](https://godoc.org/github.com/go-resty/resty) [![License](https://img.shields.io/github/license/go-resty/resty.svg)](LICENSE)
 
 Simple HTTP and REST client for Go inspired by Ruby rest-client. [Features](#features) section describes in detail about resty capabilities.
 
-***v0.9 [released](https://github.com/go-resty/resty/releases/latest) and tagged on Nov 01, 2016.***
+***v0.10 [released](https://github.com/go-resty/resty/releases/latest) and tagged on Jan 02, 2017.***
 
 *Since Go v1.6 HTTP/2 & HTTP/1.1 protocol is used transparently. `Resty` works fine with HTTP/2 and HTTP/1.1.*
 
 #### Roadmap
-***v0.10***
-
-I will be focusing on golint, etc. code quality improvements (may have very minor breaking change due to golint)
-
-***v1.0 (Around New Year)***
+***v1.0***
 
 Go Resty first released on Sep 15, 2015 then go-resty grew gradually as a very handy and helpful library of HTTP & REST Client in the golang community. I'm planning to freeze API and make v1.0 release.
 
@@ -27,7 +23,8 @@ Go Resty first released on Sep 15, 2015 then go-resty grew gradually as a very h
   * Default is `JSON`, if you supply `struct/map` without header `Content-Type`
 * Easy to upload one or more file(s) via `multipart/form-data`
 * Backoff Retry Mechanism with retry condition function [reference](retry_test.go)
-* resty client [Request](https://godoc.org/github.com/go-resty/resty#Client.OnBeforeRequest) and [Response](https://godoc.org/github.com/go-resty/resty#Client.OnAfterResponse) middlewares
+* resty client HTTP & REST [Request](https://godoc.org/github.com/go-resty/resty#Client.OnBeforeRequest) and [Response](https://godoc.org/github.com/go-resty/resty#Client.OnAfterResponse) middlewares
+* `Request.SetContext` supported `go1.7` and above
 * Authorization option of `BasicAuth` and `Bearer` token
 * Set request `ContentLength` value for all request or particular request
 * Choose between HTTP and REST mode. Default is `REST`
@@ -36,11 +33,14 @@ Go Resty first released on Sep 15, 2015 then go-resty grew gradually as a very h
 * Custom [Root Certificates](https://godoc.org/github.com/go-resty/resty#Client.SetRootCertificate) and Client [Certificates](https://godoc.org/github.com/go-resty/resty#Client.SetCertificates)
 * Download/Save HTTP response directly into File, like `curl -o` flag. See [SetOutputDirectory](https://godoc.org/github.com/go-resty/resty#Client.SetOutputDirectory) & [SetOutput](https://godoc.org/github.com/go-resty/resty#Request.SetOutput).
 * Cookies for your request and CookieJar support
+* SRV Record based request instead of Host URL
 * Client settings like `Timeout`, `RedirectPolicy`, `Proxy`, `TLSClientConfig`, `Transport`, etc.
-* Client API design
+* resty design
   * Have client level settings & options and also override at Request level if you want to
+  * Request and Response middlewares
   * Create Multiple clients if want to `resty.New()`
   * goroutine concurrent safe
+  * REST and HTTP modes
   * Debug mode - clean and informative logging presentation
   * Gzip - I'm not doing anything here. Go does it automatically
 * Well tested client library
@@ -48,12 +48,15 @@ Go Resty first released on Sep 15, 2015 then go-resty grew gradually as a very h
 resty tested with Go `v1.2` and above.
 
 #### Included Batteries
-  * Redirect Policies - see [how to use in action](#redirect-policy)
+  * Redirect Policies - see [how to use](#redirect-policy)
     * NoRedirectPolicy
     * FlexibleRedirectPolicy
     * DomainCheckRedirectPolicy
     * etc. [more info](redirect.go)
-  * Backoff Retry Mechanism with retry condition function [reference](retry_test.go)
+  * Retry Mechanism [how to use](retry_test.go)
+    * Backoff Retry
+    * Conditional Retry
+  * SRV Record based request instead of Host URL [how to use](resty_test.go#L1412)
   * etc (upcoming - throw your idea's [here](https://github.com/go-resty/resty/issues)).
 
 ## Installation
