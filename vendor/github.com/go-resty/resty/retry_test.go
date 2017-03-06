@@ -1,13 +1,16 @@
-// Copyright (c) 2015-2016 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2017 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
 package resty
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
+	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -156,6 +159,60 @@ func TestConditionalGetDefaultClient(t *testing.T) {
 	assertEqual(t, externalCounter, attemptCount)
 
 	logResponse(t, resp)
+}
+
+func TestClientRetryGet(t *testing.T) {
+	ts := createGetServer(t)
+	defer ts.Close()
+
+	c := dc()
+	c.SetHTTPMode().
+		SetTimeout(time.Duration(time.Second * 3)).
+		SetRetryCount(3)
+
+	_, err := c.R().Get(ts.URL + "/set-retrycount-test")
+	assertEqual(t, true, strings.HasPrefix(err.Error(), "Get "+ts.URL+"/set-retrycount-test"))
+}
+
+func TestClientRetryPost(t *testing.T) {
+	ts := createPostServer(t)
+	defer ts.Close()
+
+	usersmap := map[string]interface{}{
+		"user1": map[string]interface{}{"FirstName": "firstname1", "LastName": "lastname1", "ZipCode": "10001"},
+	}
+
+	var users []map[string]interface{}
+	users = append(users, usersmap)
+
+	c := dc()
+	c.SetRetryCount(3)
+	c.AddRetryCondition(RetryConditionFunc(func(r *Response) (bool, error) {
+		if r.StatusCode() >= http.StatusInternalServerError {
+			return false, errors.New("error")
+		}
+		return true, nil
+	}))
+
+	resp, _ := c.R().
+		SetBody(&users).
+		Post(ts.URL + "/usersmap?status=500")
+
+	if resp != nil {
+		if resp.StatusCode() == http.StatusInternalServerError {
+			t.Logf("Got response body: %s", string(resp.body))
+			var usersResponse []map[string]interface{}
+			err := json.Unmarshal(resp.body, &usersResponse)
+			assertError(t, err)
+
+			if !reflect.DeepEqual(users, usersResponse) {
+				t.Errorf("Expected request body to be echoed back as response body. Instead got: %s", string(resp.body))
+			}
+
+			return
+		}
+		t.Errorf("Got unexpected response code: %d with body: %s", resp.StatusCode(), string(resp.body))
+	}
 }
 
 func filler(*Response) (bool, error) {

@@ -1,48 +1,51 @@
-hash: 9d2584d7a77b53ffb78e14416bf889af075cb42ac3bac1ab905fa041d0d2a75b
-updated: 2016-12-20T16:39:30.392452867+01:00
+hash: 1c016a6ea5f10f10a84fe147ee4c753887d1ce11bb5b148fb97dd3cdfda76ff5
+updated: 2017-03-06T09:49:47.374215989+01:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
 - name: github.com/fatih/color
-  version: dea9d3a26a087187530244679c1cfb3a42937794
+  version: 7824417a424b65227be8ac9b14d545a7f3e6c3f0
 - name: github.com/giantswarm/api-schema
   version: f8468345e621ea9f5af6965919449dbbe827a841
 - name: github.com/giantswarm/columnize
   version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
 - name: github.com/giantswarm/gsclientgen
-  version: 7b4a4b14fc2afabdf257cffaf5157c65dfcc49dd
+  version: b0c7556f67a59ab05896f286b8094c9d2d0be3a9
 - name: github.com/go-resty/resty
-  version: 24dc7ba4bc1ef9215048b28e7248f99c42901db5
+  version: c53a09aa1fdff556f8e7034acc3202ca8cc13c2f
 - name: github.com/howeyc/gopass
-  version: f5387c492211eb133053880d23dfae62aa14123d
+  version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/juju/errgo
   version: 08cceb5d0b5331634b9826762a8fd53b29b86ad8
 - name: github.com/mattn/go-colorable
-  version: d228849504861217f796da67fae4f6e347643f15
+  version: 5411d3eea5978e6cdc258b30de592b60df6aba96
+  repo: https://github.com/mattn/go-colorable
 - name: github.com/mattn/go-isatty
-  version: 30a891c33c7cde7b02a981314b4228ec99380cca
+  version: dda3de49cbfcec471bd7a70e6cc01fcc3ff90109
+  repo: https://github.com/mattn/go-isatty
 - name: github.com/spf13/cobra
-  version: b62566898a99f2db9c68ed0026aa0a052e59678d
+  version: fcd0c5a1df88f5d6784cb4feead962c3f3d0b66c
 - name: github.com/spf13/pflag
-  version: 25f8b5b07aece3207895bf19f7ab517eb3b22a40
+  version: 9ff6c6923cfffbcd502984b8e0c80539a94968b7
 - name: go4.org
-  version: 09d86de304dc27e636298361bbfee4ac6ab04f21
+  version: 7ce08ca145dbe0e66a127c447b80ee7914f3e4f9
   subpackages:
   - reflectutil
 - name: golang.org/x/crypto
-  version: 2b786ab9e9649dc660afa3bd580fd05a05e20d95
+  version: 40541ccb1c6e64c947ed6f606b8a6cb4b67d7436
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 45e771701b814666a7eb299e6c7a57d0b1799e91
+  version: 906cda9512f77671ab44f8c8563b13a8e707b230
   subpackages:
   - publicsuffix
 - name: golang.org/x/sys
-  version: d75a52659825e75fff6158388dddc6a5b04f9ba5
+  version: e24f485414aeafb646f6fca458b0bf869c0880a1
+  repo: https://go.googlesource.com/sys
   subpackages:
   - unix
 - name: gopkg.in/yaml.v2
-  version: a5b47d31c556af34a302ce5d659e6fea44d90de0
+  version: a3f3340b5840cee44f372bddb5880fcbc419b46a
 testImports: []
