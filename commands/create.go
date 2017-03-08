@@ -88,6 +88,10 @@ func checkAddKeypair(cmd *cobra.Command, args []string) error {
 }
 
 func addKeypair(cmd *cobra.Command, args []string) {
+	if cmdDescription == "" {
+		cmdDescription = "Added by user " + config.Config.Email + " using 'gsctl create keypair'"
+	}
+
 	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
 	authHeader := "giantswarm " + config.Config.Token
 	ttlHours := int32(cmdTTLDays * 24)
@@ -156,10 +160,19 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
 	authHeader := "giantswarm " + config.Config.Token
 
+	// get cluster details
+	clusterDetailsResponse, apiResponse, err := client.GetCluster(authHeader, cmdClusterID, requestIDHeader, createKubeconfigActivityName, cmdLine)
+	if err != nil {
+		fmt.Println(color.RedString("Could not fetch details for cluster ID '" + cmdClusterID + "'"))
+		fmt.Println(err)
+		fmt.Println(fmt.Sprintf("%v", string(apiResponse.Payload)))
+		os.Exit(1)
+	}
+
 	// parameters given by the user
 	ttlHours := int32(cmdTTLDays * 24)
 	if cmdDescription == "" {
-		cmdDescription = "Added by user " + config.Config.Email + " using 'g8m create kubeconfig'"
+		cmdDescription = "Added by user " + config.Config.Email + " using 'gsctl create kubeconfig'"
 	}
 
 	addKeyPairBody := gsclientgen.AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
@@ -194,12 +207,8 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		fmt.Println(clientCertPath)
 		fmt.Println(clientKeyPath)
 
-		// TODO: Take this from the cluster object.
-		// See https://github.com/giantswarm/gsctl/issues/3
-		apiEndpoint := "https://api." + cmdClusterID + ".k8s.gigantic.io"
-
 		// edit kubectl config
-		if err := util.KubectlSetCluster(cmdClusterID, apiEndpoint, caCertPath); err != nil {
+		if err := util.KubectlSetCluster(cmdClusterID, clusterDetailsResponse.ApiEndpoint, caCertPath); err != nil {
 			fmt.Println(color.RedString("Could not set cluster using 'kubectl config set-cluster ...'"))
 			fmt.Println("Error:")
 			fmt.Println(err)

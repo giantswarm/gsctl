@@ -165,38 +165,24 @@ paths:
           schema:
             $ref: '#/definitions/GenericResponseModel'
 
-  /v4/clusters/:
-    post:
-      operationId: addCluster
-      summary: Add cluster
+  /v4/clusters/{cluster_id}/:
+    get:
+      operationId: getCluster
+      summary: Get cluster details
       parameters:
         - $ref: '#/parameters/RequiredAuthorizationHeader'
         - $ref: '#/parameters/XRequestIDHeader'
         - $ref: '#/parameters/XGiantSwarmActivityHeader'
         - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
-        - name: body
-          in: body
+        - name: cluster_id
+          in: path
           required: true
-          description: Cluster definition
-          schema:
-            $ref: '#/definitions/AddClusterBodyModel'
+          type: string
       responses:
-        "201":
-          description: Cluster created
-          headers:
-            Location:
-              type: string
-              description: URI for details of the new cluster
+        "200":
+          description: Success
           schema:
-            $ref: '#/definitions/V4GenericResponseModel'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/V4GenericResponseModel'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/V4GenericResponseModel'
+            $ref: '#/definitions/V4ClusterDetailsModel'
         default:
           description: Unknown error
           schema:
@@ -256,6 +242,30 @@ definitions:
         type: string
       create_date:
         type: string
+  V4ClusterDetailsModel:
+    type: object
+    required: ["id"]
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      api_endpoint:
+        type: string
+      create_date:
+        type: string
+      owner:
+        type: string
+      kubernetes_version:
+        type: string
+      workers:
+        type: array
+        items:
+          $ref: '#/definitions/V4NodeDefinitionModel'
+      masters:
+        type: array
+        items:
+          $ref: '#/definitions/V4NodeDefinitionModel'
   KeyPairModel:
     type: object
     required: ["id", "description", "ttl_hours"]
@@ -346,28 +356,7 @@ definitions:
       password:
         type: string
         description: base64 encoded password
-  AddClusterBodyModel:
-    type: object
-    description: Model for creating a new cluster
-    properties:
-      name:
-        type: string
-        description: Cluster name
-      kubernetes_version:
-        type: string
-        description: Kubernetes version number
-      owner:
-        type: string
-        description: Organization ID of the owning organization
-      workers:
-        type: array
-        items:
-          $ref: '#/definitions/NodeDefinitionModel'
-      masters:
-        type: array
-        items:
-          $ref: '#/definitions/NodeDefinitionModel'
-  NodeDefinitionModel:
+  V4NodeDefinitionModel:
     type: object
     description: Defines capabilities of a cluster node, usable both for worker and master nodes
     properties:
@@ -375,13 +364,15 @@ definitions:
         type: object
         properties:
           size_gb:
-            type: integer
+            # TODO: change to integer
+            type: string
             description: RAM size in GB
       storage:
         type: object
         properties:
           size_gb:
-            type: integer
+            # TODO: change to integer
+            type: string
             description: Node storage size in GB
       cpu:
         type: object
