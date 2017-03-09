@@ -236,18 +236,18 @@ func createDefinitionFromFlags() clusterDefinition {
 	return def
 }
 
-// creates a gsclientgen.AddClusterBodyModel from clusterDefinition
-func createAddClusterBody(d clusterDefinition) gsclientgen.AddClusterBodyModel {
-	a := gsclientgen.AddClusterBodyModel{}
+// creates a gsclientgen.V4AddClusterRequest from clusterDefinition
+func createAddClusterBody(d clusterDefinition) gsclientgen.V4AddClusterRequest {
+	a := gsclientgen.V4AddClusterRequest{}
 	a.Name = d.Name
 	a.Owner = d.Owner
 	a.KubernetesVersion = d.KubernetesVersion
 
 	for _, dWorker := range d.Workers {
-		ndmWorker := gsclientgen.NodeDefinitionModel{}
-		ndmWorker.Memory = gsclientgen.NodeDefinitionModelMemory{SizeGb: int32(dWorker.Memory.SizeGB)}
-		ndmWorker.Cpu = gsclientgen.NodeDefinitionModelCpu{Cores: int32(dWorker.CPU.Cores)}
-		ndmWorker.Storage = gsclientgen.NodeDefinitionModelStorage{SizeGb: int32(dWorker.Storage.SizeGB)}
+		ndmWorker := gsclientgen.V4NodeDefinition{}
+		ndmWorker.Memory = gsclientgen.V4NodeDefinitionMemory{SizeGb: int32(dWorker.Memory.SizeGB)}
+		ndmWorker.Cpu = gsclientgen.V4NodeDefinitionCpu{Cores: int32(dWorker.CPU.Cores)}
+		ndmWorker.Storage = gsclientgen.V4NodeDefinitionStorage{SizeGb: int32(dWorker.Storage.SizeGB)}
 		ndmWorker.Labels = dWorker.Labels
 		a.Workers = append(a.Workers, ndmWorker)
 	}
