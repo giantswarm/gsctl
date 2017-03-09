@@ -40,19 +40,16 @@ type clusterDefinition struct {
 	Name              string           `yaml:"name,omitempty"`
 	Owner             string           `yaml:"owner,omitempty"`
 	KubernetesVersion string           `yaml:"kubernetes_version,omitempty"`
-	Masters           []nodeDefinition `yaml:"masters,omitempty"`
 	Workers           []nodeDefinition `yaml:"workers,omitempty"`
 }
 
 const (
 	// TODO: These defaults should come from the API
 	defaultNumWorkers          int = 3
-	defaultNumMasters          int = 1
 	defaultWorkerNumCPUs       int = 1
 	defaultWorkerMemorySizeGB  int = 2
 	defaultWorkerStorageSizeGB int = 10
 	minimumNumWorkers          int = 2
-	minimumNumMasters          int = 1
 	minimumWorkerNumCPUs       int = 1
 	minimumWorkerMemorySizeGB  int = 1
 	minimumWorkerStorageSizeGB int = 1
@@ -253,14 +250,6 @@ func createAddClusterBody(d clusterDefinition) gsclientgen.AddClusterBodyModel {
 		ndmWorker.Storage = gsclientgen.NodeDefinitionModelStorage{SizeGb: int32(dWorker.Storage.SizeGB)}
 		ndmWorker.Labels = dWorker.Labels
 		a.Workers = append(a.Workers, ndmWorker)
-	}
-
-	for _, dMaster := range d.Masters {
-		ndmMaster := gsclientgen.NodeDefinitionModel{}
-		ndmMaster.Memory = gsclientgen.NodeDefinitionModelMemory{SizeGb: int32(dMaster.Memory.SizeGB)}
-		ndmMaster.Cpu = gsclientgen.NodeDefinitionModelCpu{Cores: int32(dMaster.CPU.Cores)}
-		ndmMaster.Storage = gsclientgen.NodeDefinitionModelStorage{SizeGb: int32(dMaster.Storage.SizeGB)}
-		a.Masters = append(a.Masters, ndmMaster)
 	}
 
 	return a
