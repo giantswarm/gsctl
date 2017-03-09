@@ -78,11 +78,11 @@ precedence.
 
 Examples:
 
-  gsctl create cluster --owner=myorg --num-workers=5 --num-cpus=2 --memory-gb=8 --storage-gb=100
+	gsctl create cluster --file my-cluster.yaml
 
-  gsctl create cluster --file my-cluster.yaml
+	gsctl create cluster --owner=myorg --name="My Cluster" --num-workers=5 --num-cpus=2
 
-  gsctl create cluster --num-workers=2 --dry-run --verbose`,
+  gsctl create cluster --owner=myorg --num-workers=3 --dry-run --verbose`,
 		PreRunE: checkAddCluster,
 		Run:     addCluster,
 	}
@@ -346,6 +346,7 @@ func addCluster(cmd *cobra.Command, args []string) {
 			fmt.Println(color.RedString("Could not create cluster"))
 			fmt.Printf("Error message: %s\n", responseBody.Message)
 			fmt.Printf("Error code: %d\n", responseBody.Code)
+			fmt.Println(fmt.Sprintf("Raw response body:\n%v", string(apiResponse.Payload)))
 			fmt.Println("Please contact Giant Swarm via support@giantswarm.io in case you need any help.")
 			os.Exit(1)
 		}
