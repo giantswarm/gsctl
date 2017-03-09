@@ -49,7 +49,7 @@ const (
 	defaultWorkerNumCPUs       int = 1
 	defaultWorkerMemorySizeGB  int = 2
 	defaultWorkerStorageSizeGB int = 10
-	minimumNumWorkers          int = 2
+	minimumNumWorkers          int = 1
 	minimumWorkerNumCPUs       int = 1
 	minimumWorkerMemorySizeGB  int = 1
 	minimumWorkerStorageSizeGB int = 1
