@@ -38,6 +38,80 @@ func NewDefaultApiWithBasePath(basePath string) *DefaultApi {
 }
 
 /**
+ * Create cluster
+ * This operation is used to create a new Kubernetes cluster for an organization. The desired configuration can be specified using the __cluster definition format__ (see [external documentation](https://github.com/giantswarm/api-spec/blob/master/details/CLUSTER_DEFINITION.md) for details).  The cluster definition format allows to set a number of optional configuration details, like memory size and number of CPU cores. However, one attribute is __mandatory__ upon creation: The &#x60;owner&#x60; attribute must carry the name of the organization the cluster will belong to. Note that the acting user must be a member of that organization in order to create a cluster.  It is *recommended* to also specify the &#x60;name&#x60; attribute to give the cluster a friendly name, like e. g. \&quot;Development Cluster\&quot;.  Additional definition attributes can be used. Where attributes are ommitted, default configuration values will be applied. For example, if no &#x60;kubernetes_version&#x60; is specified, the latest version tested and provided by Giant Swarm is used.  The &#x60;workers&#x60; attribute, if present, must contain an array of node definition objects. The number of objects given determines the number of workers created. For example, requesting three worker nodes with default configuration can be achieved by submitting an array of three empty objects:  &#x60;&#x60;&#x60;\&quot;workers\&quot;: [{}, {}, {}]&#x60;&#x60;&#x60;
+ *
+ * @param authorization Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.
+ * @param body New cluster definition
+ * @param xRequestID A randomly generated key that can be used to track a request throughout services of Giant Swarm
+ * @param xGiantSwarmActivity Name of an activity to track, like \&quot;list-clusters\&quot;
+ * @param xGiantSwarmCmdLine If activity has been issued by a CLI, this header can contain the command line
+ * @return *V4GenericResponse
+ */
+func (a DefaultApi) AddCluster(authorization string, body V4AddClusterRequest, xRequestID string, xGiantSwarmActivity string, xGiantSwarmCmdLine string) (*V4GenericResponse, *APIResponse, error) {
+
+	var localVarHttpMethod = strings.ToUpper("Post")
+	// create path and map variables
+	localVarPath := a.Configuration.BasePath + "/v4/clusters/"
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := make(map[string]string)
+	var localVarPostBody interface{}
+	var localVarFileName string
+	var localVarFileBytes []byte
+	// add default headers if any
+	for key := range a.Configuration.DefaultHeader {
+		localVarHeaderParams[key] = a.Configuration.DefaultHeader[key]
+	}
+
+	// to determine the Content-Type header
+	localVarHttpContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHttpContentType := a.Configuration.APIClient.SelectHeaderContentType(localVarHttpContentTypes)
+	if localVarHttpContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHttpContentType
+	}
+	// to determine the Accept header
+	localVarHttpHeaderAccepts := []string{
+		"application/json",
+	}
+
+	// set Accept header
+	localVarHttpHeaderAccept := a.Configuration.APIClient.SelectHeaderAccept(localVarHttpHeaderAccepts)
+	if localVarHttpHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHttpHeaderAccept
+	}
+	// header params "Authorization"
+	localVarHeaderParams["Authorization"] = a.Configuration.APIClient.ParameterToString(authorization, "")
+	// header params "X-Request-ID"
+	localVarHeaderParams["X-Request-ID"] = a.Configuration.APIClient.ParameterToString(xRequestID, "")
+	// header params "X-Giant-Swarm-Activity"
+	localVarHeaderParams["X-Giant-Swarm-Activity"] = a.Configuration.APIClient.ParameterToString(xGiantSwarmActivity, "")
+	// header params "X-Giant-Swarm-CmdLine"
+	localVarHeaderParams["X-Giant-Swarm-CmdLine"] = a.Configuration.APIClient.ParameterToString(xGiantSwarmCmdLine, "")
+	// body params
+	localVarPostBody = &body
+	var successPayload = new(V4GenericResponse)
+	localVarHttpResponse, err := a.Configuration.APIClient.CallAPI(localVarPath, localVarHttpMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFileName, localVarFileBytes)
+
+	var localVarURL, _ = url.Parse(localVarPath)
+	localVarURL.RawQuery = localVarQueryParams.Encode()
+	var localVarAPIResponse = &APIResponse{Operation: "AddCluster", Method: localVarHttpMethod, RequestURL: localVarURL.String()}
+	if localVarHttpResponse != nil {
+		localVarAPIResponse.Response = localVarHttpResponse.RawResponse
+		localVarAPIResponse.Payload = localVarHttpResponse.Body()
+	}
+
+	if err != nil {
+		return successPayload, localVarAPIResponse, err
+	}
+	err = json.Unmarshal(localVarHttpResponse.Body(), &successPayload)
+	return successPayload, localVarAPIResponse, err
+}
+
+/**
  * Add key-pair for cluster
  *
  * @param authorization Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.
@@ -46,9 +120,9 @@ func NewDefaultApiWithBasePath(basePath string) *DefaultApi {
  * @param xRequestID A randomly generated key that can be used to track a request throughout services of Giant Swarm
  * @param xGiantSwarmActivity Name of an activity to track, like \&quot;list-clusters\&quot;
  * @param xGiantSwarmCmdLine If activity has been issued by a CLI, this header can contain the command line
- * @return *AddKeyPairResponseModel
+ * @return *V3AddKeyPairResponse
  */
-func (a DefaultApi) AddKeyPair(authorization string, clusterId string, body AddKeyPairBody, xRequestID string, xGiantSwarmActivity string, xGiantSwarmCmdLine string) (*AddKeyPairResponseModel, *APIResponse, error) {
+func (a DefaultApi) AddKeyPair(authorization string, clusterId string, body AddKeyPairBody, xRequestID string, xGiantSwarmActivity string, xGiantSwarmCmdLine string) (*V3AddKeyPairResponse, *APIResponse, error) {
 
 	var localVarHttpMethod = strings.ToUpper("Post")
 	// create path and map variables
@@ -94,7 +168,7 @@ func (a DefaultApi) AddKeyPair(authorization string, clusterId string, body AddK
 	localVarHeaderParams["X-Giant-Swarm-CmdLine"] = a.Configuration.APIClient.ParameterToString(xGiantSwarmCmdLine, "")
 	// body params
 	localVarPostBody = &body
-	var successPayload = new(AddKeyPairResponseModel)
+	var successPayload = new(V3AddKeyPairResponse)
 	localVarHttpResponse, err := a.Configuration.APIClient.CallAPI(localVarPath, localVarHttpMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFileName, localVarFileBytes)
 
 	var localVarURL, _ = url.Parse(localVarPath)
@@ -113,10 +187,83 @@ func (a DefaultApi) AddKeyPair(authorization string, clusterId string, body AddK
 }
 
 /**
+ * Delete cluster
+ * This operation allows to delete a cluster.  __Caution:__ Deleting a cluster causes the termination of all workloads running on the cluster. Data stored on the worker nodes will be lost. There is no way to undo this operation.  The response is sent as soon as the request is validated. At that point, workloads might still be running on the cluster and may be accessible for a little wile, until the cluster is actually deleted.
+ *
+ * @param authorization Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.
+ * @param clusterId Cluster ID
+ * @param xRequestID A randomly generated key that can be used to track a request throughout services of Giant Swarm
+ * @param xGiantSwarmActivity Name of an activity to track, like \&quot;list-clusters\&quot;
+ * @param xGiantSwarmCmdLine If activity has been issued by a CLI, this header can contain the command line
+ * @return *V4GenericResponse
+ */
+func (a DefaultApi) DeleteCluster(authorization string, clusterId string, xRequestID string, xGiantSwarmActivity string, xGiantSwarmCmdLine string) (*V4GenericResponse, *APIResponse, error) {
+
+	var localVarHttpMethod = strings.ToUpper("Delete")
+	// create path and map variables
+	localVarPath := a.Configuration.BasePath + "/v4/clusters/{cluster_id}/"
+	localVarPath = strings.Replace(localVarPath, "{"+"cluster_id"+"}", fmt.Sprintf("%v", clusterId), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := make(map[string]string)
+	var localVarPostBody interface{}
+	var localVarFileName string
+	var localVarFileBytes []byte
+	// add default headers if any
+	for key := range a.Configuration.DefaultHeader {
+		localVarHeaderParams[key] = a.Configuration.DefaultHeader[key]
+	}
+
+	// to determine the Content-Type header
+	localVarHttpContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHttpContentType := a.Configuration.APIClient.SelectHeaderContentType(localVarHttpContentTypes)
+	if localVarHttpContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHttpContentType
+	}
+	// to determine the Accept header
+	localVarHttpHeaderAccepts := []string{
+		"application/json",
+	}
+
+	// set Accept header
+	localVarHttpHeaderAccept := a.Configuration.APIClient.SelectHeaderAccept(localVarHttpHeaderAccepts)
+	if localVarHttpHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHttpHeaderAccept
+	}
+	// header params "Authorization"
+	localVarHeaderParams["Authorization"] = a.Configuration.APIClient.ParameterToString(authorization, "")
+	// header params "X-Request-ID"
+	localVarHeaderParams["X-Request-ID"] = a.Configuration.APIClient.ParameterToString(xRequestID, "")
+	// header params "X-Giant-Swarm-Activity"
+	localVarHeaderParams["X-Giant-Swarm-Activity"] = a.Configuration.APIClient.ParameterToString(xGiantSwarmActivity, "")
+	// header params "X-Giant-Swarm-CmdLine"
+	localVarHeaderParams["X-Giant-Swarm-CmdLine"] = a.Configuration.APIClient.ParameterToString(xGiantSwarmCmdLine, "")
+	var successPayload = new(V4GenericResponse)
+	localVarHttpResponse, err := a.Configuration.APIClient.CallAPI(localVarPath, localVarHttpMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFileName, localVarFileBytes)
+
+	var localVarURL, _ = url.Parse(localVarPath)
+	localVarURL.RawQuery = localVarQueryParams.Encode()
+	var localVarAPIResponse = &APIResponse{Operation: "DeleteCluster", Method: localVarHttpMethod, RequestURL: localVarURL.String()}
+	if localVarHttpResponse != nil {
+		localVarAPIResponse.Response = localVarHttpResponse.RawResponse
+		localVarAPIResponse.Payload = localVarHttpResponse.Body()
+	}
+
+	if err != nil {
+		return successPayload, localVarAPIResponse, err
+	}
+	err = json.Unmarshal(localVarHttpResponse.Body(), &successPayload)
+	return successPayload, localVarAPIResponse, err
+}
+
+/**
  * Get cluster details
  *
  * @param authorization Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.
- * @param clusterId
+ * @param clusterId Cluster ID
  * @param xRequestID A randomly generated key that can be used to track a request throughout services of Giant Swarm
  * @param xGiantSwarmActivity Name of an activity to track, like \&quot;list-clusters\&quot;
  * @param xGiantSwarmCmdLine If activity has been issued by a CLI, this header can contain the command line

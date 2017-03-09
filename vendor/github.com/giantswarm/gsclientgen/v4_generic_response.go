@@ -10,8 +10,8 @@
 
 package gsclientgen
 
-type V4NodeDefinitionModelStorage struct {
+type V4GenericResponse struct {
+	Code string `json:"code,omitempty"`
 
-	// Node storage size in GB
-	SizeGb string `json:"size_gb,omitempty"`
+	Message string `json:"message,omitempty"`
 }

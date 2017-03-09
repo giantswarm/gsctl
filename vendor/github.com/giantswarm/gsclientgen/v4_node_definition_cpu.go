@@ -10,7 +10,7 @@
 
 package gsclientgen
 
-type V4NodeDefinitionModelCpu struct {
+type V4NodeDefinitionCpu struct {
 
 	// Number of CPU cores
 	Cores int32 `json:"cores,omitempty"`
