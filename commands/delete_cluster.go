@@ -34,9 +34,13 @@ Examples:
 		PreRunE: checkDeleteCluster,
 		Run:     deleteCluster,
 	}
+
+	// force flag
+	cmdForce bool
 )
 
 func init() {
+	DeleteClusterCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, no interactive confirmation will be required.")
 	DeleteClusterCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to delete")
 	DeleteCommand.AddCommand(DeleteClusterCommand)
 }
@@ -48,11 +52,33 @@ func checkDeleteCluster(cmd *cobra.Command, args []string) error {
 		s := color.RedString("You are not logged in.\n\n")
 		return errors.New(s + "Use '" + config.ProgramName + " login' to login or '--auth-token' to pass a valid auth token.")
 	}
+
+	// cluster ID given?
+	if cmdClusterID == "" {
+		// use default cluster if possible
+		clusterID, _ := config.GetDefaultCluster(requestIDHeader, createKubeconfigActivityName, cmdLine, cmdAPIEndpoint)
+		if clusterID != "" {
+			cmdClusterID = clusterID
+		} else {
+			return errors.New("No cluster given. Please use the -c/--cluster flag to set a cluster ID.")
+		}
+	}
 	return nil
 }
 
 // interprets arguments/flags, eventually submits delete request
 func deleteCluster(cmd *cobra.Command, args []string) {
+	// confirmation
+	if cmdForce == false {
+		confirmed := askForConfirmation("Do you really want to delete cluster '" + cmdClusterID + "'?")
+		if !confirmed {
+			if cmdVerbose {
+				fmt.Println("Cluster not deleted")
+			}
+			os.Exit(0)
+		}
+	}
+
 	// perform API call
 	authHeader := "giantswarm " + config.Config.Token
 	if cmdToken != "" {
@@ -64,9 +90,9 @@ func deleteCluster(cmd *cobra.Command, args []string) {
 
 	// handle API result
 	if responseBody.Code == "RESOURCE_DELETED" {
-		fmt.Printf("The cluster with ID '%s' has been deleted\n\n", color.CyanString(cmdClusterID))
+		fmt.Printf("The cluster with ID '%s' has been deleted\n", color.CyanString(cmdClusterID))
 	} else if responseBody.Code == "RESOURCE_DELETION_STARTED" {
-		fmt.Printf("The cluster with ID '%s' will be deleted soon\n\n", color.CyanString(cmdClusterID))
+		fmt.Printf("The cluster with ID '%s' will be deleted soon\n", color.CyanString(cmdClusterID))
 	} else {
 		fmt.Println()
 		fmt.Println(color.RedString("Could not delete cluster"))
