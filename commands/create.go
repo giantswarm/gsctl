@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"runtime"
 	"syscall"
 
@@ -53,6 +54,8 @@ var (
 		PreRunE: checkCreateKeyBundle,
 		Run:     createKeyBundle,
 	}
+
+	pkcs12BundlePassword = "giantswarm"
 )
 
 const (
@@ -74,6 +77,7 @@ func init() {
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key-pair")
 	CreateKubeconfigCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key-pair in days")
 
+	CreateKeyBundleCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to create a key-bundle for")
 	CreateKeyBundleCommand.Flags().StringVarP(&cmdKeypairID, "keypair", "k", "", "ID of the keypair")
 
 	// subcommands
@@ -99,18 +103,19 @@ func checkOpenSSL() bool {
 	return true
 }
 
-func createPkcs12Bundle(keypairID string) (string, error) {
-	privateKeyPath := "/Users/marian/.gsctl/certs/l8-25edbe4129-client.key"
-	clientCertificatePath := "/Users/marian/.gsctl/certs/l8-25edbe4129-client.crt"
-	outputFilePath := "/Users/marian/.gsctl/certs/l8-25edbe4129.p12"
-	bundleName := "\"Giant Swarm l8-25edbe4129\""
-	password := "giantswarm"
+// creates a PKCS#12 bundle from private RSA key and X.509 certificate using openssl
+func createPkcs12Bundle(clusterID, keypairID string) (string, error) {
+	// TODO: check each file's existence separately and give meaningful output in case of error
+	privateKeyPath := path.Join(config.CertsDirPath, clusterID+"-"+keypairID+"-client.key")
+	clientCertificatePath := path.Join(config.CertsDirPath, clusterID+"-"+keypairID+"-client.crt")
+	outputFilePath := path.Join(config.CertsDirPath, clusterID+"-"+keypairID+".p12")
+	bundleName := "\"Giant Swarm " + clusterID + "-" + keypairID + "\""
 	cmd := exec.Command("openssl",
 		"pkcs12", "-export", "-clcerts",
 		"-inkey", privateKeyPath,
 		"-in", clientCertificatePath,
 		"-out", outputFilePath,
-		"-passout", "pass:"+password,
+		"-passout", "pass:"+pkcs12BundlePassword,
 		"-name", bundleName)
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -118,7 +123,7 @@ func createPkcs12Bundle(keypairID string) (string, error) {
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err == nil {
-		return out.String(), nil
+		return outputFilePath, nil
 	}
 	return stderr.String(), err
 
@@ -164,13 +169,13 @@ func addKeypair(cmd *cobra.Command, args []string) {
 		fmt.Println(color.GreenString(msg))
 
 		// store credentials to file
-		caCertPath := util.StoreCaCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.CertificateAuthorityData)
+		caCertPath := util.StoreCaCertificate(cmdClusterID, keypairResponse.Data.CertificateAuthorityData)
 		fmt.Println("CA certificate stored in:", caCertPath)
 
-		clientCertPath := util.StoreClientCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientCertificateData)
+		clientCertPath := util.StoreClientCertificate(cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientCertificateData)
 		fmt.Println("Client certificate stored in:", clientCertPath)
 
-		clientKeyPath := util.StoreClientKey(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientKeyData)
+		clientKeyPath := util.StoreClientKey(cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientKeyData)
 		fmt.Println("Client private key stored in:", clientKeyPath)
 
 	} else {
@@ -243,11 +248,11 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		fmt.Println(msg)
 
 		// store credentials to file
-		caCertPath := util.StoreCaCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.CertificateAuthorityData)
+		caCertPath := util.StoreCaCertificate(cmdClusterID, keypairResponse.Data.CertificateAuthorityData)
 
-		clientCertPath := util.StoreClientCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientCertificateData)
+		clientCertPath := util.StoreClientCertificate(cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientCertificateData)
 
-		clientKeyPath := util.StoreClientKey(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientKeyData)
+		clientKeyPath := util.StoreClientKey(cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientKeyData)
 
 		fmt.Println("Certificate and key files written to:")
 		fmt.Println(caCertPath)
@@ -308,14 +313,13 @@ func checkCreateKeyBundle(cmd *cobra.Command, args []string) error {
 }
 
 func createKeyBundle(cmd *cobra.Command, args []string) {
-	result, err := createPkcs12Bundle("foo")
+	result, err := createPkcs12Bundle(cmdClusterID, cmdKeypairID)
 	if err != nil {
 		fmt.Println("Error:", result)
 	}
 	if runtime.GOOS == "darwin" {
 		cmd := exec.Command("security", "import",
-			"/Users/marian/.gsctl/certs/l8-25edbe4129.p12",
-			"-P", "giantswarm")
+			result, "-P", pkcs12BundlePassword)
 		var out bytes.Buffer
 		var stderr bytes.Buffer
 		cmd.Stdout = &out
