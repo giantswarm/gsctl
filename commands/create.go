@@ -96,7 +96,7 @@ func addKeypair(cmd *cobra.Command, args []string) {
 	authHeader := "giantswarm " + config.Config.Token
 	ttlHours := int32(cmdTTLDays * 24)
 	addKeyPairBody := gsclientgen.AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
-	keypairResponse, _, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, addKeyPairActivityName, cmdLine)
+	keypairResponse, rawAPIResponse, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, addKeyPairActivityName, cmdLine)
 
 	if err != nil {
 		log.Fatal(err)
@@ -118,8 +118,9 @@ func addKeypair(cmd *cobra.Command, args []string) {
 		fmt.Println("Client private key stored in:", clientKeyPath)
 
 	} else {
-		fmt.Printf("Unhandled response code: %v", keypairResponse.StatusCode)
-		fmt.Printf("Status text: %v", keypairResponse.StatusText)
+		fmt.Printf("Unhandled response code: %v\n", keypairResponse.StatusCode)
+		fmt.Printf("Status text: %v\n", keypairResponse.StatusText)
+		fmt.Println(fmt.Sprintf("Raw API response:\n%v", string(rawAPIResponse.Payload)))
 	}
 }
 
@@ -179,7 +180,7 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Creating new key-pair…")
 
-	keypairResponse, _, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, createKubeconfigActivityName, cmdLine)
+	keypairResponse, rawAPIResponse, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, createKubeconfigActivityName, cmdLine)
 
 	if err != nil {
 		fmt.Println(color.RedString("Error in createKubeconfig:"))
@@ -244,7 +245,8 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		fmt.Println(color.YellowString("    kubectl config set-context giantswarm-%s\n", cmdClusterID))
 
 	} else {
-		fmt.Printf("Unhandled response code: %v", keypairResponse.StatusCode)
-		fmt.Printf("Status text: %v", keypairResponse.StatusText)
+		fmt.Printf("Unhandled response code: %v\n", keypairResponse.StatusCode)
+		fmt.Printf("Status text: %v\n", keypairResponse.StatusText)
+		fmt.Println(fmt.Sprintf("Raw API response:\n%v", string(rawAPIResponse.Payload)))
 	}
 }
