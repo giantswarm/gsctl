@@ -190,18 +190,22 @@ func listKeypairs(cmd *cobra.Command, args []string) {
 		})
 
 		// create output
-		output := []string{color.CyanString("CREATED") + "|" + color.CyanString("EXPIRES") + "|" + color.CyanString("ID") + "|" + color.CyanString("DESCRIPTION")}
-		for _, keypair := range keypairsResponse.Data.KeyPairs {
-			created := util.ShortDate(util.ParseDate(keypair.CreateDate))
-			expires := util.ParseDate(keypair.CreateDate).Add(time.Duration(keypair.TtlHours) * time.Hour)
+		if len(keypairsResponse.Data.KeyPairs) > 0 {
+			output := []string{color.CyanString("CREATED") + "|" + color.CyanString("EXPIRES") + "|" + color.CyanString("ID") + "|" + color.CyanString("DESCRIPTION")}
+			for _, keypair := range keypairsResponse.Data.KeyPairs {
+				created := util.ShortDate(util.ParseDate(keypair.CreateDate))
+				expires := util.ParseDate(keypair.CreateDate).Add(time.Duration(keypair.TtlHours) * time.Hour)
 
-			// skip if expired
-			output = append(output, created+"|"+
-				util.ShortDate(expires)+"|"+
-				util.Truncate(util.CleanKeypairID(keypair.Id), 10)+"|"+
-				keypair.Description)
+				// skip if expired
+				output = append(output, created+"|"+
+					util.ShortDate(expires)+"|"+
+					util.Truncate(util.CleanKeypairID(keypair.Id), 10)+"|"+
+					keypair.Description)
+			}
+			fmt.Println(columnize.SimpleFormat(output))
+		} else {
+			fmt.Printf("Cluster '%s' has no key pairs\n", cmdClusterID)
 		}
-		fmt.Println(columnize.SimpleFormat(output))
 
 	} else {
 		fmt.Println(color.RedString("Unhandled response code: %v", keypairsResponse.StatusCode))
