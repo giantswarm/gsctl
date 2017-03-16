@@ -71,6 +71,6 @@ func dumpAPIResponse(response gsclientgen.APIResponse) {
 	fmt.Println("API request/response details:")
 	output = append(output, fmt.Sprintf("Operation:|%s (%s %s)", response.Operation, response.Method, response.RequestURL))
 	output = append(output, fmt.Sprintf("Status:|%s", response.Response.Status))
-	output = append(output, fmt.Sprintf("Response body:|%v", response.Payload))
+	output = append(output, fmt.Sprintf("Response body:|%v", string(response.Payload)))
 	fmt.Println(columnize.SimpleFormat(output))
 }
