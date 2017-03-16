@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -157,10 +156,12 @@ func addKeypair(cmd *cobra.Command, args []string) {
 	authHeader := "giantswarm " + config.Config.Token
 	ttlHours := int32(cmdTTLDays * 24)
 	addKeyPairBody := gsclientgen.AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
-	keypairResponse, _, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, addKeyPairActivityName, cmdLine)
+	keypairResponse, apiResponse, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, addKeyPairActivityName, cmdLine)
 
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(color.RedString("Error: %s", err))
+		dumpAPIResponse(*apiResponse)
+		os.Exit(1)
 	}
 
 	if keypairResponse.StatusCode == apischema.STATUS_CODE_DATA {
@@ -231,13 +232,11 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Creating new key-pair…")
 
-	keypairResponse, _, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, createKubeconfigActivityName, cmdLine)
+	keypairResponse, apiResponse, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, createKubeconfigActivityName, cmdLine)
 
 	if err != nil {
-		fmt.Println(color.RedString("Error in createKubeconfig:"))
-		log.Fatal(err)
-		fmt.Println("keypairResponse:", keypairResponse)
-		fmt.Println("addKeyPairBody:", addKeyPairBody)
+		fmt.Println(color.RedString("Error: %s", err))
+		dumpAPIResponse(*apiResponse)
 		os.Exit(1)
 	}
 
