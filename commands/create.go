@@ -180,8 +180,8 @@ func addKeypair(cmd *cobra.Command, args []string) {
 		fmt.Println("Client private key stored in:", clientKeyPath)
 
 	} else {
-		fmt.Printf("Unhandled response code: %v", keypairResponse.StatusCode)
-		fmt.Printf("Status text: %v", keypairResponse.StatusText)
+		fmt.Println(color.RedString("Unhandled response code: %v", keypairResponse.StatusCode))
+		dumpAPIResponse(*apiResponse)
 	}
 }
 
@@ -299,8 +299,8 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		fmt.Println(color.YellowString("    kubectl config set-context giantswarm-%s\n", cmdClusterID))
 
 	} else {
-		fmt.Printf("Unhandled response code: %v", keypairResponse.StatusCode)
-		fmt.Printf("Status text: %v", keypairResponse.StatusText)
+		fmt.Println(color.RedString("Unhandled response code: %v", keypairResponse.StatusCode))
+		dumpAPIResponse(*apiResponse)
 	}
 }
 
