@@ -1,11 +1,14 @@
 package commands
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"os"
+	"os/exec"
+	"path"
 	"runtime"
+	"syscall"
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
@@ -41,6 +44,17 @@ var (
 		PreRunE: checkCreateKubeconfig,
 		Run:     createKubeconfig,
 	}
+
+	// CreateKeyBundleCommand performs the "create keybundle" function
+	CreateKeyBundleCommand = &cobra.Command{
+		Use:     "keybundle",
+		Short:   "Create a P12 key bundle",
+		Long:    `Creates a P12 key bundle from a key pair`,
+		PreRunE: checkCreateKeyBundle,
+		Run:     createKeyBundle,
+	}
+
+	pkcs12BundlePassword = "giantswarm"
 )
 
 const (
@@ -62,10 +76,56 @@ func init() {
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key-pair")
 	CreateKubeconfigCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key-pair in days")
 
+	CreateKeyBundleCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to create a key-bundle for")
+	CreateKeyBundleCommand.Flags().StringVarP(&cmdKeypairID, "keypair", "k", "", "ID of the keypair")
+
 	// subcommands
-	CreateCommand.AddCommand(CreateKeypairCommand, CreateKubeconfigCommand)
+	CreateCommand.AddCommand(CreateKeypairCommand, CreateKubeconfigCommand, CreateKeyBundleCommand)
 
 	RootCommand.AddCommand(CreateCommand)
+}
+
+func checkOpenSSL() bool {
+	cmd := exec.Command("openssl")
+	if err := cmd.Run(); err != nil {
+		var waitStatus syscall.WaitStatus
+		exitStatus := 1
+		if exitError, ok := err.(*exec.ExitError); ok {
+			waitStatus = exitError.Sys().(syscall.WaitStatus)
+			exitStatus = waitStatus.ExitStatus()
+		}
+		if exitStatus == 0 {
+			return true
+		}
+		return false
+	}
+	return true
+}
+
+// creates a PKCS#12 bundle from private RSA key and X.509 certificate using openssl
+func createPkcs12Bundle(clusterID, keypairID string) (string, error) {
+	// TODO: check each file's existence separately and give meaningful output in case of error
+	privateKeyPath := path.Join(config.CertsDirPath, clusterID+"-"+keypairID+"-client.key")
+	clientCertificatePath := path.Join(config.CertsDirPath, clusterID+"-"+keypairID+"-client.crt")
+	outputFilePath := path.Join(config.CertsDirPath, clusterID+"-"+keypairID+".p12")
+	bundleName := "\"Giant Swarm " + clusterID + "-" + keypairID + "\""
+	cmd := exec.Command("openssl",
+		"pkcs12", "-export", "-clcerts",
+		"-inkey", privateKeyPath,
+		"-in", clientCertificatePath,
+		"-out", outputFilePath,
+		"-passout", "pass:"+pkcs12BundlePassword,
+		"-name", bundleName)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err == nil {
+		return outputFilePath, nil
+	}
+	return stderr.String(), err
+
 }
 
 func checkAddKeypair(cmd *cobra.Command, args []string) error {
@@ -96,10 +156,12 @@ func addKeypair(cmd *cobra.Command, args []string) {
 	authHeader := "giantswarm " + config.Config.Token
 	ttlHours := int32(cmdTTLDays * 24)
 	addKeyPairBody := gsclientgen.AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
-	keypairResponse, _, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, addKeyPairActivityName, cmdLine)
+	keypairResponse, apiResponse, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, addKeyPairActivityName, cmdLine)
 
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(color.RedString("Error: %s", err))
+		dumpAPIResponse(*apiResponse)
+		os.Exit(1)
 	}
 
 	if keypairResponse.StatusCode == apischema.STATUS_CODE_DATA {
@@ -108,18 +170,18 @@ func addKeypair(cmd *cobra.Command, args []string) {
 		fmt.Println(color.GreenString(msg))
 
 		// store credentials to file
-		caCertPath := util.StoreCaCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.CertificateAuthorityData)
+		caCertPath := util.StoreCaCertificate(cmdClusterID, keypairResponse.Data.CertificateAuthorityData)
 		fmt.Println("CA certificate stored in:", caCertPath)
 
-		clientCertPath := util.StoreClientCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientCertificateData)
+		clientCertPath := util.StoreClientCertificate(cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientCertificateData)
 		fmt.Println("Client certificate stored in:", clientCertPath)
 
-		clientKeyPath := util.StoreClientKey(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientKeyData)
+		clientKeyPath := util.StoreClientKey(cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientKeyData)
 		fmt.Println("Client private key stored in:", clientKeyPath)
 
 	} else {
-		fmt.Printf("Unhandled response code: %v", keypairResponse.StatusCode)
-		fmt.Printf("Status text: %v", keypairResponse.StatusText)
+		fmt.Println(color.RedString("Unhandled response code: %v", keypairResponse.StatusCode))
+		dumpAPIResponse(*apiResponse)
 	}
 }
 
@@ -179,13 +241,11 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Creating new key-pair…")
 
-	keypairResponse, _, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, createKubeconfigActivityName, cmdLine)
+	keypairResponse, apiResponse, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, createKubeconfigActivityName, cmdLine)
 
 	if err != nil {
-		fmt.Println(color.RedString("Error in createKubeconfig:"))
-		log.Fatal(err)
-		fmt.Println("keypairResponse:", keypairResponse)
-		fmt.Println("addKeyPairBody:", addKeyPairBody)
+		fmt.Println(color.RedString("Error: %s", err))
+		dumpAPIResponse(*apiResponse)
 		os.Exit(1)
 	}
 
@@ -196,11 +256,11 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		fmt.Println(msg)
 
 		// store credentials to file
-		caCertPath := util.StoreCaCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.CertificateAuthorityData)
+		caCertPath := util.StoreCaCertificate(cmdClusterID, keypairResponse.Data.CertificateAuthorityData)
 
-		clientCertPath := util.StoreClientCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientCertificateData)
+		clientCertPath := util.StoreClientCertificate(cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientCertificateData)
 
-		clientKeyPath := util.StoreClientKey(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientKeyData)
+		clientKeyPath := util.StoreClientKey(cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientKeyData)
 
 		fmt.Println("Certificate and key files written to:")
 		fmt.Println(caCertPath)
@@ -244,7 +304,35 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		fmt.Println(color.YellowString("    kubectl config set-context giantswarm-%s\n", cmdClusterID))
 
 	} else {
-		fmt.Printf("Unhandled response code: %v", keypairResponse.StatusCode)
-		fmt.Printf("Status text: %v", keypairResponse.StatusText)
+		fmt.Println(color.RedString("Unhandled response code: %v", keypairResponse.StatusCode))
+		dumpAPIResponse(*apiResponse)
+	}
+}
+
+func checkCreateKeyBundle(cmd *cobra.Command, args []string) error {
+	if checkOpenSSL() == false {
+		return errors.New("OpenSSL is not installed.")
+	}
+	return nil
+}
+
+func createKeyBundle(cmd *cobra.Command, args []string) {
+	result, err := createPkcs12Bundle(cmdClusterID, cmdKeypairID)
+	if err != nil {
+		fmt.Println("Error:", result)
+	}
+	if runtime.GOOS == "darwin" {
+		cmd := exec.Command("security", "import",
+			result, "-P", pkcs12BundlePassword)
+		var out bytes.Buffer
+		var stderr bytes.Buffer
+		cmd.Stdout = &out
+		cmd.Stderr = &stderr
+		err := cmd.Run()
+		if err == nil {
+			fmt.Println(out.String())
+		} else {
+			fmt.Println(stderr.String())
+		}
 	}
 }

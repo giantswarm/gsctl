@@ -3,7 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"log"
+	"os"
 	"sort"
 	"time"
 
@@ -87,8 +87,9 @@ func listOrgs(cmd *cobra.Command, args []string) {
 
 	orgsResponse, apiResponse, err := client.GetUserOrganizations(authHeader, requestIDHeader, listOrganizationsActivityName, cmdLine)
 	if err != nil {
-		fmt.Println("Error details:")
-		log.Fatal(err)
+		fmt.Println(color.RedString("Error: %s", err))
+		dumpAPIResponse(*apiResponse)
+		os.Exit(1)
 	}
 
 	if orgsResponse.StatusCode == apischema.STATUS_CODE_DATA {
@@ -122,7 +123,9 @@ func listClusters(cmd *cobra.Command, args []string) {
 	authHeader := "giantswarm " + config.Config.Token
 	orgsResponse, apiResponse, err := client.GetUserOrganizations(authHeader, requestIDHeader, listClustersActivityName, cmdLine)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(color.RedString("Error: %s", err))
+		dumpAPIResponse(*apiResponse)
+		os.Exit(1)
 	}
 	if orgsResponse.StatusCode == apischema.STATUS_CODE_DATA {
 		var organizations = orgsResponse.Data
@@ -132,9 +135,11 @@ func listClusters(cmd *cobra.Command, args []string) {
 			sort.Strings(organizations)
 			output := []string{color.CyanString("ID") + "|" + color.CyanString("NAME") + "|" + color.CyanString("CREATED") + "|" + color.CyanString("ORGANIZATION")}
 			for _, orgName := range organizations {
-				clustersResponse, _, err := client.GetOrganizationClusters(authHeader, orgName, requestIDHeader, listClustersActivityName, cmdLine)
+				clustersResponse, apiResponse, err := client.GetOrganizationClusters(authHeader, orgName, requestIDHeader, listClustersActivityName, cmdLine)
 				if err != nil {
-					log.Fatal(err)
+					fmt.Println(color.RedString("Error: %s", err))
+					dumpAPIResponse(*apiResponse)
+					os.Exit(1)
 				}
 				for _, cluster := range clustersResponse.Data.Clusters {
 					created := util.ShortDate(util.ParseDate(cluster.CreateDate))
@@ -148,9 +153,8 @@ func listClusters(cmd *cobra.Command, args []string) {
 			fmt.Println(columnize.SimpleFormat(output))
 		}
 	} else {
-		fmt.Printf("Unhandled response code: %v", orgsResponse.StatusCode)
-		fmt.Printf("Status text: %v", orgsResponse.StatusText)
-		fmt.Printf("apiResponse: %s\n", apiResponse)
+		fmt.Println(color.RedString("Unhandled response code: %v", orgsResponse.StatusCode))
+		dumpAPIResponse(*apiResponse)
 	}
 }
 
@@ -173,9 +177,11 @@ func checkListKeypairs(cmd *cobra.Command, args []string) error {
 func listKeypairs(cmd *cobra.Command, args []string) {
 	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
 	authHeader := "giantswarm " + config.Config.Token
-	keypairsResponse, _, err := client.GetKeyPairs(authHeader, cmdClusterID, requestIDHeader, listKeypairsActivityName, cmdLine)
+	keypairsResponse, apiResponse, err := client.GetKeyPairs(authHeader, cmdClusterID, requestIDHeader, listKeypairsActivityName, cmdLine)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(color.RedString("Error: %s", err))
+		dumpAPIResponse(*apiResponse)
+		os.Exit(1)
 	}
 	if keypairsResponse.StatusCode == apischema.STATUS_CODE_DATA {
 		// sort result
@@ -184,21 +190,25 @@ func listKeypairs(cmd *cobra.Command, args []string) {
 		})
 
 		// create output
-		output := []string{color.CyanString("CREATED") + "|" + color.CyanString("EXPIRES") + "|" + color.CyanString("ID") + "|" + color.CyanString("DESCRIPTION")}
-		for _, keypair := range keypairsResponse.Data.KeyPairs {
-			created := util.ShortDate(util.ParseDate(keypair.CreateDate))
-			expires := util.ParseDate(keypair.CreateDate).Add(time.Duration(keypair.TtlHours) * time.Hour)
+		if len(keypairsResponse.Data.KeyPairs) > 0 {
+			output := []string{color.CyanString("CREATED") + "|" + color.CyanString("EXPIRES") + "|" + color.CyanString("ID") + "|" + color.CyanString("DESCRIPTION")}
+			for _, keypair := range keypairsResponse.Data.KeyPairs {
+				created := util.ShortDate(util.ParseDate(keypair.CreateDate))
+				expires := util.ParseDate(keypair.CreateDate).Add(time.Duration(keypair.TtlHours) * time.Hour)
 
-			// skip if expired
-			output = append(output, created+"|"+
-				util.ShortDate(expires)+"|"+
-				util.Truncate(util.CleanKeypairID(keypair.Id), 10)+"|"+
-				keypair.Description)
+				// skip if expired
+				output = append(output, created+"|"+
+					util.ShortDate(expires)+"|"+
+					util.Truncate(util.CleanKeypairID(keypair.Id), 10)+"|"+
+					keypair.Description)
+			}
+			fmt.Println(columnize.SimpleFormat(output))
+		} else {
+			fmt.Printf("Cluster '%s' has no key pairs\n", cmdClusterID)
 		}
-		fmt.Println(columnize.SimpleFormat(output))
 
 	} else {
-		fmt.Printf("Unhandled response code: %v", keypairsResponse.StatusCode)
-		fmt.Printf("Status text: %v", keypairsResponse.StatusText)
+		fmt.Println(color.RedString("Unhandled response code: %v", keypairsResponse.StatusCode))
+		dumpAPIResponse(*apiResponse)
 	}
 }
