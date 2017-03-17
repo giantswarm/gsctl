@@ -3,7 +3,6 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"runtime"
 
@@ -96,10 +95,12 @@ func addKeypair(cmd *cobra.Command, args []string) {
 	authHeader := "giantswarm " + config.Config.Token
 	ttlHours := int32(cmdTTLDays * 24)
 	addKeyPairBody := gsclientgen.AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
-	keypairResponse, _, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, addKeyPairActivityName, cmdLine)
+	keypairResponse, apiResponse, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, addKeyPairActivityName, cmdLine)
 
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(color.RedString("Error: %s", err))
+		dumpAPIResponse(*apiResponse)
+		os.Exit(1)
 	}
 
 	if keypairResponse.StatusCode == apischema.STATUS_CODE_DATA {
@@ -118,8 +119,8 @@ func addKeypair(cmd *cobra.Command, args []string) {
 		fmt.Println("Client private key stored in:", clientKeyPath)
 
 	} else {
-		fmt.Printf("Unhandled response code: %v", keypairResponse.StatusCode)
-		fmt.Printf("Status text: %v", keypairResponse.StatusText)
+		fmt.Println(color.RedString("Unhandled response code: %v", keypairResponse.StatusCode))
+		dumpAPIResponse(*apiResponse)
 	}
 }
 
@@ -164,8 +165,8 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 	clusterDetailsResponse, apiResponse, err := client.GetCluster(authHeader, cmdClusterID, requestIDHeader, createKubeconfigActivityName, cmdLine)
 	if err != nil {
 		fmt.Println(color.RedString("Could not fetch details for cluster ID '" + cmdClusterID + "'"))
-		fmt.Println(err)
-		fmt.Println(fmt.Sprintf("%v", string(apiResponse.Payload)))
+		fmt.Println(color.RedString("Error: %s", err))
+		dumpAPIResponse(*apiResponse)
 		os.Exit(1)
 	}
 
@@ -182,10 +183,8 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 	keypairResponse, _, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, createKubeconfigActivityName, cmdLine)
 
 	if err != nil {
-		fmt.Println(color.RedString("Error in createKubeconfig:"))
-		log.Fatal(err)
-		fmt.Println("keypairResponse:", keypairResponse)
-		fmt.Println("addKeyPairBody:", addKeyPairBody)
+		fmt.Println(color.RedString("Error: %s", err))
+		dumpAPIResponse(*apiResponse)
 		os.Exit(1)
 	}
 
@@ -244,7 +243,7 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		fmt.Println(color.YellowString("    kubectl config set-context giantswarm-%s\n", cmdClusterID))
 
 	} else {
-		fmt.Printf("Unhandled response code: %v", keypairResponse.StatusCode)
-		fmt.Printf("Status text: %v", keypairResponse.StatusText)
+		fmt.Println(color.RedString("Unhandled response code: %v", keypairResponse.StatusCode))
+		dumpAPIResponse(*apiResponse)
 	}
 }
