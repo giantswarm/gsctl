@@ -1,10 +1,18 @@
 package commands
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"os/exec"
+	"os/user"
+	"path"
 	"runtime"
+	"strings"
+	"syscall"
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
@@ -40,6 +48,8 @@ var (
 		PreRunE: checkCreateKubeconfig,
 		Run:     createKubeconfig,
 	}
+
+	pkcs12BundlePassword = "giantswarm"
 )
 
 const (
@@ -67,6 +77,113 @@ func init() {
 	RootCommand.AddCommand(CreateCommand)
 }
 
+// checkOpenSSL returns true if openssl executable exists and is callable
+func checkOpenSSL() bool {
+	cmd := exec.Command("openssl")
+	if err := cmd.Run(); err != nil {
+		var waitStatus syscall.WaitStatus
+		exitStatus := 1
+		if exitError, ok := err.(*exec.ExitError); ok {
+			waitStatus = exitError.Sys().(syscall.WaitStatus)
+			exitStatus = waitStatus.ExitStatus()
+		}
+		if exitStatus == 0 {
+			return true
+		}
+		return false
+	}
+	return true
+}
+
+// checkCertUtil returns true if certutil executable exists and is callable
+func checkCertUtil() bool {
+	cmd := exec.Command("certutil")
+	if err := cmd.Run(); err != nil {
+		var waitStatus syscall.WaitStatus
+		exitStatus := 1
+		if exitError, ok := err.(*exec.ExitError); ok {
+			waitStatus = exitError.Sys().(syscall.WaitStatus)
+			exitStatus = waitStatus.ExitStatus()
+		}
+		if exitStatus == 0 {
+			return true
+		}
+		return false
+	}
+	return true
+}
+
+// checkPk12Util returns true if pk12util executable exists and is callable
+func checkPk12Util() bool {
+	cmd := exec.Command("pk12util")
+	if err := cmd.Run(); err != nil {
+		var waitStatus syscall.WaitStatus
+		exitStatus := 1
+		if exitError, ok := err.(*exec.ExitError); ok {
+			waitStatus = exitError.Sys().(syscall.WaitStatus)
+			exitStatus = waitStatus.ExitStatus()
+		}
+		if exitStatus == 0 {
+			return true
+		}
+		return false
+	}
+	return true
+}
+
+// firefoxProfiles returns a slice of firefox profile folders of the current user
+func firefoxProfiles() []string {
+	profiles := []string{}
+	ffpath := path.Join(config.SystemUser.HomeDir, ".mozilla", "firefox")
+	files, err := ioutil.ReadDir(ffpath)
+	if err == nil {
+		for _, f := range files {
+			if strings.Contains(f.Name(), ".default") {
+				// ff profile folder names end in ".default"
+				profiles = append(profiles, path.Join(ffpath, f.Name()))
+			}
+		}
+	}
+	return profiles
+}
+
+// checkFirefoxProfileExists returns true if the user has a Firefox profile folder
+func checkFirefoxProfileExists() bool {
+	p := firefoxProfiles()
+	if len(p) > 0 {
+		return true
+	}
+	return false
+}
+
+// creates a PKCS#12 bundle from private RSA key and X.509 certificate using openssl
+func createPkcs12Bundle(clusterID, keyPairID string) (string, error) {
+	truncatedKeyPairID := util.CleanKeypairID(keyPairID)[:10]
+	// TODO: check each file's existence separately and give meaningful output in case of error
+	privateKeyPath := path.Join(config.CertsDirPath, clusterID+"-"+truncatedKeyPairID+"-client.key")
+	clientCertificatePath := path.Join(config.CertsDirPath, clusterID+"-"+truncatedKeyPairID+"-client.crt")
+	outputFilePath := path.Join(config.CertsDirPath, clusterID+"-"+truncatedKeyPairID+".p12")
+	bundleName := "\"Giant Swarm " + clusterID + "-" + truncatedKeyPairID + "\""
+	cmd := exec.Command("openssl",
+		"pkcs12", "-export", "-clcerts",
+		"-inkey", privateKeyPath,
+		"-in", clientCertificatePath,
+		"-out", outputFilePath,
+		"-passout", "pass:"+pkcs12BundlePassword,
+		"-name", bundleName)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err == nil {
+		return outputFilePath, nil
+	}
+	fmt.Println(cmd.Stdout)
+	fmt.Println(cmd.Stderr)
+	return outputFilePath, err
+}
+
 func checkAddKeypair(cmd *cobra.Command, args []string) error {
 	if config.Config.Token == "" {
 		return errors.New("You are not logged in. Use '" + config.ProgramName + " login' to log in.")
@@ -84,6 +201,195 @@ func checkAddKeypair(cmd *cobra.Command, args []string) error {
 		return errors.New("No description given. Please use the -d/--description flag to set a description.")
 	}
 	return nil
+}
+
+// importCaAndPkcs12Bundle attempts to import the CA file and
+// PKCS#12 bundle (.p12 file) to the available
+// key chains or certificate databases.
+// @returns []string Information where bundle has been imported to
+func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []string {
+	successfulImports := []string{}
+	certName := fmt.Sprintf("Giant Swarm cluster '%s' CA", clusterID)
+	u, _ := user.Current()
+
+	// Mac only: import to OS keychain
+	if runtime.GOOS == "darwin" {
+
+		// CA
+		fmt.Printf("\nu.HomeDir: %s\n", u.HomeDir)
+		keychainPath := path.Join(u.HomeDir, "Library", "Keychains", "login.keychain")
+		cmd1 := exec.Command("security", "add-trusted-cert",
+			"-r", "trustRoot",
+			"-k", keychainPath,
+			caFilePath)
+		var out1 bytes.Buffer
+		var stderr1 bytes.Buffer
+		cmd1.Stdout = &out1
+		cmd1.Stderr = &stderr1
+		err1 := cmd1.Run()
+		if err1 == nil {
+			successfulImports = append(successfulImports, "CA to Mac OS system keychain")
+		} else {
+			fmt.Println("Importing CA to Mac OS keychain failed.")
+			fmt.Printf("Details: %s\n", stderr1.String())
+		}
+
+		// PKCS#12
+		if p12path != "" {
+			cmd2 := exec.Command("security", "import", p12path, "-P", password)
+			var out2 bytes.Buffer
+			var stderr2 bytes.Buffer
+			cmd2.Stdout = &out2
+			cmd2.Stderr = &stderr2
+			err2 := cmd2.Run()
+			if err2 == nil {
+				successfulImports = append(successfulImports, "PKCS#12 bundle to Mac OS system keychain")
+			} else {
+				fmt.Println("Importing PKCS#12 bundle to Mac OS keychain failed.")
+				fmt.Printf("Details: %s\n", stderr2.String())
+			}
+		}
+	}
+
+	// Shared NSS database (e. g. Chrome, Chromium on Linux)
+	sharedNssDbPath := path.Join(u.HomeDir, ".pki", "nssdb")
+	if _, statErr := os.Stat(sharedNssDbPath); statErr == nil {
+		if cmdVerbose {
+			fmt.Printf("Shared NSS database exists in '%s'\n", sharedNssDbPath)
+		}
+
+		// CA
+		if checkCertUtil() {
+			fmt.Println("Please close all windows of browsers using your shared NSS database, like")
+			fmt.Println("Chromium and Google Chrome, before you proceed.")
+			fmt.Print("Press 'Enter' to continue")
+			bufio.NewReader(os.Stdin).ReadBytes('\n')
+			cmd3 := exec.Command("certutil", "-A",
+				"-n", "\""+certName+"\"",
+				"-t", "\"TC,,\"",
+				"-d", "'sql:"+sharedNssDbPath+"'",
+				"-i", caFilePath)
+			var out3 bytes.Buffer
+			var stderr3 bytes.Buffer
+			cmd3.Stdout = &out3
+			cmd3.Stderr = &stderr3
+			err3 := cmd3.Run()
+			if err3 == nil {
+				successfulImports = append(successfulImports, "CA to shared NSS database")
+			} else {
+				fmt.Println("Importing CA to shared NSS database failed.")
+				fmt.Printf("Details: %s\n", stderr3.String())
+			}
+		}
+
+		// PKCS#12
+		if p12path != "" {
+			if checkPk12Util() {
+				cmd4 := exec.Command("pk12util",
+					"-i", p12path,
+					"-d", "'sql:"+sharedNssDbPath+"'",
+					"-W", password)
+				var out4 bytes.Buffer
+				var stderr4 bytes.Buffer
+				cmd4.Stdout = &out4
+				cmd4.Stderr = &stderr4
+				err4 := cmd4.Run()
+				if err4 == nil {
+					successfulImports = append(successfulImports, "PKCS#12 bundle to shared NSS database")
+				} else {
+					fmt.Println("Importing PKCS#12 bundle to shared NSS database failed.")
+					fmt.Printf("Details: %s\n", stderr4.String())
+				}
+			} else {
+				fmt.Println("Importing PKCS#12 bundle to shared NSS database failed.")
+				fmt.Println("Executable 'pk12util' not found.")
+				if runtime.GOOS == "linux" {
+					fmt.Println("Debian-based distributions allow the installation of 'pk12util' via")
+					fmt.Println("'sudo apt-get install libnss3-tools'.")
+				}
+			}
+		}
+	}
+
+	// Firefox
+	if checkFirefoxProfileExists() {
+
+		if runtime.GOOS == "darwin" {
+			// Mac OS
+			fmt.Println("To import the CA and PKCS#12 bundle into Firefox,")
+			fmt.Println("please refer to our guide at\n")
+			fmt.Println("   https://docs.giantswarm.io/guides/importing-certificates/#mac-os-firefox\n")
+		} else if runtime.GOOS == "windows" {
+			// Windows
+			fmt.Println("To import the CA and PKCS#12 bundle into Firefox,")
+			fmt.Println("please open the Firefox certificate manager under")
+			fmt.Println("'Tools' > 'Options' > 'Advanced' > 'Certificates'")
+			fmt.Println("and use the function 'View Certificates' > 'Import'.")
+		} else {
+			// Linux or the likes (hopefully)
+			fmt.Println("Please close all windows of Firefox before you proceed.")
+			fmt.Print("Press 'Enter' to continue")
+			bufio.NewReader(os.Stdin).ReadBytes('\n')
+
+			// install in all profile folders
+			for _, profileFolder := range firefoxProfiles() {
+				// CA
+				if checkCertUtil() {
+					cmd5 := exec.Command("certutil", "-A",
+						"-n", "\""+certName+"\"",
+						"-t", "\"TC,,\"",
+						"-d", "\""+profileFolder+"\"",
+						"-i", caFilePath)
+					var out5 bytes.Buffer
+					var stderr5 bytes.Buffer
+					cmd5.Stdout = &out5
+					cmd5.Stderr = &stderr5
+					err5 := cmd5.Run()
+					if err5 == nil {
+						successfulImports = append(successfulImports, fmt.Sprintf("CA to Firefox profile %s", profileFolder))
+					} else {
+						fmt.Printf("Importing CA to Firefox profile %s failed.\n", profileFolder)
+						fmt.Printf("Details: %s\n", stderr5.String())
+					}
+				} else {
+					fmt.Println("Importing CA to Firefox failed.")
+					fmt.Println("Executable 'certutil' not found.")
+					fmt.Println("Debian-based Linux distributions allow the installation of 'pk12util' via")
+					fmt.Println("'sudo apt-get install libnss3-tools'.")
+				}
+
+				// PKCS#12
+				if p12path != "" {
+					if checkPk12Util() {
+						cmd6 := exec.Command("pk12util",
+							"-i", p12path,
+							"-d", "\""+profileFolder+"\"",
+							"-W", password)
+						var out6 bytes.Buffer
+						var stderr6 bytes.Buffer
+						cmd6.Stdout = &out6
+						cmd6.Stderr = &stderr6
+						err6 := cmd6.Run()
+						if err6 == nil {
+							successfulImports = append(successfulImports, fmt.Sprintf("PKCS#12 bundle to Firefox profile %s", profileFolder))
+						} else {
+							fmt.Printf("Importing PKCS#12 bundle to Firefox profile %s failed.\n", profileFolder)
+							fmt.Printf("Details: %s\n", stderr6.String())
+						}
+					} else {
+						fmt.Println("Importing PKCS#12 bundle to Firefox failed.")
+						fmt.Println("Executable 'pk12util' not found.")
+						fmt.Println("Debian-based Linux distributions allow the installation of 'pk12util' via")
+						fmt.Println("'sudo apt-get install libnss3-tools'.")
+					}
+				}
+
+			}
+
+		}
+	}
+
+	return successfulImports
 }
 
 func addKeypair(cmd *cobra.Command, args []string) {
@@ -160,6 +466,7 @@ func checkCreateKubeconfig(cmd *cobra.Command, args []string) error {
 func createKubeconfig(cmd *cobra.Command, args []string) {
 	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
 	authHeader := "giantswarm " + config.Config.Token
+	var p12Path string
 
 	// get cluster details
 	clusterDetailsResponse, apiResponse, err := client.GetCluster(authHeader, cmdClusterID, requestIDHeader, createKubeconfigActivityName, cmdLine)
@@ -180,7 +487,7 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Creating new key-pair…")
 
-	keypairResponse, _, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, createKubeconfigActivityName, cmdLine)
+	keypairResponse, apiResponse, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, createKubeconfigActivityName, cmdLine)
 
 	if err != nil {
 		fmt.Println(color.RedString("Error: %s", err))
@@ -196,15 +503,40 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 
 		// store credentials to file
 		caCertPath := util.StoreCaCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.CertificateAuthorityData)
-
 		clientCertPath := util.StoreClientCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientCertificateData)
-
 		clientKeyPath := util.StoreClientKey(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientKeyData)
 
 		fmt.Println("Certificate and key files written to:")
 		fmt.Println(caCertPath)
 		fmt.Println(clientCertPath)
 		fmt.Println(clientKeyPath)
+
+		// Create PKCS#12 bundle
+		if checkOpenSSL() {
+			thisP12Path, thisErr := createPkcs12Bundle(cmdClusterID, keypairResponse.Data.Id)
+			if thisErr != nil {
+				fmt.Println(color.YellowString("Warning: Could not create PKCS#12 bundle."))
+				fmt.Println(color.YellowString("Details: %v", thisErr))
+			} else {
+				p12Path = thisP12Path
+				fmt.Println(fmt.Sprintf("Created PKCS#12 bundle with default password '%s' in:", pkcs12BundlePassword))
+				fmt.Println(p12Path)
+			}
+		} else {
+			fmt.Println(color.YellowString("Info: OpenSSL executable could not be found. PKCS#12 bundle has not been created."))
+			fmt.Println(color.YellowString("Refer to\n"))
+			fmt.Println(color.YellowString("    https://docs.giantswarm.io/guides/importing-certificates/\n"))
+			fmt.Println(color.YellowString("for details on how to establish trust to your cluster"))
+			fmt.Println(color.YellowString("and import your key pair into a browser.\n"))
+		}
+
+		imported := importCaAndPkcs12Bundle(caCertPath, p12Path, cmdClusterID, pkcs12BundlePassword)
+		if len(imported) > 0 {
+			fmt.Println("Successful certificate imports:")
+			for n, line := range imported {
+				fmt.Printf(" %d. %s\n", n, line)
+			}
+		}
 
 		// edit kubectl config
 		if err := util.KubectlSetCluster(cmdClusterID, clusterDetailsResponse.ApiEndpoint, caCertPath); err != nil {

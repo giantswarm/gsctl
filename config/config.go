@@ -63,8 +63,7 @@ var (
 )
 
 func init() {
-	SystemUser, userErr := user.Current()
-	checkErr(userErr)
+	SystemUser, _ = user.Current()
 
 	APIEndpoint = "https://api.giantswarm.io"
 	ConfigDirPath = path.Join(SystemUser.HomeDir, "."+ProgramName)
