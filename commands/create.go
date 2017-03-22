@@ -268,9 +268,6 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 				"-t", "TC,,",
 				"-d", "sql:"+sharedNssDbPath,
 				"-i", caFilePath)
-			if cmdVerbose {
-				fmt.Printf("Executing: %v", cmd3.Args)
-			}
 			var out3 bytes.Buffer
 			var stderr3 bytes.Buffer
 			cmd3.Stdout = &out3
@@ -291,9 +288,6 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 					"-i", p12path,
 					"-d", "sql:"+sharedNssDbPath,
 					"-W", password)
-				if cmdVerbose {
-					fmt.Printf("Executing: %v", cmd4.Args)
-				}
 				var out4 bytes.Buffer
 				var stderr4 bytes.Buffer
 				cmd4.Stdout = &out4
@@ -345,9 +339,6 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 						"-t", "TC,,",
 						"-d", "sql:"+profileFolder,
 						"-i", caFilePath)
-					if cmdVerbose {
-						fmt.Printf("Executing: %v", cmd5.Args)
-					}
 					var out5 bytes.Buffer
 					var stderr5 bytes.Buffer
 					cmd5.Stdout = &out5
@@ -373,9 +364,6 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 							"-i", p12path,
 							"-d", "sql:"+profileFolder,
 							"-W", password)
-						if cmdVerbose {
-							fmt.Printf("Executing: %v", cmd6.Args)
-						}
 						var out6 bytes.Buffer
 						var stderr6 bytes.Buffer
 						cmd6.Stdout = &out6
