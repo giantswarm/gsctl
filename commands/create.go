@@ -139,13 +139,15 @@ func which(name string) (string, error) {
 	return "", nil
 }
 
-func checkExecutableExists(name string) bool {
+func checkExecutableExists(name string) (bool, error) {
 	myPath, err := which(name)
-	fmt.Println("Error in which(): %s", err)
-	if myPath != "" {
-		return true
+	if err != nil {
+		return false, err
 	}
-	return false
+	if myPath != "" {
+		return true, nil
+	}
+	return false, nil
 }
 
 // firefoxProfiles returns a slice of firefox profile folders of the current user
@@ -275,7 +277,7 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 		}
 
 		// CA
-		if checkExecutableExists("certutil") {
+		if certutilExists, _ := checkExecutableExists("certutil"); certutilExists {
 			fmt.Println("Please close all windows of browsers using your shared NSS database, like")
 			fmt.Println("Chromium and Google Chrome, before you proceed.")
 			fmt.Print("Press 'Enter' to continue")
@@ -300,7 +302,7 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 
 		// PKCS#12
 		if p12path != "" {
-			if checkExecutableExists("pk12util") {
+			if pk12utilExists, _ := checkExecutableExists("pk12util"); pk12utilExists {
 				cmd4 := exec.Command("pk12util",
 					"-i", p12path,
 					"-d", "'sql:"+sharedNssDbPath+"'",
@@ -350,7 +352,7 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 			// install in all profile folders
 			for _, profileFolder := range firefoxProfiles() {
 				// CA
-				if checkExecutableExists("certutil") {
+				if certutilExists, _ := checkExecutableExists("certutil"); certutilExists {
 					cmd5 := exec.Command("certutil", "-A",
 						"-n", "\""+certName+"\"",
 						"-t", "\"TC,,\"",
@@ -376,7 +378,7 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 
 				// PKCS#12
 				if p12path != "" {
-					if checkExecutableExists("pk12util") {
+					if pk12utilExists, _ := checkExecutableExists("pk12util"); pk12utilExists {
 						cmd6 := exec.Command("pk12util",
 							"-i", p12path,
 							"-d", "\""+profileFolder+"\"",
