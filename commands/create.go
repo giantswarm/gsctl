@@ -12,7 +12,6 @@ import (
 	"path"
 	"runtime"
 	"strings"
-	"syscall"
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
@@ -76,24 +75,6 @@ func init() {
 	CreateCommand.AddCommand(CreateKeypairCommand, CreateKubeconfigCommand)
 
 	RootCommand.AddCommand(CreateCommand)
-}
-
-// checkOpenSSL returns true if openssl executable exists and is callable
-func checkOpenSSL() bool {
-	cmd := exec.Command("openssl")
-	if err := cmd.Run(); err != nil {
-		var waitStatus syscall.WaitStatus
-		exitStatus := 1
-		if exitError, ok := err.(*exec.ExitError); ok {
-			waitStatus = exitError.Sys().(syscall.WaitStatus)
-			exitStatus = waitStatus.ExitStatus()
-		}
-		if exitStatus == 0 {
-			return true
-		}
-		return false
-	}
-	return true
 }
 
 // executable checks whether there is an executable file at the given path
@@ -530,7 +511,7 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		fmt.Println(clientKeyPath)
 
 		// Create PKCS#12 bundle
-		if checkOpenSSL() {
+		if opensslExists, _ := checkExecutableExists("openssl"); opensslExists {
 			thisP12Path, thisErr := createPkcs12Bundle(cmdClusterID, keypairResponse.Data.Id)
 			if thisErr != nil {
 				fmt.Println(color.YellowString("Warning: Could not create PKCS#12 bundle."))
