@@ -17,6 +17,7 @@ import (
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/gsclientgen"
+	"github.com/phayes/permbits"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/config"
@@ -95,40 +96,56 @@ func checkOpenSSL() bool {
 	return true
 }
 
-// checkCertUtil returns true if certutil executable exists and is callable
-func checkCertUtil() bool {
-	cmd := exec.Command("certutil")
-	if err := cmd.Run(); err != nil {
-		var waitStatus syscall.WaitStatus
-		exitStatus := 1
-		if exitError, ok := err.(*exec.ExitError); ok {
-			waitStatus = exitError.Sys().(syscall.WaitStatus)
-			exitStatus = waitStatus.ExitStatus()
-		}
-		if exitStatus == 0 {
-			return true
-		}
-		return false
+// executable checks whether there is an executable file at the given path
+func executable(path string) (bool, error) {
+	stat, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		// does not exist
+		return false, nil
+	} else if err != nil {
+		// some other error
+		return false, err
 	}
-	return true
+	if stat.Mode().IsDir() {
+		// file is a directory
+		return false, nil
+	}
+	// evaluate permissions
+	permissions, permErr := permbits.Stat(path)
+	if permErr != nil {
+		return false, permErr
+	}
+	if permissions.UserExecute() || permissions.GroupExecute() {
+		return true, nil
+	}
+	return false, err
 }
 
-// checkPk12Util returns true if pk12util executable exists and is callable
-func checkPk12Util() bool {
-	cmd := exec.Command("pk12util")
-	if err := cmd.Run(); err != nil {
-		var waitStatus syscall.WaitStatus
-		exitStatus := 1
-		if exitError, ok := err.(*exec.ExitError); ok {
-			waitStatus = exitError.Sys().(syscall.WaitStatus)
-			exitStatus = waitStatus.ExitStatus()
+// which checks if an executable is available in the PATH.
+// If yes, the path is returned. Else, an empty string is return.
+func which(name string) (string, error) {
+	// iterate path
+	paths := strings.Split(os.Getenv("PATH"), string(os.PathListSeparator))
+	for _, dirPath := range paths {
+		execPath := dirPath + string(os.PathSeparator) + name
+		isExecutable, err := executable(execPath)
+		if err != nil {
+			return "", err
 		}
-		if exitStatus == 0 {
-			return true
+		if isExecutable {
+			return execPath, nil
 		}
-		return false
 	}
-	return true
+	return "", nil
+}
+
+func checkExecutableExists(name string) bool {
+	myPath, err := which(name)
+	fmt.Println("Error in which(): %s", err)
+	if myPath != "" {
+		return true
+	}
+	return false
 }
 
 // firefoxProfiles returns a slice of firefox profile folders of the current user
@@ -216,7 +233,6 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 	if runtime.GOOS == "darwin" {
 
 		// CA
-		fmt.Printf("\nu.HomeDir: %s\n", u.HomeDir)
 		keychainPath := path.Join(u.HomeDir, "Library", "Keychains", "login.keychain")
 		cmd1 := exec.Command("security", "add-trusted-cert",
 			"-r", "trustRoot",
@@ -259,7 +275,7 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 		}
 
 		// CA
-		if checkCertUtil() {
+		if checkExecutableExists("certutil") {
 			fmt.Println("Please close all windows of browsers using your shared NSS database, like")
 			fmt.Println("Chromium and Google Chrome, before you proceed.")
 			fmt.Print("Press 'Enter' to continue")
@@ -284,7 +300,7 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 
 		// PKCS#12
 		if p12path != "" {
-			if checkPk12Util() {
+			if checkExecutableExists("pk12util") {
 				cmd4 := exec.Command("pk12util",
 					"-i", p12path,
 					"-d", "'sql:"+sharedNssDbPath+"'",
@@ -334,7 +350,7 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 			// install in all profile folders
 			for _, profileFolder := range firefoxProfiles() {
 				// CA
-				if checkCertUtil() {
+				if checkExecutableExists("certutil") {
 					cmd5 := exec.Command("certutil", "-A",
 						"-n", "\""+certName+"\"",
 						"-t", "\"TC,,\"",
@@ -360,7 +376,7 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 
 				// PKCS#12
 				if p12path != "" {
-					if checkPk12Util() {
+					if checkExecutableExists("pk12util") {
 						cmd6 := exec.Command("pk12util",
 							"-i", p12path,
 							"-d", "\""+profileFolder+"\"",
@@ -534,8 +550,9 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		if len(imported) > 0 {
 			fmt.Println("Successful certificate imports:")
 			for n, line := range imported {
-				fmt.Printf(" %d. %s\n", n, line)
+				fmt.Printf(" %d. %s\n", (n + 1), line)
 			}
+			fmt.Println("")
 		}
 
 		// edit kubectl config
