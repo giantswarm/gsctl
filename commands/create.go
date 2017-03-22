@@ -285,7 +285,7 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 			cmd3 := exec.Command("certutil", "-A",
 				"-n", "\""+certName+"\"",
 				"-t", "\"TC,,\"",
-				"-d", "'sql:"+sharedNssDbPath+"'",
+				"-d", "\"sql:"+sharedNssDbPath+"\"",
 				"-i", caFilePath)
 			var out3 bytes.Buffer
 			var stderr3 bytes.Buffer
@@ -356,7 +356,7 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 					cmd5 := exec.Command("certutil", "-A",
 						"-n", "\""+certName+"\"",
 						"-t", "\"TC,,\"",
-						"-d", "\""+profileFolder+"\"",
+						"-d", "\"sql:"+profileFolder+"\"",
 						"-i", caFilePath)
 					var out5 bytes.Buffer
 					var stderr5 bytes.Buffer
