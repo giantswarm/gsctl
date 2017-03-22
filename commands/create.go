@@ -264,9 +264,9 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 			fmt.Print("Press 'Enter' to continue")
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
 			cmd3 := exec.Command("certutil", "-A",
-				"-n", "\""+certName+"\"",
-				"-t", "\"TC,,\"",
-				"-d", "\"sql:"+sharedNssDbPath+"\"",
+				"-n", certName,
+				"-t", "TC,,",
+				"-d", "sql:"+sharedNssDbPath,
 				"-i", caFilePath)
 			if cmdVerbose {
 				fmt.Printf("Executing: %v", cmd3.Args)
@@ -289,7 +289,7 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 			if pk12utilExists, _ := checkExecutableExists("pk12util"); pk12utilExists {
 				cmd4 := exec.Command("pk12util",
 					"-i", p12path,
-					"-d", "'sql:"+sharedNssDbPath+"'",
+					"-d", "sql:"+sharedNssDbPath,
 					"-W", password)
 				if cmdVerbose {
 					fmt.Printf("Executing: %v", cmd4.Args)
@@ -341,9 +341,9 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 				// CA
 				if certutilExists, _ := checkExecutableExists("certutil"); certutilExists {
 					cmd5 := exec.Command("certutil", "-A",
-						"-n", "\""+certName+"\"",
-						"-t", "\"TC,,\"",
-						"-d", "\"sql:"+profileFolder+"\"",
+						"-n", certName,
+						"-t", "TC,,",
+						"-d", "sql:"+profileFolder,
 						"-i", caFilePath)
 					if cmdVerbose {
 						fmt.Printf("Executing: %v", cmd5.Args)
@@ -371,7 +371,7 @@ func importCaAndPkcs12Bundle(caFilePath, p12path, clusterID, password string) []
 					if pk12utilExists, _ := checkExecutableExists("pk12util"); pk12utilExists {
 						cmd6 := exec.Command("pk12util",
 							"-i", p12path,
-							"-d", "\""+profileFolder+"\"",
+							"-d", "sql:"+profileFolder,
 							"-W", password)
 						if cmdVerbose {
 							fmt.Printf("Executing: %v", cmd6.Args)
