@@ -92,7 +92,7 @@ Go to right location, then check out:
 ```nohighlight
 $ mkdir -p $GOPATH/src/github.com/giantswarm
 $ cd $GOPATH/src/github.com/giantswarm
-$ git clone git@github.com:giantswarm/gsctl.git
+$ git clone https://github.com/giantswarm/gsctl.git
 $ cd gsctl
 ```
 
