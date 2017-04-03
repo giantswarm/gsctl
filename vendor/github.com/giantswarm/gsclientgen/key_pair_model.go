@@ -11,11 +11,11 @@
 package gsclientgen
 
 type KeyPairModel struct {
-	Id string `json:"id,omitempty"`
+	Id string `json:"id"`
 
-	Description string `json:"description,omitempty"`
+	Description string `json:"description"`
 
-	TtlHours int32 `json:"ttl_hours,omitempty"`
+	TtlHours int32 `json:"ttl_hours"`
 
 	CreateDate string `json:"create_date,omitempty"`
 

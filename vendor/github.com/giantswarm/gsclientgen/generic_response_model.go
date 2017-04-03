@@ -11,7 +11,7 @@
 package gsclientgen
 
 type GenericResponseModel struct {
-	StatusCode int32 `json:"status_code,omitempty"`
+	StatusCode int32 `json:"status_code"`
 
-	StatusText string `json:"status_text,omitempty"`
+	StatusText string `json:"status_text"`
 }
