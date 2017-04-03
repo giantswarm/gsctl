@@ -11,7 +11,7 @@
 package gsclientgen
 
 type V3AddKeyPairResponseData struct {
-	Id string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	Description string `json:"description,omitempty"`
 

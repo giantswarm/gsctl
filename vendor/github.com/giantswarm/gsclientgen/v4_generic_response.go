@@ -11,7 +11,7 @@
 package gsclientgen
 
 type V4GenericResponse struct {
-	Code string `json:"code,omitempty"`
+	Code string `json:"code"`
 
-	Message string `json:"message,omitempty"`
+	Message string `json:"message"`
 }

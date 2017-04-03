@@ -11,9 +11,9 @@
 package gsclientgen
 
 type UserOrganizationsResponseModel struct {
-	Data []string `json:"data,omitempty"`
+	Data []string `json:"data"`
 
-	StatusCode int32 `json:"status_code,omitempty"`
+	StatusCode int32 `json:"status_code"`
 
-	StatusText string `json:"status_text,omitempty"`
+	StatusText string `json:"status_text"`
 }

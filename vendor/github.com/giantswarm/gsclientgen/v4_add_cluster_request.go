@@ -14,7 +14,7 @@ package gsclientgen
 type V4AddClusterRequest struct {
 
 	// Name of the organization owning the cluster
-	Owner string `json:"owner,omitempty"`
+	Owner string `json:"owner"`
 
 	// Cluster name
 	Name string `json:"name,omitempty"`

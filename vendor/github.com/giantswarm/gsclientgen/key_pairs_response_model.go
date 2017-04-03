@@ -13,7 +13,7 @@ package gsclientgen
 type KeyPairsResponseModel struct {
 	Data KeyPairsResponseModelData `json:"data,omitempty"`
 
-	StatusCode int32 `json:"status_code,omitempty"`
+	StatusCode int32 `json:"status_code"`
 
-	StatusText string `json:"status_text,omitempty"`
+	StatusText string `json:"status_text"`
 }

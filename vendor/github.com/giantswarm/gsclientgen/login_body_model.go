@@ -13,5 +13,5 @@ package gsclientgen
 type LoginBodyModel struct {
 
 	// base64 encoded password
-	Password string `json:"password,omitempty"`
+	Password string `json:"password"`
 }

@@ -485,8 +485,6 @@ definitions:
   # Definition of a cluster node
   # only for the purpose of fetching cluster details
   #
-  # TODO: Remove this and use V4NodeDefinition as soon as
-  # issue https://github.com/giantswarm/api/issues/322 is solved
   V4NodeDefinitionResponse:
     type: object
     properties:
@@ -494,15 +492,13 @@ definitions:
         type: object
         properties:
           size_gb:
-            # TODO: change into integer
-            type: string
+            type: integer
             description: RAM size in GB
       storage:
         type: object
         properties:
           size_gb:
-            # TODO: change into integer
-            type: string
+            type: integer
             description: Node storage size in GB
       cpu:
         type: object

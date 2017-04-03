@@ -11,9 +11,9 @@
 package gsclientgen
 
 type V4NodeDefinitionResponse struct {
-	Memory V4NodeDefinitionResponseMemory `json:"memory,omitempty"`
+	Memory V4NodeDefinitionMemory `json:"memory,omitempty"`
 
-	Storage V4NodeDefinitionResponseStorage `json:"storage,omitempty"`
+	Storage V4NodeDefinitionStorage `json:"storage,omitempty"`
 
 	Cpu V4NodeDefinitionCpu `json:"cpu,omitempty"`
 
