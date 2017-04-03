@@ -13,5 +13,5 @@ package gsclientgen
 type LoginResponseModelData struct {
 
 	// New session token
-	Id string `json:"Id,omitempty"`
+	Id string `json:"Id"`
 }

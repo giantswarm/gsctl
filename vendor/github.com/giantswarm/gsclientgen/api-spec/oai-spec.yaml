@@ -364,15 +364,13 @@ definitions:
         type: object
         properties:
           size_gb:
-            # TODO: change to integer
-            type: string
+            type: integer
             description: RAM size in GB
       storage:
         type: object
         properties:
           size_gb:
-            # TODO: change to integer
-            type: string
+            type: integer
             description: Node storage size in GB
       cpu:
         type: object

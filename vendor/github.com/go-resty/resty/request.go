@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2017 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2016 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -11,16 +11,41 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"net"
+	"net/http"
 	"net/url"
 	"reflect"
 	"strings"
+	"time"
 )
 
-// SRVRecord holds the data to query the SRV record for the following service
-type SRVRecord struct {
-	Service string
-	Domain  string
+// Request type is used to compose and send individual request from client
+// go-resty is provide option override client level settings such as
+//		Auth Token, Basic Auth credentials, Header, Query Param, Form Data, Error object
+// and also you can add more options for that particular request
+//
+type Request struct {
+	URL        string
+	Method     string
+	QueryParam url.Values
+	FormData   url.Values
+	Header     http.Header
+	UserInfo   *User
+	Token      string
+	Body       interface{}
+	Result     interface{}
+	Error      interface{}
+	Time       time.Time
+	RawRequest *http.Request
+
+	client           *Client
+	bodyBuf          *bytes.Buffer
+	isMultiPart      bool
+	isFormData       bool
+	setContentLength bool
+	isSaveResponse   bool
+	outputFile       string
+	proxyURL         *url.URL
+	multipartFiles   []*File
 }
 
 // SetHeader method is to set a single header field and its value in the current request.
@@ -67,7 +92,7 @@ func (r *Request) SetQueryParam(param, value string) *Request {
 	return r
 }
 
-// SetQueryParams method sets multiple parameters and its values at one go in the current request.
+// SetQueryParams method sets multiple paramaters and its values at one go in the current request.
 // It will be formed as query string for the request.
 // Example: `search=kitchen%20papers&size=large` in the URL after `?` mark.
 // 		resty.R().
@@ -85,7 +110,7 @@ func (r *Request) SetQueryParams(params map[string]string) *Request {
 	return r
 }
 
-// SetMultiValueQueryParams method sets multiple parameters with multi-value
+// SetMultiValueQueryParams method sets multiple paramaters with multi-value
 // at one go in the current request. It will be formed as query string for the request.
 // Example: `status=pending&status=approved&status=open` in the URL after `?` mark.
 // 		resty.R().
@@ -140,7 +165,7 @@ func (r *Request) SetFormData(data map[string]string) *Request {
 	return r
 }
 
-// SetMultiValueFormData method sets multiple form parameters with multi-value
+// SetMultiValueFormData method sets multiple form paramaters with multi-value
 // at one go in the current request.
 // 		resty.R().
 //			SetMultiValueFormData(url.Values{
@@ -320,7 +345,7 @@ func (r *Request) SetAuthToken(token string) *Request {
 }
 
 // SetOutput method sets the output file for current HTTP request. Current HTTP response will be
-// saved into given file. It is similar to `curl -o` flag. Absolute path or relative path can be used.
+// saved into given file. It is similar to `curl -o` flag. Absoulte path or relative path can be used.
 // If is it relative path then output file goes under the output directory, as mentioned
 // in the `Client.SetOutputDirectory`.
 // 		resty.R().
@@ -334,13 +359,21 @@ func (r *Request) SetOutput(file string) *Request {
 	return r
 }
 
-// SetSRV method sets the details to query the service SRV record and execute the
-// request.
+// SetProxy method sets the Proxy URL for current Request. It does not affect client level
+// proxy settings. Request level proxy settings takes higher priority, even though client
+// level proxy settings exists.
 // 		resty.R().
-//			SetSRV(SRVRecord{"web", "testservice.com"}).
-//			Get("/get")
-func (r *Request) SetSRV(srv *SRVRecord) *Request {
-	r.SRV = srv
+//			SetProxy("http://proxyserver:8888").
+//			Get("http://httpbin.org/get")
+//
+func (r *Request) SetProxy(proxyURL string) *Request {
+	if pURL, err := url.Parse(proxyURL); err == nil {
+		r.proxyURL = pURL
+	} else {
+		r.client.Log.Printf("ERROR [%v]", err)
+		r.proxyURL = nil
+	}
+
 	return r
 }
 
@@ -350,37 +383,37 @@ func (r *Request) SetSRV(srv *SRVRecord) *Request {
 
 // Get method does GET HTTP request. It's defined in section 4.3.1 of RFC7231.
 func (r *Request) Get(url string) (*Response, error) {
-	return r.Execute(MethodGet, url)
+	return r.Execute(GET, url)
 }
 
 // Head method does HEAD HTTP request. It's defined in section 4.3.2 of RFC7231.
 func (r *Request) Head(url string) (*Response, error) {
-	return r.Execute(MethodHead, url)
+	return r.Execute(HEAD, url)
 }
 
 // Post method does POST HTTP request. It's defined in section 4.3.3 of RFC7231.
 func (r *Request) Post(url string) (*Response, error) {
-	return r.Execute(MethodPost, url)
+	return r.Execute(POST, url)
 }
 
 // Put method does PUT HTTP request. It's defined in section 4.3.4 of RFC7231.
 func (r *Request) Put(url string) (*Response, error) {
-	return r.Execute(MethodPut, url)
+	return r.Execute(PUT, url)
 }
 
 // Delete method does DELETE HTTP request. It's defined in section 4.3.5 of RFC7231.
 func (r *Request) Delete(url string) (*Response, error) {
-	return r.Execute(MethodDelete, url)
+	return r.Execute(DELETE, url)
 }
 
 // Options method does OPTIONS HTTP request. It's defined in section 4.3.7 of RFC7231.
 func (r *Request) Options(url string) (*Response, error) {
-	return r.Execute(MethodOptions, url)
+	return r.Execute(OPTIONS, url)
 }
 
 // Patch method does PATCH HTTP request. It's defined in section 2 of RFC5789.
 func (r *Request) Patch(url string) (*Response, error) {
-	return r.Execute(MethodPatch, url)
+	return r.Execute(PATCH, url)
 }
 
 // Execute method performs the HTTP request with given HTTP method and URL
@@ -388,42 +421,25 @@ func (r *Request) Patch(url string) (*Response, error) {
 // 		resp, err := resty.R().Execute(resty.GET, "http://httpbin.org/get")
 //
 func (r *Request) Execute(method, url string) (*Response, error) {
-	var addrs []*net.SRV
-	var err error
-
-	if r.isMultiPart && !(method == MethodPost || method == MethodPut) {
+	if r.isMultiPart && !(method == POST || method == PUT) {
 		return nil, fmt.Errorf("Multipart content is not allowed in HTTP verb [%v]", method)
 	}
 
-	if r.SRV != nil {
-		_, addrs, err = net.LookupSRV(r.SRV.Service, "tcp", r.SRV.Domain)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	r.Method = method
-	r.URL = r.selectAddr(addrs, url, 0)
+	r.URL = url
 
 	if r.client.RetryCount == 0 {
 		return r.client.execute(r)
 	}
 
 	var resp *Response
+	var err error
 	attempt := 0
 	_ = Backoff(func() (*Response, error) {
 		attempt++
-
-		r.URL = r.selectAddr(addrs, url, attempt)
-
 		resp, err = r.client.execute(r)
 		if err != nil {
 			r.client.Log.Printf("ERROR [%v] Attempt [%v]", err, attempt)
-			if r.isContextCancelledIfAvailable() {
-				// stop Backoff from retrying request if request has been
-				// canceled by context
-				return resp, nil
-			}
 		}
 
 		return resp, err
@@ -467,7 +483,7 @@ func (r *Request) fmtBodyString() (body string) {
 				body = base64.StdEncoding.EncodeToString(b)
 			}
 
-			if prtBodyBytes != nil && err == nil {
+			if prtBodyBytes != nil {
 				body = string(prtBodyBytes)
 			}
 		}
@@ -475,16 +491,4 @@ func (r *Request) fmtBodyString() (body string) {
 	}
 
 	return
-}
-
-func (r *Request) selectAddr(addrs []*net.SRV, path string, attempt int) string {
-	if addrs == nil {
-		return path
-	}
-
-	idx := attempt % len(addrs)
-	domain := strings.TrimRight(addrs[idx].Target, ".")
-	path = strings.TrimLeft(path, "/")
-
-	return fmt.Sprintf("%s://%s:%d/%s", r.client.scheme, domain, addrs[idx].Port, path)
 }

@@ -13,7 +13,7 @@ package gsclientgen
 type OrganizationClustersResponseModel struct {
 	Data OrganizationClustersResponseModelData `json:"data,omitempty"`
 
-	StatusCode int32 `json:"status_code,omitempty"`
+	StatusCode int32 `json:"status_code"`
 
-	StatusText string `json:"status_text,omitempty"`
+	StatusText string `json:"status_text"`
 }
