@@ -44,7 +44,7 @@ type clusterDefinition struct {
 }
 
 const (
-	// TODO: These defaults should come from the API
+	// TODO: These settings should come from the API
 	minimumNumWorkers          int = 1
 	minimumWorkerNumCPUs       int = 1
 	minimumWorkerMemorySizeGB  int = 1
