@@ -22,7 +22,7 @@ type cpuDefinition struct {
 }
 
 type memoryDefinition struct {
-	SizeGB int `yaml:"size_gb"`
+	SizeGB int `yaml:"size_gb,omitempty"`
 }
 
 type storageDefinition struct {
