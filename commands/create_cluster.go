@@ -175,7 +175,11 @@ func readDefinitionFromFile(filePath string) (clusterDefinition, error) {
 	if readErr != nil {
 		return myDef, readErr
 	}
+	return unmarshalDefinition(data, myDef)
+}
 
+// unmarshalDefinition takes YAML input and returns it as a clusterDefinition
+func unmarshalDefinition(data []byte, myDef clusterDefinition) (clusterDefinition, error) {
 	yamlErr := yaml.Unmarshal(data, &myDef)
 	if yamlErr != nil {
 		return myDef, yamlErr
