@@ -339,7 +339,8 @@ func addCluster(cmd *cobra.Command, args []string) {
 		// handle API result
 		if responseBody.Code == "RESOURCE_CREATED" {
 			clusterID := strings.Split(apiResponse.Header["Location"][0], "/")[3]
-			fmt.Printf("New cluster with ID '%s' is launching. You can go ahead and add kubectl credentials using\n\n", color.CyanString(clusterID))
+			fmt.Println(color.GreenString("New cluster with ID '%s' is launching.", clusterID))
+			fmt.Println("Add key-pair and settings to kubectl using\n")
 			fmt.Printf("    %s\n\n", color.YellowString("gsctl create kubeconfig --cluster="+clusterID))
 		} else {
 			fmt.Println()
