@@ -45,10 +45,6 @@ type clusterDefinition struct {
 
 const (
 	// TODO: These defaults should come from the API
-	defaultNumWorkers          int = 3
-	defaultWorkerNumCPUs       int = 1
-	defaultWorkerMemorySizeGB  int = 2
-	defaultWorkerStorageSizeGB int = 10
 	minimumNumWorkers          int = 1
 	minimumWorkerNumCPUs       int = 1
 	minimumWorkerMemorySizeGB  int = 1
