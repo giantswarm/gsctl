@@ -19,16 +19,16 @@ var (
 
 	// DeleteClusterCommand performs the "delete cluster" function
 	DeleteClusterCommand = &cobra.Command{
-		Use:   "cluster <cluster_id>",
+		Use:   "cluster",
 		Short: "Delete cluster",
 		Long: `Deletes a Kubernetes cluster.
 
-Caution: This will terminate all workloads an on the cluster. Data stored on the
+Caution: This will terminate all workloads on the cluster. Data stored on the
 worker nodes will be lost. There is no way to undo this.
 
-Examples:
+Example:
 
-	gsctl delete cluster c7t2o`,
+	gsctl delete cluster -c c7t2o`,
 		PreRunE: checkDeleteCluster,
 		Run:     deleteCluster,
 	}
@@ -38,14 +38,15 @@ Examples:
 )
 
 func init() {
-	DeleteClusterCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, no interactive confirmation will be required.")
+	DeleteClusterCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to delete")
+	DeleteClusterCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
 	DeleteCommand.AddCommand(DeleteClusterCommand)
 }
 
 // checks preconditions
 func checkDeleteCluster(cmd *cobra.Command, args []string) error {
-	if len(args) < 1 {
-		return errors.New(color.RedString("The cluster_id argument is required"))
+	if cmdClusterID == "" {
+		return errors.New(color.RedString("Please select a cluster to delete"))
 	}
 
 	// logged in?
@@ -59,11 +60,10 @@ func checkDeleteCluster(cmd *cobra.Command, args []string) error {
 
 // interprets arguments/flags, eventually submits delete request
 func deleteCluster(cmd *cobra.Command, args []string) {
-	var clusterID = args[0]
 
 	// confirmation
 	if cmdForce == false {
-		confirmed := askForConfirmation("Do you really want to delete cluster '" + clusterID + "'?")
+		confirmed := askForConfirmation("Do you really want to delete cluster '" + cmdClusterID + "'?")
 		if !confirmed {
 			if cmdVerbose {
 				fmt.Println("Cluster not deleted")
@@ -79,13 +79,11 @@ func deleteCluster(cmd *cobra.Command, args []string) {
 		authHeader = "giantswarm " + cmdToken
 	}
 	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
-	responseBody, apiResponse, _ := client.DeleteCluster(authHeader, clusterID, requestIDHeader, createClusterActivityName, cmdLine)
+	responseBody, apiResponse, _ := client.DeleteCluster(authHeader, cmdClusterID, requestIDHeader, createClusterActivityName, cmdLine)
 
 	// handle API result
-	if responseBody.Code == "RESOURCE_DELETED" {
-		fmt.Printf("The cluster with ID '%s' has been deleted\n", color.CyanString(clusterID))
-	} else if responseBody.Code == "RESOURCE_DELETION_STARTED" {
-		fmt.Printf("The cluster with ID '%s' will be deleted soon\n", color.CyanString(clusterID))
+	if responseBody.Code == "RESOURCE_DELETED" || responseBody.Code == "RESOURCE_DELETION_STARTED" {
+		fmt.Println(color.GreenString("The cluster with ID '%s' will be deleted as soon as all workloads are terminated.", cmdClusterID))
 	} else {
 		fmt.Println()
 		fmt.Println(color.RedString("Could not delete cluster"))
