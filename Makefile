@@ -22,7 +22,11 @@ TESTBIN := build/bin/${BIN}-${GOOS}-${GOARCH}
 all: build
 
 # build binary for current platform
-build: $(SOURCE) build/bin/$(BIN)-$(GOOS)-$(GOARCH)
+build: $(SOURCE) vendor build/bin/$(BIN)-$(GOOS)-$(GOARCH)
+
+# Install dependencies into ./vendor folder
+vendor:
+	glide install
 
 # install binary for current platform (not expected to work on Win)
 install: $(SOURCE) build/bin/$(BIN)-$(GOOS)-$(GOARCH)
@@ -140,4 +144,4 @@ release: bin-dist
 
 # remove generated stuff
 clean:
-	rm -rf bin-dist build release
+	rm -rf bin-dist build release vendor
