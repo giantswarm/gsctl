@@ -10,10 +10,12 @@
 
 package gsclientgen
 
-type AddKeyPairResponseModel struct {
-	StatusCode int32 `json:"status_code"`
+type V4NodeDefinition struct {
+	Memory V4NodeDefinitionMemory `json:"memory,omitempty"`
 
-	StatusText string `json:"status_text"`
+	Storage V4NodeDefinitionStorage `json:"storage,omitempty"`
 
-	Data AddKeyPairResponseModelData `json:"data,omitempty"`
+	Cpu V4NodeDefinitionCpu `json:"cpu,omitempty"`
+
+	Labels interface{} `json:"labels,omitempty"`
 }

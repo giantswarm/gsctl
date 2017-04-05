@@ -14,6 +14,11 @@ generate:
 		--output /swagger-api/out
 	gofmt -s -l -w .
 
+# removal of all generated files
+remove-generated:
+	rm *.go
+	rm docs/*.md
+
 validate:
 	docker run --rm -it \
 		-v ${PWD}/api-spec:/swagger-api/yaml \

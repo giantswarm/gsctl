@@ -1,4 +1,4 @@
-# V4NodeDefinitionModelMemory
+# V4NodeDefinitionMemory
 
 ## Properties
 Name | Type | Description | Notes

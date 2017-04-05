@@ -10,8 +10,8 @@
 
 package gsclientgen
 
-type V4NodeDefinitionModelMemory struct {
+type V4NodeDefinitionStorage struct {
 
-	// RAM size in GB
+	// Node storage size in GB
 	SizeGb int32 `json:"size_gb,omitempty"`
 }

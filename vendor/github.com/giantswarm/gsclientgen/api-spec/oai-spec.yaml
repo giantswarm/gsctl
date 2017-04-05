@@ -159,11 +159,59 @@ paths:
         "200":
           description: Success
           schema:
-            $ref: '#/definitions/AddKeyPairResponseModel'
+            $ref: '#/definitions/V3AddKeyPairResponse'
         default:
           description: Unknown error
           schema:
             $ref: '#/definitions/GenericResponseModel'
+
+  /v4/clusters/:
+    post:
+      operationId: addCluster
+      summary: Create cluster
+      description: |
+        This operation is used to create a new Kubernetes cluster for an organization. The desired configuration can be specified using the __cluster definition format__ (see [external documentation](https://github.com/giantswarm/api-spec/blob/master/details/CLUSTER_DEFINITION.md) for details).
+
+        The cluster definition format allows to set a number of optional configuration details, like memory size and number of CPU cores. However, one attribute is __mandatory__ upon creation: The `owner` attribute must carry the name of the organization the cluster will belong to. Note that the acting user must be a member of that organization in order to create a cluster.
+
+        It is *recommended* to also specify the `name` attribute to give the cluster a friendly name, like e. g. "Development Cluster".
+
+        Additional definition attributes can be used. Where attributes are ommitted, default configuration values will be applied. For example, if no `kubernetes_version` is specified, the latest version tested and provided by Giant Swarm is used.
+
+        The `workers` attribute, if present, must contain an array of node definition objects. The number of objects given determines the number of workers created. For example, requesting three worker nodes with default configuration can be achieved by submitting an array of three empty objects:
+
+        ```"workers": [{}, {}, {}]```
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+        - name: body
+          in: body
+          required: true
+          description: New cluster definition
+          schema:
+            $ref: '#/definitions/V4AddClusterRequest'
+      responses:
+        "201":
+          description: Cluster created
+          headers:
+            Location:
+              type: string
+              description: URI to obtain details on the new cluster using the [getCluster](#operation/getCluster) operation
+          schema:
+            $ref: '#/definitions/V4GenericResponse'
+          examples:
+            application/json:
+              {
+                "code": "RESOURCE_CREATED",
+                "message": "A new cluster has been created with ID 'wqtlq'"
+              }
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/V4GenericResponse'
+
 
   /v4/clusters/{cluster_id}/:
     get:
@@ -174,10 +222,7 @@ paths:
         - $ref: '#/parameters/XRequestIDHeader'
         - $ref: '#/parameters/XGiantSwarmActivityHeader'
         - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
-        - name: cluster_id
-          in: path
-          required: true
-          type: string
+        - $ref: '#/parameters/RequiredClusterIdPathParameter'
       responses:
         "200":
           description: Success
@@ -186,9 +231,35 @@ paths:
         default:
           description: Unknown error
           schema:
-            $ref: '#/definitions/V4GenericResponseModel'
+            $ref: '#/definitions/V4GenericResponse'
+    delete:
+      operationId: deleteCluster
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+        - $ref: '#/parameters/RequiredClusterIdPathParameter'
+      summary: Delete cluster
+      description: |
+        This operation allows to delete a cluster.
+
+        __Caution:__ Deleting a cluster causes the termination of all workloads running on the cluster. Data stored on the worker nodes will be lost. There is no way to undo this operation.
+
+        The response is sent as soon as the request is validated. At that point, workloads might still be running on the cluster and may be accessible for a little wile, until the cluster is actually deleted.
+      responses:
+        "202":
+          description: Deleting cluster
+          schema:
+            $ref: '#/definitions/V4GenericResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/V4GenericResponse'
+
 
 definitions:
+
   GenericResponseModel:
     type: object
     required: ["status_code", "status_text"]
@@ -197,7 +268,8 @@ definitions:
         type: integer
       status_text:
         type: string
-  V4GenericResponseModel:
+
+  V4GenericResponse:
     type: object
     required: ["code", "message"]
     properties:
@@ -205,6 +277,7 @@ definitions:
         type: string
       message:
         type: string
+
   LoginResponseModel:
     type: object
     required: ["data", "status_code", "status_text"]
@@ -242,6 +315,7 @@ definitions:
         type: string
       create_date:
         type: string
+
   V4ClusterDetailsModel:
     type: object
     required: ["id"]
@@ -261,11 +335,12 @@ definitions:
       workers:
         type: array
         items:
-          $ref: '#/definitions/V4NodeDefinitionModel'
+          $ref: '#/definitions/V4NodeDefinitionResponse'
       masters:
         type: array
         items:
-          $ref: '#/definitions/V4NodeDefinitionModel'
+          $ref: '#/definitions/V4NodeDefinitionResponse'
+
   KeyPairModel:
     type: object
     required: ["id", "description", "ttl_hours"]
@@ -284,6 +359,7 @@ definitions:
         type: string
       client_certificate_data:
         type: string
+
   AddKeyPairBody:
     type: object
     required: ["description"]
@@ -293,7 +369,8 @@ definitions:
       ttl_hours:
         type: integer
         format: int32
-  AddKeyPairResponseModel:
+
+  V3AddKeyPairResponse:
     type: object
     required: ["status_code", "status_text", "data"]
     properties:
@@ -349,6 +426,7 @@ definitions:
         type: integer
       status_text:
         type: string
+
   LoginBodyModel:
     type: object
     required: ["password"]
@@ -356,9 +434,59 @@ definitions:
       password:
         type: string
         description: base64 encoded password
-  V4NodeDefinitionModel:
+
+  # Request to create a new cluster
+  V4AddClusterRequest:
     type: object
-    description: Defines capabilities of a cluster node, usable both for worker and master nodes
+    required:
+      - owner
+    description: Request model for creating a new cluster
+    properties:
+      owner:
+        type: string
+        description: Name of the organization owning the cluster
+      name:
+        type: string
+        description: Cluster name
+      kubernetes_version:
+        type: string
+        description: Kubernetes version number
+      workers:
+        type: array
+        items:
+          $ref: '#/definitions/V4NodeDefinition'
+
+  # Definition of a cluster node
+  V4NodeDefinition:
+    type: object
+    properties:
+      memory:
+        type: object
+        properties:
+          size_gb:
+            type: integer
+            description: RAM size in GB
+      storage:
+        type: object
+        properties:
+          size_gb:
+            type: integer
+            description: Node storage size in GB
+      cpu:
+        type: object
+        properties:
+          cores:
+            type: integer
+            description: Number of CPU cores
+      labels:
+        type: object
+        additionalProperties: true
+
+  # Definition of a cluster node
+  # only for the purpose of fetching cluster details
+  #
+  V4NodeDefinitionResponse:
+    type: object
     properties:
       memory:
         type: object
@@ -388,6 +516,7 @@ definitions:
       none:
         type: string
 
+
 parameters:
   RequiredAuthorizationHeader:
     name: Authorization
@@ -395,6 +524,12 @@ parameters:
     type: string
     required: true
     description: Header to pass an authorization token. The value has to be in the form `giantswarm <token>`.
+  RequiredClusterIdPathParameter:
+    name: cluster_id
+    in: path
+    required: true
+    type: string
+    description: Cluster ID
   XRequestIDHeader:
     name: X-Request-ID
     in: header

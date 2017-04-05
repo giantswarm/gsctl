@@ -1,0 +1,6 @@
+# This file is invalid, as it does not define enough workers
+name: Tiny cluster
+owner: littleco
+workers:
+  - cpu:
+      cores: 1

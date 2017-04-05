@@ -10,8 +10,8 @@
 
 package gsclientgen
 
-type V4NodeDefinitionModelCpu struct {
+type V4GenericResponse struct {
+	Code string `json:"code"`
 
-	// Number of CPU cores
-	Cores int32 `json:"cores,omitempty"`
+	Message string `json:"message"`
 }

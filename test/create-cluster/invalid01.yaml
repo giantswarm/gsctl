@@ -1,0 +1,6 @@
+# This YAML file is an invalid cluster specification
+# as it contain duplicate keys. However the later
+# key will overwrite the former and this won't
+# create a parse error.
+name: Invalid cluster spec
+name: Redundant
