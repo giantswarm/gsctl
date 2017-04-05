@@ -10,6 +10,7 @@ const (
 )
 
 // ParseDate parses our common date/time strings
+// and returns a time.Time object
 func ParseDate(dateString string) time.Time {
 	// our standard format
 	template := "2006-01-02T15:04:05.000Z"

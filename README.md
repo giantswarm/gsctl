@@ -108,7 +108,8 @@ $ go run main.go info
 
 ### Running tests
 
-TODO
+make gotest
+make test
 
 ### Cleaning up code
 
