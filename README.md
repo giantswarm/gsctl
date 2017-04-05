@@ -98,6 +98,12 @@ $ cd gsctl
 
 So the repo content will end up in `$GOPATH/src/github.com/giantswarm/gsctl`.
 
+### Installing dependencies
+
+```nohighlight
+glide install
+```
+
 ### Executing via `go run`
 
 Check everything by running the code via `go run`:
@@ -108,8 +114,10 @@ $ go run main.go info
 
 ### Running tests
 
-make gotest
-make test
+```nohighlight
+$ make gotest
+$ make test
+```
 
 ### Cleaning up code
 
