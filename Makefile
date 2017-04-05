@@ -69,7 +69,7 @@ build/bin/$(BIN)-windows-amd64:
 
 # run unittests
 gotest:
-	go test -cover $(glide novendor)
+	go test -cover $(shell glide novendor)
 
 # run some tests
 test:
