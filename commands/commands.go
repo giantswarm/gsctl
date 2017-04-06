@@ -3,15 +3,18 @@ package commands
 // This file defines some variables to be available in all commands
 
 import (
-	"bufio"
+  "bufio"
 	"fmt"
-	"log"
+  "log"
 	"math/rand"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
+	"github.com/giantswarm/columnize"
+	"github.com/giantswarm/gsclientgen"
+  
+  "github.com/fatih/color"
 )
 
 var (
@@ -61,6 +64,16 @@ func getCommandLine() string {
 		return strings.Join(os.Args, " ")
 	}
 	return ""
+}
+
+// dumpAPIResponse prints details on an API response, useful in case of an error
+func dumpAPIResponse(response gsclientgen.APIResponse) {
+	output := []string{}
+	fmt.Println("API request/response details:")
+	output = append(output, fmt.Sprintf("Operation:|%s (%s %s)", response.Operation, response.Method, response.RequestURL))
+	output = append(output, fmt.Sprintf("Status:|%s", response.Response.Status))
+	output = append(output, fmt.Sprintf("Response body:|%v", string(response.Payload)))
+	fmt.Println(columnize.SimpleFormat(output))
 }
 
 // askForConfirmation asks the user for confirmation. A user must type in "yes" or "no" and

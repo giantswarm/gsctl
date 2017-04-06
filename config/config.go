@@ -49,6 +49,9 @@ var (
 	// ConfigDirPath is the path of the directory holding our config file
 	ConfigDirPath string
 
+	// CertsDirPath is the path of the directory holding certificates
+	CertsDirPath string
+
 	// ConfigFilePath is the path of the configuration file
 	ConfigFilePath string
 
@@ -65,6 +68,7 @@ func init() {
 
 	APIEndpoint = "https://api.giantswarm.io"
 	ConfigDirPath = path.Join(SystemUser.HomeDir, "."+ProgramName)
+	CertsDirPath = path.Join(ConfigDirPath, "certs")
 	ConfigFilePath = path.Join(ConfigDirPath, ConfigFileName)
 	KubeConfigPaths = getKubeconfigPaths(SystemUser.HomeDir)
 

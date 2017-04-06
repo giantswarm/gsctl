@@ -3,7 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"log"
+	"os"
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
@@ -58,16 +58,16 @@ func logout(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Println("Info: The client doesn't handle the API's 401 response yet.")
 		fmt.Println("Seeing this error likely means: The passed token was no longer valid.")
-		fmt.Println("Error details:")
-		log.Fatal(err)
+		fmt.Println(color.RedString("Error: %s", err))
+		dumpAPIResponse(*apiResponse)
+		os.Exit(1)
 	}
 	if logoutResponse.StatusCode == apischema.STATUS_CODE_RESOURCE_DELETED {
 		// remove token from settings
 		// unless we unathenticated the token from flags
 		fmt.Println(color.GreenString("Successfully logged out"))
 	} else {
-		fmt.Printf("Unhandled response code: %v", logoutResponse.StatusCode)
-		fmt.Printf("Status text: %v", logoutResponse.StatusText)
-		fmt.Printf("apiResponse: %s\n", apiResponse)
+		fmt.Println(color.RedString("Unhandled response code: %s", logoutResponse.StatusCode))
+		dumpAPIResponse(*apiResponse)
 	}
 }

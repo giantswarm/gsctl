@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/fatih/color"
@@ -67,7 +66,8 @@ func login(cmd *cobra.Command, args []string) {
 		fmt.Printf("Password: ")
 		pass, err := gopass.GetPasswd()
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(color.RedString("Error: %s", err))
+			os.Exit(1)
 		}
 		password = string(pass)
 	}
@@ -78,7 +78,9 @@ func login(cmd *cobra.Command, args []string) {
 	requestBody := gsclientgen.LoginBodyModel{Password: string(encodedPassword)}
 	loginResponse, apiResponse, err := client.UserLogin(email, requestBody, requestIDHeader, loginActivityName, cmdLine)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(color.RedString("Error: %s", err))
+		dumpAPIResponse(*apiResponse)
+		os.Exit(1)
 	}
 	if loginResponse.StatusCode == apischema.STATUS_CODE_DATA {
 		// successful login
@@ -94,9 +96,8 @@ func login(cmd *cobra.Command, args []string) {
 		fmt.Println(color.RedString("The password must not be empty. Please try again."))
 		os.Exit(1)
 	} else {
-		fmt.Printf("Unhandled response code: %v", loginResponse.StatusCode)
-		fmt.Printf("Status text: %v", loginResponse.StatusText)
-		fmt.Printf("apiResponse: %s\n", apiResponse)
+		fmt.Println(color.RedString("Unhandled response code: %v", loginResponse.StatusCode))
+		dumpAPIResponse(*apiResponse)
 		os.Exit(1)
 	}
 
