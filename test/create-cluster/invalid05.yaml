@@ -1,0 +1,10 @@
+# This file uses non-integer number values
+name: Example Cluster
+owner: myorg
+workers:
+  - memory:
+      size_gb: 1.5
+  - memory:
+      size_gb: 2.5
+  - memory:
+      size_gb: 3.5

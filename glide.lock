@@ -1,18 +1,18 @@
-hash: 1c016a6ea5f10f10a84fe147ee4c753887d1ce11bb5b148fb97dd3cdfda76ff5
-updated: 2017-03-06T09:49:47.374215989+01:00
+hash: 0d750ed9358939f12fee5b438e010a990daf860a4ef6ce08f2d55be484940aa4
+updated: 2017-04-03T16:37:11.000588312+02:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
 - name: github.com/fatih/color
-  version: 7824417a424b65227be8ac9b14d545a7f3e6c3f0
+  version: 9131ab34cf20d2f6d83fdc67168a5430d1c7dc23
 - name: github.com/giantswarm/api-schema
   version: f8468345e621ea9f5af6965919449dbbe827a841
 - name: github.com/giantswarm/columnize
   version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
 - name: github.com/giantswarm/gsclientgen
-  version: b0c7556f67a59ab05896f286b8094c9d2d0be3a9
+  version: d296e3517bfc7c310e97187a1f628176f2de526c
 - name: github.com/go-resty/resty
-  version: c53a09aa1fdff556f8e7034acc3202ca8cc13c2f
+  version: 24dc7ba4bc1ef9215048b28e7248f99c42901db5
 - name: github.com/howeyc/gopass
   version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/inconshreveable/mousetrap
@@ -23,7 +23,7 @@ imports:
   version: 5411d3eea5978e6cdc258b30de592b60df6aba96
   repo: https://github.com/mattn/go-colorable
 - name: github.com/mattn/go-isatty
-  version: dda3de49cbfcec471bd7a70e6cc01fcc3ff90109
+  version: 57fdcb988a5c543893cc61bce354a6e24ab70022
   repo: https://github.com/mattn/go-isatty
 - name: github.com/spf13/cobra
   version: fcd0c5a1df88f5d6784cb4feead962c3f3d0b66c
@@ -38,7 +38,7 @@ imports:
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 906cda9512f77671ab44f8c8563b13a8e707b230
+  version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
   subpackages:
   - publicsuffix
 - name: golang.org/x/sys
@@ -47,5 +47,5 @@ imports:
   subpackages:
   - unix
 - name: gopkg.in/yaml.v2
-  version: a3f3340b5840cee44f372bddb5880fcbc419b46a
+  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 testImports: []

@@ -11,7 +11,7 @@
 package gsclientgen
 
 type V4ClusterDetailsModel struct {
-	Id string `json:"id,omitempty"`
+	Id string `json:"id"`
 
 	Name string `json:"name,omitempty"`
 
@@ -23,7 +23,7 @@ type V4ClusterDetailsModel struct {
 
 	KubernetesVersion string `json:"kubernetes_version,omitempty"`
 
-	Workers []V4NodeDefinitionModel `json:"workers,omitempty"`
+	Workers []V4NodeDefinitionResponse `json:"workers,omitempty"`
 
-	Masters []V4NodeDefinitionModel `json:"masters,omitempty"`
+	Masters []V4NodeDefinitionResponse `json:"masters,omitempty"`
 }
