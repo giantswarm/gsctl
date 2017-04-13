@@ -29,6 +29,7 @@ var (
 	// ListOrgsCommand performs the "list organizations" function
 	ListOrgsCommand = &cobra.Command{
 		Use:     "organizations",
+		Aliases: []string{"organisations"},
 		Short:   "List organizations",
 		Long:    `Prints a list of the organizations you are a member of`,
 		PreRunE: checkListOrgs,
