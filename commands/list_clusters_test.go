@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -24,7 +23,6 @@ func randomClusterID() string {
 
 func Test_ListClusters(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.URL)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		if r.URL.String() == "/v1/user/me/memberships" {
@@ -54,5 +52,6 @@ func Test_ListClusters(t *testing.T) {
 	defer mockServer.Close()
 
 	cmdAPIEndpoint = mockServer.URL
+	checkListClusters(ListClustersCommand, []string{})
 	listClusters(ListClustersCommand, []string{})
 }
