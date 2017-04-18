@@ -8,10 +8,10 @@ import (
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
+	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
-	"github.com/ryanuber/columnize"
 	"github.com/spf13/cobra"
 )
 
