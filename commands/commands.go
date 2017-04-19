@@ -3,9 +3,9 @@ package commands
 // This file defines some variables to be available in all commands
 
 import (
-  "bufio"
+	"bufio"
 	"fmt"
-  "log"
+	"log"
 	"math/rand"
 	"os"
 	"strings"
@@ -13,8 +13,8 @@ import (
 
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gsclientgen"
-  
-  "github.com/fatih/color"
+
+	"github.com/fatih/color"
 )
 
 var (
@@ -41,6 +41,18 @@ var (
 	requestIDHeader string
 	cmdLine         string
 )
+
+// APIError is an error type we use for errors generated after API requests
+type APIError struct {
+	// msg is the error message
+	msg string
+	// APIResponse is the response we got from the API
+	APIResponse gsclientgen.APIResponse
+}
+
+func (e APIError) Error() string {
+	return e.msg
+}
 
 func init() {
 	rand.Seed(time.Now().UnixNano())

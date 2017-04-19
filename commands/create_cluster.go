@@ -281,9 +281,11 @@ func addCluster(cmd *cobra.Command, args []string) {
 		} else {
 			fmt.Printf("\n%s\n", color.RedString("No owner organization set"))
 			if cmdInputYAMLFile != "" {
-				fmt.Println("Please specify an owner organization for the cluster in your definition file or set one via the --owner flag.\n")
+				fmt.Println("Please specify an owner organization for the cluster in your definition file or set one via the --owner flag.")
+				fmt.Println("")
 			} else {
-				fmt.Println("Please specify an owner organization for the cluster via the --owner flag.\n")
+				fmt.Println("Please specify an owner organization for the cluster via the --owner flag.")
+				fmt.Println("")
 			}
 			os.Exit(1)
 		}
@@ -340,7 +342,8 @@ func addCluster(cmd *cobra.Command, args []string) {
 		if responseBody.Code == "RESOURCE_CREATED" {
 			clusterID := strings.Split(apiResponse.Header["Location"][0], "/")[3]
 			fmt.Println(color.GreenString("New cluster with ID '%s' is launching.", clusterID))
-			fmt.Println("Add key-pair and settings to kubectl using\n")
+			fmt.Println("Add key-pair and settings to kubectl using")
+			fmt.Println("")
 			fmt.Printf("    %s\n\n", color.YellowString("gsctl create kubeconfig --cluster="+clusterID))
 		} else {
 			fmt.Println()

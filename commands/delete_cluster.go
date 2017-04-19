@@ -88,7 +88,7 @@ func deleteCluster(cmd *cobra.Command, args []string) {
 		fmt.Println()
 		fmt.Println(color.RedString("Could not delete cluster"))
 		fmt.Printf("Error message: %s\n", responseBody.Message)
-		fmt.Printf("Error code: %d\n", responseBody.Code)
+		fmt.Printf("Error code: %s\n", responseBody.Code)
 		fmt.Println(fmt.Sprintf("Raw response body:\n%v", string(apiResponse.Payload)))
 		fmt.Println("Please contact Giant Swarm via support@giantswarm.io in case you need any help.")
 		os.Exit(1)
