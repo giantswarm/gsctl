@@ -100,7 +100,7 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	if apiResponse.StatusCode == 201 {
+	if apiResponse.StatusCode == 200 || apiResponse.StatusCode == 201 {
 		msg := fmt.Sprintf("New key-pair created with ID %s and expiry of %v hours",
 			util.Truncate(util.CleanKeypairID(keypairResponse.Id), 10),
 			ttlHours)
