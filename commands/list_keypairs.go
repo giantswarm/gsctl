@@ -8,7 +8,6 @@ import (
 
 	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
-	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/gsctl/config"
@@ -74,15 +73,16 @@ func keypairsTable() (string, error) {
 	if err != nil {
 		return "", APIError{err.Error(), *apiResponse}
 	}
-	if keypairsResponse.StatusCode == apischema.STATUS_CODE_DATA {
+
+	if apiResponse.StatusCode == 200 {
 		// sort result
-		slice.Sort(keypairsResponse.Data.KeyPairs[:], func(i, j int) bool {
-			return keypairsResponse.Data.KeyPairs[i].CreateDate < keypairsResponse.Data.KeyPairs[j].CreateDate
+		slice.Sort(keypairsResponse[:], func(i, j int) bool {
+			return keypairsResponse[i].CreateDate < keypairsResponse[j].CreateDate
 		})
 
 		// create output
 		output := []string{color.CyanString("CREATED") + "|" + color.CyanString("EXPIRES") + "|" + color.CyanString("ID") + "|" + color.CyanString("DESCRIPTION")}
-		for _, keypair := range keypairsResponse.Data.KeyPairs {
+		for _, keypair := range keypairsResponse {
 			created := util.ShortDate(util.ParseDate(keypair.CreateDate))
 			expires := util.ParseDate(keypair.CreateDate).Add(time.Duration(keypair.TtlHours) * time.Hour)
 
@@ -96,6 +96,6 @@ func keypairsTable() (string, error) {
 	}
 
 	return "", APIError{
-		fmt.Sprintf("Unhandled response code: %d", keypairsResponse.StatusCode),
+		fmt.Sprintf("Unhandled response code: %d", apiResponse.StatusCode),
 		*apiResponse}
 }

@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/fatih/color"
-	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
@@ -62,7 +61,7 @@ func addKeypair(cmd *cobra.Command, args []string) {
 	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
 	authHeader := "giantswarm " + config.Config.Token
 	ttlHours := int32(cmdTTLDays * 24)
-	addKeyPairBody := gsclientgen.AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
+	addKeyPairBody := gsclientgen.V4AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
 	keypairResponse, apiResponse, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, addKeyPairActivityName, cmdLine)
 
 	if err != nil {
@@ -71,23 +70,23 @@ func addKeypair(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	if keypairResponse.StatusCode == apischema.STATUS_CODE_DATA {
-		cleanID := util.CleanKeypairID(keypairResponse.Data.Id)
+	if apiResponse.StatusCode == 200 {
+		cleanID := util.CleanKeypairID(keypairResponse.Id)
 		msg := fmt.Sprintf("New key-pair created with ID %s", cleanID)
 		fmt.Println(color.GreenString(msg))
 
 		// store credentials to file
-		caCertPath := util.StoreCaCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.CertificateAuthorityData)
+		caCertPath := util.StoreCaCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.CertificateAuthorityData)
 		fmt.Println("CA certificate stored in:", caCertPath)
 
-		clientCertPath := util.StoreClientCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientCertificateData)
+		clientCertPath := util.StoreClientCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Id, keypairResponse.ClientCertificateData)
 		fmt.Println("Client certificate stored in:", clientCertPath)
 
-		clientKeyPath := util.StoreClientKey(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientKeyData)
+		clientKeyPath := util.StoreClientKey(config.ConfigDirPath, cmdClusterID, keypairResponse.Id, keypairResponse.ClientKeyData)
 		fmt.Println("Client private key stored in:", clientKeyPath)
 
 	} else {
-		fmt.Println(color.RedString("Unhandled response code: %v", keypairResponse.StatusCode))
+		fmt.Println(color.RedString("Unhandled response code: %v", apiResponse.StatusCode))
 		dumpAPIResponse(*apiResponse)
 	}
 }
