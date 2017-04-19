@@ -39,7 +39,7 @@ func NewDefaultApiWithBasePath(basePath string) *DefaultApi {
 
 /**
  * Create cluster
- * This operation is used to create a new Kubernetes cluster for an organization. The desired configuration can be specified using the __cluster definition format__ (see [external documentation](https://github.com/giantswarm/api-spec/blob/master/details/CLUSTER_DEFINITION.md) for details).  The cluster definition format allows to set a number of optional configuration details, like memory size and number of CPU cores. However, one attribute is __mandatory__ upon creation: The &#x60;owner&#x60; attribute must carry the name of the organization the cluster will belong to. Note that the acting user must be a member of that organization in order to create a cluster.  It is *recommended* to also specify the &#x60;name&#x60; attribute to give the cluster a friendly name, like e. g. \&quot;Development Cluster\&quot;.  Additional definition attributes can be used. Where attributes are ommitted, default configuration values will be applied. For example, if no &#x60;kubernetes_version&#x60; is specified, the latest version tested and provided by Giant Swarm is used.  The &#x60;workers&#x60; attribute, if present, must contain an array of node definition objects. The number of objects given determines the number of workers created. For example, requesting three worker nodes with default configuration can be achieved by submitting an array of three empty objects:  &#x60;&#x60;&#x60;\&quot;workers\&quot;: [{}, {}, {}]&#x60;&#x60;&#x60;
+ * This operation is used to create a new Kubernetes cluster for an organization. The desired configuration can be specified using the __cluster definition format__ (see [external documentation](https://github.com/giantswarm/api-spec/blob/ master/details/CLUSTER_DEFINITION.md) for details). The cluster definition format allows to set a number of optional configuration details, like memory size and number of CPU cores. However, one attribute is __mandatory__ upon creation: The &#x60;owner&#x60; attribute must carry the name of the organization the cluster will belong to. Note that the acting user must be a member of that organization in order to create a cluster. It is *recommended* to also specify the &#x60;name&#x60; attribute to give the cluster a friendly name, like e. g. \&quot;Development Cluster\&quot;. Additional definition attributes can be used. Where attributes are ommitted, default configuration values will be applied. For example, if no &#x60;kubernetes_version&#x60; is specified, the latest version tested and provided by Giant Swarm is used. The &#x60;workers&#x60; attribute, if present, must contain an array of node definition objects. The number of objects given determines the number of workers created. For example, requesting three worker nodes with default configuration can be achieved by submitting an array of three empty objects: &#x60;&#x60;&#x60;\&quot;workers\&quot;: [{}, {}, {}]&#x60;&#x60;&#x60;
  *
  * @param authorization Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.
  * @param body New cluster definition
@@ -120,13 +120,13 @@ func (a DefaultApi) AddCluster(authorization string, body V4AddClusterRequest, x
  * @param xRequestID A randomly generated key that can be used to track a request throughout services of Giant Swarm
  * @param xGiantSwarmActivity Name of an activity to track, like \&quot;list-clusters\&quot;
  * @param xGiantSwarmCmdLine If activity has been issued by a CLI, this header can contain the command line
- * @return *V3AddKeyPairResponse
+ * @return *V4AddKeyPairResponse
  */
-func (a DefaultApi) AddKeyPair(authorization string, clusterId string, body AddKeyPairBody, xRequestID string, xGiantSwarmActivity string, xGiantSwarmCmdLine string) (*V3AddKeyPairResponse, *APIResponse, error) {
+func (a DefaultApi) AddKeyPair(authorization string, clusterId string, body V4AddKeyPairBody, xRequestID string, xGiantSwarmActivity string, xGiantSwarmCmdLine string) (*V4AddKeyPairResponse, *APIResponse, error) {
 
 	var localVarHttpMethod = strings.ToUpper("Post")
 	// create path and map variables
-	localVarPath := a.Configuration.BasePath + "/v3/clusters/{cluster_id}/key-pairs/"
+	localVarPath := a.Configuration.BasePath + "/v4/clusters/{cluster_id}/key-pairs/"
 	localVarPath = strings.Replace(localVarPath, "{"+"cluster_id"+"}", fmt.Sprintf("%v", clusterId), -1)
 
 	localVarHeaderParams := make(map[string]string)
@@ -168,7 +168,7 @@ func (a DefaultApi) AddKeyPair(authorization string, clusterId string, body AddK
 	localVarHeaderParams["X-Giant-Swarm-CmdLine"] = a.Configuration.APIClient.ParameterToString(xGiantSwarmCmdLine, "")
 	// body params
 	localVarPostBody = &body
-	var successPayload = new(V3AddKeyPairResponse)
+	var successPayload = new(V4AddKeyPairResponse)
 	localVarHttpResponse, err := a.Configuration.APIClient.CallAPI(localVarPath, localVarHttpMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFileName, localVarFileBytes)
 
 	var localVarURL, _ = url.Parse(localVarPath)
@@ -339,13 +339,13 @@ func (a DefaultApi) GetCluster(authorization string, clusterId string, xRequestI
  * @param xRequestID A randomly generated key that can be used to track a request throughout services of Giant Swarm
  * @param xGiantSwarmActivity Name of an activity to track, like \&quot;list-clusters\&quot;
  * @param xGiantSwarmCmdLine If activity has been issued by a CLI, this header can contain the command line
- * @return *KeyPairsResponseModel
+ * @return []KeyPairModel
  */
-func (a DefaultApi) GetKeyPairs(authorization string, clusterId string, xRequestID string, xGiantSwarmActivity string, xGiantSwarmCmdLine string) (*KeyPairsResponseModel, *APIResponse, error) {
+func (a DefaultApi) GetKeyPairs(authorization string, clusterId string, xRequestID string, xGiantSwarmActivity string, xGiantSwarmCmdLine string) ([]KeyPairModel, *APIResponse, error) {
 
 	var localVarHttpMethod = strings.ToUpper("Get")
 	// create path and map variables
-	localVarPath := a.Configuration.BasePath + "/v3/clusters/{cluster_id}/key-pairs/"
+	localVarPath := a.Configuration.BasePath + "/v4/clusters/{cluster_id}/key-pairs/"
 	localVarPath = strings.Replace(localVarPath, "{"+"cluster_id"+"}", fmt.Sprintf("%v", clusterId), -1)
 
 	localVarHeaderParams := make(map[string]string)
@@ -385,7 +385,7 @@ func (a DefaultApi) GetKeyPairs(authorization string, clusterId string, xRequest
 	localVarHeaderParams["X-Giant-Swarm-Activity"] = a.Configuration.APIClient.ParameterToString(xGiantSwarmActivity, "")
 	// header params "X-Giant-Swarm-CmdLine"
 	localVarHeaderParams["X-Giant-Swarm-CmdLine"] = a.Configuration.APIClient.ParameterToString(xGiantSwarmCmdLine, "")
-	var successPayload = new(KeyPairsResponseModel)
+	var successPayload = new([]KeyPairModel)
 	localVarHttpResponse, err := a.Configuration.APIClient.CallAPI(localVarPath, localVarHttpMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFileName, localVarFileBytes)
 
 	var localVarURL, _ = url.Parse(localVarPath)
@@ -397,10 +397,10 @@ func (a DefaultApi) GetKeyPairs(authorization string, clusterId string, xRequest
 	}
 
 	if err != nil {
-		return successPayload, localVarAPIResponse, err
+		return *successPayload, localVarAPIResponse, err
 	}
 	err = json.Unmarshal(localVarHttpResponse.Body(), &successPayload)
-	return successPayload, localVarAPIResponse, err
+	return *successPayload, localVarAPIResponse, err
 }
 
 /**

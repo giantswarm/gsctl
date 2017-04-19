@@ -5,10 +5,10 @@ All URIs are relative to *https://api.giantswarm.io*
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**AddCluster**](DefaultApi.md#AddCluster) | **Post** /v4/clusters/ | Create cluster
-[**AddKeyPair**](DefaultApi.md#AddKeyPair) | **Post** /v3/clusters/{cluster_id}/key-pairs/ | Add key-pair for cluster
+[**AddKeyPair**](DefaultApi.md#AddKeyPair) | **Post** /v4/clusters/{cluster_id}/key-pairs/ | Add key-pair for cluster
 [**DeleteCluster**](DefaultApi.md#DeleteCluster) | **Delete** /v4/clusters/{cluster_id}/ | Delete cluster
 [**GetCluster**](DefaultApi.md#GetCluster) | **Get** /v4/clusters/{cluster_id}/ | Get cluster details
-[**GetKeyPairs**](DefaultApi.md#GetKeyPairs) | **Get** /v3/clusters/{cluster_id}/key-pairs/ | Get key-pairs for cluster
+[**GetKeyPairs**](DefaultApi.md#GetKeyPairs) | **Get** /v4/clusters/{cluster_id}/key-pairs/ | Get key-pairs for cluster
 [**GetOrganizationClusters**](DefaultApi.md#GetOrganizationClusters) | **Get** /v3/orgs/{organization_name}/clusters/ | Get clusters for organization
 [**GetUserOrganizations**](DefaultApi.md#GetUserOrganizations) | **Get** /v1/user/me/memberships | Get organizations for user
 [**UserLogin**](DefaultApi.md#UserLogin) | **Post** /v1/user/{email}/login | Log in as a user
@@ -20,18 +20,18 @@ Method | HTTP request | Description
 
 Create cluster
 
-This operation is used to create a new Kubernetes cluster for an organization. The desired configuration can be specified using the __cluster definition format__ (see [external documentation](https://github.com/giantswarm/api-spec/blob/master/details/CLUSTER_DEFINITION.md) for details).  The cluster definition format allows to set a number of optional configuration details, like memory size and number of CPU cores. However, one attribute is __mandatory__ upon creation: The `owner` attribute must carry the name of the organization the cluster will belong to. Note that the acting user must be a member of that organization in order to create a cluster.  It is *recommended* to also specify the `name` attribute to give the cluster a friendly name, like e. g. \"Development Cluster\".  Additional definition attributes can be used. Where attributes are ommitted, default configuration values will be applied. For example, if no `kubernetes_version` is specified, the latest version tested and provided by Giant Swarm is used.  The `workers` attribute, if present, must contain an array of node definition objects. The number of objects given determines the number of workers created. For example, requesting three worker nodes with default configuration can be achieved by submitting an array of three empty objects:  ```\"workers\": [{}, {}, {}]``` 
+This operation is used to create a new Kubernetes cluster for an organization. The desired configuration can be specified using the __cluster definition format__ (see [external documentation](https://github.com/giantswarm/api-spec/blob/ master/details/CLUSTER_DEFINITION.md) for details). The cluster definition format allows to set a number of optional configuration details, like memory size and number of CPU cores. However, one attribute is __mandatory__ upon creation: The `owner` attribute must carry the name of the organization the cluster will belong to. Note that the acting user must be a member of that organization in order to create a cluster. It is *recommended* to also specify the `name` attribute to give the cluster a friendly name, like e. g. \"Development Cluster\". Additional definition attributes can be used. Where attributes are ommitted, default configuration values will be applied. For example, if no `kubernetes_version` is specified, the latest version tested and provided by Giant Swarm is used. The `workers` attribute, if present, must contain an array of node definition objects. The number of objects given determines the number of workers created. For example, requesting three worker nodes with default configuration can be achieved by submitting an array of three empty objects: ```\"workers\": [{}, {}, {}]```
 
 
 ### Parameters
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;. | 
+ **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.  | 
  **body** | [**V4AddClusterRequest**](V4AddClusterRequest.md)| New cluster definition | 
- **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm | [optional] 
+ **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm  | [optional] 
  **xGiantSwarmActivity** | **string**| Name of an activity to track, like \&quot;list-clusters\&quot; | [optional] 
- **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line | [optional] 
+ **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line  | [optional] 
 
 ### Return type
 
@@ -49,7 +49,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **AddKeyPair**
-> V3AddKeyPairResponse AddKeyPair($authorization, $clusterId, $body, $xRequestID, $xGiantSwarmActivity, $xGiantSwarmCmdLine)
+> V4AddKeyPairResponse AddKeyPair($authorization, $clusterId, $body, $xRequestID, $xGiantSwarmActivity, $xGiantSwarmCmdLine)
 
 Add key-pair for cluster
 
@@ -58,16 +58,16 @@ Add key-pair for cluster
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;. | 
+ **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.  | 
  **clusterId** | **string**| ID of the cluster to create the key-pair for | 
- **body** | [**AddKeyPairBody**](AddKeyPairBody.md)| Description and expiry time for the new key-pair | 
- **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm | [optional] 
+ **body** | [**V4AddKeyPairBody**](V4AddKeyPairBody.md)| Description and expiry time for the new key-pair | 
+ **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm  | [optional] 
  **xGiantSwarmActivity** | **string**| Name of an activity to track, like \&quot;list-clusters\&quot; | [optional] 
- **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line | [optional] 
+ **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line  | [optional] 
 
 ### Return type
 
-[**V3AddKeyPairResponse**](V3AddKeyPairResponse.md)
+[**V4AddKeyPairResponse**](V4AddKeyPairResponse.md)
 
 ### Authorization
 
@@ -92,11 +92,11 @@ This operation allows to delete a cluster.  __Caution:__ Deleting a cluster caus
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;. | 
+ **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.  | 
  **clusterId** | **string**| Cluster ID | 
- **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm | [optional] 
+ **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm  | [optional] 
  **xGiantSwarmActivity** | **string**| Name of an activity to track, like \&quot;list-clusters\&quot; | [optional] 
- **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line | [optional] 
+ **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line  | [optional] 
 
 ### Return type
 
@@ -123,11 +123,11 @@ Get cluster details
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;. | 
+ **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.  | 
  **clusterId** | **string**| Cluster ID | 
- **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm | [optional] 
+ **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm  | [optional] 
  **xGiantSwarmActivity** | **string**| Name of an activity to track, like \&quot;list-clusters\&quot; | [optional] 
- **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line | [optional] 
+ **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line  | [optional] 
 
 ### Return type
 
@@ -145,7 +145,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **GetKeyPairs**
-> KeyPairsResponseModel GetKeyPairs($authorization, $clusterId, $xRequestID, $xGiantSwarmActivity, $xGiantSwarmCmdLine)
+> []KeyPairModel GetKeyPairs($authorization, $clusterId, $xRequestID, $xGiantSwarmActivity, $xGiantSwarmCmdLine)
 
 Get key-pairs for cluster
 
@@ -154,15 +154,15 @@ Get key-pairs for cluster
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;. | 
+ **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.  | 
  **clusterId** | **string**|  | 
- **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm | [optional] 
+ **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm  | [optional] 
  **xGiantSwarmActivity** | **string**| Name of an activity to track, like \&quot;list-clusters\&quot; | [optional] 
- **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line | [optional] 
+ **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line  | [optional] 
 
 ### Return type
 
-[**KeyPairsResponseModel**](KeyPairsResponseModel.md)
+[**[]KeyPairModel**](KeyPairModel.md)
 
 ### Authorization
 
@@ -185,11 +185,11 @@ Get clusters for organization
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;. | 
+ **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.  | 
  **organizationName** | **string**|  | 
- **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm | [optional] 
+ **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm  | [optional] 
  **xGiantSwarmActivity** | **string**| Name of an activity to track, like \&quot;list-clusters\&quot; | [optional] 
- **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line | [optional] 
+ **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line  | [optional] 
 
 ### Return type
 
@@ -211,17 +211,17 @@ No authorization required
 
 Get organizations for user
 
-Returns a list of organizations of which the current user is a member
+Returns a list of organizations of which the current user is a member 
 
 
 ### Parameters
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;. | 
- **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm | [optional] 
+ **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.  | 
+ **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm  | [optional] 
  **xGiantSwarmActivity** | **string**| Name of an activity to track, like \&quot;list-clusters\&quot; | [optional] 
- **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line | [optional] 
+ **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line  | [optional] 
 
 ### Return type
 
@@ -243,7 +243,7 @@ No authorization required
 
 Log in as a user
 
-This method takes email and password of a user and returns a new session token. The token can be found in the `data.Id` field of the response object.
+This method takes email and password of a user and returns a new session token. The token can be found in the `data.Id` field of the response object. 
 
 
 ### Parameters
@@ -252,9 +252,9 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **email** | **string**| User email address | 
  **payload** | [**LoginBodyModel**](LoginBodyModel.md)| base64 encoded password | 
- **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm | [optional] 
+ **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm  | [optional] 
  **xGiantSwarmActivity** | **string**| Name of an activity to track, like \&quot;list-clusters\&quot; | [optional] 
- **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line | [optional] 
+ **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line  | [optional] 
 
 ### Return type
 
@@ -281,10 +281,10 @@ Expire the currently used auth token
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;. | 
- **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm | [optional] 
+ **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.  | 
+ **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm  | [optional] 
  **xGiantSwarmActivity** | **string**| Name of an activity to track, like \&quot;list-clusters\&quot; | [optional] 
- **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line | [optional] 
+ **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line  | [optional] 
 
 ### Return type
 
