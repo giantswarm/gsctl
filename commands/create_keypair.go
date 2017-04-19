@@ -30,6 +30,7 @@ const (
 func init() {
 	CreateKeypairCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to create a key-pair for")
 	CreateKeypairCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key-pair")
+	CreateKeypairCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key-pair in days")
 
 	CreateCommand.AddCommand(CreateKeypairCommand)
 }
