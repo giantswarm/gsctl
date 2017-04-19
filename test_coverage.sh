@@ -13,3 +13,6 @@ for d in $(glide novendor); do
         rm profile.out
     fi
 done
+
+# sort in place, remove redundant lines
+sort -u -r coverage.txt -o coverage.txt
