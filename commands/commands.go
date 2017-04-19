@@ -46,7 +46,7 @@ var (
 type APIError struct {
 	// msg is the error message
 	msg string
-	// apiResponse is the response we got from the API
+	// APIResponse is the response we got from the API
 	APIResponse gsclientgen.APIResponse
 }
 
