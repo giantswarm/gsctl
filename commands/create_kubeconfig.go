@@ -7,7 +7,6 @@ import (
 	"runtime"
 
 	"github.com/fatih/color"
-	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
@@ -89,11 +88,11 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		cmdDescription = "Added by user " + config.Config.Email + " using 'gsctl create kubeconfig'"
 	}
 
-	addKeyPairBody := gsclientgen.AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
+	addKeyPairBody := gsclientgen.V4AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
 
 	fmt.Println("Creating new key-pair…")
 
-	keypairResponse, _, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, createKubeconfigActivityName, cmdLine)
+	keypairResponse, apiResponse, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, createKubeconfigActivityName, cmdLine)
 
 	if err != nil {
 		fmt.Println(color.RedString("Error: %s", err))
@@ -101,18 +100,18 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	if keypairResponse.StatusCode == apischema.STATUS_CODE_DATA {
+	if apiResponse.StatusCode == 200 || apiResponse.StatusCode == 201 {
 		msg := fmt.Sprintf("New key-pair created with ID %s and expiry of %v hours",
-			util.Truncate(util.CleanKeypairID(keypairResponse.Data.Id), 10),
+			util.Truncate(util.CleanKeypairID(keypairResponse.Id), 10),
 			ttlHours)
 		fmt.Println(msg)
 
 		// store credentials to file
-		caCertPath := util.StoreCaCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.CertificateAuthorityData)
+		caCertPath := util.StoreCaCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.CertificateAuthorityData)
 
-		clientCertPath := util.StoreClientCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientCertificateData)
+		clientCertPath := util.StoreClientCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Id, keypairResponse.ClientCertificateData)
 
-		clientKeyPath := util.StoreClientKey(config.ConfigDirPath, cmdClusterID, keypairResponse.Data.Id, keypairResponse.Data.ClientKeyData)
+		clientKeyPath := util.StoreClientKey(config.ConfigDirPath, cmdClusterID, keypairResponse.Id, keypairResponse.ClientKeyData)
 
 		fmt.Println("Certificate and key files written to:")
 		fmt.Println(caCertPath)
@@ -156,7 +155,7 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		fmt.Println(color.YellowString("    kubectl config set-context giantswarm-%s\n", cmdClusterID))
 
 	} else {
-		fmt.Println(color.RedString("Unhandled response code: %v", keypairResponse.StatusCode))
+		fmt.Println(color.RedString("Unhandled response code: %v", apiResponse.StatusCode))
 		dumpAPIResponse(*apiResponse)
 	}
 }

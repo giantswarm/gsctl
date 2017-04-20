@@ -1,12 +1,19 @@
+services:
+  - docker
+
 language: go
 
 go:
-  - 1.5
-  - 1.6
-  - 1.7
-  - master
+  - 1.8
+
+before_install:
+  - sudo apt-get install -y python-pip
+  - sudo pip install yamllint
 
 install: make get-deps
+
+script:
+    - make validate
 
 notifications:
   email: false

@@ -52,10 +52,12 @@ func printOptions(w io.Writer, cmd *cobra.Command, name string) error {
 	return nil
 }
 
+// GenMarkdown creates markdown output.
 func GenMarkdown(cmd *cobra.Command, w io.Writer) error {
 	return GenMarkdownCustom(cmd, w, func(s string) string { return s })
 }
 
+// GenMarkdownCustom creates custom markdown output.
 func GenMarkdownCustom(cmd *cobra.Command, w io.Writer, linkHandler func(string) string) error {
 	name := cmd.CommandPath()
 
@@ -119,7 +121,7 @@ func GenMarkdownCustom(cmd *cobra.Command, w io.Writer, linkHandler func(string)
 		sort.Sort(byName(children))
 
 		for _, child := range children {
-			if !child.IsAvailableCommand() || child.IsHelpCommand() {
+			if !child.IsAvailableCommand() || child.IsAdditionalHelpTopicCommand() {
 				continue
 			}
 			cname := name + " " + child.Name()
@@ -141,6 +143,12 @@ func GenMarkdownCustom(cmd *cobra.Command, w io.Writer, linkHandler func(string)
 	return nil
 }
 
+// GenMarkdownTree will generate a markdown page for this command and all
+// descendants in the directory given. The header may be nil.
+// This function may not work correctly if your command names have `-` in them.
+// If you have `cmd` with two subcmds, `sub` and `sub-third`,
+// and `sub` has a subcommand called `third`, it is undefined which
+// help output will be in the file `cmd-sub-third.1`.
 func GenMarkdownTree(cmd *cobra.Command, dir string) error {
 	identity := func(s string) string { return s }
 	emptyStr := func(s string) string { return "" }
@@ -149,7 +157,7 @@ func GenMarkdownTree(cmd *cobra.Command, dir string) error {
 
 func GenMarkdownTreeCustom(cmd *cobra.Command, dir string, filePrepender, linkHandler func(string) string) error {
 	for _, c := range cmd.Commands() {
-		if !c.IsAvailableCommand() || c.IsHelpCommand() {
+		if !c.IsAvailableCommand() || c.IsAdditionalHelpTopicCommand() {
 			continue
 		}
 		if err := GenMarkdownTreeCustom(c, dir, filePrepender, linkHandler); err != nil {

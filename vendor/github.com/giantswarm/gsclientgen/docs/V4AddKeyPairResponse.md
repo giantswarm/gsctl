@@ -1,4 +1,4 @@
-# V3AddKeyPairResponseData
+# V4AddKeyPairResponse
 
 ## Properties
 Name | Type | Description | Notes

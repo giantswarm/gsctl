@@ -30,8 +30,8 @@ import (
 
 // GenManTree will generate a man page for this command and all descendants
 // in the directory given. The header may be nil. This function may not work
-// correctly if your command names have - in them. If you have `cmd` with two
-// subcmds, `sub` and `sub-third`. And `sub` has a subcommand called `third`
+// correctly if your command names have `-` in them. If you have `cmd` with two
+// subcmds, `sub` and `sub-third`, and `sub` has a subcommand called `third`
 // it is undefined which help output will be in the file `cmd-sub-third.1`.
 func GenManTree(cmd *cobra.Command, header *GenManHeader, dir string) error {
 	return GenManTreeFromOpts(cmd, GenManTreeOptions{
@@ -49,7 +49,7 @@ func GenManTreeFromOpts(cmd *cobra.Command, opts GenManTreeOptions) error {
 		header = &GenManHeader{}
 	}
 	for _, c := range cmd.Commands() {
-		if !c.IsAvailableCommand() || c.IsHelpCommand() {
+		if !c.IsAvailableCommand() || c.IsAdditionalHelpTopicCommand() {
 			continue
 		}
 		if err := GenManTreeFromOpts(c, opts); err != nil {
@@ -216,7 +216,7 @@ func genMan(cmd *cobra.Command, header *GenManHeader) []byte {
 		children := cmd.Commands()
 		sort.Sort(byName(children))
 		for _, c := range children {
-			if !c.IsAvailableCommand() || c.IsHelpCommand() {
+			if !c.IsAvailableCommand() || c.IsAdditionalHelpTopicCommand() {
 				continue
 			}
 			seealso := fmt.Sprintf("**%s-%s(%s)**", dashCommandName, c.Name(), header.Section)

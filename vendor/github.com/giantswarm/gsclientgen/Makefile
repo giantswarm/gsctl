@@ -3,7 +3,7 @@ PWD := $(shell pwd)
 get-deps:
 	go get github.com/go-resty/resty
 
-generate:
+generate: clean
 	docker run --rm -it \
 		-v ${PWD}:/swagger-api/out \
 		-v ${PWD}/api-spec:/swagger-api/yaml \
@@ -15,11 +15,12 @@ generate:
 	gofmt -s -l -w .
 
 # removal of all generated files
-remove-generated:
+clean:
 	rm *.go
 	rm docs/*.md
 
 validate:
+	yamllint ./api-spec/oai-spec.yaml
 	docker run --rm -it \
 		-v ${PWD}/api-spec:/swagger-api/yaml \
 		jimschubert/swagger-codegen-cli generate \

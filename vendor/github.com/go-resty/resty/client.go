@@ -1,11 +1,10 @@
-// Copyright (c) 2015-2016 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2017 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
 package resty
 
 import (
-	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -15,7 +14,6 @@ import (
 	"io/ioutil"
 	"log"
 	"mime/multipart"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -24,31 +22,30 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 )
 
 const (
-	// GET HTTP method
-	GET = "GET"
+	// MethodGet HTTP method
+	MethodGet = "GET"
 
-	// POST HTTP method
-	POST = "POST"
+	// MethodPost HTTP method
+	MethodPost = "POST"
 
-	// PUT HTTP method
-	PUT = "PUT"
+	// MethodPut HTTP method
+	MethodPut = "PUT"
 
-	// DELETE HTTP method
-	DELETE = "DELETE"
+	// MethodDelete HTTP method
+	MethodDelete = "DELETE"
 
-	// PATCH HTTP method
-	PATCH = "PATCH"
+	// MethodPatch HTTP method
+	MethodPatch = "PATCH"
 
-	// HEAD HTTP method
-	HEAD = "HEAD"
+	// MethodHead HTTP method
+	MethodHead = "HEAD"
 
-	// OPTIONS HTTP method
-	OPTIONS = "OPTIONS"
+	// MethodOptions HTTP method
+	MethodOptions = "OPTIONS"
 )
 
 var (
@@ -71,19 +68,21 @@ var (
 // Client type is used for HTTP/RESTful global values
 // for all request raised from the client
 type Client struct {
-	HostURL         string
-	QueryParam      url.Values
-	FormData        url.Values
-	Header          http.Header
-	UserInfo        *User
-	Token           string
-	Cookies         []*http.Cookie
-	Error           reflect.Type
-	Debug           bool
-	DisableWarn     bool
-	Log             *log.Logger
-	RetryCount      int
-	RetryConditions []RetryConditionFunc
+	HostURL          string
+	QueryParam       url.Values
+	FormData         url.Values
+	Header           http.Header
+	UserInfo         *User
+	Token            string
+	Cookies          []*http.Cookie
+	Error            reflect.Type
+	Debug            bool
+	DisableWarn      bool
+	Log              *log.Logger
+	RetryCount       int
+	RetryWaitTime    time.Duration
+	RetryMaxWaitTime time.Duration
+	RetryConditions  []RetryConditionFunc
 
 	httpClient       *http.Client
 	transport        *http.Transport
@@ -92,9 +91,9 @@ type Client struct {
 	outputDirectory  string
 	scheme           string
 	proxyURL         *url.URL
-	mutex            *sync.Mutex
 	closeConnection  bool
 	beforeRequest    []func(*Client, *Request) error
+	udBeforeRequest  []func(*Client, *Request) error
 	afterResponse    []func(*Client, *Response) error
 }
 
@@ -214,7 +213,7 @@ func (c *Client) SetQueryParam(param, value string) *Client {
 	return c
 }
 
-// SetQueryParams method sets multiple paramaters and its values at one go in the client instance.
+// SetQueryParams method sets multiple parameters and its values at one go in the client instance.
 // It will be formed as query string for the request. For example: `search=kitchen%20papers&size=large`
 // in the URL after `?` mark. These query params will be added to all the request raised from this
 // client instance. Also it can be overridden at request level Query Param options,
@@ -292,7 +291,6 @@ func (c *Client) R() *Request {
 		RawRequest:     nil,
 		client:         c,
 		bodyBuf:        nil,
-		proxyURL:       nil,
 		multipartFiles: []*File{},
 	}
 
@@ -310,9 +308,7 @@ func (c *Client) R() *Request {
 //			})
 //
 func (c *Client) OnBeforeRequest(m func(*Client, *Request) error) *Client {
-	c.beforeRequest[len(c.beforeRequest)-1] = m
-	c.beforeRequest = append(c.beforeRequest, requestLogger)
-
+	c.udBeforeRequest = append(c.udBeforeRequest, m)
 	return c
 }
 
@@ -420,6 +416,22 @@ func (c *Client) SetRetryCount(count int) *Client {
 	return c
 }
 
+// SetRetryWaitTime method sets default wait time to sleep before retrying
+// request.
+// Default is 100 milliseconds.
+func (c *Client) SetRetryWaitTime(waitTime time.Duration) *Client {
+	c.RetryWaitTime = waitTime
+	return c
+}
+
+// SetRetryMaxWaitTime method sets max wait time to sleep before retrying
+// request.
+// Default is 2 seconds.
+func (c *Client) SetRetryMaxWaitTime(maxWaitTime time.Duration) *Client {
+	c.RetryMaxWaitTime = maxWaitTime
+	return c
+}
+
 // AddRetryCondition method adds a retry condition function to array of functions
 // that are checked to determine if the request is retried. The request will
 // retry if any of the functions return true and error is nil.
@@ -492,22 +504,7 @@ func (c *Client) Mode() string {
 //
 func (c *Client) SetTLSClientConfig(config *tls.Config) *Client {
 	c.transport.TLSClientConfig = config
-	return c
-}
-
-// SetTimeout method sets timeout for request raised from client
-//		resty.SetTimeout(time.Duration(1 * time.Minute))
-//
-func (c *Client) SetTimeout(timeout time.Duration) *Client {
-	c.transport.Dial = func(network, addr string) (net.Conn, error) {
-		conn, err := net.DialTimeout(network, addr, timeout)
-		if err != nil {
-			c.Log.Printf("ERROR [%v]", err)
-			return nil, err
-		}
-		conn.SetDeadline(time.Now().Add(timeout))
-		return conn, nil
-	}
+	c.httpClient.Transport = c.transport
 
 	return c
 }
@@ -521,9 +518,11 @@ func (c *Client) SetTimeout(timeout time.Duration) *Client {
 func (c *Client) SetProxy(proxyURL string) *Client {
 	if pURL, err := url.Parse(proxyURL); err == nil {
 		c.proxyURL = pURL
+		c.transport.Proxy = http.ProxyURL(c.proxyURL)
+		c.httpClient.Transport = c.transport
 	} else {
 		c.Log.Printf("ERROR [%v]", err)
-		c.proxyURL = nil
+		c.RemoveProxy()
 	}
 
 	return c
@@ -534,6 +533,9 @@ func (c *Client) SetProxy(proxyURL string) *Client {
 //
 func (c *Client) RemoveProxy() *Client {
 	c.proxyURL = nil
+	c.transport.Proxy = nil
+	c.httpClient.Transport = c.transport
+
 	return c
 }
 
@@ -542,7 +544,6 @@ func (c *Client) RemoveProxy() *Client {
 func (c *Client) SetCertificates(certs ...tls.Certificate) *Client {
 	config := c.getTLSConfig()
 	config.Certificates = append(config.Certificates, certs...)
-
 	return c
 }
 
@@ -592,21 +593,22 @@ func (c *Client) SetOutputDirectory(dirPath string) *Client {
 //			},
 //		}
 //
-//		resty.SetTransport(&transport)
+//		resty.SetTransport(transport)
 //
 func (c *Client) SetTransport(transport *http.Transport) *Client {
 	if transport != nil {
 		c.transport = transport
+		c.httpClient.Transport = c.transport
 	}
 
 	return c
 }
 
-// SetScheme method sets custom scheme in the resty client. Its way to override default.
+// SetScheme method sets custom scheme in the resty client. It's way to override default.
 // 		resty.SetScheme("http")
 //
 func (c *Client) SetScheme(scheme string) *Client {
-	if c.scheme == "" {
+	if len(strings.TrimSpace(scheme)) > 0 {
 		c.scheme = scheme
 	}
 
@@ -620,10 +622,26 @@ func (c *Client) SetCloseConnection(close bool) *Client {
 	return c
 }
 
+// IsProxySet method returns the true if proxy is set on client otherwise false.
+func (c *Client) IsProxySet() bool {
+	return c.proxyURL != nil
+}
+
 // executes the given `Request` object and returns response
 func (c *Client) execute(req *Request) (*Response, error) {
 	// Apply Request middleware
 	var err error
+
+	// user defined on before request methods
+	// to modify the *resty.Request object
+	for _, f := range c.udBeforeRequest {
+		err = f(c, req)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// resty middlewares
 	for _, f := range c.beforeRequest {
 		err = f(c, req)
 		if err != nil {
@@ -631,20 +649,8 @@ func (c *Client) execute(req *Request) (*Response, error) {
 		}
 	}
 
-	c.mutex.Lock()
-
-	if req.proxyURL != nil {
-		c.transport.Proxy = http.ProxyURL(req.proxyURL)
-	} else if c.proxyURL != nil {
-		c.transport.Proxy = http.ProxyURL(c.proxyURL)
-	}
-
 	req.Time = time.Now()
-	c.httpClient.Transport = c.transport
-
 	resp, err := c.httpClient.Do(req.RawRequest)
-
-	c.mutex.Unlock()
 
 	response := &Response{
 		Request:     req,
@@ -657,7 +663,9 @@ func (c *Client) execute(req *Request) (*Response, error) {
 	}
 
 	if !req.isSaveResponse {
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 		response.body, err = ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return response, err
@@ -693,106 +701,9 @@ func (c *Client) disableLogPrefix() {
 func (c *Client) getTLSConfig() *tls.Config {
 	if c.transport.TLSClientConfig == nil {
 		c.transport.TLSClientConfig = &tls.Config{}
+		c.httpClient.Transport = c.transport
 	}
-
 	return c.transport.TLSClientConfig
-}
-
-//
-// Response
-//
-
-// Response is an object represents executed request and its values.
-type Response struct {
-	Request     *Request
-	RawResponse *http.Response
-
-	body       []byte
-	size       int64
-	receivedAt time.Time
-}
-
-// Body method returns HTTP response as []byte array for the executed request.
-// Note: `Response.Body` might be nil, if `Request.SetOutput` is used.
-func (r *Response) Body() []byte {
-	return r.body
-}
-
-// Status method returns the HTTP status string for the executed request.
-//	Example: 200 OK
-func (r *Response) Status() string {
-	return r.RawResponse.Status
-}
-
-// StatusCode method returns the HTTP status code for the executed request.
-//	Example: 200
-func (r *Response) StatusCode() int {
-	return r.RawResponse.StatusCode
-}
-
-// Result method returns the response value as an object if it has one
-func (r *Response) Result() interface{} {
-	return r.Request.Result
-}
-
-// Error method returns the error object if it has one
-func (r *Response) Error() interface{} {
-	return r.Request.Error
-}
-
-// Header method returns the response headers
-func (r *Response) Header() http.Header {
-	return r.RawResponse.Header
-}
-
-// Cookies method to access all the response cookies
-func (r *Response) Cookies() []*http.Cookie {
-	return r.RawResponse.Cookies()
-}
-
-// String method returns the body of the server response as String.
-func (r *Response) String() string {
-	if r.body == nil {
-		return ""
-	}
-
-	return strings.TrimSpace(string(r.body))
-}
-
-// Time method returns the time of HTTP response time that from request we sent and received a request.
-// See `response.ReceivedAt` to know when client recevied response and see `response.Request.Time` to know
-// when client sent a request.
-func (r *Response) Time() time.Duration {
-	return r.receivedAt.Sub(r.Request.Time)
-}
-
-// ReceivedAt method returns when response got recevied from server for the request.
-func (r *Response) ReceivedAt() time.Time {
-	return r.receivedAt
-}
-
-// Size method returns the HTTP response size in bytes. Ya, you can relay on HTTP `Content-Length` header,
-// however it won't be good for chucked transfer/compressed response. Since Resty calculates response size
-// at the client end. You will get actual size of the http response.
-func (r *Response) Size() int64 {
-	return r.size
-}
-
-func (r *Response) fmtBodyString() string {
-	bodyStr := "***** NO CONTENT *****"
-	if r.body != nil {
-		ct := r.Header().Get(hdrContentTypeKey)
-		if IsJSONType(ct) {
-			var out bytes.Buffer
-			if err := json.Indent(&out, r.body, "", "   "); err == nil {
-				bodyStr = string(out.Bytes())
-			}
-		} else {
-			bodyStr = r.String()
-		}
-	}
-
-	return bodyStr
 }
 
 //
@@ -870,7 +781,9 @@ func addFile(w *multipart.Writer, fieldName, path string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	part, err := w.CreateFormFile(fieldName, filepath.Base(path))
 	if err != nil {
@@ -900,7 +813,7 @@ func getPointer(v interface{}) interface{} {
 }
 
 func isPayloadSupported(m string) bool {
-	return (m == POST || m == PUT || m == DELETE || m == PATCH)
+	return (m == MethodPost || m == MethodPut || m == MethodDelete || m == MethodPatch)
 }
 
 func typeOf(i interface{}) reflect.Type {
