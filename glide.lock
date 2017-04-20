@@ -1,5 +1,5 @@
-hash: 9f759e01bac3600d5b3dcaf22e974b761ff0cd821afba5afacc251a9f9c5e839
-updated: 2017-04-19T21:14:59.563015959+02:00
+hash: c8eb4e6b580903f47acea1314c6ffb52fc1e73e4c39429af274cb3b4eddb8714
+updated: 2017-04-20T10:09:10.18442922+02:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -10,7 +10,7 @@ imports:
 - name: github.com/giantswarm/columnize
   version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
 - name: github.com/giantswarm/gsclientgen
-  version: 8de542b634bfa52bc45bf4358246b485a006964f
+  version: 3766194b4a4b400c93c64a73ce72f22809bae534
 - name: github.com/go-resty/resty
   version: 97effac9c5689287a5f0b0bcb84e550e717b9afe
 - name: github.com/howeyc/gopass
