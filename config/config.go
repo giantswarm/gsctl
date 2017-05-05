@@ -104,7 +104,7 @@ func WriteToFile() error {
 	return nil
 }
 
-// ReadFromFile reads configuration from the YAML config file
+// readFromFile reads configuration from the YAML config file
 func readFromFile(filePath string) (*configStruct, error) {
 	myConfig := new(configStruct)
 
