@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 	"github.com/spf13/cobra"
@@ -70,11 +72,16 @@ func checkCreateKubeconfig(cmd *cobra.Command, args []string) error {
 
 // createKubeconfig adds configuration for kubectl
 func createKubeconfig(cmd *cobra.Command, args []string) {
-	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
+	clientConfig := client.Configuration{
+		Endpoint:  cmdAPIEndpoint,
+		Timeout:   10 * time.Second,
+		UserAgent: config.UserAgent(),
+	}
+	apiClient := client.NewClient(clientConfig)
 	authHeader := "giantswarm " + config.Config.Token
 
 	// get cluster details
-	clusterDetailsResponse, apiResponse, err := client.GetCluster(authHeader, cmdClusterID, requestIDHeader, createKubeconfigActivityName, cmdLine)
+	clusterDetailsResponse, apiResponse, err := apiClient.GetCluster(authHeader, cmdClusterID, requestIDHeader, createKubeconfigActivityName, cmdLine)
 	if err != nil {
 		fmt.Println(color.RedString("Could not fetch details for cluster ID '" + cmdClusterID + "'"))
 		fmt.Println(color.RedString("Error: %s", err))
@@ -92,7 +99,10 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Creating new key-pair…")
 
-	keypairResponse, apiResponse, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, createKubeconfigActivityName, cmdLine)
+	clientConfig.Timeout = 60 * time.Second
+	apiClient = client.NewClient(clientConfig)
+
+	keypairResponse, apiResponse, err := apiClient.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, createKubeconfigActivityName, cmdLine)
 
 	if err != nil {
 		fmt.Println(color.RedString("Error: %s", err))

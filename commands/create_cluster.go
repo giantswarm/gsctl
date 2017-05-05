@@ -8,11 +8,13 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/spf13/cobra"
 )
@@ -335,8 +337,13 @@ func addCluster(cmd *cobra.Command, args []string) {
 			// command line flag overwrites
 			authHeader = "giantswarm " + cmdToken
 		}
-		client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
-		responseBody, apiResponse, _ := client.AddCluster(authHeader, addClusterBody, requestIDHeader, createClusterActivityName, cmdLine)
+		clientConfig := client.Configuration{
+			Endpoint:  cmdAPIEndpoint,
+			Timeout:   60 * time.Second,
+			UserAgent: config.UserAgent(),
+		}
+		apiClient := client.NewClient(clientConfig)
+		responseBody, apiResponse, _ := apiClient.AddCluster(authHeader, addClusterBody, requestIDHeader, createClusterActivityName, cmdLine)
 
 		// handle API result
 		if responseBody.Code == "RESOURCE_CREATED" {

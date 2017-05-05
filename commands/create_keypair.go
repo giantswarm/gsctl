@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 	"github.com/spf13/cobra"
@@ -59,11 +61,16 @@ func addKeypair(cmd *cobra.Command, args []string) {
 		cmdDescription = "Added by user " + config.Config.Email + " using 'gsctl create keypair'"
 	}
 
-	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
+	clientConfig := client.Configuration{
+		Endpoint:  cmdAPIEndpoint,
+		Timeout:   60 * time.Second,
+		UserAgent: config.UserAgent(),
+	}
+	apiClient := client.NewClient(clientConfig)
 	authHeader := "giantswarm " + config.Config.Token
 	ttlHours := int32(cmdTTLDays * 24)
 	addKeyPairBody := gsclientgen.V4AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
-	keypairResponse, apiResponse, err := client.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, addKeyPairActivityName, cmdLine)
+	keypairResponse, apiResponse, err := apiClient.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, addKeyPairActivityName, cmdLine)
 
 	if err != nil {
 		fmt.Println(color.RedString("Error: %s", err))

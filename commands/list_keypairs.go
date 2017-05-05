@@ -9,7 +9,7 @@ import (
 	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
-	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 	"github.com/spf13/cobra"
@@ -67,9 +67,14 @@ func listKeypairs(cmd *cobra.Command, args []string) {
 }
 
 func keypairsTable() (string, error) {
-	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
+	clientConfig := client.Configuration{
+		Endpoint:  cmdAPIEndpoint,
+		Timeout:   20 * time.Second,
+		UserAgent: config.UserAgent(),
+	}
+	apiClient := client.NewClient(clientConfig)
 	authHeader := "giantswarm " + config.Config.Token
-	keypairsResponse, apiResponse, err := client.GetKeyPairs(authHeader, cmdClusterID, requestIDHeader, listKeypairsActivityName, cmdLine)
+	keypairsResponse, apiResponse, err := apiClient.GetKeyPairs(authHeader, cmdClusterID, requestIDHeader, listKeypairsActivityName, cmdLine)
 	if err != nil {
 		return "", APIError{err.Error(), *apiResponse}
 	}

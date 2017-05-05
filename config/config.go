@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -75,6 +76,11 @@ func init() {
 	myConfig, err := readFromFile(ConfigFilePath)
 	checkErr(err)
 	Config = myConfig
+}
+
+// UserAgent returns the user agent string identifying us in HTTP requests
+func UserAgent() string {
+	return fmt.Sprintf("%s/%s", ProgramName, Version)
 }
 
 func checkErr(err error) {

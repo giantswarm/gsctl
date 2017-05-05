@@ -4,9 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/spf13/cobra"
 )
@@ -78,8 +79,13 @@ func deleteCluster(cmd *cobra.Command, args []string) {
 		// command line flag overwrites
 		authHeader = "giantswarm " + cmdToken
 	}
-	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
-	responseBody, apiResponse, _ := client.DeleteCluster(authHeader, cmdClusterID, requestIDHeader, createClusterActivityName, cmdLine)
+	clientConfig := client.Configuration{
+		Endpoint:  cmdAPIEndpoint,
+		Timeout:   60 * time.Second,
+		UserAgent: config.UserAgent(),
+	}
+	apiClient := client.NewClient(clientConfig)
+	responseBody, apiResponse, _ := apiClient.DeleteCluster(authHeader, cmdClusterID, requestIDHeader, createClusterActivityName, cmdLine)
 
 	// handle API result
 	if responseBody.Code == "RESOURCE_DELETED" || responseBody.Code == "RESOURCE_DELETION_STARTED" {

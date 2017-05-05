@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"time"
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
-	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/spf13/cobra"
 )
@@ -54,7 +55,12 @@ func listOrgs(cmd *cobra.Command, args []string) {
 }
 
 func orgsTable() (string, error) {
-	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
+	clientConfig := client.Configuration{
+		Endpoint:  cmdAPIEndpoint,
+		Timeout:   5 * time.Second,
+		UserAgent: config.UserAgent(),
+	}
+	apiClient := client.NewClient(clientConfig)
 
 	// if token is set via flags, we unauthenticate using this token
 	authHeader := "giantswarm " + config.Config.Token
@@ -62,7 +68,7 @@ func orgsTable() (string, error) {
 		authHeader = "giantswarm " + cmdToken
 	}
 
-	orgsResponse, apiResponse, err := client.GetUserOrganizations(authHeader, requestIDHeader, listOrganizationsActivityName, cmdLine)
+	orgsResponse, apiResponse, err := apiClient.GetUserOrganizations(authHeader, requestIDHeader, listOrganizationsActivityName, cmdLine)
 	if err != nil {
 		return "", APIError{err.Error(), *apiResponse}
 	}

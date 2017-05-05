@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
@@ -12,6 +13,7 @@ import (
 	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 )
 
@@ -74,9 +76,15 @@ func login(cmd *cobra.Command, args []string) {
 
 	encodedPassword := base64.StdEncoding.EncodeToString([]byte(password))
 
-	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
+	clientConfig := client.Configuration{
+		Endpoint:  cmdAPIEndpoint,
+		Timeout:   10 * time.Second,
+		UserAgent: config.UserAgent(),
+	}
+	apiClient := client.NewClient(clientConfig)
+
 	requestBody := gsclientgen.LoginBodyModel{Password: string(encodedPassword)}
-	loginResponse, apiResponse, err := client.UserLogin(email, requestBody, requestIDHeader, loginActivityName, cmdLine)
+	loginResponse, apiResponse, err := apiClient.UserLogin(email, requestBody, requestIDHeader, loginActivityName, cmdLine)
 	if err != nil {
 		fmt.Println(color.RedString("Error: %s", err))
 		dumpAPIResponse(*apiResponse)
