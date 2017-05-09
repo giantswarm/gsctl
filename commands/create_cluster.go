@@ -23,11 +23,11 @@ type cpuDefinition struct {
 }
 
 type memoryDefinition struct {
-	SizeGB int `yaml:"size_gb,omitempty"`
+	SizeGB float32 `yaml:"size_gb,omitempty"`
 }
 
 type storageDefinition struct {
-	SizeGB int `yaml:"size_gb,omitempty"`
+	SizeGB float32 `yaml:"size_gb,omitempty"`
 }
 
 type nodeDefinition struct {
@@ -46,10 +46,10 @@ type clusterDefinition struct {
 
 const (
 	// TODO: These settings should come from the API
-	minimumNumWorkers          int = 1
-	minimumWorkerNumCPUs       int = 1
-	minimumWorkerMemorySizeGB  int = 1
-	minimumWorkerStorageSizeGB int = 1
+	minimumNumWorkers          int     = 1
+	minimumWorkerNumCPUs       int     = 1
+	minimumWorkerMemorySizeGB  float32 = 1
+	minimumWorkerStorageSizeGB float32 = 1
 
 	createClusterActivityName string = "create-cluster"
 )
@@ -97,9 +97,9 @@ Examples:
 	// number of CPUs per worker as required via flag on execution
 	cmdWorkerNumCPUs int
 	// RAM size in GB per worker as required via flag on execution
-	cmdWorkerMemorySizeGB int
+	cmdWorkerMemorySizeGB float32
 	// Local storage in GB per worker as required via flag on execution
-	cmdWorkerStorageSizeGB int
+	cmdWorkerStorageSizeGB float32
 	// dry run command line flag
 	cmdDryRun bool
 )
@@ -111,8 +111,8 @@ func init() {
 	CreateClusterCommand.Flags().StringVarP(&cmdOwner, "owner", "", "", "Organization to own the cluster")
 	CreateClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "", 0, "Number of worker nodes. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().IntVarP(&cmdWorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
-	CreateClusterCommand.Flags().IntVarP(&cmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
-	CreateClusterCommand.Flags().IntVarP(&cmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
+	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
+	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().BoolVarP(&cmdDryRun, "dry-run", "", false, "If set, the cluster won't be created. Useful with -v|--verbose.")
 
 	CreateCommand.AddCommand(CreateClusterCommand)
@@ -155,14 +155,14 @@ func checkAddCluster(cmd *cobra.Command, args []string) error {
 	// validate memory size specified by flag
 	if cmdWorkerMemorySizeGB > 0 && cmdWorkerMemorySizeGB < minimumWorkerMemorySizeGB {
 		s := color.RedString("\nNot enough Memory per worker specified\n")
-		s = s + "You'll need at least " + string(minimumWorkerMemorySizeGB) + " GB per worker node.\n\n"
+		s = s + fmt.Sprintf("You'll need at least %.1f GB per worker node.\n\n", minimumWorkerMemorySizeGB)
 		return errors.New(s)
 	}
 
 	// validate storage size specified by flag
 	if cmdWorkerStorageSizeGB > 0 && cmdWorkerStorageSizeGB < minimumWorkerStorageSizeGB {
 		s := color.RedString("\nNot enough Memory per worker specified\n")
-		s = s + "You'll need at least " + string(minimumWorkerStorageSizeGB) + " GB per worker node.\n\n"
+		s = s + fmt.Sprintf("You'll need at least %.1f GB per worker node.\n\n", minimumWorkerStorageSizeGB)
 		return errors.New(s)
 	}
 
@@ -246,9 +246,9 @@ func createAddClusterBody(d clusterDefinition) gsclientgen.V4AddClusterRequest {
 
 	for _, dWorker := range d.Workers {
 		ndmWorker := gsclientgen.V4NodeDefinition{}
-		ndmWorker.Memory = gsclientgen.V4NodeDefinitionMemory{SizeGb: int32(dWorker.Memory.SizeGB)}
+		ndmWorker.Memory = gsclientgen.V4NodeDefinitionMemory{SizeGb: dWorker.Memory.SizeGB}
 		ndmWorker.Cpu = gsclientgen.V4NodeDefinitionCpu{Cores: int32(dWorker.CPU.Cores)}
-		ndmWorker.Storage = gsclientgen.V4NodeDefinitionStorage{SizeGb: int32(dWorker.Storage.SizeGB)}
+		ndmWorker.Storage = gsclientgen.V4NodeDefinitionStorage{SizeGb: dWorker.Storage.SizeGB}
 		ndmWorker.Labels = dWorker.Labels
 		a.Workers = append(a.Workers, ndmWorker)
 	}
