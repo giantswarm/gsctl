@@ -16,11 +16,9 @@ import (
 
 // struct used for YAML serialization of settings
 type configStruct struct {
-	Token        string
-	Email        string
-	Updated      string
-	Organization string
-	Cluster      string
+	Token   string
+	Email   string
+	Updated string
 }
 
 const (
@@ -174,10 +172,6 @@ func getKubeconfigPaths(homeDir string) []string {
 // @param activityName     Name of the activity calling this function (for tracking)
 // @param cmdLine          Command line content used to run the CLI (for tracking)
 func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint string) (clusterID string, err error) {
-	// Check selected cluster
-	if Config.Cluster != "" {
-		return Config.Cluster, nil
-	}
 	// Go through available orgs and clusters to find all clusters
 	if Config.Token == "" {
 		return "", errors.New("User not logged in.")

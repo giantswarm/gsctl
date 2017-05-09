@@ -276,20 +276,16 @@ func addCluster(cmd *cobra.Command, args []string) {
 
 	// Validate result and give feedback
 	if definition.Owner == "" {
-		// try using default organization
-		if config.Config.Organization != "" {
-			definition.Owner = config.Config.Organization
+		fmt.Printf("\n%s\n", color.RedString("No owner organization set"))
+		if cmdInputYAMLFile != "" {
+			fmt.Println("Please specify an owner organization for the cluster in your definition file or set one via the --owner flag.")
+			fmt.Println("")
 		} else {
-			fmt.Printf("\n%s\n", color.RedString("No owner organization set"))
-			if cmdInputYAMLFile != "" {
-				fmt.Println("Please specify an owner organization for the cluster in your definition file or set one via the --owner flag.")
-				fmt.Println("")
-			} else {
-				fmt.Println("Please specify an owner organization for the cluster via the --owner flag.")
-				fmt.Println("")
-			}
-			os.Exit(1)
+			fmt.Println("Please specify an owner organization for the cluster via the --owner flag.")
+			fmt.Println("")
 		}
+		os.Exit(1)
+
 	}
 
 	// Validations based on definition file.
