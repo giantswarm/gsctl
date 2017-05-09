@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -24,8 +25,12 @@ func TestTimeout(t *testing.T) {
 	}
 	apiClient := NewClient(clientConfig)
 	_, _, err := apiClient.GetUserOrganizations("foo", "foo", "foo", "foo")
-	if err == nil || !strings.Contains(err.Error(), "Client.Timeout exceeded") {
-		t.Error("Expected Client.Timeout error, got:", err)
+	if err == nil {
+		t.Error("Expected Timeout error, got nil")
+	} else {
+		if err, ok := err.(net.Error); ok && !err.Timeout() {
+			t.Error("Expected Timeout error, got", err)
+		}
 	}
 }
 
