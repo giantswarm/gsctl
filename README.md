@@ -98,6 +98,12 @@ $ cd gsctl
 
 So the repo content will end up in `$GOPATH/src/github.com/giantswarm/gsctl`.
 
+### Dependencies
+
+Dependencies are managed using [`glide`](https://github.com/Masterminds/glide).
+
+**CAUTION:** The `vendor` directory is _flattened_. Make sure to use glide with the `-v` (or `--strip-vendor`) flag.
+
 ### Executing via `go run`
 
 Check everything by running the code via `go run`:
