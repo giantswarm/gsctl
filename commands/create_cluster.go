@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -339,7 +338,6 @@ func addCluster(cmd *cobra.Command, args []string) {
 		}
 		clientConfig := client.Configuration{
 			Endpoint:  cmdAPIEndpoint,
-			Timeout:   60 * time.Second,
 			UserAgent: config.UserAgent(),
 		}
 		apiClient := client.NewClient(clientConfig)

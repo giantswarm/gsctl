@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen"
@@ -63,7 +62,6 @@ func addKeypair(cmd *cobra.Command, args []string) {
 
 	clientConfig := client.Configuration{
 		Endpoint:  cmdAPIEndpoint,
-		Timeout:   60 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
 	apiClient := client.NewClient(clientConfig)

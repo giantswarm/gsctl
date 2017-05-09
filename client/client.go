@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/giantswarm/gsclientgen"
+
+	"github.com/giantswarm/gsctl/config"
 )
 
 // Configuration is the configuration to be used when creating a new API client
@@ -18,11 +20,14 @@ type Configuration struct {
 
 // NewClient allows to create a new API client
 // with specific configuration
-func NewClient(config Configuration) *gsclientgen.DefaultApi {
+func NewClient(clientConfig Configuration) *gsclientgen.DefaultApi {
 	configuration := gsclientgen.NewConfiguration()
-	configuration.BasePath = config.Endpoint
-	configuration.UserAgent = config.UserAgent
-	configuration.Timeout = &config.Timeout
+	configuration.BasePath = clientConfig.Endpoint
+	configuration.UserAgent = clientConfig.UserAgent
+	configuration.Timeout = &config.DefaultTimeout
+	if clientConfig.Timeout != 0 {
+		configuration.Timeout = &clientConfig.Timeout
+	}
 
 	return &gsclientgen.DefaultApi{
 		Configuration: configuration,
