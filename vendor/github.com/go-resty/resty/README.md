@@ -1,8 +1,8 @@
-# resty  [![Build Status](https://travis-ci.org/go-resty/resty.svg?branch=master)](https://travis-ci.org/go-resty/resty) [![codecov](https://codecov.io/gh/go-resty/resty/branch/master/graph/badge.svg)](https://codecov.io/gh/go-resty/resty/branch/master)  [![GoReport](https://goreportcard.com/badge/go-resty/resty)](https://goreportcard.com/report/go-resty/resty)  [![Version](https://img.shields.io/badge/version-0.11-blue.svg)](https://github.com/go-resty/resty/releases/latest)  [![GoDoc](https://godoc.org/github.com/go-resty/resty?status.svg)](https://godoc.org/github.com/go-resty/resty) [![License](https://img.shields.io/github/license/go-resty/resty.svg)](LICENSE)
+# resty  [![Build Status](https://travis-ci.org/go-resty/resty.svg?branch=master)](https://travis-ci.org/go-resty/resty) [![codecov](https://codecov.io/gh/go-resty/resty/branch/master/graph/badge.svg)](https://codecov.io/gh/go-resty/resty/branch/master)  [![GoReport](https://goreportcard.com/badge/go-resty/resty)](https://goreportcard.com/report/go-resty/resty)  [![GoDoc](https://godoc.org/github.com/go-resty/resty?status.svg)](https://godoc.org/github.com/go-resty/resty)  [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Simple HTTP and REST client for Go inspired by Ruby rest-client. [Features](#features) section describes in detail about resty capabilities.
 
-***v0.11 [released](https://github.com/go-resty/resty/releases/latest) and tagged on Mar 20, 2017.***
+***v0.10 [released](https://github.com/go-resty/resty/releases/latest) and tagged on Jan 02, 2017.***
 
 *Since Go v1.6 HTTP/2 & HTTP/1.1 protocol is used transparently. `Resty` works fine with HTTP/2 and HTTP/1.1.*
 
@@ -33,7 +33,6 @@ Go Resty first released on Sep 15, 2015 then go-resty grew gradually as a very h
 * Custom [Root Certificates](https://godoc.org/github.com/go-resty/resty#Client.SetRootCertificate) and Client [Certificates](https://godoc.org/github.com/go-resty/resty#Client.SetCertificates)
 * Download/Save HTTP response directly into File, like `curl -o` flag. See [SetOutputDirectory](https://godoc.org/github.com/go-resty/resty#Client.SetOutputDirectory) & [SetOutput](https://godoc.org/github.com/go-resty/resty#Request.SetOutput).
 * Cookies for your request and CookieJar support
-* SRV Record based request instead of Host URL
 * Client settings like `Timeout`, `RedirectPolicy`, `Proxy`, `TLSClientConfig`, `Transport`, etc.
 * resty design
   * Have client level settings & options and also override at Request level if you want to
@@ -48,32 +47,31 @@ Go Resty first released on Sep 15, 2015 then go-resty grew gradually as a very h
 resty tested with Go `v1.2` and above.
 
 #### Included Batteries
-  * Redirect Policies - see [how to use](#redirect-policy)
+  * Redirect Policies - see [how to use in action](#redirect-policy)
     * NoRedirectPolicy
     * FlexibleRedirectPolicy
     * DomainCheckRedirectPolicy
     * etc. [more info](redirect.go)
-  * Retry Mechanism [how to use](#retries)
+  * Retry Mechanism [reference](retry_test.go)
     * Backoff Retry
     * Conditional Retry
-  * SRV Record based request instead of Host URL [how to use](resty_test.go#L1412)
   * etc (upcoming - throw your idea's [here](https://github.com/go-resty/resty/issues)).
 
 ## Installation
-#### Stable Version - Production Ready
+#### Stable - Version
 Please refer section [Versioning](#versioning) for detailed info.
 ```sh
 # install the library
 go get -u gopkg.in/resty.v0
 ```
-#### Latest Version - Development Edge
+#### Latest
 ```sh
 # install the latest & greatest library
 go get -u github.com/go-resty/resty
 ```
 
 ## Usage
-The following samples will assist you to become as comfortable as possible with resty library. Resty comes with ready to use DefaultClient.
+Following samples will assist you to become as much comfortable as possible with resty library. Resty comes with ready to use DefaultClient.
 
 Import resty into your code and refer it as `resty`.
 ```go
@@ -447,50 +445,6 @@ resp, err := c.R().
     SetProxy("http://sampleproxy:8888").
     Get("http://httpbin.org/get")
 ```
-
-#### Retries
-
-Resty uses [backoff](http://www.awsarchitectureblog.com/2015/03/backoff.html)
-to increase retry intervals after each attempt.
-
-Usage example:
-```go
-// Retries are configured per client
-resty.DefaultClient.
-    // Set retry count to non zero to enable retries
-    SetRetryCount(3).
-    // You can override initial retry wait time.
-    // Default is 100 milliseconds.
-    SetRetryWaitTime(5 * time.Second).
-    // MaxWaitTime can be overridden as well.
-    // Default is 2 seconds.
-    SetRetryMaxWaitTime(20 * time.Second)
-```
-
-Above setup will result in resty retrying requests returned non nil error up to
-3 times with delay increased after each attempt.
-
-You can optionally provide client with custom retry conditions:
-
-```go
-resty.DefaultClient.
-    AddRetryCondition(
-        // Condition function will be provided with *resty.Response as a
-        // parameter. It is expected to return (bool, error) pair. Resty will retry
-        // in case condition returns true or non nil error.
-        func(r *resty.Response) (bool, error) {
-            return r.StatusCode() == http.StatusTooManyRequests, nil
-        }
-    )
-```
-
-Above example will make resty retry requests ended with `429 Too Many Requests`
-status code.
-
-Multiple retry conditions can be added.
-
-It is also possible to use `resty.Backoff(...)` to get arbitrary retry scenarios
-implemented. [Reference](retry_test.go).
 
 #### Choose REST or HTTP mode
 ```go

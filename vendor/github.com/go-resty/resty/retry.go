@@ -12,8 +12,8 @@ import (
 
 const (
 	defaultMaxRetries  = 3
-	defaultWaitTime    = time.Duration(100) * time.Millisecond
-	defaultMaxWaitTime = time.Duration(2000) * time.Millisecond
+	defaultWaitTime    = 100  // base Milliseconds
+	defaultMaxWaitTime = 2000 // cap level Milliseconds
 )
 
 // Option is to create convenient retry options like wait time, max retries, etc.
@@ -25,8 +25,8 @@ type RetryConditionFunc func(*Response) (bool, error)
 // Options to hold go-resty retry values
 type Options struct {
 	maxRetries      int
-	waitTime        time.Duration
-	maxWaitTime     time.Duration
+	waitTime        int
+	maxWaitTime     int
 	retryConditions []RetryConditionFunc
 }
 
@@ -38,14 +38,14 @@ func Retries(value int) Option {
 }
 
 // WaitTime sets the default wait time to sleep between requests
-func WaitTime(value time.Duration) Option {
+func WaitTime(value int) Option {
 	return func(o *Options) {
 		o.waitTime = value
 	}
 }
 
 // MaxWaitTime sets the max wait time to sleep between requests
-func MaxWaitTime(value time.Duration) Option {
+func MaxWaitTime(value int) Option {
 	return func(o *Options) {
 		o.maxWaitTime = value
 	}
@@ -100,11 +100,9 @@ func Backoff(operation func() (*Response, error), options ...Option) error {
 		// See the following article...
 		// http://www.awsarchitectureblog.com/2015/03/backoff.html
 		temp := math.Min(capLevel, base*math.Exp2(float64(attempt)))
-		sleepDuration := time.Duration(int(temp/2) + rand.Intn(int(temp/2)))
+		sleepTime := int(temp/2) + rand.Intn(int(temp/2))
 
-		if sleepDuration < opts.waitTime {
-			sleepDuration = opts.waitTime
-		}
+		sleepDuration := time.Duration(sleepTime) * time.Millisecond
 		time.Sleep(sleepDuration)
 	}
 

@@ -33,7 +33,6 @@ type Request struct {
 	Error      interface{}
 	Time       time.Time
 	RawRequest *http.Request
-	SRV        *SRVRecord
 
 	client           *Client
 	bodyBuf          *bytes.Buffer
@@ -42,6 +41,7 @@ type Request struct {
 	setContentLength bool
 	isSaveResponse   bool
 	outputFile       string
+	proxyURL         *url.URL
 	multipartFiles   []*File
 }
 

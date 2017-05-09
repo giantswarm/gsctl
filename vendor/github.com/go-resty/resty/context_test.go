@@ -11,8 +11,6 @@ package resty
 import (
 	"context"
 	"net/http"
-	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -174,12 +172,12 @@ func TestSetContextCancelWithError(t *testing.T) {
 }
 
 func TestClientRetryWithSetContext(t *testing.T) {
-	var attemptctx int32
+	attempt := 0
 	ts := createTestServer(func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Method: %v", r.Method)
 		t.Logf("Path: %v", r.URL.Path)
-		attp := atomic.AddInt32(&attemptctx, 1)
-		if attp <= 3 {
+		attempt++
+		if attempt != 3 {
 			time.Sleep(time.Second * 2)
 		}
 		_, _ = w.Write([]byte("TestClientRetry page"))
@@ -195,5 +193,5 @@ func TestClientRetryWithSetContext(t *testing.T) {
 		SetContext(context.Background()).
 		Get(ts.URL + "/")
 
-	assertEqual(t, true, strings.HasPrefix(err.Error(), "Get "+ts.URL+"/"))
+	assertError(t, err)
 }
