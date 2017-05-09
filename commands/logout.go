@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
-	"github.com/giantswarm/gsclientgen"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 )
 
@@ -51,10 +52,15 @@ func logout(cmd *cobra.Command, args []string) {
 	config.Config.Email = ""
 	config.WriteToFile()
 
-	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
+	clientConfig := client.Configuration{
+		Endpoint:  cmdAPIEndpoint,
+		Timeout:   10 * time.Second,
+		UserAgent: config.UserAgent(),
+	}
+	apiClient := client.NewClient(clientConfig)
 
 	authHeader := "giantswarm " + currentToken
-	logoutResponse, apiResponse, err := client.UserLogout(authHeader, requestIDHeader, logoutActivityName, cmdLine)
+	logoutResponse, apiResponse, err := apiClient.UserLogout(authHeader, requestIDHeader, logoutActivityName, cmdLine)
 	if err != nil {
 		fmt.Println("Info: The client doesn't handle the API's 401 response yet.")
 		fmt.Println("Seeing this error likely means: The passed token was no longer valid.")

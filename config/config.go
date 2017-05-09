@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -60,6 +61,9 @@ var (
 
 	// SystemUser is the current system user as user.User (os/user)
 	SystemUser *user.User
+
+	// DefaultTimeout is the standard timeout to use for API calls
+	DefaultTimeout time.Duration = 60 * time.Second
 )
 
 func init() {
@@ -75,6 +79,11 @@ func init() {
 	myConfig, err := readFromFile(ConfigFilePath)
 	checkErr(err)
 	Config = myConfig
+}
+
+// UserAgent returns the user agent string identifying us in HTTP requests
+func UserAgent() string {
+	return fmt.Sprintf("%s/%s", ProgramName, Version)
 }
 
 func checkErr(err error) {

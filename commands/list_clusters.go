@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"time"
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/columnize"
-	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 	"github.com/spf13/cobra"
@@ -43,9 +44,14 @@ func checkListClusters(cmd *cobra.Command, args []string) error {
 
 // list all clusters the user has access to
 func listClusters(cmd *cobra.Command, args []string) {
-	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
+	clientConfig := client.Configuration{
+		Endpoint:  cmdAPIEndpoint,
+		Timeout:   3 * time.Second,
+		UserAgent: config.UserAgent(),
+	}
+	apiClient := client.NewClient(clientConfig)
 	authHeader := "giantswarm " + config.Config.Token
-	orgsResponse, apiResponse, err := client.GetUserOrganizations(authHeader, requestIDHeader, listClustersActivityName, cmdLine)
+	orgsResponse, apiResponse, err := apiClient.GetUserOrganizations(authHeader, requestIDHeader, listClustersActivityName, cmdLine)
 	if err != nil {
 		fmt.Println(color.RedString("Error: %s", err))
 		dumpAPIResponse(*apiResponse)
@@ -59,7 +65,7 @@ func listClusters(cmd *cobra.Command, args []string) {
 			sort.Strings(organizations)
 			output := []string{color.CyanString("ID") + "|" + color.CyanString("NAME") + "|" + color.CyanString("CREATED") + "|" + color.CyanString("ORGANIZATION")}
 			for _, orgName := range organizations {
-				clustersResponse, _, err := client.GetOrganizationClusters(authHeader, orgName, requestIDHeader, listClustersActivityName, cmdLine)
+				clustersResponse, _, err := apiClient.GetOrganizationClusters(authHeader, orgName, requestIDHeader, listClustersActivityName, cmdLine)
 				if err != nil {
 					fmt.Println(color.RedString("Error: %s", err))
 					dumpAPIResponse(*apiResponse)
