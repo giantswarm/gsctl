@@ -64,5 +64,4 @@ func printInfo(cmd *cobra.Command, args []string) {
 
 	fmt.Println(columnize.SimpleFormat(output))
 
-	config.WriteToFile()
 }
