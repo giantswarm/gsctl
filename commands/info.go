@@ -30,18 +30,6 @@ func printInfo(cmd *cobra.Command, args []string) {
 
 	output := []string{}
 
-	if config.Config.Organization == "" {
-		output = append(output, color.YellowString("Selected organization:")+"|"+"n/a")
-	} else {
-		output = append(output, color.YellowString("Selected organization:")+"|"+color.CyanString(config.Config.Organization))
-	}
-
-	if config.Config.Cluster == "" {
-		output = append(output, color.YellowString("Selected cluster:")+"|"+"n/a")
-	} else {
-		output = append(output, color.YellowString("Selected cluster:")+"|"+color.CyanString(config.Config.Cluster))
-	}
-
 	if config.Config.Email == "" {
 		output = append(output, color.YellowString("Email:")+"|"+"n/a")
 	} else {
@@ -76,5 +64,4 @@ func printInfo(cmd *cobra.Command, args []string) {
 
 	fmt.Println(columnize.SimpleFormat(output))
 
-	config.WriteToFile()
 }
