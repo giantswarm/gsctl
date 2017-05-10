@@ -38,8 +38,7 @@ func Test_Ping_InternalServerError(t *testing.T) {
 
 func Test_Ping_NonexistingEndpoint(t *testing.T) {
 	_, err := ping("http://not.existing")
-	expectedErrorString := "Get http://not.existing/v1/ping: dial tcp: lookup not.existing: no such host"
-	if err.Error() != expectedErrorString {
-		t.Errorf("Expected error '%s', got '%s'", expectedErrorString, err.Error())
+	if err == nil {
+		t.Error("Expected 'no such host' error, got nil")
 	}
 }
