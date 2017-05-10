@@ -11,4 +11,7 @@ import:
 - package: github.com/howeyc/gopass
 - package: github.com/spf13/cobra
 - package: gopkg.in/yaml.v2
-- package: go4.org/reflectutil
+- package: go4.org
+  subpackages:
+  - reflectutil
+- package: github.com/spf13/viper
