@@ -10,28 +10,28 @@ import (
 	"strings"
 	"time"
 
-	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/gsctl/client"
+	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 )
 
-// struct used for YAML serialization of settings
-type configStruct struct {
-	Token   string
-	Email   string
-	Updated string
-}
-
 const (
-	// ConfigFileName is the name of the configuration file
-	ConfigFileName string = "config.yaml"
+	// ConfigFileType is the type of config file we use
+	ConfigFileType = "yaml"
+
+	// ConfigFileName is the name of the configuration file, without ending
+	ConfigFileName = "config"
 
 	// ProgramName is the name of this program
-	ProgramName string = "gsctl"
+	ProgramName = "gsctl"
+
 	// DefaultAPIEndpoint is the endpoint used if none is configured
 	DefaultAPIEndpoint = "https://api.giantswarm.io"
 )
 
 var (
+	// Config is an object holding all configuration fields
+	Config = configStruct{}
 
 	// Version is the version number, to be set on build by the go linker
 	Version string
@@ -42,11 +42,17 @@ var (
 	// Commit is the latest git commit hash, to be set on build by the go linker
 	Commit string
 
-	// Config holds the configuration variables
-	Config *configStruct
+	// HomeDirPath is the path to the user's home directory
+	HomeDirPath string
 
-	// ConfigDirPath is the path of the directory holding our config file
+	// DefaultConfigDirPath is the default config dir path to use
+	DefaultConfigDirPath string
+
+	// ConfigDirPath is the actual path of the config dir
 	ConfigDirPath string
+
+	// LegacyConfigDirPath is the path where we had the config stuff earlier
+	LegacyConfigDirPath string
 
 	// CertsDirPath is the path of the directory holding certificates
 	CertsDirPath string
@@ -61,19 +67,88 @@ var (
 	SystemUser *user.User
 )
 
+// configStruct is used to serialize our configuration back into a file
+type configStruct struct {
+	Token   string `yaml:"token,omitempty"`
+	Email   string `yaml:"email,omitempty"`
+	Updated string `yaml:"updated,omitempty"`
+}
+
+// init sets up viper and sets defaults
 func init() {
-	SystemUser, userErr := user.Current()
-	checkErr(userErr)
+	viper.SetConfigType(ConfigFileType)
+	viper.SetConfigName(ConfigFileName)
+	viper.SetEnvPrefix(ProgramName)
+	viper.SetTypeByDefaultValue(true)
 
-	APIEndpoint = "https://api.giantswarm.io"
-	ConfigDirPath = path.Join(SystemUser.HomeDir, "."+ProgramName)
+	SystemUser, err := user.Current()
+	if err != nil {
+		fmt.Println("Could not get system user details using os/user.Current().")
+		fmt.Printf("Without this information, %s cannot determine the user's home directory and cannot set a configuration path.\n", ProgramName)
+		fmt.Println("Please get in touch with us via support@giantswarm.io, including information on your platform.")
+		fmt.Println("Thank you and sorry for the inconvenience!")
+		fmt.Println("")
+		panic(err.Error())
+	}
+	HomeDirPath = SystemUser.HomeDir
+
+	// create default config dir path
+	DefaultConfigDirPath = path.Join(HomeDirPath, ".config", ProgramName)
+	LegacyConfigDirPath = path.Join(HomeDirPath, "."+ProgramName)
+}
+
+// Initialize sets up all configuration.
+// It's distinct from init() on purpose, so it's
+// execution can be triggered in a controlled way.
+// It's supposed to be called after init().
+// The configDirPath argument can be given to override the DefaultConfigDirPath.
+func Initialize(configDirPath string) error {
+
+	// configDirPath argument overrides default, if given
+	if configDirPath != "" {
+		ConfigDirPath = configDirPath
+	} else {
+		ConfigDirPath = DefaultConfigDirPath
+	}
+	viper.AddConfigPath(ConfigDirPath)
+
+	ConfigFilePath = path.Join(ConfigDirPath, ConfigFileName+"."+ConfigFileType)
+
+	// TODO: move legacy config if present
+
+	// if config file doesn't exist, create empty one
+	_, err := os.Stat(ConfigFilePath)
+	if os.IsNotExist(err) {
+		// ensure directory exists
+		os.MkdirAll(ConfigDirPath, 0700)
+		// ensure file exists
+		file, fileErr := os.Create(ConfigFilePath)
+		if fileErr != nil {
+			return fileErr
+		}
+		file.Close()
+	}
+
+	err = viper.ReadInConfig()
+	if err != nil {
+		return err
+	}
+	populateConfigStruct()
+
 	CertsDirPath = path.Join(ConfigDirPath, "certs")
-	ConfigFilePath = path.Join(ConfigDirPath, ConfigFileName)
-	KubeConfigPaths = getKubeconfigPaths(SystemUser.HomeDir)
+	KubeConfigPaths = getKubeconfigPaths(HomeDirPath)
 
-	myConfig, err := readFromFile(ConfigFilePath)
-	checkErr(err)
-	Config = myConfig
+	return nil
+}
+
+// populateConfigStruct assigns configuration values from viper to Config
+func populateConfigStruct() {
+	if viper.IsSet("email") {
+		Config.Email = viper.GetString("email")
+	}
+	if viper.IsSet("token") {
+		Config.Token = viper.GetString("token")
+	}
 }
 
 // UserAgent returns the user agent string identifying us in HTTP requests
@@ -81,53 +156,23 @@ func UserAgent() string {
 	return fmt.Sprintf("%s/%s", ProgramName, Version)
 }
 
-func checkErr(err error) {
-	if err != nil {
-		panic(err.Error())
-	}
-}
-
 // WriteToFile writes the configuration data to a YAML file
 func WriteToFile() error {
-	// ensure directory
-	os.MkdirAll(ConfigDirPath, 0700)
 
-	// last modified date
-	Config.Updated = time.Now().Format(time.RFC3339)
+	data := Config
+	data.Updated = time.Now().Format(time.RFC3339)
 
-	yamlBytes, yamlErr := yaml.Marshal(&Config)
-	if yamlErr != nil {
-		return yamlErr
+	yamlBytes, err := yaml.Marshal(&data)
+	if err != nil {
+		return err
 	}
 
-	writeErr := ioutil.WriteFile(ConfigFilePath, yamlBytes, 0600)
-	if writeErr != nil {
-		return writeErr
+	err = ioutil.WriteFile(ConfigFilePath, yamlBytes, 0600)
+	if err != nil {
+		return err
 	}
 
 	return nil
-}
-
-// readFromFile reads configuration from the YAML config file
-func readFromFile(filePath string) (*configStruct, error) {
-	myConfig := new(configStruct)
-
-	data, readErr := ioutil.ReadFile(filePath)
-	if readErr != nil {
-		if os.IsNotExist(readErr) {
-			// ignore if file does not exist,
-			// as this is not an error.
-			return myConfig, nil
-		}
-		return nil, readErr
-	}
-
-	yamlErr := yaml.Unmarshal(data, &myConfig)
-	if yamlErr != nil {
-		return nil, yamlErr
-	}
-
-	return myConfig, nil
 }
 
 // getKubeconfigPaths returns a slice of paths to known kubeconfig files
@@ -171,11 +216,18 @@ func getKubeconfigPaths(homeDir string) []string {
 func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint string) (clusterID string, err error) {
 	// Go through available orgs and clusters to find all clusters
 	if Config.Token == "" {
-		return "", errors.New("User not logged in.")
+		return "", errors.New("user not logged in")
 	}
-	client := gsclientgen.NewDefaultApiWithBasePath(cmdAPIEndpoint)
+
+	clientConfig := client.Configuration{
+		Endpoint:  cmdAPIEndpoint,
+		Timeout:   10 * time.Second,
+		UserAgent: UserAgent(),
+	}
+	apiClient := client.NewClient(clientConfig)
+
 	authHeader := "giantswarm " + Config.Token
-	orgsResponse, _, err := client.GetUserOrganizations(authHeader, requestIDHeader, activityName, cmdLine)
+	orgsResponse, _, err := apiClient.GetUserOrganizations(authHeader, requestIDHeader, activityName, cmdLine)
 	if err != nil {
 		return "", err
 	}
@@ -183,7 +235,7 @@ func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint st
 		if len(orgsResponse.Data) > 0 {
 			clusterIDs := []string{}
 			for _, orgName := range orgsResponse.Data {
-				clustersResponse, _, err := client.GetOrganizationClusters(authHeader, orgName, requestIDHeader, activityName, cmdLine)
+				clustersResponse, _, err := apiClient.GetOrganizationClusters(authHeader, orgName, requestIDHeader, activityName, cmdLine)
 				if err != nil {
 					return "", err
 				}
