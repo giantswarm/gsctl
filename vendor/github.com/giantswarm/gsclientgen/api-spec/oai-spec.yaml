@@ -478,13 +478,13 @@ definitions:
         type: object
         properties:
           size_gb:
-            type: integer
+            type: number
             description: RAM size in GB
       storage:
         type: object
         properties:
           size_gb:
-            type: integer
+            type: number
             description: Node storage size in GB
       cpu:
         type: object
@@ -506,13 +506,13 @@ definitions:
         type: object
         properties:
           size_gb:
-            type: integer
+            type: number
             description: RAM size in GB
       storage:
         type: object
         properties:
           size_gb:
-            type: integer
+            type: number
             description: Node storage size in GB
       cpu:
         type: object

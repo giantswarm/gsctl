@@ -89,6 +89,11 @@ func SetHeaders(headers map[string]string) *Client {
 	return DefaultClient.SetHeaders(headers)
 }
 
+// SetCookieJar sets custom http.CookieJar. See `Client.SetCookieJar` for more information.
+func SetCookieJar(jar http.CookieJar) *Client {
+	return DefaultClient.SetCookieJar(jar)
+}
+
 // SetCookie sets single cookie object. See `Client.SetCookie` for more information.
 func SetCookie(hc *http.Cookie) *Client {
 	return DefaultClient.SetCookie(hc)
@@ -99,7 +104,7 @@ func SetCookies(cs []*http.Cookie) *Client {
 	return DefaultClient.SetCookies(cs)
 }
 
-// SetQueryParam method sets single paramater and its value. See `Client.SetQueryParam` for more information.
+// SetQueryParam method sets single parameter and its value. See `Client.SetQueryParam` for more information.
 func SetQueryParam(param, value string) *Client {
 	return DefaultClient.SetQueryParam(param, value)
 }

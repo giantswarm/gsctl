@@ -67,6 +67,6 @@ The source API specification can be found in `api-spec/oai-spec.yaml`. Changes h
 To generate client library code after changes in above file, run:
 
 ```nohighlight
+make validate
 make generate
 ```
-

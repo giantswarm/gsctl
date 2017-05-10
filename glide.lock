@@ -1,5 +1,5 @@
 hash: c8eb4e6b580903f47acea1314c6ffb52fc1e73e4c39429af274cb3b4eddb8714
-updated: 2017-04-20T10:09:10.18442922+02:00
+updated: 2017-05-10T10:30:34.257310765+02:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -10,9 +10,9 @@ imports:
 - name: github.com/giantswarm/columnize
   version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
 - name: github.com/giantswarm/gsclientgen
-  version: 3766194b4a4b400c93c64a73ce72f22809bae534
+  version: c729d80e4e8141415a1d8996936fbfb4c57584c9
 - name: github.com/go-resty/resty
-  version: 97effac9c5689287a5f0b0bcb84e550e717b9afe
+  version: 2b803d0e2dba5406a9ab6683deb9504a72338db1
 - name: github.com/howeyc/gopass
   version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/inconshreveable/mousetrap
@@ -26,19 +26,19 @@ imports:
   version: 57fdcb988a5c543893cc61bce354a6e24ab70022
   repo: https://github.com/mattn/go-isatty
 - name: github.com/spf13/cobra
-  version: b655df6ce84126fe9272a3cd4d70555a3a4cfed4
+  version: 1362f95a8d6fe330d00a64380d6e0b65f4992c72
 - name: github.com/spf13/pflag
-  version: 2300d0f8576fe575f71aaa5b9bbe4e1b0dc2eb51
+  version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
 - name: go4.org
-  version: 169ea6cabe2a4888dba958edaecc9e9751adc711
+  version: 16ace784e4b16df1d51c3435223b1d602cd43bfa
   subpackages:
   - reflectutil
 - name: golang.org/x/crypto
-  version: 12c985af8526c1f6f0c463bbfd9d69623d13b323
+  version: 122d919ec1efcfb58483215da23f815853e24b81
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 5602c733f70afc6dcec6766be0d5034d4c4f14de
+  version: c9b681d35165f1995d6f3034e61f8761d4b90c99
   subpackages:
   - publicsuffix
 - name: golang.org/x/sys

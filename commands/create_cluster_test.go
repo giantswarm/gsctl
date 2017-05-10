@@ -56,10 +56,10 @@ workers:
 	if myDef.Workers[1].CPU.Cores != 2 {
 		t.Error("Expected myDef.Workers[1].CPU.Cores to be 2, got: ", myDef.Workers[1].CPU.Cores)
 	}
-	if myDef.Workers[1].Memory.SizeGB != 5 {
+	if myDef.Workers[1].Memory.SizeGB != 5.0 {
 		t.Error("Expected myDef.Workers[1].Memory.SizeGB to be 5, got: ", myDef.Workers[1].Memory.SizeGB)
 	}
-	if myDef.Workers[1].Storage.SizeGB != 13 {
+	if myDef.Workers[1].Storage.SizeGB != 13.0 {
 		t.Error("Expected myDef.Workers[1].Storage.SizeGB to be 13, got: ", myDef.Workers[1].Storage.SizeGB)
 	}
 }
