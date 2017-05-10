@@ -32,7 +32,7 @@ func init() {
 func runPingCommand(cmd *cobra.Command, args []string) {
 	duration, err := ping(cmdAPIEndpoint)
 	if err != nil {
-		fmt.Println(color.RedString("API connection is bad"))
+		fmt.Println(color.RedString("Could not reach API"))
 		fmt.Println(err)
 		os.Exit(1)
 	}
