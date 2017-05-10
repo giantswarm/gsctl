@@ -59,9 +59,6 @@ var (
 
 	// SystemUser is the current system user as user.User (os/user)
 	SystemUser *user.User
-
-	// DefaultTimeout is the standard timeout to use for API calls
-	DefaultTimeout time.Duration = 60 * time.Second
 )
 
 func init() {
