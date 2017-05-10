@@ -27,11 +27,11 @@ const (
 
 	// ProgramName is the name of this program
 	ProgramName string = "gsctl"
+	// DefaultAPIEndpoint is the endpoint used if none is configured
+	DefaultAPIEndpoint = "https://api.giantswarm.io"
 )
 
 var (
-	// APIEndpoint is the URL base path, to access the API.
-	APIEndpoint string
 
 	// Version is the version number, to be set on build by the go linker
 	Version string
