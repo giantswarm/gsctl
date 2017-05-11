@@ -82,13 +82,13 @@ func addKeypair(cmd *cobra.Command, args []string) {
 		fmt.Println(color.GreenString(msg))
 
 		// store credentials to file
-		caCertPath := util.StoreCaCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.CertificateAuthorityData)
+		caCertPath := util.StoreCaCertificate(config.CertsDirPath, cmdClusterID, keypairResponse.CertificateAuthorityData)
 		fmt.Println("CA certificate stored in:", caCertPath)
 
-		clientCertPath := util.StoreClientCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Id, keypairResponse.ClientCertificateData)
+		clientCertPath := util.StoreClientCertificate(config.CertsDirPath, cmdClusterID, keypairResponse.Id, keypairResponse.ClientCertificateData)
 		fmt.Println("Client certificate stored in:", clientCertPath)
 
-		clientKeyPath := util.StoreClientKey(config.ConfigDirPath, cmdClusterID, keypairResponse.Id, keypairResponse.ClientKeyData)
+		clientKeyPath := util.StoreClientKey(config.CertsDirPath, cmdClusterID, keypairResponse.Id, keypairResponse.ClientKeyData)
 		fmt.Println("Client private key stored in:", clientKeyPath)
 
 	} else {

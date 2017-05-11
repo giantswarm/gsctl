@@ -117,11 +117,11 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		fmt.Println(msg)
 
 		// store credentials to file
-		caCertPath := util.StoreCaCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.CertificateAuthorityData)
+		caCertPath := util.StoreCaCertificate(config.CertsDirPath, cmdClusterID, keypairResponse.CertificateAuthorityData)
 
-		clientCertPath := util.StoreClientCertificate(config.ConfigDirPath, cmdClusterID, keypairResponse.Id, keypairResponse.ClientCertificateData)
+		clientCertPath := util.StoreClientCertificate(config.CertsDirPath, cmdClusterID, keypairResponse.Id, keypairResponse.ClientCertificateData)
 
-		clientKeyPath := util.StoreClientKey(config.ConfigDirPath, cmdClusterID, keypairResponse.Id, keypairResponse.ClientKeyData)
+		clientKeyPath := util.StoreClientKey(config.CertsDirPath, cmdClusterID, keypairResponse.Id, keypairResponse.ClientKeyData)
 
 		fmt.Println("Certificate and key files written to:")
 		fmt.Println(caCertPath)
