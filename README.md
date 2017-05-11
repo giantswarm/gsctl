@@ -35,9 +35,9 @@ $ gsctl create kubeconfig -c xl8t1
 Creating new key-pair…
 New key-pair created with ID 153a93201… and expiry of 720 hours
 Certificate and key files written to:
-/Users/demo/.gsctl/certs/xl8t1-ca.crt
-/Users/demo/.gsctl/certs/xl8t1-153a932010-client.crt
-/Users/demo/.gsctl/certs/xl8t1-153a932010-client.key
+/Users/demo/.config/gsctl/certs/xl8t1-ca.crt
+/Users/demo/.config/gsctl/certs/xl8t1-153a932010-client.crt
+/Users/demo/.config/gsctl/certs/xl8t1-153a932010-client.key
 Switched to kubectl context 'giantswarm-xl8t1'
 
 kubectl is set up. Check it using this command:
