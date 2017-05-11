@@ -114,7 +114,11 @@ func Initialize(configDirPath string) error {
 
 	ConfigFilePath = path.Join(ConfigDirPath, ConfigFileName+"."+ConfigFileType)
 
-	// TODO: move legacy config if present
+	// 2017-05-11: move legacy config from old to new default config path,
+	// if present. This is independent of the config path actually applied by the
+	// user.
+	// TODO: remove this after a couple of months.
+	migrateConfigDir()
 
 	// if config file doesn't exist, create empty one
 	_, err := os.Stat(ConfigFilePath)
@@ -250,4 +254,27 @@ func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint st
 		}
 	}
 	return "", errors.New(orgsResponse.StatusText)
+}
+
+// migrateConfigDir migrates a configuration directory from the old
+// default path to the new default path. Conditions:
+// - old config dir exists
+// - new config dir does not exist
+func migrateConfigDir() error {
+	_, err := os.Stat(DefaultConfigDirPath)
+	if !os.IsNotExist(err) {
+		// new config dir already exists
+		return nil
+	}
+
+	_, err = os.Stat(LegacyConfigDirPath)
+	if os.IsNotExist(err) {
+		// old config dir does not exist
+		return nil
+	}
+
+	// ensure ~/.config exists
+	os.MkdirAll(path.Dir(DefaultConfigDirPath), 0700)
+
+	return os.Rename(LegacyConfigDirPath, DefaultConfigDirPath)
 }
