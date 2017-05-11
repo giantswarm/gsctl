@@ -24,6 +24,9 @@ var (
 	// token flag
 	cmdToken string
 
+	// configuration path to use temporarily
+	cmdConfigDirPath string
+
 	// verbose flag
 	cmdVerbose bool
 
