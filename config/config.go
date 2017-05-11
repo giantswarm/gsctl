@@ -140,6 +140,8 @@ func Initialize(configDirPath string) error {
 	populateConfigStruct()
 
 	CertsDirPath = path.Join(ConfigDirPath, "certs")
+	os.MkdirAll(CertsDirPath, 0700)
+
 	KubeConfigPaths = getKubeconfigPaths(HomeDirPath)
 
 	return nil
