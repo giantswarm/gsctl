@@ -2,9 +2,12 @@ package commands
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/giantswarm/gsctl/config"
 )
 
 func Test_CreateKubeconfig(t *testing.T) {
@@ -25,6 +28,7 @@ func Test_CreateKubeconfig(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
+	cmdConfigDirPath, _ = ioutil.TempDir("", config.ProgramName)
 	cmdAPIEndpoint = mockServer.URL
 	cmdClusterID = "test-cluster-id"
 	checkCreateKubeconfig(CreateKeypairCommand, []string{})
