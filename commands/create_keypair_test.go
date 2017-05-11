@@ -28,7 +28,8 @@ func Test_CreateKeypair(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	cmdConfigDirPath, _ = ioutil.TempDir("", config.ProgramName)
+	configDir, _ := ioutil.TempDir("", config.ProgramName)
+	config.Initialize(configDir)
 	cmdAPIEndpoint = mockServer.URL
 	cmdClusterID = "test-cluster-id"
 	checkAddKeypair(CreateKeypairCommand, []string{})
