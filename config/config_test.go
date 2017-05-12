@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -61,7 +62,10 @@ func Test_Initialize_NonEmpty(t *testing.T) {
 	if fileErr != nil {
 		t.Error(fileErr)
 	}
-	file.WriteString("email: email@example.com\ntoken: some-token\n")
+
+	email := "email@example.com"
+	token := "some-token"
+	file.WriteString(fmt.Sprintf("email: %s\ntoken: %s\n", email, token))
 	file.Close()
 
 	err := Initialize(dir)
@@ -69,11 +73,11 @@ func Test_Initialize_NonEmpty(t *testing.T) {
 		t.Error("Error in Initialize:", err)
 	}
 
-	if Config.Email != "email@example.com" {
-		t.Errorf("Expected email email@example.com, got '%s'", Config.Email)
+	if Config.Email != email {
+		t.Errorf("Expected email '%s', got '%s'", email, Config.Email)
 	}
 	if Config.Token != "some-token" {
-		t.Error("Expected token some-token, got", Config.Token)
+		t.Errorf("Expected token '%s', got '%s'", token, Config.Token)
 	}
 }
 

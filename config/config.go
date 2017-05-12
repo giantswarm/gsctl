@@ -124,7 +124,10 @@ func Initialize(configDirPath string) error {
 	_, err := os.Stat(ConfigFilePath)
 	if os.IsNotExist(err) {
 		// ensure directory exists
-		os.MkdirAll(ConfigDirPath, 0700)
+		dirErr := os.MkdirAll(ConfigDirPath, 0700)
+		if dirErr != nil {
+			return dirErr
+		}
 		// ensure file exists
 		file, fileErr := os.Create(ConfigFilePath)
 		if fileErr != nil {
