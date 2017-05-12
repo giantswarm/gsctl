@@ -24,21 +24,31 @@ Successfully logged in!
 ```nohighlight
 $ gsctl list clusters
 Id     Name                Created             Organization
-9gxjo  Production Cluster  2016 Oct 19, 15:43  giantswarm
-xl8t1  Staging Cluster     2016 Sep 16, 09:30  giantswarm
+9gxjo  Production Cluster  2016 Apr 30, 15:43  acme
+xl8t1  Staging Cluster     2017 May 11, 09:30  acme
 ```
+
+#### Create a cluster
+
+```nohighlight
+$ gsctl create cluster --owner acme --name "Test Cluster" --num-workers 5
+Requesting new cluster for organization 'acme'
+New cluster with ID 'h8d0j' is launching.
+```
+
+More in the [docs](https://docs.giantswarm.io/reference/gsctl/create-cluster/)
 
 #### Configure `kubectl` to access a cluster
 
 ```nohighlight
-$ gsctl create kubeconfig -c xl8t1
+$ gsctl create kubeconfig -c h8d0j
 Creating new key-pair…
 New key-pair created with ID 153a93201… and expiry of 720 hours
 Certificate and key files written to:
-/Users/demo/.config/gsctl/certs/xl8t1-ca.crt
-/Users/demo/.config/gsctl/certs/xl8t1-153a932010-client.crt
-/Users/demo/.config/gsctl/certs/xl8t1-153a932010-client.key
-Switched to kubectl context 'giantswarm-xl8t1'
+/Users/demo/.config/gsctl/certs/h8d0j-ca.crt
+/Users/demo/.config/gsctl/certs/h8d0j-153a932010-client.crt
+/Users/demo/.config/gsctl/certs/h8d0j-153a932010-client.key
+Switched to kubectl context 'acme-xl8t1'
 
 kubectl is set up. Check it using this command:
 
@@ -46,14 +56,7 @@ kubectl is set up. Check it using this command:
 
 Whenever you want to switch to using this context:
 
-    kubectl config set-context giantswarm-xl8t1
-```
-
-#### Sign out
-
-```nohighlight
-$ gsctl logout
-Successfully logged out
+    kubectl config set-context acme-xl8t1
 ```
 
 ## Install
