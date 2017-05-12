@@ -4,8 +4,10 @@ import (
 	"time"
 
 	"github.com/giantswarm/gsclientgen"
+)
 
-	"github.com/giantswarm/gsctl/config"
+var (
+	DefaultTimeout time.Duration = 60 * time.Second
 )
 
 // Configuration is the configuration to be used when creating a new API client
@@ -24,7 +26,7 @@ func NewClient(clientConfig Configuration) *gsclientgen.DefaultApi {
 	configuration := gsclientgen.NewConfiguration()
 	configuration.BasePath = clientConfig.Endpoint
 	configuration.UserAgent = clientConfig.UserAgent
-	configuration.Timeout = &config.DefaultTimeout
+	configuration.Timeout = &DefaultTimeout
 	if clientConfig.Timeout != 0 {
 		configuration.Timeout = &clientConfig.Timeout
 	}

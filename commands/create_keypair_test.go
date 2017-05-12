@@ -2,14 +2,17 @@ package commands
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/giantswarm/gsctl/config"
 )
 
 func Test_CreateKeypair(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.URL)
+		fmt.Printf("mockServer request: %s %s\n", r.Method, r.URL)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{
@@ -25,6 +28,8 @@ func Test_CreateKeypair(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
+	configDir, _ := ioutil.TempDir("", config.ProgramName)
+	config.Initialize(configDir)
 	cmdAPIEndpoint = mockServer.URL
 	cmdClusterID = "test-cluster-id"
 	checkAddKeypair(CreateKeypairCommand, []string{})
