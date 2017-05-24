@@ -162,7 +162,7 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		fmt.Println(color.GreenString("kubectl is set up. Check it using this command:\n"))
 		fmt.Println(color.YellowString("    kubectl cluster-info\n"))
 		fmt.Println(color.GreenString("Whenever you want to switch to using this context:\n"))
-		fmt.Println(color.YellowString("    kubectl config set-context giantswarm-%s\n", cmdClusterID))
+		fmt.Println(color.YellowString("    kubectl config use-context giantswarm-%s\n", cmdClusterID))
 
 	} else {
 		fmt.Println(color.RedString("Unhandled response code: %v", apiResponse.StatusCode))
