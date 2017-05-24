@@ -56,7 +56,7 @@ kubectl is set up. Check it using this command:
 
 Whenever you want to switch to using this context:
 
-    kubectl config set-context acme-xl8t1
+    kubectl config use-context acme-xl8t1
 ```
 
 ## Install
