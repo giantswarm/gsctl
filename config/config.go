@@ -281,5 +281,27 @@ func migrateConfigDir() error {
 	// ensure ~/.config exists
 	os.MkdirAll(path.Dir(DefaultConfigDirPath), 0700)
 
-	return os.Rename(LegacyConfigDirPath, DefaultConfigDirPath)
+	err = os.Rename(LegacyConfigDirPath, DefaultConfigDirPath)
+	if err != nil {
+		return err
+	}
+
+	// adapt certificate paths in kubeconfig
+	if len(KubeConfigPaths) > 0 {
+		// we only adapt the first file found (on purpose)
+		if stat, err := os.Stat(KubeConfigPaths[0]); err == nil {
+			oldConfig, configErr := ioutil.ReadFile(KubeConfigPaths[0])
+			if configErr != nil {
+				return configErr
+			}
+			newConfig := strings.Replace(string(oldConfig), LegacyConfigDirPath, DefaultConfigDirPath, -1)
+			// write back
+			writeErr := ioutil.WriteFile(KubeConfigPaths[0], []byte(newConfig), stat.Mode())
+			if writeErr != nil {
+				return fmt.Errorf("Could not overwrite kubectl config file. %s", writeErr.Error())
+			}
+		}
+	}
+
+	return nil
 }
