@@ -299,7 +299,7 @@ func migrateConfigDir() error {
 			// write back
 			writeErr := ioutil.WriteFile(theKubeConfigPath, []byte(newConfig), stat.Mode())
 			if writeErr != nil {
-				return fmt.Errorf("Could not overwrite kubectl config file. %s", writeErr.Error())
+				return errors.New("could not overwrite kubectl config file")
 			}
 		}
 	}
