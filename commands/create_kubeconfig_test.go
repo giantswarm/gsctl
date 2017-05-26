@@ -78,4 +78,26 @@ func Test_CreateKubeconfig(t *testing.T) {
 	cmdClusterID = "test-cluster-id"
 	checkCreateKubeconfig(CreateKeypairCommand, []string{})
 	createKubeconfig(CreateKeypairCommand, []string{})
+
+	// check kubeconfig content
+	content, err := ioutil.ReadFile(kubeConfigPath)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// for reference in case of error
+	t.Log(string(content))
+
+	if !strings.Contains(string(content), "current-context: giantswarm-"+cmdClusterID) {
+		t.Error("Kubeconfig doesn't contain the expected current-context value")
+	}
+	if !strings.Contains(string(content), "client-certificate: "+configDir) {
+		t.Error("Kubeconfig doesn't contain the expected client-certificate value")
+	}
+	if !strings.Contains(string(content), "client-key: "+configDir) {
+		t.Error("Kubeconfig doesn't contain the expected client-key value")
+	}
+	if !strings.Contains(string(content), "certificate-authority: "+configDir) {
+		t.Error("Kubeconfig doesn't contain the expected certificate-authority value")
+	}
 }
