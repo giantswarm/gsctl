@@ -5,10 +5,47 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path"
+	"strings"
 	"testing"
 
 	"github.com/giantswarm/gsctl/config"
 )
+
+// create a temporary directory
+func tempDir() string {
+	dir, _ := ioutil.TempDir("", config.ProgramName)
+	return dir
+}
+
+// create a temporary kubectl config file
+func tempKubeconfig() (string, error) {
+
+	// override standard paths for testing
+	dir := tempDir()
+	config.HomeDirPath = dir
+	config.DefaultConfigDirPath = path.Join(config.HomeDirPath, ".config", config.ProgramName)
+	config.LegacyConfigDirPath = path.Join(config.HomeDirPath, "."+config.ProgramName)
+
+	// add a test kubectl config file
+	kubeConfigPath := path.Join(dir, "tempkubeconfig")
+	config.KubeConfigPaths = []string{kubeConfigPath}
+	kubeConfig := []byte(`apiVersion: v1
+kind: Config
+preferences: {}
+current-context: g8s-system
+clusters:
+users:
+contexts:
+`)
+	fileErr := ioutil.WriteFile(kubeConfigPath, kubeConfig, 0700)
+	if fileErr != nil {
+		return "", fileErr
+	}
+
+	return kubeConfigPath, nil
+}
 
 func Test_CreateKubeconfig(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -28,10 +65,39 @@ func Test_CreateKubeconfig(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
+	// temporary kubeconfig file
+	kubeConfigPath, err := tempKubeconfig()
+	if err != nil {
+		t.Error(err)
+	}
+	os.Setenv("KUBECONFIG", kubeConfigPath)
+
 	configDir, _ := ioutil.TempDir("", config.ProgramName)
 	config.Initialize(configDir)
 	cmdAPIEndpoint = mockServer.URL
 	cmdClusterID = "test-cluster-id"
 	checkCreateKubeconfig(CreateKeypairCommand, []string{})
 	createKubeconfig(CreateKeypairCommand, []string{})
+
+	// check kubeconfig content
+	content, err := ioutil.ReadFile(kubeConfigPath)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// for reference in case of error
+	t.Log(string(content))
+
+	if !strings.Contains(string(content), "current-context: giantswarm-"+cmdClusterID) {
+		t.Error("Kubeconfig doesn't contain the expected current-context value")
+	}
+	if !strings.Contains(string(content), "client-certificate: "+configDir) {
+		t.Error("Kubeconfig doesn't contain the expected client-certificate value")
+	}
+	if !strings.Contains(string(content), "client-key: "+configDir) {
+		t.Error("Kubeconfig doesn't contain the expected client-key value")
+	}
+	if !strings.Contains(string(content), "certificate-authority: "+configDir) {
+		t.Error("Kubeconfig doesn't contain the expected certificate-authority value")
+	}
 }
