@@ -29,8 +29,8 @@ func tempKubeconfig() (string, error) {
 	config.LegacyConfigDirPath = path.Join(config.HomeDirPath, "."+config.ProgramName)
 
 	// add a test kubectl config file
-	kubeconfigpath := path.Join(dir, "tempkubeconfig")
-	config.KubeConfigPaths = []string{kubeconfigpath}
+	kubeConfigPath := path.Join(dir, "tempkubeconfig")
+	config.KubeConfigPaths = []string{kubeConfigPath}
 	kubeConfig := []byte(`apiVersion: v1
 kind: Config
 preferences: {}
@@ -39,12 +39,12 @@ clusters:
 users:
 contexts:
 `)
-	fileErr := ioutil.WriteFile(kubeconfigpath, kubeConfig, 0700)
+	fileErr := ioutil.WriteFile(kubeConfigPath, kubeConfig, 0700)
 	if fileErr != nil {
 		return "", fileErr
 	}
 
-	return kubeconfigpath, nil
+	return kubeConfigPath, nil
 }
 
 func Test_CreateKubeconfig(t *testing.T) {
