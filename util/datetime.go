@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	shortFormat string = "2006 Jan 02, 15:04"
+	shortFormat string = "2006 Jan 02, 15:04 UTC"
 )
 
 // ParseDate parses our common date/time strings
