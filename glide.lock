@@ -1,10 +1,10 @@
 hash: f427d523b388a1d1e417a9ba5069e99c99467b1d857e1a5711b2103cd18e9e2e
-updated: 2017-05-10T20:41:56.336887731+02:00
+updated: 2017-06-06T15:20:37.516963007+02:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
 - name: github.com/fatih/color
-  version: 9131ab34cf20d2f6d83fdc67168a5430d1c7dc23
+  version: 570b54cabe6b8eb0bc2dfce68d964677d63b5260
 - name: github.com/fsnotify/fsnotify
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
 - name: github.com/giantswarm/api-schema
@@ -12,9 +12,9 @@ imports:
 - name: github.com/giantswarm/columnize
   version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
 - name: github.com/giantswarm/gsclientgen
-  version: c729d80e4e8141415a1d8996936fbfb4c57584c9
+  version: a08dea815369504f99906d3b81b7fb4f5067afbf
 - name: github.com/go-resty/resty
-  version: 2b803d0e2dba5406a9ab6683deb9504a72338db1
+  version: 7a8134d8718193eb857994adee49d73a302e7718
 - name: github.com/hashicorp/hcl
   version: 392dba7d905ed5d04a5794ba89f558b27e2ba1ca
   subpackages:
@@ -41,11 +41,11 @@ imports:
   version: 57fdcb988a5c543893cc61bce354a6e24ab70022
   repo: https://github.com/mattn/go-isatty
 - name: github.com/mitchellh/mapstructure
-  version: cc8532a8e9a55ea36402aa21efdf403a60d34096
+  version: d0303fe809921458f417bcf828397a65db30a7e4
 - name: github.com/pelletier/go-buffruneio
   version: c37440a7cf42ac63b919c752ca73a85067e05992
 - name: github.com/pelletier/go-toml
-  version: 23f644976aa7c724adf4aec911dadf4af17840ab
+  version: fe7536c3dee2596cdd23ee9976a17c22bdaae286
 - name: github.com/spf13/afero
   version: 9be650865eab0c12963d8753212f4f9c66cdcf12
   subpackages:
@@ -53,23 +53,23 @@ imports:
 - name: github.com/spf13/cast
   version: acbeb36b902d72a7a4c18e8f3241075e7ab763e4
 - name: github.com/spf13/cobra
-  version: 1362f95a8d6fe330d00a64380d6e0b65f4992c72
+  version: 84f471618b363c4e298af84c2b53aa4f687c5f70
 - name: github.com/spf13/jwalterweatherman
-  version: 8f07c835e5cc1450c082fe3a439cf87b0cbb2d99
+  version: 0efa5202c04663c757d84f90f5219c1250baf94f
 - name: github.com/spf13/pflag
   version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
 - name: github.com/spf13/viper
   version: 0967fc9aceab2ce9da34061253ac10fb99bba5b2
 - name: go4.org
-  version: 16ace784e4b16df1d51c3435223b1d602cd43bfa
+  version: 034d17a462f7b2dcd1a4a73553ec5357ff6e6c6e
   subpackages:
   - reflectutil
 - name: golang.org/x/crypto
-  version: 122d919ec1efcfb58483215da23f815853e24b81
+  version: e1a4589e7d3ea14a3352255d04b6f1a418845e5e
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: c9b681d35165f1995d6f3034e61f8761d4b90c99
+  version: 59a0b19b5533c7977ddeb86b017bf507ed407b12
   subpackages:
   - publicsuffix
 - name: golang.org/x/sys
@@ -78,7 +78,7 @@ imports:
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: 470f45bf29f4147d6fbd7dfd0a02a848e49f5bf4
+  version: ccbd3f7822129ff389f8ca4858a9b9d4d910531c
   subpackages:
   - transform
   - unicode/norm

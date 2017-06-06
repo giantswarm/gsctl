@@ -430,37 +430,28 @@ func stripFlags(args []string, c *Command) []string {
 	c.mergePersistentFlags()
 
 	commands := []string{}
-	inQuote := false
 	flags := c.Flags()
 
 Loop:
 	for len(args) > 0 {
 		s := args[0]
 		args = args[1:]
-		if !inQuote {
-			switch {
-			case strings.HasPrefix(s, "\"") || strings.Contains(s, "=\""):
-				inQuote = true
-			case strings.HasPrefix(s, "--") && !strings.Contains(s, "=") && !hasNoOptDefVal(s[2:], flags):
-				// If '--flag arg' then
-				// delete arg from args.
-				fallthrough // (do the same as below)
-			case strings.HasPrefix(s, "-") && !strings.Contains(s, "=") && len(s) == 2 && !shortHasNoOptDefVal(s[1:], flags):
-				// If '-f arg' then
-				// delete 'arg' from args or break the loop if len(args) <= 1.
-				if len(args) <= 1 {
-					break Loop
-				} else {
-					args = args[1:]
-					continue
-				}
-			case s != "" && !strings.HasPrefix(s, "-"):
-				commands = append(commands, s)
+		switch {
+		case strings.HasPrefix(s, "--") && !strings.Contains(s, "=") && !hasNoOptDefVal(s[2:], flags):
+			// If '--flag arg' then
+			// delete arg from args.
+			fallthrough // (do the same as below)
+		case strings.HasPrefix(s, "-") && !strings.Contains(s, "=") && len(s) == 2 && !shortHasNoOptDefVal(s[1:], flags):
+			// If '-f arg' then
+			// delete 'arg' from args or break the loop if len(args) <= 1.
+			if len(args) <= 1 {
+				break Loop
+			} else {
+				args = args[1:]
+				continue
 			}
-		}
-
-		if strings.HasSuffix(s, "\"") && !strings.HasSuffix(s, "\\\"") {
-			inQuote = false
+		case s != "" && !strings.HasPrefix(s, "-"):
+			commands = append(commands, s)
 		}
 	}
 
@@ -687,7 +678,7 @@ func (c *Command) preRun() {
 	}
 }
 
-// Execute Call execute to use the args (os.Args[1:] by default)
+// Execute uses the args (os.Args[1:] by default)
 // and run through the command tree finding appropriate matches
 // for commands and then corresponding flags.
 func (c *Command) Execute() error {
@@ -709,7 +700,7 @@ func (c *Command) ExecuteC() (cmd *Command, err error) {
 
 	// initialize help as the last point possible to allow for user
 	// overriding
-	c.initHelpCmd()
+	c.InitDefaultHelpCmd()
 
 	var args []string
 
@@ -752,9 +743,8 @@ func (c *Command) ExecuteC() (cmd *Command, err error) {
 		if !cmd.SilenceUsage && !c.SilenceUsage {
 			c.Println(cmd.UsageString())
 		}
-		return cmd, err
 	}
-	return cmd, nil
+	return cmd, err
 }
 
 // InitDefaultHelpFlag adds default help flag to c.
@@ -773,31 +763,32 @@ func (c *Command) InitDefaultHelpFlag() {
 	}
 }
 
-func (c *Command) initHelpCmd() {
-	if c.helpCommand == nil {
-		if !c.HasSubCommands() {
-			return
-		}
+// InitDefaultHelpCmd adds default help command to c.
+// It is called automatically by executing the c or by calling help and usage.
+// If c already has help command or c has no subcommands, it will do nothing.
+func (c *Command) InitDefaultHelpCmd() {
+	if c.helpCommand != nil || !c.HasSubCommands() {
+		return
+	}
 
-		c.helpCommand = &Command{
-			Use:   "help [command]",
-			Short: "Help about any command",
-			Long: `Help provides help for any command in the application.
+	c.helpCommand = &Command{
+		Use:   "help [command]",
+		Short: "Help about any command",
+		Long: `Help provides help for any command in the application.
     Simply type ` + c.Name() + ` help [path to command] for full details.`,
-			PersistentPreRun:  func(cmd *Command, args []string) {},
-			PersistentPostRun: func(cmd *Command, args []string) {},
+		PersistentPreRun:  func(cmd *Command, args []string) {},
+		PersistentPostRun: func(cmd *Command, args []string) {},
 
-			Run: func(c *Command, args []string) {
-				cmd, _, e := c.Root().Find(args)
-				if cmd == nil || e != nil {
-					c.Printf("Unknown help topic %#q\n", args)
-					c.Root().Usage()
-				} else {
-					cmd.InitDefaultHelpFlag() // make possible 'help' flag to be shown
-					cmd.Help()
-				}
-			},
-		}
+		Run: func(c *Command, args []string) {
+			cmd, _, e := c.Root().Find(args)
+			if cmd == nil || e != nil {
+				c.Printf("Unknown help topic %#q\n", args)
+				c.Root().Usage()
+			} else {
+				cmd.InitDefaultHelpFlag() // make possible 'help' flag to be shown
+				cmd.Help()
+			}
+		},
 	}
 	c.RemoveCommand(c.helpCommand)
 	c.AddCommand(c.helpCommand)
@@ -1275,8 +1266,8 @@ func (c *Command) Parent() *Command {
 // mergePersistentFlags merges c.PersistentFlags() to c.Flags()
 // and adds missing persistent flags of all parents.
 func (c *Command) mergePersistentFlags() {
-	c.Flags().AddFlagSet(c.PersistentFlags())
 	c.updateParentsPflags()
+	c.Flags().AddFlagSet(c.PersistentFlags())
 	c.Flags().AddFlagSet(c.parentsPflags)
 }
 

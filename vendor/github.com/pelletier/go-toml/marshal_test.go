@@ -177,11 +177,30 @@ func TestDocUnmarshal(t *testing.T) {
 	}
 }
 
+func ExampleUnmarshal() {
+	type Postgres struct {
+		User     string
+		Password string
+	}
+	type Config struct {
+		Postgres Postgres
+	}
+
+	doc := []byte(`
+	[postgres]
+	user = "pelletier"
+	password = "mypassword"`)
+
+	config := Config{}
+	Unmarshal(doc, &config)
+	fmt.Println("user=", config.Postgres.User)
+}
+
 func TestDocPartialUnmarshal(t *testing.T) {
 	result := testDocSubs{}
 
 	tree, _ := LoadFile("marshal_test.toml")
-	subTree := tree.Get("subdoc").(*TomlTree)
+	subTree := tree.Get("subdoc").(*Tree)
 	err := subTree.Unmarshal(&result)
 	expected := docData.Subdocs
 	if err != nil {

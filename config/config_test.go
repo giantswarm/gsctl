@@ -172,13 +172,9 @@ func Test_GetDefaultCluster(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		if r.URL.String() == "/v1/user/me/memberships" {
+		if r.URL.String() == "/v4/organizations/" {
 			// return organizations for the current user
-			w.Write([]byte(`{
-          "status_code": 10000,
-          "status_text": "success",
-          "data": ["org1"]
-        }`))
+			w.Write([]byte(`[{"id": "org1"}]`))
 		} else {
 			// return clusters for the organization
 			w.Write([]byte(`{

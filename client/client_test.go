@@ -34,13 +34,15 @@ func TestTimeout(t *testing.T) {
 	}
 }
 
+// TestUserAgent tests whether request have the proper User-Agent header
+// and if ParseGenericResponse works as expected
 func TestUserAgent(t *testing.T) {
 	// Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Return valid JSON containing user agent string received
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"user-agent": "` + r.Header.Get("User-Agent") + `"}`))
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"code": "BAD_REQUEST", "message": "user-agent: ` + r.Header.Get("User-Agent") + `"}`))
 	}))
 	defer ts.Close()
 
@@ -49,12 +51,16 @@ func TestUserAgent(t *testing.T) {
 		UserAgent: "my own user agent/1.0",
 	}
 	apiClient := NewClient(clientConfig)
-	_, apiResponse, err := apiClient.GetUserOrganizations("foo", "foo", "foo", "foo")
+	// We use GetUserOrganizations just to issue a request. We could use any other
+	// API call, it wouldn't matter.
+	_, apiResponse, _ := apiClient.GetUserOrganizations("foo", "foo", "foo", "foo")
+
+	gr, err := ParseGenericResponse(apiResponse.Payload)
 	if err != nil {
 		t.Error(err)
 	}
-	responseBody := string(apiResponse.Payload)
-	if !strings.Contains(responseBody, clientConfig.UserAgent) {
+
+	if !strings.Contains(gr.Message, clientConfig.UserAgent) {
 		t.Error("UserAgent string could not be found")
 	}
 }

@@ -81,26 +81,6 @@ paths:
           description: Unknown error
           schema:
             $ref: '#/definitions/GenericResponseModel'
-  /v1/user/me/memberships:
-    get:
-      operationId: getUserOrganizations
-      summary: Get organizations for user
-      description: |
-        Returns a list of organizations of which the current user is a member
-      parameters:
-        - $ref: '#/parameters/RequiredAuthorizationHeader'
-        - $ref: '#/parameters/XRequestIDHeader'
-        - $ref: '#/parameters/XGiantSwarmActivityHeader'
-        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
-      responses:
-        "200":
-          description: Success
-          schema:
-            $ref: '#/definitions/UserOrganizationsResponseModel'
-        default:
-          description: Unknown error
-          schema:
-            $ref: '#/definitions/GenericResponseModel'
   /v3/orgs/{organization_name}/clusters/:
     get:
       operationId: getOrganizationClusters
@@ -119,6 +99,38 @@ paths:
           description: Success
           schema:
             $ref: '#/definitions/OrganizationClustersResponseModel'
+        default:
+          description: Unknown error
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+
+  /v4/organizations/:
+    get:
+      operationId: getUserOrganizations
+      summary: Get organizations for user
+      description: |
+        This operation allows to fetch a list of organizations the user is a
+        member of. In the case of an admin user, the result includes all
+        existing organizations.
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+      responses:
+        "200":
+          description: Success
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/V4OrganizationListItem"
+          examples:
+            application/json:
+              [
+                {"id": "acme"},
+                {"id": "giantswarm"},
+                {"id": "testorg"}
+              ]
         default:
           description: Unknown error
           schema:
@@ -523,6 +535,13 @@ definitions:
       labels:
         type: object
         additionalProperties: true
+
+  V4OrganizationListItem:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique name/identifier of the organization
 
   EmptyObjectModel:
     type: object

@@ -11,11 +11,11 @@ func Test_ListOrganizations(t *testing.T) {
 	orgsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{
-        "status_code": 10000,
-        "status_text": "success",
-        "data": ["acme", "foo", "giantswarm"]
-      }`))
+		w.Write([]byte(`[
+        {"id": "acme"},
+				{"id": "foo"},
+				{"id": "giantswarm"}
+      ]`))
 	}))
 	defer orgsMockServer.Close()
 
@@ -33,11 +33,7 @@ func Test_ListOrganizationsEmpty(t *testing.T) {
 	orgsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{
-        "status_code": 10000,
-        "status_text": "success",
-        "data": []
-      }`))
+		w.Write([]byte(`[]`))
 	}))
 	defer orgsMockServer.Close()
 

@@ -2,12 +2,12 @@ package query
 
 import (
 	"fmt"
+	"github.com/pelletier/go-toml"
 	"io/ioutil"
 	"sort"
 	"strings"
 	"testing"
 	"time"
-	"github.com/pelletier/go-toml"
 )
 
 type queryTestNode struct {
@@ -36,7 +36,7 @@ func valueString(root interface{}) string {
 		}
 		sort.Strings(items)
 		result = "[" + strings.Join(items, ", ") + "]"
-	case *toml.TomlTree:
+	case *toml.Tree:
 		// workaround for unreliable map key ordering
 		items := []string{}
 		for _, k := range node.Keys() {

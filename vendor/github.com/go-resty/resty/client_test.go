@@ -138,20 +138,14 @@ func TestClientProxy(t *testing.T) {
 	resp, err := c.R().Get(ts.URL)
 	assertEqual(t, true, resp != nil)
 	assertEqual(t, true, err != nil)
-}
 
-func TestClientProxyOverrideError(t *testing.T) {
-	ts := createGetServer(t)
-	defer ts.Close()
-
-	c := dc()
-	c.SetTimeout(1 * time.Second)
+	// Error
 	c.SetProxy("//not.a.user@%66%6f%6f.com:8888")
 
-	resp, err := c.R().
+	resp, err = c.R().
 		Get(ts.URL)
-	assertEqual(t, false, resp == nil)
 	assertEqual(t, true, err == nil)
+	assertEqual(t, false, resp == nil)
 }
 
 func TestSetCertificates(t *testing.T) {
@@ -329,4 +323,16 @@ func TestClientOptions(t *testing.T) {
 	assertEqual(t, DefaultClient.closeConnection, true)
 
 	SetLogger(ioutil.Discard)
+}
+
+func TestClientPreRequestHook(t *testing.T) {
+	SetPreRequestHook(func(c *Client, r *Request) error {
+		c.Log.Println("I'm in Pre-Request Hook")
+		return nil
+	})
+
+	SetPreRequestHook(func(c *Client, r *Request) error {
+		c.Log.Println("I'm Overwriting existing Pre-Request Hook")
+		return nil
+	})
 }
