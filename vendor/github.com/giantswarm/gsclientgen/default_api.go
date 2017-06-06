@@ -477,19 +477,19 @@ func (a DefaultApi) GetOrganizationClusters(authorization string, organizationNa
 
 /**
  * Get organizations for user
- * Returns a list of organizations of which the current user is a member
+ * This operation allows to fetch a list of organizations the user is a member of. In the case of an admin user, the result includes all existing organizations.
  *
  * @param authorization Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.
  * @param xRequestID A randomly generated key that can be used to track a request throughout services of Giant Swarm
  * @param xGiantSwarmActivity Name of an activity to track, like \&quot;list-clusters\&quot;
  * @param xGiantSwarmCmdLine If activity has been issued by a CLI, this header can contain the command line
- * @return *UserOrganizationsResponseModel
+ * @return []V4OrganizationListItem
  */
-func (a DefaultApi) GetUserOrganizations(authorization string, xRequestID string, xGiantSwarmActivity string, xGiantSwarmCmdLine string) (*UserOrganizationsResponseModel, *APIResponse, error) {
+func (a DefaultApi) GetUserOrganizations(authorization string, xRequestID string, xGiantSwarmActivity string, xGiantSwarmCmdLine string) ([]V4OrganizationListItem, *APIResponse, error) {
 
 	var localVarHttpMethod = strings.ToUpper("Get")
 	// create path and map variables
-	localVarPath := a.Configuration.BasePath + "/v1/user/me/memberships"
+	localVarPath := a.Configuration.BasePath + "/v4/organizations/"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
@@ -528,7 +528,7 @@ func (a DefaultApi) GetUserOrganizations(authorization string, xRequestID string
 	localVarHeaderParams["X-Giant-Swarm-Activity"] = a.Configuration.APIClient.ParameterToString(xGiantSwarmActivity, "")
 	// header params "X-Giant-Swarm-CmdLine"
 	localVarHeaderParams["X-Giant-Swarm-CmdLine"] = a.Configuration.APIClient.ParameterToString(xGiantSwarmCmdLine, "")
-	var successPayload = new(UserOrganizationsResponseModel)
+	var successPayload = new([]V4OrganizationListItem)
 	localVarHttpResponse, err := a.Configuration.APIClient.CallAPI(localVarPath, localVarHttpMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFileName, localVarFileBytes)
 
 	var localVarURL, _ = url.Parse(localVarPath)
@@ -540,10 +540,10 @@ func (a DefaultApi) GetUserOrganizations(authorization string, xRequestID string
 	}
 
 	if err != nil {
-		return successPayload, localVarAPIResponse, err
+		return *successPayload, localVarAPIResponse, err
 	}
 	err = json.Unmarshal(localVarHttpResponse.Body(), &successPayload)
-	return successPayload, localVarAPIResponse, err
+	return *successPayload, localVarAPIResponse, err
 }
 
 /**

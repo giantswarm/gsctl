@@ -10,7 +10,7 @@ Method | HTTP request | Description
 [**GetCluster**](DefaultApi.md#GetCluster) | **Get** /v4/clusters/{cluster_id}/ | Get cluster details
 [**GetKeyPairs**](DefaultApi.md#GetKeyPairs) | **Get** /v4/clusters/{cluster_id}/key-pairs/ | Get key-pairs for cluster
 [**GetOrganizationClusters**](DefaultApi.md#GetOrganizationClusters) | **Get** /v3/orgs/{organization_name}/clusters/ | Get clusters for organization
-[**GetUserOrganizations**](DefaultApi.md#GetUserOrganizations) | **Get** /v1/user/me/memberships | Get organizations for user
+[**GetUserOrganizations**](DefaultApi.md#GetUserOrganizations) | **Get** /v4/organizations/ | Get organizations for user
 [**UserLogin**](DefaultApi.md#UserLogin) | **Post** /v1/user/{email}/login | Log in as a user
 [**UserLogout**](DefaultApi.md#UserLogout) | **Post** /v1/token/logout | Expire the currently used auth token
 
@@ -207,11 +207,11 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **GetUserOrganizations**
-> UserOrganizationsResponseModel GetUserOrganizations($authorization, $xRequestID, $xGiantSwarmActivity, $xGiantSwarmCmdLine)
+> []V4OrganizationListItem GetUserOrganizations($authorization, $xRequestID, $xGiantSwarmActivity, $xGiantSwarmCmdLine)
 
 Get organizations for user
 
-Returns a list of organizations of which the current user is a member 
+This operation allows to fetch a list of organizations the user is a member of. In the case of an admin user, the result includes all existing organizations. 
 
 
 ### Parameters
@@ -225,7 +225,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**UserOrganizationsResponseModel**](UserOrganizationsResponseModel.md)
+[**[]V4OrganizationListItem**](V4OrganizationListItem.md)
 
 ### Authorization
 

@@ -65,8 +65,7 @@ type fakeTLSConn struct {
 
 func (c *fakeTLSConn) ConnectionState() tls.ConnectionState {
 	return tls.ConnectionState{
-		Version:     tls.VersionTLS12,
-		CipherSuite: cipher_TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		Version: tls.VersionTLS12,
 	}
 }
 
@@ -2407,7 +2406,7 @@ func TestTransportReturnsDataPaddingFlowControl(t *testing.T) {
 			EndStream:     false,
 			BlockFragment: buf.Bytes(),
 		})
-		pad := make([]byte, 5)
+		pad := []byte("12345")
 		ct.fr.WriteDataPadded(hf.StreamID, false, make([]byte, 5000), pad) // without ending stream
 
 		f, err := ct.readNonSettingsFrame()

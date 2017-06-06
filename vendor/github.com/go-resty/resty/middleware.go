@@ -96,7 +96,7 @@ func parseRequestBody(c *Client, r *Request) (err error) {
 	if isPayloadSupported(r.Method) {
 
 		// Handling Multipart
-		if r.isMultiPart && !(r.Method == MethodPatch) {
+		if r.isMultiPart && !(r.Method == PATCH) {
 			if err = handleMultipart(c, r); err != nil {
 				return
 			}
@@ -125,7 +125,7 @@ func parseRequestBody(c *Client, r *Request) (err error) {
 
 CL:
 	// by default resty won't set content length, you can if you want to :)
-	if (c.setContentLength || r.setContentLength) && r.bodyBuf != nil {
+	if c.setContentLength || r.setContentLength {
 		r.Header.Set(hdrContentLengthKey, fmt.Sprintf("%d", r.bodyBuf.Len()))
 	}
 
@@ -159,9 +159,6 @@ func createHTTPRequest(c *Client, r *Request) (err error) {
 		r.RawRequest.URL.Scheme = c.scheme
 		r.RawRequest.URL.Host = r.URL
 	}
-
-	// Use context if it was specified
-	r.addContextIfAvailable()
 
 	return
 }
@@ -274,9 +271,7 @@ func handleMultipart(c *Client, r *Request) (err error) {
 
 	for k, v := range c.FormData {
 		for _, iv := range v {
-			if err = w.WriteField(k, iv); err != nil {
-				return err
-			}
+			w.WriteField(k, iv)
 		}
 	}
 
@@ -288,9 +283,7 @@ func handleMultipart(c *Client, r *Request) (err error) {
 					return
 				}
 			} else { // form value
-				if err = w.WriteField(k, iv); err != nil {
-					return err
-				}
+				w.WriteField(k, iv)
 			}
 		}
 	}
@@ -347,11 +340,10 @@ func handleRequestBody(c *Client, r *Request) (err error) {
 	var bodyBytes []byte
 	contentType := r.Header.Get(hdrContentTypeKey)
 	kind := kindOf(r.Body)
-	r.bodyBuf = nil
 
 	if reader, ok := r.Body.(io.Reader); ok {
 		r.bodyBuf = &bytes.Buffer{}
-		_, err = r.bodyBuf.ReadFrom(reader)
+		r.bodyBuf.ReadFrom(reader)
 	} else if b, ok := r.Body.([]byte); ok {
 		bodyBytes = b
 	} else if s, ok := r.Body.(string); ok {
@@ -398,14 +390,10 @@ func saveResponseIntoFile(c *Client, res *Response) error {
 		if err != nil {
 			return err
 		}
-		defer func() {
-			_ = outFile.Close()
-		}()
+		defer outFile.Close()
 
 		// io.Copy reads maximum 32kb size, it is perfect for large file download too
-		defer func() {
-			_ = res.RawResponse.Body.Close()
-		}()
+		defer res.RawResponse.Body.Close()
 		written, err := io.Copy(outFile, res.RawResponse.Body)
 		if err != nil {
 			return err
