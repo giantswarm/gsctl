@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/user"
 	"path"
@@ -236,15 +237,20 @@ func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint st
 	apiClient := client.NewClient(clientConfig)
 
 	authHeader := "giantswarm " + Config.Token
-	orgsResponse, _, err := apiClient.GetUserOrganizations(authHeader, requestIDHeader, activityName, cmdLine)
+	organizations, apiResponse, err := apiClient.GetUserOrganizations(authHeader, requestIDHeader, activityName, cmdLine)
 	if err != nil {
-		return "", err
+		gr, grErr := client.ParseGenericResponse(apiResponse.Payload)
+		if grErr != nil {
+			return "", grErr
+		}
+		return "", fmt.Errorf("%s (Code: %s)", gr.Code, gr.Message)
 	}
-	if orgsResponse.StatusCode == 10000 {
-		if len(orgsResponse.Data) > 0 {
+
+	if apiResponse.Response.StatusCode == http.StatusOK {
+		if len(organizations) > 0 {
 			clusterIDs := []string{}
-			for _, orgName := range orgsResponse.Data {
-				clustersResponse, _, err := apiClient.GetOrganizationClusters(authHeader, orgName, requestIDHeader, activityName, cmdLine)
+			for _, org := range organizations {
+				clustersResponse, _, err := apiClient.GetOrganizationClusters(authHeader, org.Id, requestIDHeader, activityName, cmdLine)
 				if err != nil {
 					return "", err
 				}
@@ -258,7 +264,7 @@ func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint st
 			return "", nil
 		}
 	}
-	return "", errors.New(orgsResponse.StatusText)
+	return "", fmt.Errorf("Unexpected error (HTTP: %s)", apiResponse.Response.Status)
 }
 
 // migrateConfigDir migrates a configuration directory from the old

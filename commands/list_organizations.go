@@ -3,12 +3,12 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
-	"sort"
 	"time"
 
+	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
-	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/spf13/cobra"
@@ -68,24 +68,27 @@ func orgsTable() (string, error) {
 		authHeader = "giantswarm " + cmdToken
 	}
 
-	orgsResponse, apiResponse, err := apiClient.GetUserOrganizations(authHeader, requestIDHeader, listOrganizationsActivityName, cmdLine)
+	organizations, apiResponse, err := apiClient.GetUserOrganizations(authHeader, requestIDHeader, listOrganizationsActivityName, cmdLine)
 	if err != nil {
 		return "", APIError{err.Error(), *apiResponse}
 	}
 
-	if orgsResponse.StatusCode == apischema.STATUS_CODE_DATA {
+	if apiResponse.Response.StatusCode == http.StatusOK {
 		var output string
-		var organizations = orgsResponse.Data
 		if len(organizations) == 0 {
 			output = color.YellowString("No organizations available\n")
 		} else {
-			sort.Strings(organizations)
+			// sort orgs by Id
+			slice.Sort(organizations[:], func(i, j int) bool {
+				return organizations[i].Id < organizations[j].Id
+			})
+
 			output = color.CyanString("ORGANIZATION") + "\n"
-			for _, orgName := range organizations {
-				output = output + orgName + "\n"
+			for _, org := range organizations {
+				output = output + org.Id + "\n"
 			}
 		}
 		return output, nil
 	}
-	return "", APIError{fmt.Sprintf("Unhandled response code: %v", orgsResponse.StatusCode), *apiResponse}
+	return "", APIError{fmt.Sprintf("Unhandled response code: %v", apiResponse.Response.StatusCode), *apiResponse}
 }
