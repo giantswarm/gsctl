@@ -1,6 +1,23 @@
 package commands
 
-import "testing"
+import (
+	"io/ioutil"
+	"testing"
+)
+
+// TestReadFiles tests the readDefinitionFromFile with all
+// YAML files in the testdata directory
+func TestReadFiles(t *testing.T) {
+	basePath := "commands/testdata"
+	files, _ := ioutil.ReadDir(basePath)
+	for _, f := range files {
+		path := basePath + "/" + f.Name()
+		_, err := readDefinitionFromFile(path)
+		if err != nil {
+			t.Error(err)
+		}
+	}
+}
 
 func Test_CreateFromYAML01(t *testing.T) {
 	definition := clusterDefinition{}
