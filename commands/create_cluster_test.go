@@ -98,9 +98,8 @@ func Test_CreateFromBadYAML01(t *testing.T) {
 	}
 }
 
-// Test_CreateFromCommandLine tests a cluster creation completely based on
-// command line arguments
-func Test_CreateFromCommandLine(t *testing.T) {
+// Test_CreateClusterSuccessfully tests cluster creations that should succeed
+func Test_CreateClusterSuccessfully(t *testing.T) {
 	// mock server always responding positively
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Log("mockServer request: ", r.Method, r.URL)
@@ -144,7 +143,6 @@ func Test_CreateFromCommandLine(t *testing.T) {
 
 	validateErr := errors.New("")
 	executeErr := errors.New("")
-	//result := addClusterResult{}
 
 	for i, testCase := range testCases {
 		validateErr = validatePreConditions(testCase)
@@ -156,5 +154,56 @@ func Test_CreateFromCommandLine(t *testing.T) {
 			t.Error(fmt.Sprintf("Execution error in testCase %v: %s", i, executeErr.Error()))
 		}
 	}
+}
 
+// Test_CreateClusterFailures tests for errors in cluster creations
+// (these attempts should never succeed)
+func Test_CreateClusterFailures(t *testing.T) {
+	// mock server always responding negatively
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Log("mockServer request: ", r.Method, r.URL)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"code": "BAD_REQUEST", "message": "Something was fishy"}`))
+	}))
+	defer mockServer.Close()
+
+	var testCases = []addClusterArguments{
+		// not authenticated
+		addClusterArguments{
+			apiEndpoint: mockServer.URL,
+			owner:       "owner",
+			token:       "",
+		},
+		// extensive arguments (only a server error should let this fail)
+		addClusterArguments{
+			apiEndpoint:         mockServer.URL,
+			clusterName:         "UnitTestCluster",
+			numWorkers:          4,
+			kubernetesVersion:   "myK8sVersion",
+			owner:               "acme",
+			token:               "fake token",
+			workerNumCPUs:       3,
+			workerMemorySizeGB:  4,
+			workerStorageSizeGB: 10,
+			verbose:             true,
+		},
+		// file not readable
+		addClusterArguments{
+			apiEndpoint:   mockServer.URL,
+			token:         "fake token",
+			inputYAMLFile: "does/not/exist.yaml",
+			dryRun:        true,
+		},
+	}
+
+	for i, testCase := range testCases {
+		validateErr := validatePreConditions(testCase)
+		if validateErr == nil {
+			_, execErr := addCluster(testCase)
+			if execErr == nil {
+				t.Error(fmt.Sprintf("Expected errors didn't occur in testCase %v", i))
+			}
+		}
+	}
 }
