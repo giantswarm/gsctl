@@ -1,7 +1,10 @@
 package commands
 
 import (
+	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -57,7 +60,7 @@ workers:
   - cpu:
       cores: 2
     memory:
-      size_gb: 5
+      size_gb: 5.5
     storage:
       size_gb: 13
     labels:
@@ -73,7 +76,7 @@ workers:
 	if myDef.Workers[1].CPU.Cores != 2 {
 		t.Error("Expected myDef.Workers[1].CPU.Cores to be 2, got: ", myDef.Workers[1].CPU.Cores)
 	}
-	if myDef.Workers[1].Memory.SizeGB != 5.0 {
+	if myDef.Workers[1].Memory.SizeGB != 5.5 {
 		t.Error("Expected myDef.Workers[1].Memory.SizeGB to be 5, got: ", myDef.Workers[1].Memory.SizeGB)
 	}
 	if myDef.Workers[1].Storage.SizeGB != 13.0 {
@@ -92,4 +95,25 @@ func Test_CreateFromBadYAML01(t *testing.T) {
 	if myDef.Owner != "" {
 		t.Error("Expected owner to be empty, got: ", myDef.Owner)
 	}
+}
+
+// Test_CreateFromCommandLine tests a cluster creation completely based on
+// command line arguments
+func Test_CreateFromCommandLine(t *testing.T) {
+	// mock server always responding positively
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("mockServer request: %s %s\n", r.Method, r.URL)
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Location", "/v4/clusters/f6e8r/")
+		w.WriteHeader(http.StatusCreated)
+		w.Write([]byte(`{"code": "RESOURCE_CREATED", "message": "Yeah!"}`))
+
+	}))
+	defer mockServer.Close()
+
+	args := []string{}
+	cmdOwner = "acme"
+	cmdAPIEndpoint = mockServer.URL
+	checkAddCluster(CreateClusterCommand, args)
+	addCluster(CreateClusterCommand, args)
 }
