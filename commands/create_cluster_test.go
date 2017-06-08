@@ -135,6 +135,7 @@ func Test_CreateFromCommandLine(t *testing.T) {
 	cmdWorkerNumCPUs = 4
 	cmdWorkerStorageSizeGB = 20
 	cmdWorkerMemorySizeGB = 6
+	cmdVerbose = true
 	checkAddCluster(CreateClusterCommand, args)
 	addCluster(CreateClusterCommand, args)
 
