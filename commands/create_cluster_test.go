@@ -11,7 +11,7 @@ import (
 // TestReadFiles tests the readDefinitionFromFile with all
 // YAML files in the testdata directory
 func TestReadFiles(t *testing.T) {
-	basePath := "commands/testdata"
+	basePath := "testdata"
 	files, _ := ioutil.ReadDir(basePath)
 	for _, f := range files {
 		path := basePath + "/" + f.Name()
@@ -111,9 +111,31 @@ func Test_CreateFromCommandLine(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
+	// first run, with minimal arguments
 	args := []string{}
-	cmdOwner = "acme"
 	cmdAPIEndpoint = mockServer.URL
+	cmdOwner = "acme"
 	checkAddCluster(CreateClusterCommand, args)
 	addCluster(CreateClusterCommand, args)
+
+	// second run, with additional arguments
+	cmdClusterName = "UnitTestCluster"
+	cmdNumWorkers = 4
+	cmdKubernetesVersion = "myK8sVersion"
+	cmdWorkerNumCPUs = 3
+	cmdWorkerStorageSizeGB = 10
+	cmdWorkerMemorySizeGB = 4
+	checkAddCluster(CreateClusterCommand, args)
+	addCluster(CreateClusterCommand, args)
+
+	// third run, combining YAML and flags
+	cmdInputYAMLFile = "testdata/minimal.yaml"
+	cmdNumWorkers = 2
+	cmdKubernetesVersion = "myK8sVersion"
+	cmdWorkerNumCPUs = 4
+	cmdWorkerStorageSizeGB = 20
+	cmdWorkerMemorySizeGB = 6
+	checkAddCluster(CreateClusterCommand, args)
+	addCluster(CreateClusterCommand, args)
+
 }
