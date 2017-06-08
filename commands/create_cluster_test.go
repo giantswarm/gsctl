@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -102,41 +103,58 @@ func Test_CreateFromBadYAML01(t *testing.T) {
 func Test_CreateFromCommandLine(t *testing.T) {
 	// mock server always responding positively
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("mockServer request: %s %s\n", r.Method, r.URL)
+		t.Log("mockServer request: ", r.Method, r.URL)
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Location", "/v4/clusters/f6e8r/")
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(`{"code": "RESOURCE_CREATED", "message": "Yeah!"}`))
-
 	}))
 	defer mockServer.Close()
 
-	// first run, with minimal arguments
-	args := []string{}
-	cmdAPIEndpoint = mockServer.URL
-	cmdOwner = "acme"
-	checkAddCluster(CreateClusterCommand, args)
-	addCluster(CreateClusterCommand, args)
+	var testCases = []addClusterArguments{
+		// minimal arguments
+		addClusterArguments{
+			apiEndpoint: mockServer.URL,
+			owner:       "acme",
+			token:       "fake token",
+		},
+		// extensive arguments
+		addClusterArguments{
+			apiEndpoint:         mockServer.URL,
+			clusterName:         "UnitTestCluster",
+			numWorkers:          4,
+			kubernetesVersion:   "myK8sVersion",
+			owner:               "acme",
+			token:               "fake token",
+			workerNumCPUs:       3,
+			workerMemorySizeGB:  4,
+			workerStorageSizeGB: 10,
+			verbose:             true,
+		},
+		addClusterArguments{
+			apiEndpoint:       mockServer.URL,
+			clusterName:       "Cluster Name from Args",
+			owner:             "acme",
+			token:             "fake token",
+			inputYAMLFile:     "testdata/minimal.yaml",
+			kubernetesVersion: "K8sVersionFromArgs",
+			verbose:           true,
+		},
+	}
 
-	// second run, with additional arguments
-	cmdClusterName = "UnitTestCluster"
-	cmdNumWorkers = 4
-	cmdKubernetesVersion = "myK8sVersion"
-	cmdWorkerNumCPUs = 3
-	cmdWorkerStorageSizeGB = 10
-	cmdWorkerMemorySizeGB = 4
-	checkAddCluster(CreateClusterCommand, args)
-	addCluster(CreateClusterCommand, args)
+	validateErr := errors.New("")
+	executeErr := errors.New("")
+	//result := addClusterResult{}
 
-	// third run, combining YAML and flags
-	cmdInputYAMLFile = "testdata/minimal.yaml"
-	cmdNumWorkers = 2
-	cmdKubernetesVersion = "myK8sVersion"
-	cmdWorkerNumCPUs = 4
-	cmdWorkerStorageSizeGB = 20
-	cmdWorkerMemorySizeGB = 6
-	cmdVerbose = true
-	checkAddCluster(CreateClusterCommand, args)
-	addCluster(CreateClusterCommand, args)
+	for i, testCase := range testCases {
+		validateErr = validatePreConditions(testCase)
+		if validateErr != nil {
+			t.Error(fmt.Sprintf("Validation error in testCase %v: %s", i, validateErr.Error()))
+		}
+		_, executeErr = addCluster(testCase)
+		if executeErr != nil {
+			t.Error(fmt.Sprintf("Execution error in testCase %v: %s", i, executeErr.Error()))
+		}
+	}
 
 }

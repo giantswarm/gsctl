@@ -44,6 +44,49 @@ type clusterDefinition struct {
 	Workers           []nodeDefinition `yaml:"workers,omitempty"`
 }
 
+// addClusterArguments contains all possible input parameter needed
+// (and optionally available) for creating a cluster
+type addClusterArguments struct {
+	apiEndpoint         string
+	clusterName         string
+	dryRun              bool
+	inputYAMLFile       string
+	kubernetesVersion   string
+	numWorkers          int
+	owner               string
+	token               string
+	workerNumCPUs       int
+	workerMemorySizeGB  float32
+	workerStorageSizeGB float32
+	verbose             bool
+}
+
+func defaultAddClusterArguments() addClusterArguments {
+	return addClusterArguments{
+		apiEndpoint:         cmdAPIEndpoint,
+		clusterName:         cmdClusterName,
+		dryRun:              cmdDryRun,
+		inputYAMLFile:       cmdInputYAMLFile,
+		kubernetesVersion:   cmdKubernetesVersion,
+		numWorkers:          cmdNumWorkers,
+		owner:               cmdOwner,
+		token:               cmdToken,
+		workerNumCPUs:       cmdWorkerNumCPUs,
+		workerMemorySizeGB:  cmdWorkerMemorySizeGB,
+		workerStorageSizeGB: cmdWorkerStorageSizeGB,
+		verbose:             cmdVerbose,
+	}
+}
+
+type addClusterResult struct {
+	// cluster ID
+	id string
+	// location to fetch details on new cluster from
+	location string
+	// cluster definition assembled
+	definition clusterDefinition
+}
+
 const (
 	// TODO: These settings should come from the API
 	minimumNumWorkers          int     = 1
@@ -52,6 +95,17 @@ const (
 	minimumWorkerStorageSizeGB float32 = 1
 
 	createClusterActivityName string = "create-cluster"
+
+	errNotLoggedIn                   = "user not logged in"
+	errConflictingFlags              = "conflicting flags used"
+	errNumWorkerNodesNotSpecified    = "number of workers not specified"
+	errNotEnougWorkerNodes           = "not enough workers specified"
+	errNotEnoughCPUCoresPerWorker    = "not enough CPU cores per worker specified"
+	errNotEnoughMemoryPerWorker      = "not enough memory per worker specified"
+	errNotEnoughStoragePerWorker     = "not enough storage per worker specified"
+	errNoOwner                       = "no cluster owner specified"
+	errYAMLFileNotReadable           = "could not read YAML file"
+	errCouldNotCreateJSONRequestBody = "could not create JSON request body"
 )
 
 var (
@@ -80,8 +134,8 @@ Examples:
 	gsctl create cluster --owner=myorg --name="My Cluster" --num-workers=5 --num-cpus=2
 
   gsctl create cluster --owner=myorg --num-workers=3 --dry-run --verbose`,
-		PreRunE: checkAddCluster,
-		Run:     addCluster,
+		PreRun: validationOutput,
+		Run:    executionOutput,
 	}
 
 	// path to the input file used optionally as cluster definition
@@ -118,52 +172,139 @@ func init() {
 	CreateCommand.AddCommand(CreateClusterCommand)
 }
 
-// checks preconditions
-func checkAddCluster(cmd *cobra.Command, args []string) error {
-	// logged in?
-	if config.Config.Token == "" && cmdToken == "" {
-		s := color.RedString("You are not logged in.\n\n")
-		return errors.New(s + "Use '" + config.ProgramName + " login' to login or '--auth-token' to pass a valid auth token.")
+// validationOutput runs our pre-checks.
+// If errors occur, error info is printed to STDOUT/STDERR
+// and the program will exit with non-zero exit codes.
+func validationOutput(cmd *cobra.Command, args []string) {
+	aca := defaultAddClusterArguments()
+
+	headline := ""
+	subtext := ""
+
+	err := validatePreConditions(aca)
+	if err != nil {
+		switch err.Error() {
+		case "":
+			return
+		case errNotLoggedIn:
+			headline = "You are not logged in."
+			subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
+		case errConflictingFlags:
+			headline = "Conflicting flags used"
+			subtext = "When specifying a definition via a YAML file, certain flags must not be used."
+		case errNumWorkerNodesNotSpecified:
+			headline = "Number of worker nodes required"
+			subtext = "When specifying worker node details, you must also specify the number of worker nodes."
+		case errNotEnougWorkerNodes:
+			headline = "Not enough worker nodes specified"
+			subtext = fmt.Sprintf("You'll need at least %v worker nodes for a useful cluster.", minimumNumWorkers)
+		case errNotEnoughCPUCoresPerWorker:
+			headline = "Not enough CPUs per worker specified"
+			subtext = fmt.Sprintf("You'll need at least %v CPU cores per worker node.", minimumWorkerNumCPUs)
+		case errNotEnoughMemoryPerWorker:
+			headline = "Not enough Memory per worker specified"
+			subtext = fmt.Sprintf("You'll need at least %.1f GB per worker node.", minimumWorkerMemorySizeGB)
+		case errNotEnoughStoragePerWorker:
+			headline = "Not enough Storage per worker specified"
+			subtext = fmt.Sprintf("You'll need at least %.1f GB per worker node.", minimumWorkerStorageSizeGB)
+		default:
+			headline = err.Error()
+		}
+
+		// print output
+		fmt.Println(color.RedString(headline))
+		if subtext != "" {
+			fmt.Println(subtext)
+		}
+		os.Exit(1)
 	}
+}
+
+// executionOutput calls addCluster() and creates user-friendly output of the result
+func executionOutput(cmd *cobra.Command, args []string) {
+	// use arguments as passed from command line via cobra
+	aca := defaultAddClusterArguments()
+
+	result, err := addCluster(aca)
+	if err != nil {
+		var headline = ""
+		var subtext = ""
+
+		switch err.Error() {
+		case errNoOwner:
+			headline = "No owner organization set"
+			subtext = "Please specify an owner organization for the cluster via the --owner flag."
+			if aca.inputYAMLFile != "" {
+				subtext = "Please specify an owner organization for the cluster in your definition file or set one via the --owner flag."
+			}
+		case errNotEnougWorkerNodes:
+			headline = "Not enough worker nodes specified"
+			subtext = fmt.Sprintf("If you specify workers in your definition file, you'll have to specify at least %d worker nodes for a useful cluster.", minimumNumWorkers)
+		case errYAMLFileNotReadable:
+			headline = "Could not read YAML file"
+			subtext = fmt.Sprintf("The file '%s' could not read. Please make sure that it is valid YAML.", aca.inputYAMLFile)
+		case errCouldNotCreateJSONRequestBody:
+			headline = "Could not create the JSON body for cluster creation API request"
+			subtext = "There seems to be a problem in parsing the cluster definition. Please contact Giant Swarm via Slack or via support@giantswarm.io with details on how you executes this command."
+		default:
+			headline = err.Error()
+		}
+
+		// output error information
+		fmt.Println(color.RedString(headline))
+		if subtext != "" {
+			fmt.Println(subtext)
+		}
+		os.Exit(1)
+	}
+
+	// success output
+	if result.definition.Name != "" {
+		fmt.Println(color.GreenString("New cluster '%s' (ID '%s') for organization '%s' is launching.", result.definition.Name, result.id, result.definition.Owner))
+	} else {
+		fmt.Println(color.GreenString("New cluster with ID '%s' for organization '%s' is launching.", result.id, result.definition.Owner))
+	}
+	fmt.Println("Add key-pair and settings to kubectl using")
+	fmt.Println("")
+	fmt.Printf("    %s\n\n", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s", result.id)))
+}
+
+// validatePreConditions checks preconditions and returns an error in case
+func validatePreConditions(args addClusterArguments) error {
+	// logged in?
+	if config.Config.Token == "" && args.token == "" {
+		return errors.New(errNotLoggedIn)
+	}
+
 	// false flag combination?
-	if cmdInputYAMLFile != "" {
-		if cmdNumWorkers != 0 || cmdWorkerNumCPUs != 0 || cmdWorkerMemorySizeGB != 0 || cmdWorkerStorageSizeGB != 0 {
-			s := color.RedString("Conflicting flags used\n\n")
-			return errors.New(s + "When specifying a definition via a YAML file, certain flags must not be used.\n")
+	if args.inputYAMLFile != "" {
+		if args.numWorkers != 0 || args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 {
+			return errors.New(errConflictingFlags)
 		}
 	} else {
-		if cmdNumWorkers == 0 && (cmdWorkerNumCPUs != 0 || cmdWorkerMemorySizeGB != 0 || cmdWorkerStorageSizeGB != 0) {
-			s := color.RedString("Number of worker nodes required\n\n")
-			return errors.New(s + "When requiring specific worker node specification details, you must also specify the number of worker nodes.\n")
+		if args.numWorkers == 0 && (args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0) {
+			return errors.New(errNumWorkerNodesNotSpecified)
 		}
 	}
 
 	// validate number of workers specified by flag
-	if cmdNumWorkers > 0 && cmdNumWorkers < minimumNumWorkers {
-		s := color.RedString("\nNot enough worker nodes specified\n")
-		s = s + "You'll need at least " + string(minimumNumWorkers) + " worker nodes for a useful cluster.\n\n"
-		return errors.New(s)
+	if args.numWorkers > 0 && args.numWorkers < minimumNumWorkers {
+		return errors.New(errNotEnougWorkerNodes)
 	}
 
 	// validate number of CPUs specified by flag
-	if cmdWorkerNumCPUs > 0 && cmdWorkerNumCPUs < minimumWorkerNumCPUs {
-		s := color.RedString("\nNot enough CPUs per worker specified\n")
-		s = s + "You'll need at least " + string(minimumWorkerNumCPUs) + " CPU cores per worker node.\n\n"
-		return errors.New(s)
+	if args.workerNumCPUs > 0 && args.workerNumCPUs < minimumWorkerNumCPUs {
+		return errors.New(errNotEnoughCPUCoresPerWorker)
 	}
 
 	// validate memory size specified by flag
-	if cmdWorkerMemorySizeGB > 0 && cmdWorkerMemorySizeGB < minimumWorkerMemorySizeGB {
-		s := color.RedString("\nNot enough Memory per worker specified\n")
-		s = s + fmt.Sprintf("You'll need at least %.1f GB per worker node.\n\n", minimumWorkerMemorySizeGB)
-		return errors.New(s)
+	if args.workerMemorySizeGB > 0 && args.workerMemorySizeGB < minimumWorkerMemorySizeGB {
+		return errors.New(errNotEnoughMemoryPerWorker)
 	}
 
 	// validate storage size specified by flag
-	if cmdWorkerStorageSizeGB > 0 && cmdWorkerStorageSizeGB < minimumWorkerStorageSizeGB {
-		s := color.RedString("\nNot enough Memory per worker specified\n")
-		s = s + fmt.Sprintf("You'll need at least %.1f GB per worker node.\n\n", minimumWorkerStorageSizeGB)
-		return errors.New(s)
+	if args.workerStorageSizeGB > 0 && args.workerStorageSizeGB < minimumWorkerStorageSizeGB {
+		return errors.New(errNotEnoughStoragePerWorker)
 	}
 
 	return nil
@@ -191,46 +332,45 @@ func unmarshalDefinition(data []byte, myDef clusterDefinition) (clusterDefinitio
 // enhanceDefinitionWithFlags takes a definition specified by file and
 // overwrites some settings given via flags.
 // Note that only a few attributes can be overridden by flags.
-func enhanceDefinitionWithFlags(def *clusterDefinition) {
-	if cmdClusterName != "" {
-		def.Name = cmdClusterName
+func enhanceDefinitionWithFlags(def *clusterDefinition, args addClusterArguments) {
+	if args.clusterName != "" {
+		def.Name = args.clusterName
 	}
-	if cmdKubernetesVersion != "" {
-		def.KubernetesVersion = cmdKubernetesVersion
+	if args.kubernetesVersion != "" {
+		def.KubernetesVersion = args.kubernetesVersion
 	}
-	if cmdOwner != "" {
-		def.Owner = cmdOwner
+	if args.owner != "" {
+		def.Owner = args.owner
 	}
 }
 
 // createDefinitionFromFlags creates a clusterDefinition based on the
-// flags the user has given
-func createDefinitionFromFlags() clusterDefinition {
+// flags/arguments the user has given
+func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 	def := clusterDefinition{}
-	if cmdClusterName != "" {
-		def.Name = cmdClusterName
+	if args.clusterName != "" {
+		def.Name = args.clusterName
 	}
-	if cmdKubernetesVersion != "" {
-		def.KubernetesVersion = cmdKubernetesVersion
+	if args.kubernetesVersion != "" {
+		def.KubernetesVersion = args.kubernetesVersion
 	}
-	if cmdOwner != "" {
-		def.Owner = cmdOwner
+	if args.owner != "" {
+		def.Owner = args.owner
 	}
-	if cmdNumWorkers != 0 {
+	if args.numWorkers != 0 {
 		workers := []nodeDefinition{}
-		for i := 0; i < cmdNumWorkers; i++ {
+		for i := 0; i < args.numWorkers; i++ {
 			worker := nodeDefinition{}
-			if cmdWorkerNumCPUs != 0 {
-				worker.CPU = cpuDefinition{Cores: cmdWorkerNumCPUs}
+			if args.workerNumCPUs != 0 {
+				worker.CPU = cpuDefinition{Cores: args.workerNumCPUs}
 			}
-			if cmdWorkerStorageSizeGB != 0 {
-				worker.Storage = storageDefinition{SizeGB: cmdWorkerStorageSizeGB}
+			if args.workerStorageSizeGB != 0 {
+				worker.Storage = storageDefinition{SizeGB: args.workerStorageSizeGB}
 			}
-			if cmdWorkerMemorySizeGB != 0 {
-				worker.Memory = memoryDefinition{SizeGB: cmdWorkerMemorySizeGB}
+			if args.workerMemorySizeGB != 0 {
+				worker.Memory = memoryDefinition{SizeGB: args.workerMemorySizeGB}
 			}
 			workers = append(workers, worker)
-			//fmt.Printf("%#v\n", worker)
 		}
 		def.Workers = workers
 	}
@@ -256,84 +396,67 @@ func createAddClusterBody(d clusterDefinition) gsclientgen.V4AddClusterRequest {
 	return a
 }
 
-// interprets arguments/flags, shows validation results, eventually submits create request
-func addCluster(cmd *cobra.Command, args []string) {
-	var definition clusterDefinition
+// addCluster actually adds a cluster, interpreting all the input Configuration
+// and returning a structured result
+func addCluster(args addClusterArguments) (addClusterResult, error) {
+	var result addClusterResult
 	var err error
-	if cmdInputYAMLFile != "" {
+
+	if args.inputYAMLFile != "" {
 		// definition from file (and optionally flags)
-		definition, err = readDefinitionFromFile(cmdInputYAMLFile)
+		result.definition, err = readDefinitionFromFile(args.inputYAMLFile)
 		if err != nil {
-			fmt.Println(color.RedString("Could not read file '%s'", cmdInputYAMLFile))
-			fmt.Printf("Error: %s\n", err)
-			os.Exit(1)
+			return addClusterResult{}, errors.New(errYAMLFileNotReadable)
 		}
-		enhanceDefinitionWithFlags(&definition)
+		enhanceDefinitionWithFlags(&result.definition, args)
 	} else {
 		// definition from flags only
-		definition = createDefinitionFromFlags()
+		result.definition = createDefinitionFromFlags(args)
 	}
 
-	// Validate result and give feedback
-	if definition.Owner == "" {
-		fmt.Printf("\n%s\n", color.RedString("No owner organization set"))
-		if cmdInputYAMLFile != "" {
-			fmt.Println("Please specify an owner organization for the cluster in your definition file or set one via the --owner flag.")
-			fmt.Println("")
-		} else {
-			fmt.Println("Please specify an owner organization for the cluster via the --owner flag.")
-			fmt.Println("")
-		}
-		os.Exit(1)
-
+	// Validate definition
+	if result.definition.Owner == "" {
+		return result, errors.New(errNoOwner)
 	}
 
 	// Validations based on definition file.
 	// For validations based on command line flags, see checkAddCluster()
-	if cmdInputYAMLFile != "" {
+	if args.inputYAMLFile != "" {
 		// number of workers
-		if len(definition.Workers) > 0 && len(definition.Workers) < minimumNumWorkers {
-			fmt.Printf("\n%s\n", color.RedString("Not enough worker nodes specified"))
-			fmt.Printf("If you specify workers in your definition file, you'll have to specify at least %d worker nodes for a useful cluster.\n\n", minimumNumWorkers)
-			os.Exit(1)
+		if len(result.definition.Workers) > 0 && len(result.definition.Workers) < minimumNumWorkers {
+			return result, errors.New(errNotEnougWorkerNodes)
 		}
 	}
 
 	// Preview in YAML format
-	if cmdVerbose {
+	if args.verbose {
 		fmt.Println("\nDefinition for the requested cluster:")
-		d, err := yaml.Marshal(definition)
-		if err != nil {
-			log.Fatalf("error: %v", err)
+		d, marshalErr := yaml.Marshal(result.definition)
+		if marshalErr != nil {
+			log.Fatalf("error: %v", marshalErr)
 		}
 		fmt.Printf(color.CyanString(string(d)))
 		fmt.Println()
 	}
 
 	// create JSON API call payload to catch and handle errors early
-	addClusterBody := createAddClusterBody(definition)
-	if cmdVerbose {
-		_, err := json.Marshal(addClusterBody)
-		if err != nil {
-			fmt.Println()
-			fmt.Println(color.RedString("Could not create JSON body for API request"))
-			fmt.Printf("Error message: %s\n\n", err)
-			fmt.Println("Please contact Giant Swarm via support@giantswarm.io in case you need any help.")
-			os.Exit(1)
-		}
+	addClusterBody := createAddClusterBody(result.definition)
+	_, err = json.Marshal(addClusterBody)
+	if err != nil {
+		return result, errors.New(errCouldNotCreateJSONRequestBody)
 	}
 
-	if !cmdDryRun {
-		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(definition.Owner))
+	if !args.dryRun {
+		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
 
 		// perform API call
 		authHeader := "giantswarm " + config.Config.Token
-		if cmdToken != "" {
+		if args.token != "" {
 			// command line flag overwrites
-			authHeader = "giantswarm " + cmdToken
+			authHeader = "giantswarm " + args.token
 		}
 		clientConfig := client.Configuration{
-			Endpoint:  cmdAPIEndpoint,
+			Endpoint:  args.apiEndpoint,
 			UserAgent: config.UserAgent(),
 		}
 		apiClient := client.NewClient(clientConfig)
@@ -341,20 +464,13 @@ func addCluster(cmd *cobra.Command, args []string) {
 
 		// handle API result
 		if responseBody.Code == "RESOURCE_CREATED" {
-			clusterID := strings.Split(apiResponse.Header["Location"][0], "/")[3]
-			fmt.Println(color.GreenString("New cluster with ID '%s' is launching.", clusterID))
-			fmt.Println("Add key-pair and settings to kubectl using")
-			fmt.Println("")
-			fmt.Printf("    %s\n\n", color.YellowString("gsctl create kubeconfig --cluster="+clusterID))
+			result.location = apiResponse.Header["Location"][0]
+			result.id = strings.Split(result.location, "/")[3]
 		} else {
-			fmt.Println()
-			fmt.Println(color.RedString("Could not create cluster"))
-			fmt.Printf("Error message: %s\n", responseBody.Message)
-			fmt.Printf("Error code: %s\n", responseBody.Code)
-			fmt.Println(fmt.Sprintf("Raw response body:\n%v", string(apiResponse.Payload)))
-			fmt.Println("Please contact Giant Swarm via support@giantswarm.io in case you need any help.")
-			os.Exit(1)
+			return result, fmt.Errorf("Error in API request to create cluster: %s (Code: %s)", responseBody.Message, responseBody.Code)
 		}
 	}
+
+	return result, nil
 
 }
