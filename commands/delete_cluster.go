@@ -69,7 +69,7 @@ func init() {
 	DeleteCommand.AddCommand(DeleteClusterCommand)
 }
 
-// validationOutput runs our pre-checks.
+// deleteClusterValidationOutput runs our pre-checks.
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
 func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
@@ -102,7 +102,7 @@ func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
 	}
 }
 
-// validatePreConditions checks preconditions and returns an error in case
+// validateDeleteClusterPreConditions checks preconditions and returns an error in case
 func validateDeleteClusterPreConditions(args deleteClusterArguments) error {
 	if args.clusterID == "" {
 		return errors.New(errClusterIDNotSpecified)

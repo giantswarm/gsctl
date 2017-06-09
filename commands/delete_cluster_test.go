@@ -9,7 +9,7 @@ import (
 
 // TestDeleteClusterSuccess runs test case that are supposed to succeed
 func TestDeleteClusterSuccess(t *testing.T) {
-	// mock server always responding positively
+	// mock server always responds positively
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Log("mockServer request: ", r.Method, r.URL)
 		w.Header().Set("Content-Type", "application/json")
