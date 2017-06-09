@@ -118,7 +118,7 @@ func deleteClusterExecutionOutput(cmd *cobra.Command, args []string) {
 	dca := defaultDeleteClusterArguments()
 	deleted, err := deleteCluster(dca)
 	if err != nil {
-		// show error
+		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
 	}
 
