@@ -96,8 +96,6 @@ const (
 
 	createClusterActivityName string = "create-cluster"
 
-	errNotLoggedIn                   = "user not logged in"
-	errConflictingFlags              = "conflicting flags used"
 	errNumWorkerNodesNotSpecified    = "number of workers not specified"
 	errNotEnougWorkerNodes           = "not enough workers specified"
 	errNotEnoughCPUCoresPerWorker    = "not enough CPU cores per worker specified"
