@@ -158,7 +158,10 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		UserAgent: config.UserAgent(),
 	}
 	apiClient := client.NewClient(clientConfig)
-	responseBody, _, _ := apiClient.DeleteCluster(authHeader, args.clusterID, requestIDHeader, createClusterActivityName, cmdLine)
+	responseBody, _, err := apiClient.DeleteCluster(authHeader, args.clusterID, requestIDHeader, createClusterActivityName, cmdLine)
+	if err != nil {
+		return false, err
+	}
 
 	// handle API result
 	if responseBody.Code == "RESOURCE_DELETED" || responseBody.Code == "RESOURCE_DELETION_STARTED" {
