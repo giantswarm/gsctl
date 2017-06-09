@@ -28,10 +28,3 @@ workers:
       cores: 6
     labels:
       nodetype: hicpu
-masters:
-  - memory:
-      size_gb: 2
-    storage:
-      size_gb: 20
-    cpu:
-      cores: 6

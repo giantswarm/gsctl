@@ -1,0 +1,18 @@
+# This YAML file is a most complete specification for a cluster
+# to be passed via the `gsctl create cluster -f` command
+name: Complete AWS cluster spec
+owner: giantswarm
+kubernetes_version: 1.6.4
+workers:
+  - aws:
+      instance_type: m3.large
+    labels:
+      nickname: worker1
+  - aws:
+      instance_type: m3.large
+    labels:
+      nickname: worker2
+  - aws:
+      instance_type: m3.large
+    labels:
+      nickname: worker3
