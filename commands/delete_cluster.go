@@ -11,6 +11,29 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type deleteClusterArguments struct {
+	// API endpoint
+	apiEndpoint string
+	// cluster ID to delete
+	clusterID string
+	// don't prompt
+	force bool
+	// auth token
+	token string
+	// verbosity
+	verbose bool
+}
+
+func defaultDeleteClusterArguments() deleteClusterArguments {
+	return deleteClusterArguments{
+		apiEndpoint: cmdAPIEndpoint,
+		clusterID:   cmdClusterID,
+		force:       cmdForce,
+		token:       cmdToken,
+		verbose:     cmdVerbose,
+	}
+}
+
 const (
 	deleteClusterActivityName string = "delete-cluster"
 )
@@ -29,12 +52,15 @@ worker nodes will be lost. There is no way to undo this.
 Example:
 
 	gsctl delete cluster -c c7t2o`,
-		PreRunE: checkDeleteCluster,
-		Run:     deleteCluster,
+		PreRun: deleteClusterValidationOutput,
+		Run:    deleteClusterExecutionOutput,
 	}
 
 	// force flag
 	cmdForce bool
+
+	// errors
+	errClusterIDNotSpecified = "cluster ID not specified"
 )
 
 func init() {
@@ -43,58 +69,104 @@ func init() {
 	DeleteCommand.AddCommand(DeleteClusterCommand)
 }
 
-// checks preconditions
-func checkDeleteCluster(cmd *cobra.Command, args []string) error {
-	if cmdClusterID == "" {
-		return errors.New(color.RedString("Please select a cluster to delete"))
-	}
+// deleteClusterValidationOutput runs our pre-checks.
+// If errors occur, error info is printed to STDOUT/STDERR
+// and the program will exit with non-zero exit codes.
+func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
+	dca := defaultDeleteClusterArguments()
 
-	// logged in?
-	if config.Config.Token == "" && cmdToken == "" {
-		s := color.RedString("You are not logged in.\n\n")
-		return errors.New(s + "Use '" + config.ProgramName + " login' to login or '--auth-token' to pass a valid auth token.")
-	}
+	err := validateDeleteClusterPreConditions(dca)
+	if err != nil {
+		var headline = ""
+		var subtext = ""
 
+		switch err.Error() {
+		case "":
+			return
+		case errNotLoggedIn:
+			headline = "You are not logged in."
+			subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
+		case errClusterIDNotSpecified:
+			headline = "No cluster ID specified."
+			subtext = "Please specify which cluster to delete using '-c' or '--cluster'."
+		default:
+			headline = err.Error()
+		}
+
+		// print output
+		fmt.Println(color.RedString(headline))
+		if subtext != "" {
+			fmt.Println(subtext)
+		}
+		os.Exit(1)
+	}
+}
+
+// validateDeleteClusterPreConditions checks preconditions and returns an error in case
+func validateDeleteClusterPreConditions(args deleteClusterArguments) error {
+	if args.clusterID == "" {
+		return errors.New(errClusterIDNotSpecified)
+	}
+	if config.Config.Token == "" && args.token == "" {
+		return errors.New(errNotLoggedIn)
+	}
 	return nil
 }
 
 // interprets arguments/flags, eventually submits delete request
-func deleteCluster(cmd *cobra.Command, args []string) {
+func deleteClusterExecutionOutput(cmd *cobra.Command, args []string) {
+	dca := defaultDeleteClusterArguments()
+	deleted, err := deleteCluster(dca)
+	if err != nil {
+		fmt.Println(color.RedString(err.Error()))
+		os.Exit(1)
+	}
 
+	// non-error output
+	if deleted {
+		fmt.Println(color.GreenString("The cluster with ID '%s' will be deleted as soon as all workloads are terminated.", dca.clusterID))
+	} else {
+		if dca.verbose {
+			fmt.Println(color.GreenString("Aborted."))
+		}
+	}
+}
+
+// deleteCluster performs the cluster deletion API call
+//
+// The returned tuple contains:
+// - bool: true if cluster will reall ybe deleted, false otherwise
+// - error: The error that has occurred (or nil)
+//
+func deleteCluster(args deleteClusterArguments) (bool, error) {
 	// confirmation
-	if cmdForce == false {
-		confirmed := askForConfirmation("Do you really want to delete cluster '" + cmdClusterID + "'?")
+	if !args.force {
+		confirmed := askForConfirmation("Do you really want to delete cluster '" + args.clusterID + "'?")
 		if !confirmed {
-			if cmdVerbose {
-				fmt.Println("Cluster not deleted")
-			}
-			os.Exit(0)
+			return false, nil
 		}
 	}
 
 	// perform API call
 	authHeader := "giantswarm " + config.Config.Token
-	if cmdToken != "" {
+	if args.token != "" {
 		// command line flag overwrites
-		authHeader = "giantswarm " + cmdToken
+		authHeader = "giantswarm " + args.token
 	}
 	clientConfig := client.Configuration{
-		Endpoint:  cmdAPIEndpoint,
+		Endpoint:  args.apiEndpoint,
 		UserAgent: config.UserAgent(),
 	}
 	apiClient := client.NewClient(clientConfig)
-	responseBody, apiResponse, _ := apiClient.DeleteCluster(authHeader, cmdClusterID, requestIDHeader, createClusterActivityName, cmdLine)
+	responseBody, _, err := apiClient.DeleteCluster(authHeader, args.clusterID, requestIDHeader, createClusterActivityName, cmdLine)
+	if err != nil {
+		return false, err
+	}
 
 	// handle API result
 	if responseBody.Code == "RESOURCE_DELETED" || responseBody.Code == "RESOURCE_DELETION_STARTED" {
-		fmt.Println(color.GreenString("The cluster with ID '%s' will be deleted as soon as all workloads are terminated.", cmdClusterID))
-	} else {
-		fmt.Println()
-		fmt.Println(color.RedString("Could not delete cluster"))
-		fmt.Printf("Error message: %s\n", responseBody.Message)
-		fmt.Printf("Error code: %s\n", responseBody.Code)
-		fmt.Println(fmt.Sprintf("Raw response body:\n%v", string(apiResponse.Payload)))
-		fmt.Println("Please contact Giant Swarm via support@giantswarm.io in case you need any help.")
-		os.Exit(1)
+		return true, nil
 	}
+
+	return false, fmt.Errorf("Error in API request to create cluster: %s (Code: %s)", responseBody.Message, responseBody.Code)
 }
