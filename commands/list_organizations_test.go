@@ -29,7 +29,7 @@ func Test_ListOrganizations(t *testing.T) {
 }
 
 func Test_ListOrganizationsEmpty(t *testing.T) {
-	// mock service returning key-pairs
+	// mock service returning key pairs
 	orgsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

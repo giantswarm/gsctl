@@ -47,7 +47,7 @@ func Test_CheckListKeypairs_NotLoggedInNoCluster(t *testing.T) {
 }
 
 func Test_ListKeyPairs(t *testing.T) {
-	// mock service returning key-pairs
+	// mock service returning key pairs
 	keyPairsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

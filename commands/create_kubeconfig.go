@@ -32,8 +32,8 @@ const (
 
 func init() {
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster")
-	CreateKubeconfigCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key-pair")
-	CreateKubeconfigCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key-pair in days")
+	CreateKubeconfigCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key pair")
+	CreateKubeconfigCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key pair in days")
 
 	CreateCommand.AddCommand(CreateKubeconfigCommand)
 }
@@ -97,7 +97,7 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 
 	addKeyPairBody := gsclientgen.V4AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
 
-	fmt.Println("Creating new key-pair…")
+	fmt.Println("Creating new key pair…")
 
 	clientConfig.Timeout = 60 * time.Second
 	apiClient = client.NewClient(clientConfig)
@@ -111,7 +111,7 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 	}
 
 	if apiResponse.StatusCode == 200 || apiResponse.StatusCode == 201 {
-		msg := fmt.Sprintf("New key-pair created with ID %s and expiry of %v hours",
+		msg := fmt.Sprintf("New key pair created with ID %s and expiry of %v hours",
 			util.Truncate(util.CleanKeypairID(keypairResponse.Id), 10),
 			keypairResponse.TtlHours)
 		fmt.Println(msg)

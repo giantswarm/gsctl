@@ -262,7 +262,7 @@ func executionOutput(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Println(color.GreenString("New cluster with ID '%s' for organization '%s' is launching.", result.id, result.definition.Owner))
 	}
-	fmt.Println("Add key-pair and settings to kubectl using")
+	fmt.Println("Add key pair and settings to kubectl using")
 	fmt.Println("")
 	fmt.Printf("    %s\n\n", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s", result.id)))
 }

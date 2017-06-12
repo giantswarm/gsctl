@@ -24,15 +24,15 @@ var (
 	// ListKeypairsCommand performs the "list keypairs" function
 	ListKeypairsCommand = &cobra.Command{
 		Use:     "keypairs",
-		Short:   "List key-pairs for a cluster",
-		Long:    `Prints a list of key-pairs for a cluster`,
+		Short:   "List key pairs for a cluster",
+		Long:    `Prints a list of key pairs for a cluster`,
 		PreRunE: checkListKeypairs,
 		Run:     listKeypairs,
 	}
 )
 
 func init() {
-	ListKeypairsCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to list key-pairs for")
+	ListKeypairsCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to list key pairs for")
 	ListCommand.AddCommand(ListKeypairsCommand)
 }
 
