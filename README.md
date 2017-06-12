@@ -42,13 +42,13 @@ More in the [docs](https://docs.giantswarm.io/reference/gsctl/create-cluster/)
 
 ```nohighlight
 $ gsctl create kubeconfig -c h8d0j
-Creating new key-pair…
-New key-pair created with ID 153a93201… and expiry of 720 hours
+Creating new key pair…
+New key pair created with ID 153a93201… and expiry of 720 hours
 Certificate and key files written to:
 /Users/demo/.config/gsctl/certs/h8d0j-ca.crt
 /Users/demo/.config/gsctl/certs/h8d0j-153a932010-client.crt
 /Users/demo/.config/gsctl/certs/h8d0j-153a932010-client.key
-Switched to kubectl context 'acme-xl8t1'
+Switched to kubectl context 'giantswarm-xl8t1'
 
 kubectl is set up. Check it using this command:
 
@@ -56,7 +56,7 @@ kubectl is set up. Check it using this command:
 
 Whenever you want to switch to using this context:
 
-    kubectl config use-context acme-xl8t1
+    kubectl config use-context giantswarm-xl8t1
 ```
 
 ## Install
