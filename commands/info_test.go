@@ -1,12 +1,24 @@
 package commands
 
-import "testing"
+import (
+	"io/ioutil"
+	"testing"
 
-func Test_Info(t *testing.T) {
+	"github.com/giantswarm/gsctl/config"
+)
+
+func Test_PrintInfo(t *testing.T) {
 	printInfo(InfoCommand, []string{})
 }
 
-func Test_Info_Verbose(t *testing.T) {
+func Test_PrintInfoVerbose(t *testing.T) {
 	cmdVerbose = true
+	printInfo(InfoCommand, []string{})
+}
+
+func Test_PrintInfoWithTempDirAndToken(t *testing.T) {
+	dir, _ := ioutil.TempDir("", config.ProgramName)
+	cmdConfigDirPath = dir
+	cmdToken = "fake token"
 	printInfo(InfoCommand, []string{})
 }
