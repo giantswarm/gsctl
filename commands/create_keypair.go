@@ -17,8 +17,8 @@ var (
 	// CreateKeypairCommand performs the "create keypair" function
 	CreateKeypairCommand = &cobra.Command{
 		Use:     "keypair",
-		Short:   "Create key-pair",
-		Long:    `Creates a new key-pair for a cluster`,
+		Short:   "Create key pair",
+		Long:    `Creates a new key pair for a cluster`,
 		PreRunE: checkAddKeypair,
 		Run:     addKeypair,
 	}
@@ -29,9 +29,9 @@ const (
 )
 
 func init() {
-	CreateKeypairCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to create a key-pair for")
-	CreateKeypairCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key-pair")
-	CreateKeypairCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key-pair in days")
+	CreateKeypairCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to create a key pair for")
+	CreateKeypairCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key pair")
+	CreateKeypairCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key pair in days")
 
 	CreateCommand.AddCommand(CreateKeypairCommand)
 }
@@ -78,7 +78,7 @@ func addKeypair(cmd *cobra.Command, args []string) {
 
 	if apiResponse.StatusCode == 200 {
 		cleanID := util.CleanKeypairID(keypairResponse.Id)
-		msg := fmt.Sprintf("New key-pair created with ID %s and expiry of %v hours", cleanID, keypairResponse.TtlHours)
+		msg := fmt.Sprintf("New key pair created with ID %s and expiry of %v hours", cleanID, keypairResponse.TtlHours)
 		fmt.Println(color.GreenString(msg))
 
 		// store credentials to file

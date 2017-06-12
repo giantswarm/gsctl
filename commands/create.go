@@ -6,8 +6,8 @@ var (
 	// CreateCommand is the command to create things
 	CreateCommand = &cobra.Command{
 		Use:   "create",
-		Short: "Create clusters, key-pairs, ...",
-		Long:  `Lets you create things like clusters, key-pairs or kubectl configuration files`,
+		Short: "Create clusters, key pairs, ...",
+		Long:  `Lets you create things like clusters, key pairs or kubectl configuration files`,
 	}
 )
 
