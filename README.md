@@ -23,9 +23,9 @@ Successfully logged in!
 
 ```nohighlight
 $ gsctl list clusters
-Id     Name                Created             Organization
-9gxjo  Production Cluster  2016 Apr 30, 15:43  acme
-xl8t1  Staging Cluster     2017 May 11, 09:30  acme
+ID     NAME                CREATED                 ORGANIZATION
+9gxjo  Production Cluster  2016 Apr 30, 15:43 UTC  acme
+xl8t1  Staging Cluster     2017 May 11, 09:30 UTC  acme
 ```
 
 #### Create a cluster
