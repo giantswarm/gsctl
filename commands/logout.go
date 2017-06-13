@@ -28,7 +28,7 @@ var (
 		Use:     "logout",
 		Short:   "Sign the current user out",
 		Long:    `This will terminate the current user's session and invalidate the authentication token.`,
-		PreRunE: checkLogout,
+		PreRunE: logoutValidationOutput,
 		Run:     logoutOutput,
 	}
 )
@@ -52,7 +52,7 @@ func init() {
 }
 
 // TODO: separate validation and validation result output
-func checkLogout(cmd *cobra.Command, args []string) error {
+func logoutValidationOutput(cmd *cobra.Command, args []string) error {
 	if config.Config.Token == "" && cmdToken == "" {
 		return errors.New("You are not logged in")
 	}
@@ -61,7 +61,7 @@ func checkLogout(cmd *cobra.Command, args []string) error {
 
 // logoutOutput performs our logout function and displays the result.
 func logoutOutput(cmd *cobra.Command, extraArgs []string) {
-	logoutArgs := logoutArguments{}
+	logoutArgs := defaultLogoutArguments()
 
 	logoutArgs.token = config.Config.Token
 	if cmdToken != "" {
