@@ -3,6 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -15,7 +16,10 @@ import (
 )
 
 const (
-	logoutActivityName string = "login"
+	logoutActivityName = "login"
+
+	// errors
+	errInvalidToken = "submitted token was not valid"
 )
 
 var (
@@ -25,14 +29,29 @@ var (
 		Short:   "Sign the current user out",
 		Long:    `This will terminate the current user's session and invalidate the authentication token.`,
 		PreRunE: checkLogout,
-		Run:     logout,
+		Run:     logoutOutput,
 	}
 )
+
+type logoutArguments struct {
+	// apiEndpoint is the API to log out from
+	apiEndpoint string
+	// token is the session token to expire (log out)
+	token string
+}
+
+func defaultLogoutArguments() logoutArguments {
+	return logoutArguments{
+		apiEndpoint: cmdAPIEndpoint,
+		token:       cmdToken,
+	}
+}
 
 func init() {
 	RootCommand.AddCommand(LogoutCommand)
 }
 
+// TODO: separate validation and validation result output
 func checkLogout(cmd *cobra.Command, args []string) error {
 	if config.Config.Token == "" && cmdToken == "" {
 		return errors.New("You are not logged in")
@@ -40,40 +59,64 @@ func checkLogout(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func logout(cmd *cobra.Command, args []string) {
+// logoutOutput performs our logout function and displays the result.
+func logoutOutput(cmd *cobra.Command, extraArgs []string) {
+	logoutArgs := logoutArguments{}
 
-	currentToken := config.Config.Token
+	logoutArgs.token = config.Config.Token
 	if cmdToken != "" {
-		currentToken = cmdToken
+		logoutArgs.token = cmdToken
 	}
 
-	// erase local credentials in any case
+	err := logout(logoutArgs)
+	if err != nil {
+		var headline = ""
+		var subtext = ""
+		switch err.Error() {
+		case "":
+			return
+		default:
+			headline = err.Error()
+		}
+
+		fmt.Println(color.RedString(headline))
+		if subtext != "" {
+			fmt.Println(subtext)
+		}
+		os.Exit(1)
+	}
+}
+
+// logout terminates the current user session.
+// The email and token are erased from the local config file.
+// Returns nil in case of success, or an error otherwise.
+func logout(args logoutArguments) error {
+	// erase local credentials, no matter what the result on the API side is
 	config.Config.Token = ""
 	config.Config.Email = ""
 	config.WriteToFile()
 
 	clientConfig := client.Configuration{
-		Endpoint:  cmdAPIEndpoint,
+		Endpoint:  args.apiEndpoint,
 		Timeout:   10 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
 	apiClient := client.NewClient(clientConfig)
 
-	authHeader := "giantswarm " + currentToken
+	authHeader := "giantswarm " + args.token
 	logoutResponse, apiResponse, err := apiClient.UserLogout(authHeader, requestIDHeader, logoutActivityName, cmdLine)
 	if err != nil {
-		fmt.Println("Info: The client doesn't handle the API's 401 response yet.")
-		fmt.Println("Seeing this error likely means: The passed token was no longer valid.")
-		fmt.Println(color.RedString("Error: %s", err))
-		dumpAPIResponse(*apiResponse)
-		os.Exit(1)
+		return fmt.Errorf("Error in API request to logout: %s", err.Error())
 	}
-	if logoutResponse.StatusCode == apischema.STATUS_CODE_RESOURCE_DELETED {
-		// remove token from settings
-		// unless we unathenticated the token from flags
-		fmt.Println(color.GreenString("Successfully logged out"))
-	} else {
-		fmt.Println(color.RedString("Unhandled response code: %s", logoutResponse.StatusCode))
-		dumpAPIResponse(*apiResponse)
+
+	if logoutResponse.StatusCode != apischema.STATUS_CODE_RESOURCE_DELETED {
+		if apiResponse.Response.StatusCode == http.StatusUnauthorized {
+			// we ignore a 401 (Unauthorized) response here, as it means in most cases
+			// that the token submitted was already expired.
+			return nil
+		}
+		return fmt.Errorf("Error in API request to logout: %#v", logoutResponse)
 	}
+
+	return nil
 }
