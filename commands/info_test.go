@@ -32,8 +32,8 @@ func Test_InfoWithTempDirAndToken(t *testing.T) {
 	// Normally cobra does this for us, but here we don't use cobra.
 	config.Initialize(dir)
 
-	cmdToken = "fake token"
 	args := defaultInfoArguments()
+	args.token = "fake token"
 
 	infoResult := info(args)
 
@@ -41,7 +41,7 @@ func Test_InfoWithTempDirAndToken(t *testing.T) {
 		t.Errorf("Config file path not as expected: Got %s, expected %s",
 			infoResult.configFilePath, dir)
 	}
-	if infoResult.token != cmdToken {
+	if infoResult.token != args.token {
 		t.Errorf("Expected token '%s', got '%s'", cmdToken, infoResult.token)
 	}
 	if infoResult.email != "" {
