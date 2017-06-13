@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -17,7 +16,6 @@ func Test_LogoutValidToken(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("mockServer request: %s %s\n", r.Method, r.URL)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status_code": 10007, "status_text": "Resource deleted"}`))
@@ -43,7 +41,6 @@ func Test_LogoutInvalidToken(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("mockServer request: %s %s\n", r.Method, r.URL)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte(`{}`))
@@ -60,4 +57,25 @@ func Test_LogoutInvalidToken(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+}
+
+// Test_LogoutCommand simply calls the functions cobra would call,
+// with a temporary config path and mock server as endpoint.
+func Test_LogoutCommand(t *testing.T) {
+	defer viper.Reset()
+	dir := tempDir()
+	defer os.RemoveAll(dir)
+
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status_code": 10007, "status_text": "Resource deleted"}`))
+	}))
+	defer mockServer.Close()
+
+	cmdConfigDirPath = dir
+	cmdAPIEndpoint = mockServer.URL
+	cmdToken = "some-token"
+	logoutValidationOutput(LogoutCommand, []string{})
+	logoutOutput(LogoutCommand, []string{})
 }
