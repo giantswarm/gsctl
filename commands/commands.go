@@ -50,6 +50,7 @@ var (
 	errClusterIDNotSpecified = "cluster ID not specified"
 	errClusterNotFound       = "the cluster specified could not be found"
 	errInternalServerError   = "an internal server error occurred"
+	errNotAuthorized         = "not authorized"
 )
 
 // APIError is an error type we use for errors generated after API requests
