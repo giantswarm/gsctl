@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/giantswarm/gsctl/config"
 	"github.com/spf13/viper"
 )
 
@@ -14,6 +15,7 @@ func Test_LogoutValidToken(t *testing.T) {
 	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
+	config.Initialize(dir)
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -22,7 +24,6 @@ func Test_LogoutValidToken(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	cmdConfigDirPath = dir
 	logoutArgs := logoutArguments{
 		apiEndpoint: mockServer.URL,
 		token:       "test-token",
@@ -39,6 +40,7 @@ func Test_LogoutInvalidToken(t *testing.T) {
 	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
+	config.Initialize(dir)
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -47,7 +49,6 @@ func Test_LogoutInvalidToken(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	cmdConfigDirPath = dir
 	logoutArgs := logoutArguments{
 		apiEndpoint: mockServer.URL,
 		token:       "test-token",
@@ -65,6 +66,7 @@ func Test_LogoutCommand(t *testing.T) {
 	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
+	config.Initialize(dir)
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -73,7 +75,6 @@ func Test_LogoutCommand(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	cmdConfigDirPath = dir
 	cmdAPIEndpoint = mockServer.URL
 	cmdToken = "some-token"
 	logoutValidationOutput(LogoutCommand, []string{})
