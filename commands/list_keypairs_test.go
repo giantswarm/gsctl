@@ -3,14 +3,21 @@ package commands
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/giantswarm/gsctl/config"
+	"github.com/spf13/viper"
 )
 
 // TestNotLoggedIn checks whether we detect that the user is not logged in
 func Test_CheckListKeypairs_NotLoggedIn(t *testing.T) {
+	defer viper.Reset()
+	dir := tempDir()
+	defer os.RemoveAll(dir)
+	config.Initialize(dir)
 	config.Config.Token = ""
+
 	err := checkListKeypairs(ListKeypairsCommand, []string{})
 	if err == nil || err.Error() != "You are not logged in. Use 'gsctl login' to log in." {
 		t.Error("Unexpected error:", err)
@@ -19,7 +26,12 @@ func Test_CheckListKeypairs_NotLoggedIn(t *testing.T) {
 
 // TestLoggedIn checks whether we assume that the user is logged in
 func Test_CheckListKeypairs_LoggedIn(t *testing.T) {
+	defer viper.Reset()
+	dir := tempDir()
+	defer os.RemoveAll(dir)
+	config.Initialize(dir)
 	config.Config.Token = "some-test-token"
+
 	// needed to prevent search for the default cluster
 	cmdClusterID = "foobar"
 	err := checkListKeypairs(ListKeypairsCommand, []string{})
@@ -28,26 +40,29 @@ func Test_CheckListKeypairs_LoggedIn(t *testing.T) {
 	}
 }
 
-// Not logged in, but a cluster ID is given. Should be okay.
+// Not logged in, but a cluster ID is given. An error should occur.
 func Test_CheckListKeypairs_NotLoggedInWithCluster(t *testing.T) {
+	defer viper.Reset()
+	dir := tempDir()
+	defer os.RemoveAll(dir)
+	config.Initialize(dir)
+	config.Config.Token = ""
+
 	cmdClusterID = "foobar"
 	err := checkListKeypairs(ListKeypairsCommand, []string{})
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-// Not logged in, no cluster ID is given. Should fail.
-func Test_CheckListKeypairs_NotLoggedInNoCluster(t *testing.T) {
-	cmdClusterID = ""
-	err := checkListKeypairs(ListKeypairsCommand, []string{})
 	if err == nil {
-		t.Error("Expected error didn't happen:", err)
+		t.Error("Expected error didn't occur, err was nil.")
 	}
 }
 
 func Test_ListKeyPairs(t *testing.T) {
-	// mock service returning key pairs
+	defer viper.Reset()
+	dir := tempDir()
+	defer os.RemoveAll(dir)
+	config.Initialize(dir)
+
+	// mock service returning key pairs. For the sake of cimplicity,
+	// it doesn't care about auth tokens.
 	keyPairsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
