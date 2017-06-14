@@ -45,8 +45,11 @@ var (
 	cmdLine         string
 
 	// errors for common purposes
-	errNotLoggedIn      = "user not logged in"
-	errConflictingFlags = "conflicting flags used"
+	errNotLoggedIn           = "user not logged in"
+	errConflictingFlags      = "conflicting flags used"
+	errClusterIDNotSpecified = "cluster ID not specified"
+	errClusterNotFound       = "the cluster specified could not be found"
+	errInternalServerError   = "an internal server error occurred"
 )
 
 // APIError is an error type we use for errors generated after API requests

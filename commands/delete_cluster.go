@@ -58,9 +58,6 @@ Example:
 
 	// force flag
 	cmdForce bool
-
-	// errors
-	errClusterIDNotSpecified = "cluster ID not specified"
 )
 
 func init() {
