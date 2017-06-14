@@ -135,7 +135,7 @@ func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
 			subtext = "Please specify which cluster to list key pairs for, by using the '-c' or '--cluster' argument."
 		case errNotAuthorized:
 			headline = "You are not authorized for this cluster."
-			subtext = "You either have no permission to access key pairs for this cluster. Please check your credentials."
+			subtext = "You have no permission to access key pairs for this cluster. Please check your credentials."
 		case errClusterNotFound:
 			headline = "The cluster does not exist."
 			subtext = fmt.Sprintf("We couldn't find a cluster with the ID '%s' via API endpoint %s.", args.clusterID, args.apiEndpoint)
