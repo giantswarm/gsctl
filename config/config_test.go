@@ -169,28 +169,18 @@ func Test_UserAgent(t *testing.T) {
 // Test_GetDefaultCluster tests the GetDefaultCluster function
 // for the case that only one cluster exists
 func Test_GetDefaultCluster(t *testing.T) {
+	// returns one cluster
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		if r.URL.String() == "/v4/organizations/" {
-			// return organizations for the current user
-			w.Write([]byte(`[{"id": "org1"}]`))
-		} else {
-			// return clusters for the organization
-			w.Write([]byte(`{
-          "status_code": 10000,
-          "status_text": "success",
-          "data": {
-            "clusters": [
-              {
-                "create_date": "2017-04-16T09:30:31.192170835Z",
-                "id": "cluster-id",
-                "name": "Some random test cluster"
-              }
-            ]
-          }
-        }`))
-		}
+		w.Write([]byte(`[
+      {
+        "create_date": "2017-04-16T09:30:31.192170835Z",
+        "id": "cluster-id",
+        "name": "Some random test cluster",
+				"owner": "acme"
+      }
+    ]`))
 	}))
 	defer mockServer.Close()
 
