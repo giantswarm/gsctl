@@ -81,28 +81,6 @@ paths:
           description: Unknown error
           schema:
             $ref: '#/definitions/GenericResponseModel'
-  /v3/orgs/{organization_name}/clusters/:
-    get:
-      operationId: getOrganizationClusters
-      summary: Get clusters for organization
-      parameters:
-        - $ref: '#/parameters/RequiredAuthorizationHeader'
-        - $ref: '#/parameters/XRequestIDHeader'
-        - $ref: '#/parameters/XGiantSwarmActivityHeader'
-        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
-        - name: organization_name
-          in: path
-          required: true
-          type: string
-      responses:
-        "200":
-          description: Success
-          schema:
-            $ref: '#/definitions/OrganizationClustersResponseModel'
-        default:
-          description: Unknown error
-          schema:
-            $ref: '#/definitions/GenericResponseModel'
 
   /v4/organizations/:
     get:
@@ -190,6 +168,52 @@ paths:
             $ref: '#/definitions/GenericResponseModel'
 
   /v4/clusters/:
+    get:
+      operationId: getClusters
+      summary: Get clusters
+      description: |
+        This operation fetches a list of clusters.
+        The result depends on the permissions of the user.
+        A normal user will get all the clusters the user has access
+        to, via organization membership.
+
+        A user with admin permission will receive a list of all existing
+        clusters.
+
+        The result array items are sparse representations of the cluster
+        objects.
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+      responses:
+        "200":
+          description: Success
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/V4ClusterListItem"
+          examples:
+            application/json:
+              [
+                {
+                  "id": "g8s3o",
+                  "create_date": "2017-06-08T12:31:47.215Z",
+                  "name": "Staging Cluster",
+                  "owner": "acme"
+                },
+                {
+                  "id": "3dkr6",
+                  "create_date": "2017-05-22T13:58:02.024Z",
+                  "name": "Test Cluster",
+                  "owner": "testorg"
+                }
+              ]
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
     post:
       operationId: addCluster
       summary: Create cluster
@@ -353,16 +377,6 @@ definitions:
         type: integer
       status_text:
         type: string
-  ClusterModel:
-    type: object
-    required: ["id"]
-    properties:
-      id:
-        type: string
-      name:
-        type: string
-      create_date:
-        type: string
 
   V4ClusterDetailsModel:
     type: object
@@ -435,22 +449,6 @@ definitions:
       client_key_data:
         type: string
       client_certificate_data:
-        type: string
-
-  OrganizationClustersResponseModel:
-    type: object
-    required: ["data", "status_code", "status_text"]
-    properties:
-      data:
-        type: object
-        properties:
-          clusters:
-            type: array
-            items:
-              $ref: '#/definitions/ClusterModel'
-      status_code:
-        type: integer
-      status_text:
         type: string
 
   LoginBodyModel:
@@ -549,6 +547,22 @@ definitions:
       none:
         type: string
 
+  # A cluster array item, as return by getClusters
+  V4ClusterListItem:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique cluster identifier
+      create_date:
+        type: string
+        description: Date/time of cluster creation
+      name:
+        type: string
+        description: Cluster name
+      owner:
+        type: string
+        description: Name of the organization owning the cluster
 
 parameters:
   RequiredAuthorizationHeader:

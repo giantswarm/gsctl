@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2017 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2016 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -12,25 +12,23 @@ import (
 
 const (
 	defaultMaxRetries  = 3
-	defaultWaitTime    = time.Duration(100) * time.Millisecond
-	defaultMaxWaitTime = time.Duration(2000) * time.Millisecond
+	defaultWaitTime    = 100  // base Milliseconds
+	defaultMaxWaitTime = 2000 // cap level Milliseconds
 )
 
-type (
-	// Option is to create convenient retry options like wait time, max retries, etc.
-	Option func(*Options)
+// Option is to create convenient retry options like wait time, max retries, etc.
+type Option func(*Options)
 
-	// RetryConditionFunc type is for retry condition function
-	RetryConditionFunc func(*Response) (bool, error)
+// RetryConditionFunc type is for retry condition function
+type RetryConditionFunc func(*Response) (bool, error)
 
-	// Options to hold go-resty retry values
-	Options struct {
-		maxRetries      int
-		waitTime        time.Duration
-		maxWaitTime     time.Duration
-		retryConditions []RetryConditionFunc
-	}
-)
+// Options to hold go-resty retry values
+type Options struct {
+	maxRetries      int
+	waitTime        int
+	maxWaitTime     int
+	retryConditions []RetryConditionFunc
+}
 
 // Retries sets the max number of retries
 func Retries(value int) Option {
@@ -40,14 +38,14 @@ func Retries(value int) Option {
 }
 
 // WaitTime sets the default wait time to sleep between requests
-func WaitTime(value time.Duration) Option {
+func WaitTime(value int) Option {
 	return func(o *Options) {
 		o.waitTime = value
 	}
 }
 
 // MaxWaitTime sets the max wait time to sleep between requests
-func MaxWaitTime(value time.Duration) Option {
+func MaxWaitTime(value int) Option {
 	return func(o *Options) {
 		o.maxWaitTime = value
 	}
@@ -102,11 +100,9 @@ func Backoff(operation func() (*Response, error), options ...Option) error {
 		// See the following article...
 		// http://www.awsarchitectureblog.com/2015/03/backoff.html
 		temp := math.Min(capLevel, base*math.Exp2(float64(attempt)))
-		sleepDuration := time.Duration(int(temp/2) + rand.Intn(int(temp/2)))
+		sleepTime := int(temp/2) + rand.Intn(int(temp/2))
 
-		if sleepDuration < opts.waitTime {
-			sleepDuration = opts.waitTime
-		}
+		sleepDuration := time.Duration(sleepTime) * time.Millisecond
 		time.Sleep(sleepDuration)
 	}
 

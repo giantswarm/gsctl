@@ -16,8 +16,8 @@ generate: clean
 
 # removal of all generated files
 clean:
-	rm *.go
-	rm docs/*.md
+	rm -f *.go
+	rm -f docs/*.md
 
 validate:
 	yamllint ./api-spec/oai-spec.yaml
