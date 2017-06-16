@@ -1,5 +1,5 @@
-hash: f427d523b388a1d1e417a9ba5069e99c99467b1d857e1a5711b2103cd18e9e2e
-updated: 2017-06-16T12:57:10.186066882+02:00
+hash: 67a8c15646ccbf11bdb9efddc0b847a70f2c1402b76145ba47b00b4cdef2731c
+updated: 2017-06-16T14:05:27.993055477+02:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -13,6 +13,10 @@ imports:
   version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
 - name: github.com/giantswarm/gsclientgen
   version: a64ecd63d43809e7764debb95752a1b7f7737d0f
+- name: github.com/giantswarm/microkit
+  version: 1ac51fb9905e0c7ab5a8d12fec127c6fbfd75aac
+  subpackages:
+  - error
 - name: github.com/go-resty/resty
   version: 7a8134d8718193eb857994adee49d73a302e7718
 - name: github.com/hashicorp/hcl
