@@ -8,6 +8,7 @@ import:
 - package: github.com/giantswarm/columnize
   version: =2.0.2
 - package: github.com/giantswarm/gsclientgen
+  version: 7084b099bdcab387b4a03050229b856e58b346a0
 - package: github.com/howeyc/gopass
 - package: github.com/spf13/cobra
 - package: gopkg.in/yaml.v2
