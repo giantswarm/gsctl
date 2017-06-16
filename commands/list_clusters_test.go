@@ -25,29 +25,21 @@ func Test_ListClusters(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		if r.URL.String() == "/v4/organizations/" {
-			// return organizations for the current user
-			w.Write([]byte(`[
-					{"id": "acme"},
-					{"id": "foo"},
-					{"id": "giantswarm"}
-				]`))
-		} else {
-			// return clusters for the organization
-			w.Write([]byte(`{
-          "status_code": 10000,
-          "status_text": "success",
-          "data": {
-            "clusters": [
-              {
-                "create_date": "2017-04-16T09:30:31.192170835Z",
-                "id": "` + randomClusterID() + `",
-                "name": "Some random test cluster"
-              }
-            ]
-          }
-        }`))
-		}
+		// return clusters for the organization
+		w.Write([]byte(`[
+			{
+        "create_date": "2017-05-16T09:30:31.192170835Z",
+        "id": "` + randomClusterID() + `",
+        "name": "Some random test cluster",
+				"owner": "some_org"
+      },
+			{
+        "create_date": "2017-04-16T09:30:31.192170835Z",
+        "id": "` + randomClusterID() + `",
+        "name": "Some random test cluster",
+				"owner": "acme"
+      }
+    ]`))
 	}))
 	defer mockServer.Close()
 
@@ -67,21 +59,7 @@ func Test_ListClustersEmpty(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		if r.URL.String() == "/v4/organizations/" {
-			// return organizations for the current user
-			w.Write([]byte(`[
-					{"id": "onlyorg"}
-				]`))
-		} else {
-			// return clusters for the organization
-			w.Write([]byte(`{
-          "status_code": 10000,
-          "status_text": "success",
-          "data": {
-            "clusters": []
-          }
-        }`))
-		}
+		w.Write([]byte(`[]`))
 	}))
 	defer mockServer.Close()
 

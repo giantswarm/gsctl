@@ -10,10 +10,17 @@
 
 package gsclientgen
 
-type ClusterModel struct {
-	Id string `json:"id"`
+type V4ClusterListItem struct {
 
+	// Unique cluster identifier
+	Id string `json:"id,omitempty"`
+
+	// Date/time of cluster creation
+	CreateDate string `json:"create_date,omitempty"`
+
+	// Cluster name
 	Name string `json:"name,omitempty"`
 
-	CreateDate string `json:"create_date,omitempty"`
+	// Name of the organization owning the cluster
+	Owner string `json:"owner,omitempty"`
 }

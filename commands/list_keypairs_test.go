@@ -102,7 +102,7 @@ func Test_ListKeyPairs_Nonempty(t *testing.T) {
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	config.Initialize(dir)
-
+  
 	// mock service returning key pairs. For the sake of simplicity,
 	// it doesn't care about auth tokens.
 	keyPairsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

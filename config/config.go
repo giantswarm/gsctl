@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/user"
 	"path"
@@ -237,34 +236,17 @@ func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint st
 	apiClient := client.NewClient(clientConfig)
 
 	authHeader := "giantswarm " + Config.Token
-	organizations, apiResponse, err := apiClient.GetUserOrganizations(authHeader, requestIDHeader, activityName, cmdLine)
+
+	clustersResponse, _, err := apiClient.GetClusters(authHeader, requestIDHeader, activityName, cmdLine)
 	if err != nil {
-		gr, grErr := client.ParseGenericResponse(apiResponse.Payload)
-		if grErr != nil {
-			return "", grErr
-		}
-		return "", fmt.Errorf("%s (Code: %s)", gr.Code, gr.Message)
+		return "", err
 	}
 
-	if apiResponse.Response.StatusCode == http.StatusOK {
-		if len(organizations) > 0 {
-			clusterIDs := []string{}
-			for _, org := range organizations {
-				clustersResponse, _, err := apiClient.GetOrganizationClusters(authHeader, org.Id, requestIDHeader, activityName, cmdLine)
-				if err != nil {
-					return "", err
-				}
-				for _, cluster := range clustersResponse.Data.Clusters {
-					clusterIDs = append(clusterIDs, cluster.Id)
-				}
-			}
-			if len(clusterIDs) == 1 {
-				return clusterIDs[0], nil
-			}
-			return "", nil
-		}
+	if len(clustersResponse) == 1 {
+		return clustersResponse[0].Id, nil
 	}
-	return "", fmt.Errorf("Unexpected error (HTTP: %s)", apiResponse.Response.Status)
+
+	return "", nil
 }
 
 // migrateConfigDir migrates a configuration directory from the old
