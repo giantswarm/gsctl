@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,6 +11,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gsclientgen"
+	microerror "github.com/giantswarm/microkit/error"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
@@ -72,12 +72,12 @@ func listKeypairsValidationOutput(cmd *cobra.Command, extraArgs []string) {
 		var headline string
 		var subtext string
 
-		switch err.Error() {
-		case errNotLoggedIn:
+		switch {
+		case IsNotLoggedInError(err):
 			headline = "You are not logged in."
 			subtext = "Please log in using 'gsctl login <email>' or set an auth token as a command line argument."
 			subtext += " See `gsctl list keypairs --help` for details."
-		case errClusterIDNotSpecified:
+		case IsClusterIDMissingError(err):
 			headline = "No cluster ID specified."
 			subtext = "Please specify which cluster to list key pairs for, by using the '-c' or '--cluster' argument."
 		default:
@@ -99,7 +99,7 @@ func listKeypairsValidationOutput(cmd *cobra.Command, extraArgs []string) {
 // the clusterID field.
 func listKeypairsValidate(args *listKeypairsArguments) error {
 	if config.Config.Token == "" && args.token == "" {
-		return errors.New(errNotLoggedIn)
+		return microerror.MaskAny(notLoggedInError)
 	}
 	if args.clusterID == "" {
 		// use default cluster if possible
@@ -107,7 +107,7 @@ func listKeypairsValidate(args *listKeypairsArguments) error {
 		if clusterID != "" {
 			cmdClusterID = clusterID
 		} else {
-			return errors.New(errClusterIDNotSpecified)
+			return microerror.MaskAny(clusterIDMissingError)
 		}
 	}
 
@@ -125,21 +125,21 @@ func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
 		var headline string
 		var subtext string
 
-		switch err.Error() {
-		case errNotLoggedIn:
+		switch {
+		case IsNotLoggedInError(err):
 			headline = "You are not logged in."
 			subtext = "Please log in using 'gsctl login <email>' or set an auth token as a command line argument."
 			subtext += " See `gsctl list keypairs --help` for details."
-		case errClusterIDNotSpecified:
+		case IsClusterIDMissingError(err):
 			headline = "No cluster ID specified."
 			subtext = "Please specify which cluster to list key pairs for, by using the '-c' or '--cluster' argument."
-		case errNotAuthorized:
+		case IsNotAuthorizedError(err):
 			headline = "You are not authorized for this cluster."
 			subtext = "You have no permission to access key pairs for this cluster. Please check your credentials."
-		case errClusterNotFound:
+		case IsClusterNotFoundError(err):
 			headline = "The cluster does not exist."
 			subtext = fmt.Sprintf("We couldn't find a cluster with the ID '%s' via API endpoint %s.", args.clusterID, args.apiEndpoint)
-		case errInternalServerError:
+		case IsInternalServerError(err):
 			headline = "An internal error occurred."
 			subtext = "Please notify the Giant Swarm support team, or try listing key pairs again in a few moments."
 		default:
@@ -208,13 +208,13 @@ func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
 	if err != nil {
 
 		if apiResponse.StatusCode >= 500 {
-			return result, errors.New(errInternalServerError)
+			return result, microerror.MaskAnyf(internalServerError, err.Error())
 		} else if apiResponse.StatusCode == http.StatusNotFound {
-			return result, errors.New(errClusterNotFound)
+			return result, microerror.MaskAny(clusterNotFoundError)
 		} else if apiResponse.StatusCode == http.StatusUnauthorized {
-			return result, errors.New(errNotAuthorized)
+			return result, microerror.MaskAny(notAuthorizedError)
 		}
-		return result, err
+		return result, microerror.MaskAny(err)
 	}
 
 	if apiResponse.StatusCode != http.StatusOK {

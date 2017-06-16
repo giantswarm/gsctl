@@ -90,8 +90,8 @@ func Test_ListKeypairs_NotFound(t *testing.T) {
 	_, listErr := listKeypairs(args)
 	if listErr == nil {
 		t.Error("No error occurred where we expected one.")
-	} else if listErr.Error() != errClusterNotFound {
-		t.Errorf("Expected error '%s', got '%s'.", errClusterNotFound, listErr.Error())
+	} else if !IsClusterNotFoundError(listErr) {
+		t.Errorf("Expected error '%s', got '%s'.", clusterNotFoundError, listErr)
 	}
 }
 
@@ -102,7 +102,7 @@ func Test_ListKeyPairs_Nonempty(t *testing.T) {
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	config.Initialize(dir)
-  
+
 	// mock service returning key pairs. For the sake of simplicity,
 	// it doesn't care about auth tokens.
 	keyPairsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
