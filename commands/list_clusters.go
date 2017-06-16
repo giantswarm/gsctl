@@ -3,7 +3,6 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -65,47 +64,32 @@ func clustersTable() (string, error) {
 	}
 	apiClient := client.NewClient(clientConfig)
 	authHeader := "giantswarm " + config.Config.Token
-	organizations, apiResponse, err := apiClient.GetUserOrganizations(authHeader, requestIDHeader, listClustersActivityName, cmdLine)
+
+	clusters, apiResponse, err := apiClient.GetClusters(authHeader,
+		requestIDHeader, listClustersActivityName, cmdLine)
 	if err != nil {
-		gr, grErr := client.ParseGenericResponse(apiResponse.Payload)
-		if grErr == nil {
-			return "", fmt.Errorf("%s (Code: %s)", gr.Message, gr.Code)
-		}
 		return "", APIError{err.Error(), *apiResponse}
 	}
 
-	if apiResponse.Response.StatusCode == http.StatusOK {
-		if len(organizations) == 0 {
-			return "No organizations available", nil
-		}
+	if len(clusters) == 0 {
+		return "", nil
+	}
+	// table headers
+	output := []string{color.CyanString("ID") + "|" + color.CyanString("NAME") + "|" + color.CyanString("CREATED") + "|" + color.CyanString("ORGANIZATION")}
 
-		// table headers
-		output := []string{color.CyanString("ID") + "|" + color.CyanString("NAME") + "|" + color.CyanString("CREATED") + "|" + color.CyanString("ORGANIZATION")}
+	// sort clusters by organization
+	slice.Sort(clusters[:], func(i, j int) bool {
+		return clusters[i].Owner < clusters[j].Id
+	})
 
-		// sort orgs by Id
-		slice.Sort(organizations[:], func(i, j int) bool {
-			return organizations[i].Id < organizations[j].Id
-		})
-
-		for _, org := range organizations {
-			clustersResponse, _, err := apiClient.GetOrganizationClusters(authHeader, org.Id,
-				requestIDHeader, listClustersActivityName, cmdLine)
-			if err != nil {
-				return "", APIError{err.Error(), *apiResponse}
-			}
-
-			for _, cluster := range clustersResponse.Data.Clusters {
-				created := util.ShortDate(util.ParseDate(cluster.CreateDate))
-				output = append(output,
-					cluster.Id+"|"+
-						cluster.Name+"|"+
-						created+"|"+
-						org.Id)
-			}
-		}
-		return columnize.SimpleFormat(output), nil
-
+	for _, cluster := range clusters {
+		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
+		output = append(output,
+			cluster.Id+"|"+
+				cluster.Name+"|"+
+				created+"|"+
+				cluster.Owner)
 	}
 
-	return "", APIError{fmt.Sprintf("Unhandled response code: %v", apiResponse.Response.StatusCode), *apiResponse}
+	return columnize.SimpleFormat(output), nil
 }

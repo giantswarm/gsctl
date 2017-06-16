@@ -1,5 +1,5 @@
 hash: f427d523b388a1d1e417a9ba5069e99c99467b1d857e1a5711b2103cd18e9e2e
-updated: 2017-06-06T15:20:37.516963007+02:00
+updated: 2017-06-16T12:57:10.186066882+02:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -12,7 +12,7 @@ imports:
 - name: github.com/giantswarm/columnize
   version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
 - name: github.com/giantswarm/gsclientgen
-  version: a08dea815369504f99906d3b81b7fb4f5067afbf
+  version: a64ecd63d43809e7764debb95752a1b7f7737d0f
 - name: github.com/go-resty/resty
   version: 7a8134d8718193eb857994adee49d73a302e7718
 - name: github.com/hashicorp/hcl
@@ -53,23 +53,23 @@ imports:
 - name: github.com/spf13/cast
   version: acbeb36b902d72a7a4c18e8f3241075e7ab763e4
 - name: github.com/spf13/cobra
-  version: 84f471618b363c4e298af84c2b53aa4f687c5f70
+  version: b4dbd37a01839e0653eec12aa4bbb2a2ce7b2a37
 - name: github.com/spf13/jwalterweatherman
   version: 0efa5202c04663c757d84f90f5219c1250baf94f
 - name: github.com/spf13/pflag
   version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
 - name: github.com/spf13/viper
-  version: 0967fc9aceab2ce9da34061253ac10fb99bba5b2
+  version: a1ecfa6a20bd4ef9e9caded262ee1b1b26847675
 - name: go4.org
   version: 034d17a462f7b2dcd1a4a73553ec5357ff6e6c6e
   subpackages:
   - reflectutil
 - name: golang.org/x/crypto
-  version: e1a4589e7d3ea14a3352255d04b6f1a418845e5e
+  version: 850760c427c516be930bc91280636328f1a62286
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 59a0b19b5533c7977ddeb86b017bf507ed407b12
+  version: ddf80d0970594e2e4cccf5a98861cad3d9eaa4cd
   subpackages:
   - publicsuffix
 - name: golang.org/x/sys
@@ -78,7 +78,7 @@ imports:
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: ccbd3f7822129ff389f8ca4858a9b9d4d910531c
+  version: 9e2f80a6ba7ed4ba13e0cd4b1f094bf916875735
   subpackages:
   - transform
   - unicode/norm
