@@ -4,6 +4,16 @@ import "github.com/juju/errgo"
 
 // Common errors and matcher functions for the "commands" package.
 
+// unknownError should only be used if there is really no way to
+// specify the error any further. Note that there is a more specific
+// internalServerError.
+var unknownError = errgo.New("unknown error")
+
+// IsUnknownError asserts unknownError.
+func IsUnknownError(err error) bool {
+	return errgo.Cause(err) == unknownError
+}
+
 var notLoggedInError = errgo.New("user not logged in")
 
 // IsNotLoggedInError asserts notLoggedInError.
@@ -32,6 +42,9 @@ func IsClusterNotFoundError(err error) bool {
 	return errgo.Cause(err) == clusterNotFoundError
 }
 
+// internalServerError should only be used in case of server communication
+// being responded to with a response status >= 500.
+// See also: unknownError
 var internalServerError = errgo.New("an internal server error occurred")
 
 // IsInternalServerError asserts internalServerError.

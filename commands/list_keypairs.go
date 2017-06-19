@@ -218,7 +218,7 @@ func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
 	}
 
 	if apiResponse.StatusCode != http.StatusOK {
-		return result, nil
+		return result, microerror.MaskAny(unknownError)
 	}
 
 	// sort key pairs by create date (descending)
