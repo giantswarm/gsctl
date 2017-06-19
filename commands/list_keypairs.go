@@ -142,6 +142,9 @@ func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
 		case IsInternalServerError(err):
 			headline = "An internal error occurred."
 			subtext = "Please notify the Giant Swarm support team, or try listing key pairs again in a few moments."
+		case IsUnknownError(err):
+			headline = "An error occurred."
+			subtext = "Please notify the Giant Swarm support team, or try listing key pairs again in a few moments."
 		default:
 			headline = err.Error()
 		}
