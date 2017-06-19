@@ -73,66 +73,7 @@ See [Releases](https://github.com/giantswarm/gsctl/releases)
 
 ## Development
 
-### What you might need
-
-- Go environment (`brew install go`)
-- [`glide`](https://github.com/Masterminds/glide) (`brew install glide`)
-- GNU Make
-- `git`
-- Docker
-
-### Cloning to the right location
-
-Make sure you have the `$GOPATH` environment variable set.
-
-```nohighlight
-$ echo $GOPATH
-/Users/johndoe/go
-```
-
-Go to right location, then check out:
-
-```nohighlight
-$ mkdir -p $GOPATH/src/github.com/giantswarm
-$ cd $GOPATH/src/github.com/giantswarm
-$ git clone https://github.com/giantswarm/gsctl.git
-$ cd gsctl
-```
-
-So the repo content will end up in `$GOPATH/src/github.com/giantswarm/gsctl`.
-
-### Dependencies
-
-Dependencies are managed using [`glide`](https://github.com/Masterminds/glide).
-
-**CAUTION:** The `vendor` directory is _flattened_. Make sure to use glide with the `-v` (or `--strip-vendor`) flag.
-
-### Executing via `go run`
-
-Check everything by running the code via `go run`:
-
-```nohighlight
-$ go run main.go info
-```
-
-### Running tests
-
-make gotest
-make test
-
-### Cleaning up code
-
-Please do a `golint .` check and act on recommendations before pushing.
-
-### Building binaries
-
-A simple build can be done using `go build`.
-
-To run a more reproducible build, the Makefile defines targets that build in a Docker container:
-
-- `make` will build a binary for the current platform and place it in `./build/bin`
-- `make install` will install this as `/usr/local/bin/gsctl`
-- `make crosscompile` will build binaries for multiple platforms and place them into `./build/bin`
+See [DEVELOPMENT.md](https://github.com/giantswarm/gsctl/blob/master/DEVELOPMENT.md)
 
 ## Contributing
 
