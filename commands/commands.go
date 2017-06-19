@@ -43,10 +43,6 @@ var (
 
 	requestIDHeader string
 	cmdLine         string
-
-	// errors for common purposes
-	errNotLoggedIn      = "user not logged in"
-	errConflictingFlags = "conflicting flags used"
 )
 
 // APIError is an error type we use for errors generated after API requests

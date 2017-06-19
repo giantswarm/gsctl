@@ -41,8 +41,8 @@ func TestDeleteClusterSuccess(t *testing.T) {
 }
 
 type failTestCase struct {
-	arguments           deleteClusterArguments
-	expectedErrorString string
+	arguments     deleteClusterArguments
+	expectedError error
 }
 
 // TestDeleteClusterFailures runs test case that are supposed to fail
@@ -53,21 +53,21 @@ func TestDeleteClusterFailures(t *testing.T) {
 				clusterID: "somecluster",
 				token:     "",
 			},
-			expectedErrorString: errNotLoggedIn,
+			expectedError: notLoggedInError,
 		},
 		failTestCase{
 			arguments: deleteClusterArguments{
 				clusterID: "",
 				token:     "some token",
 			},
-			expectedErrorString: errClusterIDNotSpecified,
+			expectedError: clusterIDMissingError,
 		},
 	}
 
 	for i, ftc := range failTestCases {
 		validateErr := validateDeleteClusterPreConditions(ftc.arguments)
 		if validateErr == nil {
-			t.Errorf("Didn't get an error where we expected '%s' in testCase %v", ftc.expectedErrorString, i)
+			t.Errorf("Didn't get an error where we expected '%s' in testCase %v", ftc.expectedError, i)
 		}
 	}
 }

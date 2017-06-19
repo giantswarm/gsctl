@@ -1,9 +1,10 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"os"
+
+	microerror "github.com/giantswarm/microkit/error"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsctl/client"
@@ -58,9 +59,6 @@ Example:
 
 	// force flag
 	cmdForce bool
-
-	// errors
-	errClusterIDNotSpecified = "cluster ID not specified"
 )
 
 func init() {
@@ -80,15 +78,19 @@ func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
 		var headline = ""
 		var subtext = ""
 
-		switch err.Error() {
-		case "":
+		switch {
+		case err.Error() == "":
 			return
-		case errNotLoggedIn:
+		case IsNotLoggedInError(err):
 			headline = "You are not logged in."
 			subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
-		case errClusterIDNotSpecified:
+		case IsClusterIDMissingError(err):
 			headline = "No cluster ID specified."
 			subtext = "Please specify which cluster to delete using '-c' or '--cluster'."
+		case IsCouldNotDeleteClusterError(err):
+			headline = "The cluster could not be deleted."
+			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
+			subtext += " Sorry for the inconvenience!"
 		default:
 			headline = err.Error()
 		}
@@ -105,10 +107,10 @@ func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
 // validateDeleteClusterPreConditions checks preconditions and returns an error in case
 func validateDeleteClusterPreConditions(args deleteClusterArguments) error {
 	if args.clusterID == "" {
-		return errors.New(errClusterIDNotSpecified)
+		return microerror.MaskAny(clusterIDMissingError)
 	}
 	if config.Config.Token == "" && args.token == "" {
-		return errors.New(errNotLoggedIn)
+		return microerror.MaskAny(notLoggedInError)
 	}
 	return nil
 }
@@ -160,7 +162,7 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 	apiClient := client.NewClient(clientConfig)
 	responseBody, _, err := apiClient.DeleteCluster(authHeader, args.clusterID, requestIDHeader, createClusterActivityName, cmdLine)
 	if err != nil {
-		return false, err
+		return false, microerror.MaskAny(err)
 	}
 
 	// handle API result
@@ -168,5 +170,7 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		return true, nil
 	}
 
-	return false, fmt.Errorf("Error in API request to create cluster: %s (Code: %s)", responseBody.Message, responseBody.Code)
+	return false, microerror.MaskAnyf(couldNotDeleteClusterError,
+		fmt.Sprintf("Error in API request to create cluster: %s (Code: %s)",
+			responseBody.Message, responseBody.Code))
 }
