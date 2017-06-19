@@ -110,18 +110,18 @@ func Test_ListKeyPairs_Nonempty(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`[
 			{
-        "create_date": "2017-01-23T13:57:57.755631763Z",
-        "description": "Added by user oliver.ponder@gmail.com using Happa web interface",
-        "id": "74:2d:de:d2:6b:9f:4d:a5:e5:0d:eb:6e:98:14:02:6c:79:40:f6:58",
-        "ttl_hours": 720
-      },
-      {
-        "create_date": "2017-03-17T12:41:23.053271166Z",
-        "description": "Added by user marian@sendung.de using 'gsctl create kubeconfig'",
-        "id": "52:64:7d:ca:75:3c:7b:46:06:2f:a0:ce:42:9a:76:c9:2b:76:aa:9e",
-        "ttl_hours": 720
-      }
-    ]`))
+				"create_date": "2017-01-23T13:57:57.755631763Z",
+				"description": "Added by user oliver.ponder@gmail.com using Happa web interface",
+				"id": "74:2d:de:d2:6b:9f:4d:a5:e5:0d:eb:6e:98:14:02:6c:79:40:f6:58",
+				"ttl_hours": 720
+			},
+			{
+				"create_date": "2017-03-17T12:41:23.053271166Z",
+				"description": "Added by user marian@sendung.de using 'gsctl create kubeconfig'",
+				"id": "52:64:7d:ca:75:3c:7b:46:06:2f:a0:ce:42:9a:76:c9:2b:76:aa:9e",
+				"ttl_hours": 720
+			}
+		]`))
 	}))
 	defer keyPairsMockServer.Close()
 
