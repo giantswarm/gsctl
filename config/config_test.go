@@ -9,6 +9,7 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -34,6 +35,7 @@ func Test_Initialize_Empty(t *testing.T) {
 
 	Config.Email = "email@example.com"
 	Config.Token = "some-token"
+	Config.LastVersionCheck = time.Time{}
 
 	err = WriteToFile()
 	if err != nil {
