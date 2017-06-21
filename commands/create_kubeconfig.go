@@ -80,7 +80,8 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-
+		fmt.Println(color.RedString("Error: %s", clientErr.Error()))
+		os.Exit(1)
 	}
 	authHeader := "giantswarm " + config.Config.Token
 
