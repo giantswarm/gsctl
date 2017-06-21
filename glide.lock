@@ -1,5 +1,5 @@
-hash: 4ddda49f5cab4b2411370acfe1770a4a22c75aeff97b1b9f366e668a0a4afb31
-updated: 2017-06-21T10:52:18.150293938+02:00
+hash: 83f45a1c8e5d93859c295a21b3404a197d697768818a3dd7a7f9230c1ee5d3e7
+updated: 2017-06-21T12:01:20.567830477+02:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -46,6 +46,8 @@ imports:
 - name: github.com/mattn/go-isatty
   version: 57fdcb988a5c543893cc61bce354a6e24ab70022
   repo: https://github.com/mattn/go-isatty
+- name: github.com/mitchellh/go-homedir
+  version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mitchellh/mapstructure
   version: d0303fe809921458f417bcf828397a65db30a7e4
 - name: github.com/pelletier/go-buffruneio

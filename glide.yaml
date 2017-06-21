@@ -19,3 +19,4 @@ import:
   subpackages:
   - error
 - package: github.com/hashicorp/go-rootcerts
+- package: github.com/mitchellh/go-homedir
