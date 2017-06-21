@@ -53,7 +53,10 @@ func NewClient(clientConfig Configuration) (*gsclientgen.DefaultApi, error) {
 	if rootCertsErr != nil {
 		return nil, microerror.MaskAny(rootCertsErr)
 	}
-	configuration.Transport = &http.Transport{TLSClientConfig: tlsConfig}
+	configuration.Transport = &http.Transport{
+		Proxy:           http.ProxyFromEnvironment,
+		TLSClientConfig: tlsConfig,
+	}
 
 	return &gsclientgen.DefaultApi{
 		Configuration: configuration,

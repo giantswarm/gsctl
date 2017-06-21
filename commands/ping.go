@@ -74,8 +74,10 @@ func ping(endpointURL string) (time.Duration, error) {
 	if rootCertsErr != nil {
 		return duration, microerror.MaskAny(rootCertsErr)
 	}
-	t := &http.Transport{}
-	t.TLSClientConfig = tlsConfig
+	t := &http.Transport{
+		Proxy:           http.ProxyFromEnvironment,
+		TLSClientConfig: tlsConfig,
+	}
 	pingClient := &http.Client{
 		Timeout:   5 * time.Second,
 		Transport: t,
