@@ -18,3 +18,5 @@ import:
 - package: github.com/giantswarm/microkit
   subpackages:
   - error
+- package: github.com/hashicorp/go-rootcerts
+- package: github.com/mitchellh/go-homedir

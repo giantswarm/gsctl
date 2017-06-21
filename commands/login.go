@@ -10,6 +10,7 @@ import (
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/gsclientgen"
+	microerror "github.com/giantswarm/microkit/error"
 	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 
@@ -203,7 +204,10 @@ func login(args loginArguments) (loginResult, error) {
 		Timeout:   10 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
-	apiClient := client.NewClient(clientConfig)
+	apiClient, clientErr := client.NewClient(clientConfig)
+	if clientErr != nil {
+		return result, microerror.MaskAny(couldNotCreateClientError)
+	}
 
 	requestBody := gsclientgen.LoginBodyModel{Password: string(encodedPassword)}
 	loginResponse, _, err := apiClient.UserLogin(args.email, requestBody, requestIDHeader, loginActivityName, cmdLine)

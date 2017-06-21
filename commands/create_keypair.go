@@ -7,10 +7,11 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen"
+	"github.com/spf13/cobra"
+
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -64,7 +65,11 @@ func addKeypair(cmd *cobra.Command, args []string) {
 		Endpoint:  cmdAPIEndpoint,
 		UserAgent: config.UserAgent(),
 	}
-	apiClient := client.NewClient(clientConfig)
+	apiClient, clientErr := client.NewClient(clientConfig)
+	if clientErr != nil {
+		fmt.Println(color.RedString("Error: %s", clientErr))
+		os.Exit(1)
+	}
 	authHeader := "giantswarm " + config.Config.Token
 	ttlHours := int32(cmdTTLDays * 24)
 	addKeyPairBody := gsclientgen.V4AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
