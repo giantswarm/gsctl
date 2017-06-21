@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/giantswarm/gsctl/client"
+
+	microerror "github.com/giantswarm/microkit/error"
 	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -233,7 +235,10 @@ func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint st
 		Timeout:   10 * time.Second,
 		UserAgent: UserAgent(),
 	}
-	apiClient := client.NewClient(clientConfig)
+	apiClient, clientErr := client.NewClient(clientConfig)
+	if clientErr != nil {
+		return "", microerror.MaskAny(clientErr)
+	}
 
 	authHeader := "giantswarm " + Config.Token
 

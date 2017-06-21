@@ -452,7 +452,10 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 			Endpoint:  args.apiEndpoint,
 			UserAgent: config.UserAgent(),
 		}
-		apiClient := client.NewClient(clientConfig)
+		apiClient, clientErr := client.NewClient(clientConfig)
+		if clientErr != nil {
+			return result, microerror.MaskAny(couldNotCreateClientError)
+		}
 		responseBody, apiResponse, err := apiClient.AddCluster(authHeader, addClusterBody, requestIDHeader, createClusterActivityName, cmdLine)
 		if err != nil {
 			// lower level connection problem

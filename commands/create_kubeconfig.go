@@ -9,10 +9,11 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen"
+	"github.com/spf13/cobra"
+
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -77,7 +78,10 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		Timeout:   10 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
-	apiClient := client.NewClient(clientConfig)
+	apiClient, clientErr := client.NewClient(clientConfig)
+	if clientErr != nil {
+
+	}
 	authHeader := "giantswarm " + config.Config.Token
 
 	// get cluster details
@@ -100,7 +104,13 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 	fmt.Println("Creating new key pair…")
 
 	clientConfig.Timeout = 60 * time.Second
-	apiClient = client.NewClient(clientConfig)
+	apiClient, clientErr = client.NewClient(clientConfig)
+	if clientErr != nil {
+		fmt.Println(color.RedString("Could not create API client.'"))
+		fmt.Println("Error:")
+		fmt.Println(clientErr)
+		os.Exit(1)
+	}
 
 	keypairResponse, apiResponse, err := apiClient.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, createKubeconfigActivityName, cmdLine)
 

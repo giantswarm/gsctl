@@ -159,7 +159,10 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		Endpoint:  args.apiEndpoint,
 		UserAgent: config.UserAgent(),
 	}
-	apiClient := client.NewClient(clientConfig)
+	apiClient, clientErr := client.NewClient(clientConfig)
+	if clientErr != nil {
+		return false, microerror.MaskAny(couldNotCreateClientError)
+	}
 	responseBody, _, err := apiClient.DeleteCluster(authHeader, args.clusterID, requestIDHeader, createClusterActivityName, cmdLine)
 	if err != nil {
 		return false, microerror.MaskAny(err)

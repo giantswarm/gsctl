@@ -9,6 +9,7 @@ import (
 	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
+	microerror "github.com/giantswarm/microkit/error"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
@@ -62,7 +63,10 @@ func clustersTable() (string, error) {
 		Timeout:   3 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
-	apiClient := client.NewClient(clientConfig)
+	apiClient, clientErr := client.NewClient(clientConfig)
+	if clientErr != nil {
+		return "", microerror.MaskAny(couldNotCreateClientError)
+	}
 	authHeader := "giantswarm " + config.Config.Token
 
 	clusters, apiResponse, err := apiClient.GetClusters(authHeader,
