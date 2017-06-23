@@ -22,3 +22,5 @@ import:
   version: v0.2.0
   subpackages:
   - semver
+- package: github.com/hashicorp/go-rootcerts
+- package: github.com/mitchellh/go-homedir

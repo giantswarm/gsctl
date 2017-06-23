@@ -1,5 +1,5 @@
-hash: 73153421231ca60b1000b3ce3ccce3f6c1a582586c68ac5b97d753a6f477cd14
-updated: 2017-06-20T13:39:27.581112563+02:00
+hash: 83f45a1c8e5d93859c295a21b3404a197d697768818a3dd7a7f9230c1ee5d3e7
+updated: 2017-06-21T12:01:20.567830477+02:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -23,6 +23,8 @@ imports:
   - error
 - name: github.com/go-resty/resty
   version: 2876b89796be38188ddb6cb2323d5d6bc596127e
+- name: github.com/hashicorp/go-rootcerts
+  version: 6bb64b370b90e7ef1fa532be9e591a81c3493e00
 - name: github.com/hashicorp/hcl
   version: 392dba7d905ed5d04a5794ba89f558b27e2ba1ca
   subpackages:
@@ -48,6 +50,8 @@ imports:
 - name: github.com/mattn/go-isatty
   version: 57fdcb988a5c543893cc61bce354a6e24ab70022
   repo: https://github.com/mattn/go-isatty
+- name: github.com/mitchellh/go-homedir
+  version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mitchellh/mapstructure
   version: d0303fe809921458f417bcf828397a65db30a7e4
 - name: github.com/pelletier/go-buffruneio
@@ -77,7 +81,7 @@ imports:
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: fe686d45ea04bc1bd4eff6a52865ce8757320325
+  version: 057a25b06247e0c51ba15d8ae475feb2fcb72164
   subpackages:
   - publicsuffix
 - name: golang.org/x/sys

@@ -9,6 +9,7 @@ import (
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
+	microerror "github.com/giantswarm/microkit/error"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
@@ -101,7 +102,10 @@ func logout(args logoutArguments) error {
 		Timeout:   10 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
-	apiClient := client.NewClient(clientConfig)
+	apiClient, clientErr := client.NewClient(clientConfig)
+	if clientErr != nil {
+		return microerror.MaskAny(couldNotCreateClientError)
+	}
 
 	authHeader := "giantswarm " + args.token
 	logoutResponse, apiResponse, err := apiClient.UserLogout(authHeader, requestIDHeader, logoutActivityName, cmdLine)

@@ -1,10 +1,15 @@
 package client
 
 import (
+	"crypto/tls"
 	"encoding/json"
+	"net/http"
+	"os"
 	"time"
 
 	"github.com/giantswarm/gsclientgen"
+	microerror "github.com/giantswarm/microkit/error"
+	rootcerts "github.com/hashicorp/go-rootcerts"
 )
 
 var (
@@ -30,7 +35,7 @@ type GenericResponse struct {
 
 // NewClient allows to create a new API client
 // with specific configuration
-func NewClient(clientConfig Configuration) *gsclientgen.DefaultApi {
+func NewClient(clientConfig Configuration) (*gsclientgen.DefaultApi, error) {
 	configuration := gsclientgen.NewConfiguration()
 	configuration.BasePath = clientConfig.Endpoint
 	configuration.UserAgent = clientConfig.UserAgent
@@ -39,9 +44,23 @@ func NewClient(clientConfig Configuration) *gsclientgen.DefaultApi {
 		configuration.Timeout = &clientConfig.Timeout
 	}
 
+	// set up client TLS so that custom CAs are accepted.
+	tlsConfig := &tls.Config{}
+	rootCertsErr := rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
+		CAFile: os.Getenv("GSCTL_CAFILE"),
+		CAPath: os.Getenv("GSCTL_CAPATH"),
+	})
+	if rootCertsErr != nil {
+		return nil, microerror.MaskAny(rootCertsErr)
+	}
+	configuration.Transport = &http.Transport{
+		Proxy:           http.ProxyFromEnvironment,
+		TLSClientConfig: tlsConfig,
+	}
+
 	return &gsclientgen.DefaultApi{
 		Configuration: configuration,
-	}
+	}, nil
 }
 
 // ParseGenericResponse parses the standard code, message response document into

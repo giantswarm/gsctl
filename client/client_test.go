@@ -23,7 +23,10 @@ func TestTimeout(t *testing.T) {
 		Endpoint: ts.URL,
 		Timeout:  1 * time.Second,
 	}
-	apiClient := NewClient(clientConfig)
+	apiClient, clientErr := NewClient(clientConfig)
+	if clientErr != nil {
+		t.Error(clientErr)
+	}
 	_, _, err := apiClient.GetUserOrganizations("foo", "foo", "foo", "foo")
 	if err == nil {
 		t.Error("Expected Timeout error, got nil")
@@ -50,7 +53,10 @@ func TestUserAgent(t *testing.T) {
 		Endpoint:  ts.URL,
 		UserAgent: "my own user agent/1.0",
 	}
-	apiClient := NewClient(clientConfig)
+	apiClient, clientErr := NewClient(clientConfig)
+	if clientErr != nil {
+		t.Error(clientErr)
+	}
 	// We use GetUserOrganizations just to issue a request. We could use any other
 	// API call, it wouldn't matter.
 	_, apiResponse, _ := apiClient.GetUserOrganizations("foo", "foo", "foo", "foo")

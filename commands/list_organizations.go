@@ -9,9 +9,11 @@ import (
 
 	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
+	microerror "github.com/giantswarm/microkit/error"
+	"github.com/spf13/cobra"
+
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -60,7 +62,10 @@ func orgsTable() (string, error) {
 		Timeout:   5 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
-	apiClient := client.NewClient(clientConfig)
+	apiClient, clientErr := client.NewClient(clientConfig)
+	if clientErr != nil {
+		return "", microerror.MaskAny(couldNotCreateClientError)
+	}
 
 	// if token is set via flags, we unauthenticate using this token
 	authHeader := "giantswarm " + config.Config.Token

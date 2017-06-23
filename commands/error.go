@@ -14,6 +14,13 @@ func IsUnknownError(err error) bool {
 	return errgo.Cause(err) == unknownError
 }
 
+var couldNotCreateClientError = errgo.New("could not create client")
+
+// IsCouldNotCreateClientError asserts couldNotCreateClientError.
+func IsCouldNotCreateClientError(err error) bool {
+	return errgo.Cause(err) == couldNotCreateClientError
+}
+
 var notLoggedInError = errgo.New("user not logged in")
 
 // IsNotLoggedInError asserts notLoggedInError.

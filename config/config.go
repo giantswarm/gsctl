@@ -255,7 +255,10 @@ func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint st
 		Timeout:   10 * time.Second,
 		UserAgent: UserAgent(),
 	}
-	apiClient := client.NewClient(clientConfig)
+	apiClient, clientErr := client.NewClient(clientConfig)
+	if clientErr != nil {
+		return "", microerror.MaskAny(clientErr)
+	}
 
 	authHeader := "giantswarm " + Config.Token
 

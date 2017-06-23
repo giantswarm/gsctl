@@ -203,7 +203,10 @@ func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
 	if args.token != "" {
 		token = args.token
 	}
-	apiClient := client.NewClient(clientConfig)
+	apiClient, clientErr := client.NewClient(clientConfig)
+	if clientErr != nil {
+		return result, microerror.MaskAny(couldNotCreateClientError)
+	}
 	authHeader := "giantswarm " + token
 	keypairsResponse, apiResponse, err := apiClient.GetKeyPairs(authHeader,
 		cmdClusterID, requestIDHeader, listKeypairsActivityName, cmdLine)
