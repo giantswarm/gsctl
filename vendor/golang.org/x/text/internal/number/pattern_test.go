@@ -26,20 +26,6 @@ var testCases = []struct {
 		MinIntegerDigits: 1,
 	},
 }, {
-	"+0",
-	&Pattern{
-		Affix:            "\x01+\x00",
-		FormatWidth:      2,
-		MinIntegerDigits: 1,
-	},
-}, {
-	"0+",
-	&Pattern{
-		Affix:            "\x00\x01+",
-		FormatWidth:      2,
-		MinIntegerDigits: 1,
-	},
-}, {
 	"0000",
 	&Pattern{
 		FormatWidth:      4,
@@ -64,22 +50,6 @@ var testCases = []struct {
 		FormatWidth:       9,
 		MinIntegerDigits:  1,
 		MaxFractionDigits: 6,
-	},
-}, {
-	"#,0",
-	&Pattern{
-		FormatWidth:      3,
-		GroupingSize:     [2]uint8{1, 0},
-		MinIntegerDigits: 1,
-	},
-}, {
-	"#,0.00",
-	&Pattern{
-		FormatWidth:       6,
-		GroupingSize:      [2]uint8{1, 0},
-		MinIntegerDigits:  1,
-		MinFractionDigits: 2,
-		MaxFractionDigits: 2,
 	},
 }, {
 	"#,##0.###",
@@ -206,7 +176,7 @@ var testCases = []struct {
 		MaxFractionDigits: 3,
 	},
 }, {
-	// Rounding increment
+	// Rounding increments
 	"1.05",
 	&Pattern{
 		RoundIncrement:    105,
@@ -214,17 +184,6 @@ var testCases = []struct {
 		MinIntegerDigits:  1,
 		MinFractionDigits: 2,
 		MaxFractionDigits: 2,
-	},
-}, {
-	// Rounding increment with grouping
-	"1,05",
-	&Pattern{
-		RoundIncrement:    105,
-		FormatWidth:       4,
-		GroupingSize:      [2]uint8{2, 0},
-		MinIntegerDigits:  3,
-		MinFractionDigits: 0,
-		MaxFractionDigits: 0,
 	},
 }, {
 	"0.0%",
@@ -323,21 +282,19 @@ var testCases = []struct {
 
 func TestParsePattern(t *testing.T) {
 	for i, tc := range testCases {
-		t.Run(tc.pat, func(t *testing.T) {
-			f, err := ParsePattern(tc.pat)
-			if !reflect.DeepEqual(f, tc.want) {
-				t.Errorf("%d:%s:\ngot %#v;\nwant %#v", i, tc.pat, f, tc.want)
-			}
-			if got, want := err != nil, tc.want == nil; got != want {
-				t.Errorf("%d:%s:error: got %v; want %v", i, tc.pat, err, want)
-			}
-		})
+		f, err := ParsePattern(tc.pat)
+		if !reflect.DeepEqual(f, tc.want) {
+			t.Errorf("%d:%s:\ngot %#v;\nwant %#v", i, tc.pat, f, tc.want)
+		}
+		if got, want := err != nil, tc.want == nil; got != want {
+			t.Errorf("%d:%s:error: got %v; want %v", i, tc.pat, err, want)
+		}
 	}
 }
 
 func TestPatternSize(t *testing.T) {
 	if sz := unsafe.Sizeof(Pattern{}); sz > 48 {
-		t.Errorf("got %d; want <= 48", sz)
+		t.Errorf("got %d; want 48", sz)
 	}
 
 }

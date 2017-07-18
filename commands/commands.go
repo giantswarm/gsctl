@@ -39,6 +39,9 @@ var (
 	// TTL (time to live) flag
 	cmdTTLDays int
 
+	// force flag. if set, no prompt should be displayed.
+	cmdForce bool
+
 	randomStringCharset = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 	requestIDHeader string

@@ -11,6 +11,7 @@ Method | HTTP request | Description
 [**GetClusters**](DefaultApi.md#GetClusters) | **Get** /v4/clusters/ | Get clusters
 [**GetKeyPairs**](DefaultApi.md#GetKeyPairs) | **Get** /v4/clusters/{cluster_id}/key-pairs/ | Get key-pairs for cluster
 [**GetUserOrganizations**](DefaultApi.md#GetUserOrganizations) | **Get** /v4/organizations/ | Get organizations for user
+[**ModifyCluster**](DefaultApi.md#ModifyCluster) | **Patch** /v4/clusters/{cluster_id}/ | Modify cluster
 [**UserLogin**](DefaultApi.md#UserLogin) | **Post** /v1/user/{email}/login | Log in as a user
 [**UserLogout**](DefaultApi.md#UserLogout) | **Post** /v1/token/logout | Expire the currently used auth token
 
@@ -227,6 +228,38 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**[]V4OrganizationListItem**](V4OrganizationListItem.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **ModifyCluster**
+> V4ClusterDetailsModel ModifyCluster($authorization, $clusterId, $body, $xRequestID, $xGiantSwarmActivity, $xGiantSwarmCmdLine)
+
+Modify cluster
+
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.  | 
+ **clusterId** | **string**| Cluster ID | 
+ **body** | [**V4ModifyClusterRequest**](V4ModifyClusterRequest.md)| Modified cluster definition (JSON merge-patch) | 
+ **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm  | [optional] 
+ **xGiantSwarmActivity** | **string**| Name of an activity to track, like \&quot;list-clusters\&quot; | [optional] 
+ **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line  | [optional] 
+
+### Return type
+
+[**V4ClusterDetailsModel**](V4ClusterDetailsModel.md)
 
 ### Authorization
 

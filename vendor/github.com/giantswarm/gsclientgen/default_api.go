@@ -546,6 +546,81 @@ func (a DefaultApi) GetUserOrganizations(authorization string, xRequestID string
 }
 
 /**
+ * Modify cluster
+ *
+ * @param authorization Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.
+ * @param clusterId Cluster ID
+ * @param body Modified cluster definition (JSON merge-patch)
+ * @param xRequestID A randomly generated key that can be used to track a request throughout services of Giant Swarm
+ * @param xGiantSwarmActivity Name of an activity to track, like \&quot;list-clusters\&quot;
+ * @param xGiantSwarmCmdLine If activity has been issued by a CLI, this header can contain the command line
+ * @return *V4ClusterDetailsModel
+ */
+func (a DefaultApi) ModifyCluster(authorization string, clusterId string, body V4ModifyClusterRequest, xRequestID string, xGiantSwarmActivity string, xGiantSwarmCmdLine string) (*V4ClusterDetailsModel, *APIResponse, error) {
+
+	var localVarHttpMethod = strings.ToUpper("Patch")
+	// create path and map variables
+	localVarPath := a.Configuration.BasePath + "/v4/clusters/{cluster_id}/"
+	localVarPath = strings.Replace(localVarPath, "{"+"cluster_id"+"}", fmt.Sprintf("%v", clusterId), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := make(map[string]string)
+	var localVarPostBody interface{}
+	var localVarFileName string
+	var localVarFileBytes []byte
+	// add default headers if any
+	for key := range a.Configuration.DefaultHeader {
+		localVarHeaderParams[key] = a.Configuration.DefaultHeader[key]
+	}
+
+	// to determine the Content-Type header
+	localVarHttpContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHttpContentType := a.Configuration.APIClient.SelectHeaderContentType(localVarHttpContentTypes)
+	if localVarHttpContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHttpContentType
+	}
+	// to determine the Accept header
+	localVarHttpHeaderAccepts := []string{
+		"application/json",
+	}
+
+	// set Accept header
+	localVarHttpHeaderAccept := a.Configuration.APIClient.SelectHeaderAccept(localVarHttpHeaderAccepts)
+	if localVarHttpHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHttpHeaderAccept
+	}
+	// header params "Authorization"
+	localVarHeaderParams["Authorization"] = a.Configuration.APIClient.ParameterToString(authorization, "")
+	// header params "X-Request-ID"
+	localVarHeaderParams["X-Request-ID"] = a.Configuration.APIClient.ParameterToString(xRequestID, "")
+	// header params "X-Giant-Swarm-Activity"
+	localVarHeaderParams["X-Giant-Swarm-Activity"] = a.Configuration.APIClient.ParameterToString(xGiantSwarmActivity, "")
+	// header params "X-Giant-Swarm-CmdLine"
+	localVarHeaderParams["X-Giant-Swarm-CmdLine"] = a.Configuration.APIClient.ParameterToString(xGiantSwarmCmdLine, "")
+	// body params
+	localVarPostBody = &body
+	var successPayload = new(V4ClusterDetailsModel)
+	localVarHttpResponse, err := a.Configuration.APIClient.CallAPI(localVarPath, localVarHttpMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFileName, localVarFileBytes)
+
+	var localVarURL, _ = url.Parse(localVarPath)
+	localVarURL.RawQuery = localVarQueryParams.Encode()
+	var localVarAPIResponse = &APIResponse{Operation: "ModifyCluster", Method: localVarHttpMethod, RequestURL: localVarURL.String()}
+	if localVarHttpResponse != nil {
+		localVarAPIResponse.Response = localVarHttpResponse.RawResponse
+		localVarAPIResponse.Payload = localVarHttpResponse.Body()
+	}
+
+	if err != nil {
+		return successPayload, localVarAPIResponse, err
+	}
+	err = json.Unmarshal(localVarHttpResponse.Body(), &successPayload)
+	return successPayload, localVarAPIResponse, err
+}
+
+/**
  * Log in as a user
  * This method takes email and password of a user and returns a new session token. The token can be found in the &#x60;data.Id&#x60; field of the response object.
  *
