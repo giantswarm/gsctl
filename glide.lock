@@ -1,5 +1,5 @@
-hash: 5c0f04927747a438381890d24ac63f7ab41e7ae3bcd2d90ef13083b85fcb05c3
-updated: 2017-07-17T15:30:01.741630835+02:00
+hash: 611c349b114bae7128de417f76805d92f1d96a5143ec80b563ab28e40d01368b
+updated: 2017-07-18T12:58:36.761365648+02:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -14,7 +14,7 @@ imports:
 - name: github.com/giantswarm/gsclientgen
   version: 3afe545bd8268df81fe888ba6c17b264a924cd6f
 - name: github.com/giantswarm/microkit
-  version: b6bf741b5c34be4fff51d944f973318d8b078284
+  version: c2f273484a749a94402dc3cfbd02913f57995484
   subpackages:
   - error
 - name: github.com/go-resty/resty
@@ -36,6 +36,8 @@ imports:
   version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/Jeffail/gabs
+  version: 2a3aa15961d5fee6047b8151b67ac2f08ba2c48c
 - name: github.com/juju/errgo
   version: 08cceb5d0b5331634b9826762a8fd53b29b86ad8
 - name: github.com/magiconair/properties
