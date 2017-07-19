@@ -35,6 +35,14 @@ func IsConflictingFlagsError(err error) bool {
 	return errgo.Cause(err) == conflictingFlagsError
 }
 
+// The user described a desired state which is equal to the current state.
+var desiredEqualsCurrentStateError = errgo.New("desired state equals current state")
+
+// IsDesiredEqualsCurrentStateError asserts desiredEqualsCurrentStateError.
+func IsDesiredEqualsCurrentStateError(err error) bool {
+	return errgo.Cause(err) == desiredEqualsCurrentStateError
+}
+
 var clusterIDMissingError = errgo.New("cluster ID not specified")
 
 // IsClusterIDMissingError asserts clusterIDMissingError.
@@ -142,4 +150,23 @@ var couldNotDeleteClusterError = errgo.New("could not delete cluster")
 // IsCouldNotDeleteClusterError asserts couldNotDeleteClusterError.
 func IsCouldNotDeleteClusterError(err error) bool {
 	return errgo.Cause(err) == couldNotDeleteClusterError
+}
+
+// Errors for scaling a cluster
+
+// should be used if the API call to scale a cluster has been responded with
+// status >= 400
+var couldNotScaleClusterError = errgo.New("could not scale cluster")
+
+// IsCouldNotScaleClusterError asserts couldNotScaleClusterError.
+func IsCouldNotScaleClusterError(err error) bool {
+	return errgo.Cause(err) == couldNotScaleClusterError
+}
+
+// the user tries to scale to less nodes than allowed
+var cannotScaleBelowMinimumWorkersError = errgo.New("cannot scale below minimum amount of workers")
+
+// IsCannotScaleBelowMinimumWorkersError asserts cannotScaleBelowMinimumWorkersError.
+func IsCannotScaleBelowMinimumWorkersError(err error) bool {
+	return errgo.Cause(err) == cannotScaleBelowMinimumWorkersError
 }

@@ -56,9 +56,6 @@ Example:
 		PreRun: deleteClusterValidationOutput,
 		Run:    deleteClusterExecutionOutput,
 	}
-
-	// force flag
-	cmdForce bool
 )
 
 func init() {
