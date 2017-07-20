@@ -31,7 +31,12 @@ terminated, data stored on the worker nodes will be lost. Make sure to remove
 only as many nodes as your deployment architecture can handle in a resilient
 way.
 
-	gsctl scale cluster c7t2o --num-workers 12`,
+Examples:
+
+  gsctl scale cluster c7t2o -w 12
+
+  gsctl scale cluster c7t2o -w 12 --num-cpus 4
+`,
 
 		// PreRun checks a few general things, like authentication.
 		PreRun: scaleClusterPreRunOutput,
@@ -53,6 +58,9 @@ type scaleClusterArguments struct {
 	verbose             bool
 	apiEndpoint         string
 	authToken           string
+	workerNumCPUs       int
+	workerMemorySizeGB  float32
+	workerStorageSizeGB float32
 }
 
 func defaultScaleClusterArguments() scaleClusterArguments {
@@ -61,6 +69,9 @@ func defaultScaleClusterArguments() scaleClusterArguments {
 		authToken:           cmdToken,
 		clusterID:           cmdClusterID,
 		numWorkersDesired:   cmdNumWorkers,
+		workerNumCPUs:       cmdWorkerNumCPUs,
+		workerMemorySizeGB:  cmdWorkerMemorySizeGB,
+		workerStorageSizeGB: cmdWorkerStorageSizeGB,
 		oppressConfirmation: cmdForce,
 		verbose:             cmdVerbose,
 	}
@@ -76,8 +87,12 @@ type scaleClusterResults struct {
 }
 
 func init() {
-	ScaleClusterCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, no interactive confirmation will be required when scaling down (risky!).")
+	ScaleClusterCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, no confirmation is required when reducing the number of workers.")
 	ScaleClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "w", 0, "Number of worker nodes to have after scaling.")
+	ScaleClusterCommand.Flags().IntVarP(&cmdWorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per added worker node.")
+	ScaleClusterCommand.Flags().Float32VarP(&cmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per added worker node.")
+	ScaleClusterCommand.Flags().Float32VarP(&cmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per added worker node.")
+
 	ScaleCommand.AddCommand(ScaleClusterCommand)
 }
 
@@ -174,7 +189,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			subtext = "Details: " + err.Error()
 		case IsCannotScaleBelowMinimumWorkersError(err):
 			headline = "Desired worker node count is too low."
-			subtext = "Please scale the cluster so that at least one worker node remains."
+			subtext = "Please set the -w|--num-workers flag to a value greater than 0."
 		case IsDesiredEqualsCurrentStateError(err):
 			headline = "Desired worker node count equals the current one."
 			subtext = "No worker nodes have been added or removed."
@@ -257,12 +272,21 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	}
 
 	// Preparing API call.
-	// All we need is an array that has the right amount of items.
-	// This means the new created worker nodes will have default configuration.
-	// TODO: Allow for worker node configuration
 	workers := []gsclientgen.V4NodeDefinition{}
 	for i := 0; i < args.numWorkersDesired; i++ {
-		workers = append(workers, gsclientgen.V4NodeDefinition{})
+		worker := gsclientgen.V4NodeDefinition{}
+		// worker configuration is only needed in case of scaling up,
+		// but it doesn't hort otherwise.
+		if args.workerNumCPUs > 0 {
+			worker.Cpu.Cores = int32(args.workerNumCPUs)
+		}
+		if args.workerMemorySizeGB > 0 {
+			worker.Memory.SizeGb = args.workerMemorySizeGB
+		}
+		if args.workerStorageSizeGB > 0 {
+			worker.Storage.SizeGb = args.workerStorageSizeGB
+		}
+		workers = append(workers, worker)
 	}
 	reqBody := gsclientgen.V4ModifyClusterRequest{Workers: workers}
 
@@ -282,7 +306,8 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	}
 
 	if args.verbose {
-		fmt.Println("Sending API request to modify cluster")
+		fmt.Println("Sending API request to modify cluster:")
+		fmt.Printf("%#v\n", reqBody)
 	}
 	scaleResult, rawResponse, err := apiClient.ModifyCluster(authHeader, args.clusterID, reqBody, requestIDHeader, scaleClusterActivityName, cmdLine)
 	if err != nil {
