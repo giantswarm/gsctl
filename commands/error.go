@@ -28,6 +28,13 @@ func IsNotLoggedInError(err error) bool {
 	return errgo.Cause(err) == notLoggedInError
 }
 
+var commandAbortedError = errgo.New("user has not confirmed or aborted execution")
+
+// IsCommandAbortedError asserts commandAbortedError
+func IsCommandAbortedError(err error) bool {
+	return errgo.Cause(err) == commandAbortedError
+}
+
 var conflictingFlagsError = errgo.New("conflicting flags used")
 
 // IsConflictingFlagsError asserts conflictingFlagsError.

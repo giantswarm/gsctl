@@ -167,6 +167,8 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		switch {
 		case err.Error() == "":
 			return
+		case IsCommandAbortedError(err):
+			headline = "Scaling cancelled."
 		case IsCouldNotCreateClientError(err):
 			headline = "Failed to create API client."
 			subtext = "Details: " + err.Error()
@@ -250,7 +252,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 		confirmed := askForConfirmation(fmt.Sprintf("Do you really want to reduce the worker nodes for cluster '%s' to %d?",
 			args.clusterID, args.numWorkersDesired))
 		if !confirmed {
-			return results, nil
+			return results, microerror.MaskAny(commandAbortedError)
 		}
 	}
 
