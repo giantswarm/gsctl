@@ -201,8 +201,6 @@ func WriteToFile() error {
 		return microerror.MaskAny(err)
 	}
 
-	fmt.Println(string(yamlBytes))
-
 	return nil
 }
 

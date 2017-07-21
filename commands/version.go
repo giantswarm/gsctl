@@ -28,7 +28,7 @@ var (
 		Short: "Print version number",
 		Long: `Prints the gsctl version number.
 
-When executed with the --verbose flag, the build date is printed in addition.`,
+When executed with the -v/--verbose flag, the build date is printed in addition.`,
 		Run: printVersion,
 	}
 )
@@ -52,21 +52,21 @@ func printVersion(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if versionCheckDue() {
-		cv := currentVersion()
-		if !cv.Equal(*semver.New("0.0.0")) {
-			info, err := checkUpdateAvailable(config.VersionCheckURL)
-			if err == nil {
-				// we are ignoring any errors from failed versionchecks
-				// as we don't want to get into the way. And we only print this for
-				// a properly built gsctl binary.
-				config.Config.LastVersionCheck = time.Now()
-				config.WriteToFile()
-				if info.updateAvailable {
-					fmt.Println()
-					fmt.Println(updateInfo(info))
-				}
-			}
+	// check for an update
+	cv := currentVersion()
+	if cv.Equal(*semver.New("0.0.0")) {
+		return
+	}
+	info, err := checkUpdateAvailable(config.VersionCheckURL)
+	if err == nil {
+		// we are ignoring any errors from failed versionchecks
+		// as we don't want to get into the way. And we only print this for
+		// a properly built gsctl binary.
+		config.Config.LastVersionCheck = time.Now()
+		config.WriteToFile()
+		if info.updateAvailable {
+			fmt.Println()
+			fmt.Println(formatUpdateInfo(info))
 		}
 	}
 }
@@ -90,11 +90,13 @@ func latestVersion(url string) (*semver.Version, error) {
 }
 
 // currentVersion returns the current gsctl version as semver.Version.
-// When executed from a nun-build (e. g. go test), it returns the
+// When executed from a non-build (e. g. go test), it returns the
 // equivalent of "0.0.0"
 func currentVersion() *semver.Version {
 	if config.Version != "" {
-		return semver.New(config.Version)
+		// remove '+git'
+		v := strings.Replace(config.Version, "+git", "", 1)
+		return semver.New(v)
 	}
 	return semver.New("0.0.0")
 }
@@ -130,8 +132,8 @@ func versionCheckDue() bool {
 	return timeSinceLastVersionCheck() > config.VersionCheckInterval
 }
 
-// updateInfo creates printable info about an available update
-func updateInfo(info updateAvailabilityInfo) string {
+// formatUpdateInfo creates printable info about an available update
+func formatUpdateInfo(info updateAvailabilityInfo) string {
 	output := color.YellowString(fmt.Sprintf("Good news: an update for %s is available.\n", config.ProgramName))
 	output += fmt.Sprintf("Please visit https://github.com/giantswarm/gsctl/releases/tag/%s for details.\n", info.latestVersion)
 	return output
