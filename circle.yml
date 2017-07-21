@@ -14,6 +14,9 @@ dependencies:
     - sudo apt-get install -y glide
 
 test:
+  pre:
+    # make dependencies avalable in $GOPATH
+    - cp -r ./vendor/* /home/ubuntu/.go_workspace/src/
   override:
     - make gotest
     - make build
