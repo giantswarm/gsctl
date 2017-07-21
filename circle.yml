@@ -1,6 +1,8 @@
 machine:
   services:
     - docker
+  environment:
+    GOPATH: "${HOME}:${HOME}/vendor"
 
 dependencies:
   override:
@@ -14,10 +16,8 @@ dependencies:
     - sudo apt-get install -y glide
 
 test:
-  pre:
-    # make dependencies avalable in $GOPATH
-    - export GOPATH=$(pwd):$(pwd)/vendor
   override:
+    - ls -la
     - make gotest
     - make build
     - make test
