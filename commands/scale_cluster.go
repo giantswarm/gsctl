@@ -210,35 +210,27 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	// Print success output
+	workerWordTotal := "workers"
+	if result.numWorkersAfter == 1 {
+		workerWordTotal = "worker"
+	}
+	workerWordDiff := "workers"
+	if math.Abs(float64(result.numWorkersToAdd)) == 1 {
+		workerWordDiff = "worker"
+	}
+
 	if result.numWorkersToAdd > 0 {
 		// scaling up
 		fmt.Println(color.GreenString("The cluster is being scaled up"))
-		if result.numWorkersToAdd == 1 {
-			fmt.Printf("Adding 1 worker to the cluster for a total of %d workers.\n",
-				result.numWorkersAfter)
-		} else {
-			fmt.Printf("Adding %d workers to the cluster for a total of %d workers.\n",
-				result.numWorkersToAdd, result.numWorkersAfter)
-		}
+		fmt.Printf("Adding %d %s to the cluster for a total of %d %s.\n",
+			result.numWorkersToAdd, workerWordDiff,
+			result.numWorkersAfter, workerWordTotal)
 	} else {
 		// scaling down
 		fmt.Println(color.GreenString("The cluster is being scaled down"))
-		if result.numWorkersToAdd == -1 {
-			if result.numWorkersAfter == 1 {
-				fmt.Printf("Removing 1 worker from the cluster for a total of 1 worker.\n")
-			} else {
-				fmt.Printf("Removing 1 worker from the cluster for a total of %d workers.\n",
-					result.numWorkersAfter)
-			}
-		} else {
-			if result.numWorkersAfter == 1 {
-				fmt.Printf("Removing %d workers from the cluster for a total of 1 worker.\n",
-					int(math.Abs(float64(result.numWorkersToAdd))))
-			} else {
-				fmt.Printf("Removing %d workers from the cluster for a total of %d workers.\n",
-					int(math.Abs(float64(result.numWorkersToAdd))), result.numWorkersAfter)
-			}
-		}
+		fmt.Printf("Removing %d %s from the cluster for a total of %d %s.\n",
+			int(math.Abs(float64(result.numWorkersToAdd))), workerWordDiff,
+			result.numWorkersAfter, workerWordTotal)
 	}
 }
 
