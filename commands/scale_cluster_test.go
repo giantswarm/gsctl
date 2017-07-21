@@ -42,27 +42,59 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 
 // TestScaleCluster tests scaling a cluster under normal conditions:
 // user logged in,
+// The test is more invoved than it should be, as the API currently
+// does not return cluster details with the PATCH response.
+// See https://github.com/giantswarm/api/issues/437
 func TestScaleCluster(t *testing.T) {
 	defer viper.Reset()
 
+	var numWorkersDesired = 5
+	var requestCount = 0
+
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		clusterDetailsJSON := []byte(`{
+			"id": "cluster-id",
+			"name": "",
+			"api_endpoint": "",
+			"create_date": "2017-05-16T09:30:31.192170835Z",
+			"owner": "acmeorg",
+			"kubernetes_version": "",
+			"workers": [
+				{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
+				{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
+				{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}}
+			]
+		}`)
+
+		// modify response for the second GET request
+		if requestCount > 1 {
+			clusterDetailsJSON = []byte(`{
+				"id": "cluster-id",
+				"name": "",
+				"api_endpoint": "",
+				"create_date": "2017-05-16T09:30:31.192170835Z",
+				"owner": "acmeorg",
+				"kubernetes_version": "",
+				"workers": [
+					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
+					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
+					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
+					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
+					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}}
+				]
+			}`)
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		if r.Method == "GET" {
-			w.Write([]byte(`{
-        "id": "cluster-id",
-        "name": "",
-        "api_endpoint": "",
-        "create_date": "2017-05-16T09:30:31.192170835Z",
-        "owner": "acmeorg",
-        "kubernetes_version": "",
-        "workers": [
-          {"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
-          {"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
-          {"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}}
-        ]
-      }`))
+			// cluster details before the patch
+			requestCount++
+			t.Log("requestCount (GET):", requestCount)
+			w.Write(clusterDetailsJSON)
 		} else if r.Method == "PATCH" {
+			requestCount++
+			t.Log("requestCount (PATCH):", requestCount)
 			// inspect PATCH request body
 			patchBytes, readErr := ioutil.ReadAll(r.Body)
 			if readErr != nil {
@@ -76,25 +108,11 @@ func TestScaleCluster(t *testing.T) {
 				t.Error("Patch request body does not contain 'workers' key.")
 			}
 			workers, _ := patch.S("workers").Children()
-			if len(workers) != 5 {
-				t.Error("Got", len(workers), "workers, expected 5")
+			if len(workers) != numWorkersDesired {
+				t.Error("Patch request contains", len(workers), "workers, expected 5")
 			}
 
-			w.Write([]byte(`{
-        "id": "cluster-id",
-        "name": "",
-        "api_endpoint": "",
-        "create_date": "2017-05-16T09:30:31.192170835Z",
-        "owner": "acmeorg",
-        "kubernetes_version": "",
-        "workers": [
-          {"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
-          {"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
-          {"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
-          {"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
-          {"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}}
-        ]
-      }`))
+			w.Write(clusterDetailsJSON)
 		}
 	}))
 	defer mockServer.Close()
@@ -102,7 +120,7 @@ func TestScaleCluster(t *testing.T) {
 	testArgs := scaleClusterArguments{
 		apiEndpoint:       mockServer.URL,
 		clusterID:         "cluster-id",
-		numWorkersDesired: 5,
+		numWorkersDesired: numWorkersDesired,
 	}
 	config.Config.Token = "my-token"
 
@@ -116,7 +134,7 @@ func TestScaleCluster(t *testing.T) {
 		t.Error(scaleErr)
 	}
 	if results.numWorkersAfter != testArgs.numWorkersDesired {
-		t.Error("Got", results.numWorkersAfter, "workers, expected", testArgs.numWorkersDesired)
+		t.Error("Got", results.numWorkersAfter, "workers after scaling, expected", testArgs.numWorkersDesired)
 	}
 
 }
