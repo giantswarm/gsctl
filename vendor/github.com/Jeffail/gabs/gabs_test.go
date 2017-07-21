@@ -43,7 +43,7 @@ func TestBasic(t *testing.T) {
 }
 
 func TestExists(t *testing.T) {
-	sample := []byte(`{"test":{"value":10},"test2":20}`)
+	sample := []byte(`{"test":{"value":10,"nullvalue":null},"test2":20,"testnull":null}`)
 
 	val, err := ParseJSON(sample)
 	if err != nil {
@@ -58,7 +58,9 @@ func TestExists(t *testing.T) {
 		{[]string{"one", "two", "three"}, false},
 		{[]string{"test"}, true},
 		{[]string{"test", "value"}, true},
+		{[]string{"test", "nullvalue"}, true},
 		{[]string{"test2"}, true},
+		{[]string{"testnull"}, true},
 		{[]string{"test2", "value"}, false},
 		{[]string{"test", "value2"}, false},
 		{[]string{"test", "VALUE"}, false},
@@ -247,6 +249,11 @@ func TestDeletes(t *testing.T) {
 				"value1":20,
 				"value2":42,
 				"value3":92
+			},
+			"another":{
+				"value1":null,
+				"value2":null,
+				"value3":null
 			}
 		}
 	}`))
@@ -254,11 +261,29 @@ func TestDeletes(t *testing.T) {
 	if err := jsonParsed.Delete("outter", "inner", "value2"); err != nil {
 		t.Error(err)
 	}
+	if err := jsonParsed.Delete("outter", "inner", "value4"); err == nil {
+		t.Error(fmt.Errorf("value4 should not have been found in outter.inner"))
+	}
+	if err := jsonParsed.Delete("outter", "another", "value1"); err != nil {
+		t.Error(err)
+	}
+	if err := jsonParsed.Delete("outter", "another", "value4"); err == nil {
+		t.Error(fmt.Errorf("value4 should not have been found in outter.another"))
+	}
 	if err := jsonParsed.DeleteP("outter.alsoInner.value1"); err != nil {
 		t.Error(err)
 	}
+	if err := jsonParsed.DeleteP("outter.alsoInner.value4"); err == nil {
+		t.Error(fmt.Errorf("value4 should not have been found in outter.alsoInner"))
+	}
+	if err := jsonParsed.DeleteP("outter.another.value2"); err != nil {
+		t.Error(err)
+	}
+	if err := jsonParsed.Delete("outter.another.value4"); err == nil {
+		t.Error(fmt.Errorf("value4 should not have been found in outter.another"))
+	}
 
-	expected := `{"outter":{"alsoInner":{"value2":42,"value3":92},"inner":{"value1":10,"value3":32}}}`
+	expected := `{"outter":{"alsoInner":{"value2":42,"value3":92},"another":{"value3":null},"inner":{"value1":10,"value3":32}}}`
 	if actual := jsonParsed.String(); actual != expected {
 		t.Errorf("Unexpected result from deletes: %v != %v", actual, expected)
 	}
