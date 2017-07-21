@@ -26,7 +26,7 @@ var (
 )
 
 const (
-	addKeyPairActivityName string = "add-keypair"
+	addKeyPairActivityName = "add-keypair"
 )
 
 func init() {

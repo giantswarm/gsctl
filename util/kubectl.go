@@ -9,7 +9,7 @@ import (
 
 const (
 	// name of the kubectl executable
-	binaryName string = "kubectl"
+	binaryName = "kubectl"
 )
 
 // CheckKubectl checks if kubectl exists, is silent if yes, prints error and exits if not

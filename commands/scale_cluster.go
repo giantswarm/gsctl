@@ -47,8 +47,8 @@ Examples:
 )
 
 const (
-	scaleClusterActivityName string = "scale-cluster"
-	getClusterActivityName   string = "get-cluster"
+	scaleClusterActivityName = "scale-cluster"
+	getClusterActivityName   = "get-cluster"
 )
 
 type scaleClusterArguments struct {

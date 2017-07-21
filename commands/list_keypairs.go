@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	listKeypairsActivityName string = "list-keypairs"
+	listKeypairsActivityName = "list-keypairs"
 )
 
 var (

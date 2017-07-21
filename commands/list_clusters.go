@@ -29,7 +29,7 @@ var (
 )
 
 const (
-	listClustersActivityName string = "list-clusters"
+	listClustersActivityName = "list-clusters"
 )
 
 func init() {

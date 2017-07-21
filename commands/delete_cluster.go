@@ -36,7 +36,7 @@ func defaultDeleteClusterArguments() deleteClusterArguments {
 }
 
 const (
-	deleteClusterActivityName string = "delete-cluster"
+	deleteClusterActivityName = "delete-cluster"
 )
 
 var (

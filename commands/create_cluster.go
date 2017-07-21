@@ -68,7 +68,7 @@ const (
 	minimumWorkerMemorySizeGB  float32 = 1
 	minimumWorkerStorageSizeGB float32 = 1
 
-	createClusterActivityName string = "create-cluster"
+	createClusterActivityName = "create-cluster"
 )
 
 var (
