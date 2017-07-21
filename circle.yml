@@ -16,8 +16,7 @@ dependencies:
 test:
   pre:
     # make dependencies avalable in $GOPATH
-    - mkdir -p /home/ubuntu/.go_workspace/src
-    - cp -r ./vendor/* /home/ubuntu/.go_workspace/src/
+    - export GOPATH=$(pwd):$(pwd)/vendor
   override:
     - make gotest
     - make build
