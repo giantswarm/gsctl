@@ -256,6 +256,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 		return results, microerror.MaskAny(err)
 	}
 	results.numWorkersBefore = len(clusterDetails.Workers)
+	results.numWorkersAfter = results.numWorkersBefore
 	results.numWorkersToAdd = args.numWorkersDesired - results.numWorkersBefore
 
 	if results.numWorkersToAdd == 0 {
@@ -306,8 +307,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	}
 
 	if args.verbose {
-		fmt.Println("Sending API request to modify cluster:")
-		fmt.Printf("%#v\n", reqBody)
+		fmt.Println("Sending API request to modify cluster")
 	}
 	scaleResult, rawResponse, err := apiClient.ModifyCluster(authHeader, args.clusterID, reqBody, requestIDHeader, scaleClusterActivityName, cmdLine)
 	if err != nil {
@@ -335,5 +335,14 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	}
 
 	results.numWorkersAfter = len(scaleResult.Workers)
+
+	// workaround for https://github.com/giantswarm/api/issues/437
+	// to fetch the actual number of workers
+	clusterDetails, err = getClusterDetails(args)
+	if err != nil {
+		return results, microerror.MaskAny(err)
+	}
+	results.numWorkersAfter = len(clusterDetails.Workers)
+
 	return results, nil
 }
