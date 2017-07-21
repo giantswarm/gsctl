@@ -1,0 +1,17 @@
+machine:
+  services:
+    - docker
+
+dependencies:
+  override:
+    - wget https://storage.googleapis.com/kubernetes-release/release/v1.6.7/bin/linux/amd64/kubectl
+    - chmod +x kubectl
+    - sudo mv kubectl /usr/local/bin/kubectl
+
+test:
+  override:
+    - make gotest
+    - make build
+    - make test
+    - ./test_coverage.sh
+    - bash <(curl -s https://codecov.io/bash)
