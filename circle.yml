@@ -6,6 +6,10 @@ machine:
 
 dependencies:
   override:
+    # install architect
+    - wget -q $(curl -sS -H "Authorization: token $RELEASE_TOKEN" https://api.github.com/repos/giantswarm/architect/releases/latest | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
+    - chmod +x ./architect
+    - ./architect version
     # install kubectl
     - wget https://storage.googleapis.com/kubernetes-release/release/v1.6.7/bin/linux/amd64/kubectl
     - chmod +x kubectl
@@ -17,11 +21,6 @@ dependencies:
 
 test:
   override:
-    - ls -la
-    - pwd
-    - make gotest
-    - make build
-    - make test
-    - ./test_coverage.sh
+    - ./architect build
   post:
     - bash <(curl -s https://codecov.io/bash)
