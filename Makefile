@@ -1,7 +1,7 @@
 PROJECT=gsctl
 ORGANISATION=giantswarm
 BIN=$(PROJECT)
-GOVERSION := 1.8-alpine
+GOVERSION := 1.8
 BUILDDATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 VERSION := $(shell cat VERSION)
 COMMIT := $(shell git rev-parse HEAD | cut -c1-10)
@@ -37,16 +37,17 @@ build/bin/$(BIN)-darwin-amd64:
 	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		-e GOPATH=/go -e GOOS=darwin -e GOARCH=amd64 -e CGO_ENABLED=0 \
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
-		golang:$(GOVERSION) go build -a -installsuffix cgo -o build/bin/$(BIN)-darwin-amd64 \
+		golang:$(GOVERSION)-alpine go build -a -installsuffix cgo -o build/bin/$(BIN)-darwin-amd64 \
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
-# platform-specific build
+# platform-specific build for linux-amd64
+# - here we have CGO_ENABLED=1
 build/bin/$(BIN)-linux-amd64:
 	@mkdir -p build/bin
 	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
-		-e GOPATH=/go -e GOOS=linux -e GOARCH=amd64 -e CGO_ENABLED=0 \
+		-e GOPATH=/go -e GOOS=linux -e GOARCH=amd64 -e CGO_ENABLED=1 \
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
-		golang:$(GOVERSION) go build -a -installsuffix cgo -o build/bin/$(BIN)-linux-amd64 \
+		golang:$(GOVERSION)-jessie go build -a -installsuffix cgo -o build/bin/$(BIN)-linux-amd64 \
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 # platform-specific build
@@ -55,7 +56,7 @@ build/bin/$(BIN)-windows-386:
 	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		-e GOPATH=/go -e GOOS=windows -e GOARCH=386 -e CGO_ENABLED=0 \
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
-		golang:$(GOVERSION) go build -a -installsuffix cgo -o build/bin/$(BIN)-windows-386 \
+		golang:$(GOVERSION)-alpine go build -a -installsuffix cgo -o build/bin/$(BIN)-windows-386 \
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 # platform-specific build
@@ -64,7 +65,7 @@ build/bin/$(BIN)-windows-amd64:
 	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		-e GOPATH=/go -e GOOS=windows -e GOARCH=amd64 -e CGO_ENABLED=0 \
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
-		golang:$(GOVERSION) go build -a -installsuffix cgo -o build/bin/$(BIN)-windows-amd64 \
+		golang:$(GOVERSION)-alpine go build -a -installsuffix cgo -o build/bin/$(BIN)-windows-amd64 \
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 # run unittests
