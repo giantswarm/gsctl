@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -53,8 +52,6 @@ func Test_CheckUpdateAvailable(t *testing.T) {
 	if !info.updateAvailable {
 		t.Error("checkUpdateAvailable didn't produce the expected conclusion.")
 	}
-
-	fmt.Println(updateInfo(info))
 }
 
 func Test_VersionCheckDue(t *testing.T) {
