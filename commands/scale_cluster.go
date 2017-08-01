@@ -328,13 +328,5 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 
 	results.numWorkersAfter = len(scaleResult.Workers)
 
-	// workaround for https://github.com/giantswarm/api/issues/437
-	// to fetch the actual number of workers
-	clusterDetails, err = getClusterDetails(args)
-	if err != nil {
-		return results, microerror.MaskAny(err)
-	}
-	results.numWorkersAfter = len(clusterDetails.Workers)
-
 	return results, nil
 }
