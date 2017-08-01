@@ -49,26 +49,13 @@ func TestScaleCluster(t *testing.T) {
 	defer viper.Reset()
 
 	var numWorkersDesired = 5
-	var requestCount = 0
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		clusterDetailsJSON := []byte(`{
-			"id": "cluster-id",
-			"name": "",
-			"api_endpoint": "",
-			"create_date": "2017-05-16T09:30:31.192170835Z",
-			"owner": "acmeorg",
-			"kubernetes_version": "",
-			"workers": [
-				{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
-				{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
-				{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}}
-			]
-		}`)
-
-		// modify response for the second GET request
-		if requestCount > 1 {
-			clusterDetailsJSON = []byte(`{
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		if r.Method == "GET" {
+			// cluster details before the patch
+			w.Write([]byte(`{
 				"id": "cluster-id",
 				"name": "",
 				"api_endpoint": "",
@@ -78,23 +65,10 @@ func TestScaleCluster(t *testing.T) {
 				"workers": [
 					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
 					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
-					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
-					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
 					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}}
 				]
-			}`)
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if r.Method == "GET" {
-			// cluster details before the patch
-			requestCount++
-			t.Log("requestCount (GET):", requestCount)
-			w.Write(clusterDetailsJSON)
+			}`))
 		} else if r.Method == "PATCH" {
-			requestCount++
-			t.Log("requestCount (PATCH):", requestCount)
 			// inspect PATCH request body
 			patchBytes, readErr := ioutil.ReadAll(r.Body)
 			if readErr != nil {
@@ -112,7 +86,21 @@ func TestScaleCluster(t *testing.T) {
 				t.Error("Patch request contains", len(workers), "workers, expected 5")
 			}
 
-			w.Write(clusterDetailsJSON)
+			w.Write([]byte(`{
+				"id": "cluster-id",
+				"name": "",
+				"api_endpoint": "",
+				"create_date": "2017-05-16T09:30:31.192170835Z",
+				"owner": "acmeorg",
+				"kubernetes_version": "",
+				"workers": [
+					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
+					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
+					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
+					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
+					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}}
+				]
+			}`))
 		}
 	}))
 	defer mockServer.Close()
