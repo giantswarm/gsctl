@@ -9,6 +9,7 @@ import (
 
 	"github.com/coreos/go-semver/semver"
 	"github.com/fatih/color"
+	"github.com/giantswarm/columnize"
 	microerror "github.com/giantswarm/microkit/error"
 	"github.com/spf13/cobra"
 
@@ -39,18 +40,19 @@ func init() {
 
 // printInfo prints some information on the current user and configuration
 func printVersion(cmd *cobra.Command, args []string) {
+	output := []string{}
+
 	if config.Version != "" {
-		fmt.Println(config.Version)
+		output = append(output, color.YellowString("Version:")+"|"+color.CyanString(config.Version))
 	} else {
-		fmt.Println("Info: version number is only available in a built binary")
+		output = append(output, color.YellowString("Version:")+"|"+color.CyanString("n/a (version number is only available in a built binary)"))
 	}
-	if cmdVerbose {
-		if config.BuildDate != "" {
-			fmt.Println(config.BuildDate)
-		} else {
-			fmt.Println("Info: build date/time is only available in a built binary")
-		}
+	if config.BuildDate != "" {
+		output = append(output, color.YellowString("Build date:")+"|"+color.CyanString(config.BuildDate))
+	} else {
+		output = append(output, color.YellowString("Build date:")+"|"+color.CyanString("n/a (build date/time is only available in a built binary)"))
 	}
+	fmt.Println(columnize.SimpleFormat(output))
 
 	// check for an update
 	cv := currentVersion()
