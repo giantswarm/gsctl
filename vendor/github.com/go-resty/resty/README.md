@@ -1,8 +1,8 @@
-# resty  [![Build Status](https://travis-ci.org/go-resty/resty.svg?branch=master)](https://travis-ci.org/go-resty/resty) [![codecov](https://codecov.io/gh/go-resty/resty/branch/master/graph/badge.svg)](https://codecov.io/gh/go-resty/resty/branch/master)  [![GoReport](https://goreportcard.com/badge/go-resty/resty)](https://goreportcard.com/report/go-resty/resty)  [![Version](https://img.shields.io/badge/version-0.12-blue.svg)](https://github.com/go-resty/resty/releases/latest)  [![GoDoc](https://godoc.org/github.com/go-resty/resty?status.svg)](https://godoc.org/github.com/go-resty/resty) [![License](https://img.shields.io/github/license/go-resty/resty.svg)](LICENSE)
+# resty  [![Build Status](https://travis-ci.org/go-resty/resty.svg?branch=master)](https://travis-ci.org/go-resty/resty) [![codecov](https://codecov.io/gh/go-resty/resty/branch/master/graph/badge.svg)](https://codecov.io/gh/go-resty/resty/branch/master)  [![GoReport](https://goreportcard.com/badge/go-resty/resty)](https://goreportcard.com/report/go-resty/resty)  [![Version](https://img.shields.io/badge/version-0.13-blue.svg)](https://github.com/go-resty/resty/releases/latest)  [![GoDoc](https://godoc.org/github.com/go-resty/resty?status.svg)](https://godoc.org/github.com/go-resty/resty) [![License](https://img.shields.io/github/license/go-resty/resty.svg)](LICENSE)
 
 Simple HTTP and REST client for Go inspired by Ruby rest-client. [Features](#features) section describes in detail about resty capabilities.
 
-***v0.12 [released](https://github.com/go-resty/resty/releases/latest) and tagged on May 22, 2017.***
+***v0.13 [released](https://github.com/go-resty/resty/releases/latest) and tagged on Jun 22, 2017.***
 
 *Since Go v1.6 HTTP/2 & HTTP/1.1 protocol is used transparently. `Resty` works fine with HTTP/2 and HTTP/1.1.*
 
@@ -38,6 +38,7 @@ Go Resty first released on Sep 15, 2015 then go-resty grew gradually as a very h
 * Cookies for your request and CookieJar support
 * SRV Record based request instead of Host URL
 * Client settings like `Timeout`, `RedirectPolicy`, `Proxy`, `TLSClientConfig`, `Transport`, etc.
+* Optionally allows GET request with payload, see [SetAllowGetMethodPayload](https://godoc.org/github.com/go-resty/resty#Client.SetAllowGetMethodPayload)
 * resty design
   * Have client level settings & options and also override at Request level if you want to
   * Request and Response middlewares
@@ -511,6 +512,12 @@ resty.SetRESTMode()
 resty.SetHTTPMode()
 ```
 
+#### Allow GET request with Payload
+```go
+// Allow GET request with Payload. This is disabled by default.
+resty.SetAllowGetMethodPayload(true)
+```
+
 #### Wanna Multiple Clients
 ```go
 // Here you go!
@@ -602,7 +609,7 @@ resty.SetError(&Error{})    // or resty.SetError(Error{})
 #### Unix Socket
 
 ```go
-unixSocket := "unix:///var/run/my_socket.sock"
+unixSocket := "/var/run/my_socket.sock"
 
 // Create a Go's http.Transport so we can set it in resty.
 transport := http.Transport{
@@ -613,7 +620,7 @@ transport := http.Transport{
 
 // Set the previous transport that we created, set the scheme of the communication to the
 // socket and set the unixSocket as the HostURL.
-r := resty.New().SetTransport(transport).SetScheme("http").SetHostURL(unixSocket)
+r := resty.New().SetTransport(&transport).SetScheme("http").SetHostURL(unixSocket)
 
 // No need to write the host's URL on the request, just the path.
 r.R().Get("/index.html")

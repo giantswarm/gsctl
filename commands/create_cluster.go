@@ -18,32 +18,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type cpuDefinition struct {
-	Cores int `yaml:"cores,omitempty"`
-}
-
-type memoryDefinition struct {
-	SizeGB float32 `yaml:"size_gb,omitempty"`
-}
-
-type storageDefinition struct {
-	SizeGB float32 `yaml:"size_gb,omitempty"`
-}
-
-type nodeDefinition struct {
-	Memory  memoryDefinition  `yaml:"memory,omitempty"`
-	CPU     cpuDefinition     `yaml:"cpu,omitempty"`
-	Storage storageDefinition `yaml:"storage,omitempty"`
-	Labels  map[string]string `yaml:"labels,omitempty"`
-}
-
-type clusterDefinition struct {
-	Name              string           `yaml:"name,omitempty"`
-	Owner             string           `yaml:"owner,omitempty"`
-	KubernetesVersion string           `yaml:"kubernetes_version,omitempty"`
-	Workers           []nodeDefinition `yaml:"workers,omitempty"`
-}
-
 // addClusterArguments contains all possible input parameter needed
 // (and optionally available) for creating a cluster
 type addClusterArguments struct {
@@ -94,7 +68,7 @@ const (
 	minimumWorkerMemorySizeGB  float32 = 1
 	minimumWorkerStorageSizeGB float32 = 1
 
-	createClusterActivityName string = "create-cluster"
+	createClusterActivityName = "create-cluster"
 )
 
 var (
@@ -137,12 +111,6 @@ Examples:
 	cmdOwner string
 	// number of workers required via flag on execution
 	cmdNumWorkers int
-	// number of CPUs per worker as required via flag on execution
-	cmdWorkerNumCPUs int
-	// RAM size in GB per worker as required via flag on execution
-	cmdWorkerMemorySizeGB float32
-	// Local storage in GB per worker as required via flag on execution
-	cmdWorkerStorageSizeGB float32
 	// dry run command line flag
 	cmdDryRun bool
 )

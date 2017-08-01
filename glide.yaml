@@ -20,3 +20,4 @@ import:
   - error
 - package: github.com/hashicorp/go-rootcerts
 - package: github.com/mitchellh/go-homedir
+- package: github.com/Jeffail/gabs

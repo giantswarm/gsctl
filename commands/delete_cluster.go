@@ -36,7 +36,7 @@ func defaultDeleteClusterArguments() deleteClusterArguments {
 }
 
 const (
-	deleteClusterActivityName string = "delete-cluster"
+	deleteClusterActivityName = "delete-cluster"
 )
 
 var (
@@ -56,9 +56,6 @@ Example:
 		PreRun: deleteClusterValidationOutput,
 		Run:    deleteClusterExecutionOutput,
 	}
-
-	// force flag
-	cmdForce bool
 )
 
 func init() {

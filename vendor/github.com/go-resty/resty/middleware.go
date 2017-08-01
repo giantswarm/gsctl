@@ -6,7 +6,6 @@ package resty
 
 import (
 	"bytes"
-	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -91,8 +90,7 @@ func parseRequestHeader(c *Client, r *Request) error {
 }
 
 func parseRequestBody(c *Client, r *Request) (err error) {
-	if isPayloadSupported(r.Method) {
-
+	if isPayloadSupported(r.Method, c.AllowGetMethodPayload) {
 		// Handling Multipart
 		if r.isMultiPart && !(r.Method == MethodPatch) {
 			if err = handleMultipart(c, r); err != nil {
@@ -246,7 +244,7 @@ func parseResponseBody(c *Client, res *Response) (err error) {
 		// Considered as Result
 		if res.StatusCode() > 199 && res.StatusCode() < 300 {
 			if res.Request.Result != nil {
-				err = Unmarshal(ct, res.body, res.Request.Result)
+				err = Unmarshalc(c, ct, res.body, res.Request.Result)
 				return
 			}
 		}
@@ -259,7 +257,7 @@ func parseResponseBody(c *Client, res *Response) (err error) {
 			}
 
 			if res.Request.Error != nil {
-				err = Unmarshal(ct, res.body, res.Request.Error)
+				err = Unmarshalc(c, ct, res.body, res.Request.Error)
 			}
 		}
 	}
@@ -357,7 +355,7 @@ func handleRequestBody(c *Client, r *Request) (err error) {
 		bodyBytes = []byte(s)
 	} else if IsJSONType(contentType) &&
 		(kind == reflect.Struct || kind == reflect.Map || kind == reflect.Slice) {
-		bodyBytes, err = json.Marshal(r.Body)
+		bodyBytes, err = c.JSONMarshal(r.Body)
 	} else if IsXMLType(contentType) && (kind == reflect.Struct) {
 		bodyBytes, err = xml.Marshal(r.Body)
 	}

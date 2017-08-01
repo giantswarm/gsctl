@@ -13,10 +13,10 @@ var (
 
 const (
 	// url to intallation instructions
-	kubectlInstallURL string = "http://kubernetes.io/docs/user-guide/prereqs/"
+	kubectlInstallURL = "http://kubernetes.io/docs/user-guide/prereqs/"
 
 	// windows download page
-	kubectlWindowsInstallURL string = "https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md"
+	kubectlWindowsInstallURL = "https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md"
 )
 
 func init() {

@@ -29,7 +29,7 @@ var (
 )
 
 const (
-	listOrganizationsActivityName string = "list-organizations"
+	listOrganizationsActivityName = "list-organizations"
 )
 
 func init() {

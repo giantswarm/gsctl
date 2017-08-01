@@ -6,6 +6,7 @@ package resty
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -36,6 +37,8 @@ func New() *Client {
 		RetryCount:       0,
 		RetryWaitTime:    defaultWaitTime,
 		RetryMaxWaitTime: defaultMaxWaitTime,
+		JSONMarshal:      json.Marshal,
+		JSONUnmarshal:    json.Unmarshal,
 		httpClient:       &http.Client{Jar: cookieJar},
 		transport:        &http.Transport{},
 	}
@@ -147,6 +150,11 @@ func SetPreRequestHook(h func(*Client, *Request) error) *Client {
 // SetDebug method enables the debug mode. See `Client.SetDebug` for more information.
 func SetDebug(d bool) *Client {
 	return DefaultClient.SetDebug(d)
+}
+
+// SetAllowGetMethodPayload method allows the GET method with payload. See `Client.SetAllowGetMethodPayload` for more information.
+func SetAllowGetMethodPayload(a bool) *Client {
+	return DefaultClient.SetAllowGetMethodPayload(a)
 }
 
 // SetRetryCount method sets the retry count. See `Client.SetRetryCount` for more information.

@@ -39,6 +39,18 @@ var (
 	// TTL (time to live) flag
 	cmdTTLDays int
 
+	// force flag. if set, no prompt should be displayed.
+	cmdForce bool
+
+	// number of CPUs per worker as required via flag on execution
+	cmdWorkerNumCPUs int
+
+	// RAM size per worker node in GB per worker as required via flag on execution
+	cmdWorkerMemorySizeGB float32
+
+	// Local storage per worker node in GB per worker as required via flag on execution
+	cmdWorkerStorageSizeGB float32
+
 	randomStringCharset = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 	requestIDHeader string
@@ -51,6 +63,32 @@ type APIError struct {
 	msg string
 	// APIResponse is the response we got from the API
 	APIResponse gsclientgen.APIResponse
+}
+
+type cpuDefinition struct {
+	Cores int `yaml:"cores,omitempty"`
+}
+
+type memoryDefinition struct {
+	SizeGB float32 `yaml:"size_gb,omitempty"`
+}
+
+type storageDefinition struct {
+	SizeGB float32 `yaml:"size_gb,omitempty"`
+}
+
+type nodeDefinition struct {
+	Memory  memoryDefinition  `yaml:"memory,omitempty"`
+	CPU     cpuDefinition     `yaml:"cpu,omitempty"`
+	Storage storageDefinition `yaml:"storage,omitempty"`
+	Labels  map[string]string `yaml:"labels,omitempty"`
+}
+
+type clusterDefinition struct {
+	Name              string           `yaml:"name,omitempty"`
+	Owner             string           `yaml:"owner,omitempty"`
+	KubernetesVersion string           `yaml:"kubernetes_version,omitempty"`
+	Workers           []nodeDefinition `yaml:"workers,omitempty"`
 }
 
 func (e APIError) Error() string {

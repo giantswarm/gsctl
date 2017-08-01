@@ -28,7 +28,7 @@ var (
 )
 
 const (
-	createKubeconfigActivityName string = "create-kubeconfig"
+	createKubeconfigActivityName = "create-kubeconfig"
 )
 
 func init() {
