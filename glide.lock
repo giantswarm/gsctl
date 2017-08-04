@@ -3,6 +3,10 @@ updated: 2017-07-21T12:29:37.585443984+02:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
+- name: github.com/coreos/go-semver
+  version: 8ab6407b697782a06568d4b7f1db25550ec2e4c6
+  subpackages:
+  - semver
 - name: github.com/fatih/color
   version: 570b54cabe6b8eb0bc2dfce68d964677d63b5260
 - name: github.com/fsnotify/fsnotify

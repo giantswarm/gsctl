@@ -29,6 +29,12 @@ const (
 
 	// DefaultAPIEndpoint is the endpoint used if none is configured
 	DefaultAPIEndpoint = "https://api.giantswarm.io"
+
+	// VersionCheckURL is the URL telling us what the latest gsctl version is
+	VersionCheckURL = "https://downloads.giantswarm.io/gsctl/VERSION"
+
+	// VersionCheckInterval is the minimum time to wait between two version checks
+	VersionCheckInterval = time.Hour * 24
 )
 
 var (
@@ -71,8 +77,17 @@ var (
 
 // configStruct is used to serialize our configuration back into a file
 type configStruct struct {
-	Token   string `yaml:"token,omitempty"`
-	Email   string `yaml:"email,omitempty"`
+	// Email is the email address of the authenticated user.
+	Email string `yaml:"email,omitempty"`
+
+	// LastVersionCheck is the last time when we successfully checked for a gsctl update.
+	// It has no "omitempty", to enforce the output. Marshaling failed otherwise.
+	LastVersionCheck time.Time `yaml:"last_version_check"`
+
+	// Token is the session token of the authenticated user.
+	Token string `yaml:"token,omitempty"`
+
+	// Updated is the time when the config has last been written.
 	Updated string `yaml:"updated,omitempty"`
 }
 
@@ -160,6 +175,9 @@ func populateConfigStruct() {
 	if viper.IsSet("token") {
 		Config.Token = viper.GetString("token")
 	}
+	if viper.IsSet("last_version_check") {
+		Config.LastVersionCheck = viper.GetTime("last_version_check")
+	}
 }
 
 // UserAgent returns the user agent string identifying us in HTTP requests
@@ -175,12 +193,12 @@ func WriteToFile() error {
 
 	yamlBytes, err := yaml.Marshal(&data)
 	if err != nil {
-		return err
+		return microerror.MaskAny(err)
 	}
 
 	err = ioutil.WriteFile(ConfigFilePath, yamlBytes, 0600)
 	if err != nil {
-		return err
+		return microerror.MaskAny(err)
 	}
 
 	return nil
