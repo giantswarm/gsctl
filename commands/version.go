@@ -22,6 +22,10 @@ type updateAvailabilityInfo struct {
 	updateAvailable bool
 }
 
+const (
+	updateCheckTimeout = 2 * time.Second
+)
+
 var (
 	// VersionCommand is the "version" go command
 	VersionCommand = &cobra.Command{
@@ -76,7 +80,7 @@ func printVersion(cmd *cobra.Command, args []string) {
 // latestVersion returns the latest available version as semver.Version
 func latestVersion(url string) (*semver.Version, error) {
 	// to be unobstructive, we timeout quickly.
-	timeout := time.Duration(2 * time.Second)
+	timeout := time.Duration(updateCheckTimeout)
 	client := http.Client{Timeout: timeout}
 	resp, err := client.Get(url)
 	if err != nil {
