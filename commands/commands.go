@@ -30,8 +30,14 @@ var (
 	// verbose flag
 	cmdVerbose bool
 
+	// certificate_organizations flag
+	cmdCertificateOrganizations string
+
 	// cluster ID flag
 	cmdClusterID string
+
+	// cn_prefox flag
+	cmdCNPrefix string
 
 	// description flag
 	cmdDescription string

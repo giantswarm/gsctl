@@ -8,6 +8,7 @@ import:
 - package: github.com/giantswarm/columnize
   version: =2.0.2
 - package: github.com/giantswarm/gsclientgen
+  version: add-cn-o-attributes
 - package: github.com/howeyc/gopass
 - package: github.com/spf13/cobra
 - package: gopkg.in/yaml.v2
@@ -16,6 +17,7 @@ import:
   - reflectutil
 - package: github.com/spf13/viper
 - package: github.com/giantswarm/microkit
+  version: 4e085764fbe2e0301e2065bbb01d74847e47c4cc
   subpackages:
   - error
 - package: github.com/coreos/go-semver
