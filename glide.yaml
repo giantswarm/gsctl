@@ -8,7 +8,7 @@ import:
 - package: github.com/giantswarm/columnize
   version: =2.0.2
 - package: github.com/giantswarm/gsclientgen
-  version: add-cn-o-attributes
+  version: master
 - package: github.com/howeyc/gopass
 - package: github.com/spf13/cobra
 - package: gopkg.in/yaml.v2

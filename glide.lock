@@ -1,5 +1,5 @@
-hash: 039b4a67130736fa974d67f13afe60b21caf6194bcf81a23f89e29e8bb33d041
-updated: 2017-09-01T23:17:55.259921237+08:00
+hash: 34c3e1a39d30944a2d692155d101b60ba483f3db67cf3bbfaf6d3d1332cb3546
+updated: 2017-09-01T23:32:58.023409624+08:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -16,7 +16,7 @@ imports:
 - name: github.com/giantswarm/columnize
   version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
 - name: github.com/giantswarm/gsclientgen
-  version: c9de17de0590076dfff9b81102bd1cea8a25ce2e
+  version: eadbbda15e37d94a089bf26c3c02adef3b78e3ab
 - name: github.com/giantswarm/microkit
   version: 4e085764fbe2e0301e2065bbb01d74847e47c4cc
   subpackages:
