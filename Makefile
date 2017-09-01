@@ -86,7 +86,7 @@ test:
 	@${TESTBIN} logout --help >> /dev/null && echo "OK"
 	@${TESTBIN} ping --help >> /dev/null && echo "OK"
 
-	@${TESTBIN} ping >> /dev/null && echo "OK"
+	# @${TESTBIN} ping >> /dev/null && echo "OK"
 	@${TESTBIN} info >> /dev/null && echo "OK"
 
 # Create binary files for releases
