@@ -1,15 +1,8 @@
-services:
-  - docker
-
 language: go
 
-go:
-  - 1.8
-
-install: make get-deps
+install:
+  - go get -d -v .
 
 script:
-    - make validate
+  - go build -v ./
 
-notifications:
-  email: false

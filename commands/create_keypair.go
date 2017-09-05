@@ -32,6 +32,8 @@ const (
 func init() {
 	CreateKeypairCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to create a key pair for")
 	CreateKeypairCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key pair")
+	CreateKeypairCommand.Flags().StringVarP(&cmdCNPrefix, "cn_prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
+	CreateKeypairCommand.Flags().StringVarP(&cmdCertificateOrganizations, "certificate_organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
 	CreateKeypairCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key pair in days")
 
 	CreateCommand.AddCommand(CreateKeypairCommand)
@@ -72,7 +74,7 @@ func addKeypair(cmd *cobra.Command, args []string) {
 	}
 	authHeader := "giantswarm " + config.Config.Token
 	ttlHours := int32(cmdTTLDays * 24)
-	addKeyPairBody := gsclientgen.V4AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
+	addKeyPairBody := gsclientgen.V4AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours, CnPrefix: cmdCNPrefix, CertificateOrganizations: cmdCertificateOrganizations}
 	keypairResponse, apiResponse, err := apiClient.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, addKeyPairActivityName, cmdLine)
 
 	if err != nil {
