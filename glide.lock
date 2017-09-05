@@ -1,5 +1,5 @@
-hash: 34c3e1a39d30944a2d692155d101b60ba483f3db67cf3bbfaf6d3d1332cb3546
-updated: 2017-09-01T23:32:58.023409624+08:00
+hash: 13e2f5c8d729eea4997df6c98fee9ca16054d34311beb7564b1ab1fbeca78bc6
+updated: 2017-09-05T14:08:38.943744253+08:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -45,7 +45,7 @@ imports:
 - name: github.com/juju/errgo
   version: 08cceb5d0b5331634b9826762a8fd53b29b86ad8
 - name: github.com/magiconair/properties
-  version: be5ece7dd465ab0765a9682137865547526d1dfb
+  version: 8d7837e64d3c1ee4e54a880c5a920ab4316fc90a
 - name: github.com/mattn/go-colorable
   version: 5411d3eea5978e6cdc258b30de592b60df6aba96
   repo: https://github.com/mattn/go-colorable
@@ -57,7 +57,7 @@ imports:
 - name: github.com/mitchellh/mapstructure
   version: d0303fe809921458f417bcf828397a65db30a7e4
 - name: github.com/pelletier/go-toml
-  version: 9c1b4e331f1e3d98e72600677699fbe212cd6d16
+  version: 1d6b12b7cb290426e27e6b4e38b89fcda3aeef03
 - name: github.com/spf13/afero
   version: ee1bd8ee15a1306d1f9201acc41ef39cd9f99a1b
   subpackages:
@@ -85,8 +85,7 @@ imports:
   subpackages:
   - publicsuffix
 - name: golang.org/x/sys
-  version: e24f485414aeafb646f6fca458b0bf869c0880a1
-  repo: https://go.googlesource.com/sys
+  version: 07c182904dbd53199946ba614a412c61d3c548f5
   subpackages:
   - unix
   - windows
