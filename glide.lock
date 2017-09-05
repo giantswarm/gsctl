@@ -1,5 +1,5 @@
-hash: fa11791ee8e6d36b05cb2d5127714d2b40b4fb3e38dc96b04a4d47c390047a34
-updated: 2017-09-05T14:03:16.618458279+08:00
+hash: 13e2f5c8d729eea4997df6c98fee9ca16054d34311beb7564b1ab1fbeca78bc6
+updated: 2017-09-05T14:08:38.943744253+08:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -85,7 +85,7 @@ imports:
   subpackages:
   - publicsuffix
 - name: golang.org/x/sys
-  version: 7ddbeae9ae08c6a06a59597f0c9edbc5ff2444ce
+  version: 07c182904dbd53199946ba614a412c61d3c548f5
   subpackages:
   - unix
   - windows
