@@ -27,3 +27,5 @@ import:
 - package: github.com/hashicorp/go-rootcerts
 - package: github.com/mitchellh/go-homedir
 - package: github.com/Jeffail/gabs
+- package: golang.org/x/sys/windows
+  version: 7ddbeae9ae08c6a06a59597f0c9edbc5ff2444ce
