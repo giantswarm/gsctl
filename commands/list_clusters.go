@@ -53,7 +53,9 @@ func listClusters(cmd *cobra.Command, args []string) {
 		}
 		os.Exit(1)
 	}
-	fmt.Println(output)
+	if output != "" {
+		fmt.Println(output)
+	}
 }
 
 // clustersTable returns a table of clusters the user has access to
