@@ -34,8 +34,8 @@ const (
 func init() {
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key pair")
-	CreateKubeconfigCommand.Flags().StringVarP(&cmdCNPrefix, "cn_prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
-	CreateKubeconfigCommand.Flags().StringVarP(&cmdCertificateOrganizations, "certificate_organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
+	CreateKubeconfigCommand.Flags().StringVarP(&cmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
+	CreateKubeconfigCommand.Flags().StringVarP(&cmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
 	CreateKubeconfigCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key pair in days")
 
 	CreateCommand.AddCommand(CreateKubeconfigCommand)
