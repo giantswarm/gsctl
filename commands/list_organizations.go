@@ -64,7 +64,7 @@ func orgsTable() (string, error) {
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return "", microerror.MaskAny(couldNotCreateClientError)
+		return "", microerror.Mask(couldNotCreateClientError)
 	}
 
 	// if token is set via flags, we unauthenticate using this token

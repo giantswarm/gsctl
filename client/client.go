@@ -51,7 +51,7 @@ func NewClient(clientConfig Configuration) (*gsclientgen.DefaultApi, error) {
 		CAPath: os.Getenv("GSCTL_CAPATH"),
 	})
 	if rootCertsErr != nil {
-		return nil, microerror.MaskAny(rootCertsErr)
+		return nil, microerror.Mask(rootCertsErr)
 	}
 	configuration.Transport = &http.Transport{
 		Proxy:           http.ProxyFromEnvironment,

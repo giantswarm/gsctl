@@ -51,17 +51,17 @@ func ping(endpointURL string) (time.Duration, error) {
 	// create URI
 	u, err := url.Parse(endpointURL)
 	if err != nil {
-		return duration, microerror.MaskAny(err)
+		return duration, microerror.Mask(err)
 	}
 	u, err = u.Parse("/v1/ping")
 	if err != nil {
-		return duration, microerror.MaskAny(err)
+		return duration, microerror.Mask(err)
 	}
 
 	// create client and request
 	request, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
-		return duration, microerror.MaskAny(err)
+		return duration, microerror.Mask(err)
 	}
 	request.Header.Set("User-Agent", config.UserAgent())
 
@@ -72,7 +72,7 @@ func ping(endpointURL string) (time.Duration, error) {
 		CAPath: os.Getenv("GSCTL_CAPATH"),
 	})
 	if rootCertsErr != nil {
-		return duration, microerror.MaskAny(rootCertsErr)
+		return duration, microerror.Mask(rootCertsErr)
 	}
 	t := &http.Transport{
 		Proxy:           http.ProxyFromEnvironment,
@@ -86,7 +86,7 @@ func ping(endpointURL string) (time.Duration, error) {
 	start := time.Now()
 	resp, err := pingClient.Do(request)
 	if err != nil {
-		return duration, microerror.MaskAny(err)
+		return duration, microerror.Mask(err)
 	}
 	defer resp.Body.Close()
 

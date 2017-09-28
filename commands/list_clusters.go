@@ -67,7 +67,7 @@ func clustersTable() (string, error) {
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return "", microerror.MaskAny(couldNotCreateClientError)
+		return "", microerror.Mask(couldNotCreateClientError)
 	}
 	authHeader := "giantswarm " + config.Config.Token
 

@@ -130,10 +130,10 @@ func scaleClusterPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 // verifyScaleClusterPreconditions does a few general checks and returns an error in case something is missing.
 func verifyScaleClusterPreconditions(args scaleClusterArguments, cmdLineArgs []string) error {
 	if config.Config.Token == "" && args.authToken == "" {
-		return microerror.MaskAny(notLoggedInError)
+		return microerror.Mask(notLoggedInError)
 	}
 	if len(cmdLineArgs) == 0 {
-		return microerror.MaskAny(clusterIDMissingError)
+		return microerror.Mask(clusterIDMissingError)
 	}
 	return nil
 }
@@ -156,14 +156,14 @@ func getClusterDetails(args scaleClusterArguments) (gsclientgen.V4ClusterDetails
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return result, microerror.MaskAny(couldNotCreateClientError)
+		return result, microerror.Mask(couldNotCreateClientError)
 	}
 	if args.verbose {
 		fmt.Println("Fetching up-to-date cluster information")
 	}
 	clusterDetails, _, err := apiClient.GetCluster(authHeader, args.clusterID, requestIDHeader, getClusterActivityName, cmdLine)
 	if err != nil {
-		return result, microerror.MaskAny(err)
+		return result, microerror.Mask(err)
 	}
 
 	return *clusterDetails, nil
@@ -240,19 +240,19 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 
 	if args.numWorkersDesired == 0 {
 		// here we enforce a minimum workers count of 1
-		return results, microerror.MaskAny(cannotScaleBelowMinimumWorkersError)
+		return results, microerror.Mask(cannotScaleBelowMinimumWorkersError)
 	}
 
 	clusterDetails, err := getClusterDetails(args)
 	if err != nil {
-		return results, microerror.MaskAny(err)
+		return results, microerror.Mask(err)
 	}
 	results.numWorkersBefore = len(clusterDetails.Workers)
 	results.numWorkersAfter = results.numWorkersBefore
 	results.numWorkersToAdd = args.numWorkersDesired - results.numWorkersBefore
 
 	if results.numWorkersToAdd == 0 {
-		return results, microerror.MaskAny(desiredEqualsCurrentStateError)
+		return results, microerror.Mask(desiredEqualsCurrentStateError)
 	}
 
 	// confirmation in case of scaling down
@@ -260,7 +260,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 		confirmed := askForConfirmation(fmt.Sprintf("Do you really want to reduce the worker nodes for cluster '%s' to %d?",
 			args.clusterID, args.numWorkersDesired))
 		if !confirmed {
-			return results, microerror.MaskAny(commandAbortedError)
+			return results, microerror.Mask(commandAbortedError)
 		}
 	}
 
@@ -295,7 +295,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return results, microerror.MaskAny(couldNotCreateClientError)
+		return results, microerror.Mask(couldNotCreateClientError)
 	}
 
 	if args.verbose {
@@ -303,7 +303,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	}
 	scaleResult, rawResponse, err := apiClient.ModifyCluster(authHeader, args.clusterID, reqBody, requestIDHeader, scaleClusterActivityName, cmdLine)
 	if err != nil {
-		return results, microerror.MaskAny(err)
+		return results, microerror.Mask(err)
 	}
 
 	if rawResponse.Response.StatusCode != http.StatusOK {
@@ -314,7 +314,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 				fmt.Printf("\nError details:\n - Code: %s\n - Message: %s\n\n",
 					genericResponse.Code, genericResponse.Message)
 			}
-			return results, microerror.MaskAny(couldNotScaleClusterError)
+			return results, microerror.Mask(couldNotScaleClusterError)
 		}
 
 		// other response body format
@@ -323,7 +323,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 				rawResponse.Response.StatusCode,
 				string(rawResponse.Payload))
 		}
-		return results, microerror.MaskAny(couldNotScaleClusterError)
+		return results, microerror.Mask(couldNotScaleClusterError)
 	}
 
 	results.numWorkersAfter = len(scaleResult.Workers)

@@ -99,7 +99,7 @@ func listKeypairsValidationOutput(cmd *cobra.Command, extraArgs []string) {
 // the clusterID field.
 func listKeypairsValidate(args *listKeypairsArguments) error {
 	if config.Config.Token == "" && args.token == "" {
-		return microerror.MaskAny(notLoggedInError)
+		return microerror.Mask(notLoggedInError)
 	}
 	if args.clusterID == "" {
 		// use default cluster if possible
@@ -107,7 +107,7 @@ func listKeypairsValidate(args *listKeypairsArguments) error {
 		if clusterID != "" {
 			cmdClusterID = clusterID
 		} else {
-			return microerror.MaskAny(clusterIDMissingError)
+			return microerror.Mask(clusterIDMissingError)
 		}
 	}
 
@@ -205,7 +205,7 @@ func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return result, microerror.MaskAny(couldNotCreateClientError)
+		return result, microerror.Mask(couldNotCreateClientError)
 	}
 	authHeader := "giantswarm " + token
 	keypairsResponse, apiResponse, err := apiClient.GetKeyPairs(authHeader,
@@ -214,17 +214,17 @@ func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
 	if err != nil {
 
 		if apiResponse.StatusCode >= 500 {
-			return result, microerror.MaskAnyf(internalServerError, err.Error())
+			return result, microerror.Maskf(internalServerError, err.Error())
 		} else if apiResponse.StatusCode == http.StatusNotFound {
-			return result, microerror.MaskAny(clusterNotFoundError)
+			return result, microerror.Mask(clusterNotFoundError)
 		} else if apiResponse.StatusCode == http.StatusUnauthorized {
-			return result, microerror.MaskAny(notAuthorizedError)
+			return result, microerror.Mask(notAuthorizedError)
 		}
-		return result, microerror.MaskAny(err)
+		return result, microerror.Mask(err)
 	}
 
 	if apiResponse.StatusCode != http.StatusOK {
-		return result, microerror.MaskAny(unknownError)
+		return result, microerror.Mask(unknownError)
 	}
 
 	// sort key pairs by create date (descending)

@@ -190,12 +190,12 @@ func WriteToFile() error {
 
 	yamlBytes, err := yaml.Marshal(&data)
 	if err != nil {
-		return microerror.MaskAny(err)
+		return microerror.Mask(err)
 	}
 
 	err = ioutil.WriteFile(ConfigFilePath, yamlBytes, 0600)
 	if err != nil {
-		return microerror.MaskAny(err)
+		return microerror.Mask(err)
 	}
 
 	return nil
@@ -252,7 +252,7 @@ func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint st
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return "", microerror.MaskAny(clientErr)
+		return "", microerror.Mask(clientErr)
 	}
 
 	authHeader := "giantswarm " + Config.Token

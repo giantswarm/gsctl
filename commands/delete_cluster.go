@@ -104,10 +104,10 @@ func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
 // validateDeleteClusterPreConditions checks preconditions and returns an error in case
 func validateDeleteClusterPreConditions(args deleteClusterArguments) error {
 	if args.clusterID == "" {
-		return microerror.MaskAny(clusterIDMissingError)
+		return microerror.Mask(clusterIDMissingError)
 	}
 	if config.Config.Token == "" && args.token == "" {
-		return microerror.MaskAny(notLoggedInError)
+		return microerror.Mask(notLoggedInError)
 	}
 	return nil
 }
@@ -158,11 +158,11 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return false, microerror.MaskAny(couldNotCreateClientError)
+		return false, microerror.Mask(couldNotCreateClientError)
 	}
 	responseBody, _, err := apiClient.DeleteCluster(authHeader, args.clusterID, requestIDHeader, createClusterActivityName, cmdLine)
 	if err != nil {
-		return false, microerror.MaskAny(err)
+		return false, microerror.Mask(err)
 	}
 
 	// handle API result
@@ -170,7 +170,7 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		return true, nil
 	}
 
-	return false, microerror.MaskAnyf(couldNotDeleteClusterError,
+	return false, microerror.Maskf(couldNotDeleteClusterError,
 		fmt.Sprintf("Error in API request to create cluster: %s (Code: %s)",
 			responseBody.Message, responseBody.Code))
 }

@@ -211,7 +211,7 @@ func login(args loginArguments) (loginResult, error) {
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return result, microerror.MaskAny(couldNotCreateClientError)
+		return result, microerror.Mask(couldNotCreateClientError)
 	}
 
 	requestBody := gsclientgen.LoginBodyModel{Password: string(encodedPassword)}

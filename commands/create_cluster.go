@@ -234,38 +234,38 @@ func executionOutput(cmd *cobra.Command, args []string) {
 func validatePreConditions(args addClusterArguments) error {
 	// logged in?
 	if config.Config.Token == "" && args.token == "" {
-		return microerror.MaskAny(notLoggedInError)
+		return microerror.Mask(notLoggedInError)
 	}
 
 	// false flag combination?
 	if args.inputYAMLFile != "" {
 		if args.numWorkers != 0 || args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 {
-			return microerror.MaskAny(conflictingFlagsError)
+			return microerror.Mask(conflictingFlagsError)
 		}
 	} else {
 		if args.numWorkers == 0 && (args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0) {
-			return microerror.MaskAny(numWorkerNodesMissingError)
+			return microerror.Mask(numWorkerNodesMissingError)
 		}
 	}
 
 	// validate number of workers specified by flag
 	if args.numWorkers > 0 && args.numWorkers < minimumNumWorkers {
-		return microerror.MaskAny(notEnoughWorkerNodesError)
+		return microerror.Mask(notEnoughWorkerNodesError)
 	}
 
 	// validate number of CPUs specified by flag
 	if args.workerNumCPUs > 0 && args.workerNumCPUs < minimumWorkerNumCPUs {
-		return microerror.MaskAny(notEnoughCPUCoresPerWorkerError)
+		return microerror.Mask(notEnoughCPUCoresPerWorkerError)
 	}
 
 	// validate memory size specified by flag
 	if args.workerMemorySizeGB > 0 && args.workerMemorySizeGB < minimumWorkerMemorySizeGB {
-		return microerror.MaskAny(notEnoughMemoryPerWorkerError)
+		return microerror.Mask(notEnoughMemoryPerWorkerError)
 	}
 
 	// validate storage size specified by flag
 	if args.workerStorageSizeGB > 0 && args.workerStorageSizeGB < minimumWorkerStorageSizeGB {
-		return microerror.MaskAny(notEnoughStoragePerWorkerError)
+		return microerror.Mask(notEnoughStoragePerWorkerError)
 	}
 
 	return nil
@@ -367,7 +367,7 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		// definition from file (and optionally flags)
 		result.definition, err = readDefinitionFromFile(args.inputYAMLFile)
 		if err != nil {
-			return addClusterResult{}, microerror.MaskAnyf(yamlFileNotReadableError, err.Error())
+			return addClusterResult{}, microerror.Maskf(yamlFileNotReadableError, err.Error())
 		}
 		enhanceDefinitionWithFlags(&result.definition, args)
 	} else {
@@ -377,7 +377,7 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 
 	// Validate definition
 	if result.definition.Owner == "" {
-		return result, microerror.MaskAny(clusterOwnerMissingError)
+		return result, microerror.Mask(clusterOwnerMissingError)
 	}
 
 	// Validations based on definition file.
@@ -385,7 +385,7 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 	if args.inputYAMLFile != "" {
 		// number of workers
 		if len(result.definition.Workers) > 0 && len(result.definition.Workers) < minimumNumWorkers {
-			return result, microerror.MaskAny(notEnoughWorkerNodesError)
+			return result, microerror.Mask(notEnoughWorkerNodesError)
 		}
 	}
 
@@ -404,7 +404,7 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 	addClusterBody := createAddClusterBody(result.definition)
 	_, marshalErr := json.Marshal(addClusterBody)
 	if marshalErr != nil {
-		return result, microerror.MaskAnyf(couldNotCreateJSONRequestBodyError, marshalErr.Error())
+		return result, microerror.Maskf(couldNotCreateJSONRequestBodyError, marshalErr.Error())
 	}
 
 	if !args.dryRun {
@@ -422,17 +422,17 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		}
 		apiClient, clientErr := client.NewClient(clientConfig)
 		if clientErr != nil {
-			return result, microerror.MaskAny(couldNotCreateClientError)
+			return result, microerror.Mask(couldNotCreateClientError)
 		}
 		responseBody, apiResponse, err := apiClient.AddCluster(authHeader, addClusterBody, requestIDHeader, createClusterActivityName, cmdLine)
 		if err != nil {
 			// lower level connection problem
-			return result, microerror.MaskAny(err)
+			return result, microerror.Mask(err)
 		}
 
 		// handle API result
 		if responseBody.Code != "RESOURCE_CREATED" {
-			return result, microerror.MaskAnyf(couldNotCreateClusterError,
+			return result, microerror.Maskf(couldNotCreateClusterError,
 				fmt.Sprintf("Error in API request to create cluster: %s (Code: %s)",
 					responseBody.Message, responseBody.Code))
 		}

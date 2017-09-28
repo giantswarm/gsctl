@@ -84,12 +84,12 @@ func latestVersion(url string) (*semver.Version, error) {
 	client := http.Client{Timeout: timeout}
 	resp, err := client.Get(url)
 	if err != nil {
-		return semver.New("0.0.0"), microerror.MaskAny(err)
+		return semver.New("0.0.0"), microerror.Mask(err)
 	}
 	defer resp.Body.Close()
 	contentBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return semver.New("0.0.0"), microerror.MaskAny(err)
+		return semver.New("0.0.0"), microerror.Mask(err)
 	}
 	content := strings.TrimSpace(string(contentBytes))
 	return semver.New(content), nil
@@ -112,7 +112,7 @@ func checkUpdateAvailable(url string) (updateAvailabilityInfo, error) {
 	current := currentVersion()
 	latest, err := latestVersion(url)
 	if err != nil {
-		return updateAvailabilityInfo{}, microerror.MaskAny(err)
+		return updateAvailabilityInfo{}, microerror.Mask(err)
 	}
 
 	info := updateAvailabilityInfo{
