@@ -9,7 +9,7 @@ import (
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"

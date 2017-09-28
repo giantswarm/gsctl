@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/giantswarm/gsclientgen"
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 	rootcerts "github.com/hashicorp/go-rootcerts"
 )
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsctl/client"

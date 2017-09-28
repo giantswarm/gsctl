@@ -11,7 +11,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gsclientgen"
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"

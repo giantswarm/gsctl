@@ -12,7 +12,7 @@ import (
 
 	"github.com/giantswarm/gsctl/client"
 
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 )

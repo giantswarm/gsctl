@@ -11,7 +11,7 @@ import (
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 )
 

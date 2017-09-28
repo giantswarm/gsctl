@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/fatih/color"

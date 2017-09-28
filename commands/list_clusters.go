@@ -9,7 +9,7 @@ import (
 	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 	rootcerts "github.com/hashicorp/go-rootcerts"
 	"github.com/spf13/cobra"
 

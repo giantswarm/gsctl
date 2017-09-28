@@ -10,7 +10,7 @@ import (
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/gsclientgen"
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 
@@ -37,11 +37,16 @@ var (
 
 	// LoginCommand is the "login" CLI command
 	LoginCommand = &cobra.Command{
-		Use:    "login <email>",
-		Short:  "Sign in as a user",
-		Long:   `Sign in with email address and password. Password has to be entered interactively or given as -p flag.`,
-		PreRun: loginValidationOutput,
-		Run:    loginOutput,
+		Use:   "login <email>",
+		Short: "Sign in as a user",
+		Long: `Sign in against an endpoint with email address and password.
+
+This will select the given endpoint for subsequent commands.
+
+The password has to be entered interactively or given as -p / --password flag.`,
+		Example: "  gsctl login user@example.com --endpoint api.example.com",
+		PreRun:  loginValidationOutput,
+		Run:     loginOutput,
 	}
 )
 
