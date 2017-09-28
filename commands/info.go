@@ -61,10 +61,14 @@ func printInfo(cmd *cobra.Command, args []string) {
 
 	output := []string{}
 
-	output = append(output, color.YellowString("API endpoint:")+"|"+color.CyanString(result.apiEndpoint))
+	if result.apiEndpoint == "" {
+		output = append(output, color.YellowString("API endpoint:")+"|n/a")
+	} else {
+		output = append(output, color.YellowString("API endpoint:")+"|"+color.CyanString(result.apiEndpoint))
+	}
 
 	if result.email == "" {
-		output = append(output, color.YellowString("Email:")+"|"+"n/a")
+		output = append(output, color.YellowString("Email:")+"|n/a")
 	} else {
 		output = append(output, color.YellowString("Email:")+"|"+color.CyanString(config.Config.Email))
 	}
@@ -92,7 +96,6 @@ func printInfo(cmd *cobra.Command, args []string) {
 func info(args infoArguments) infoResult {
 	result := infoResult{}
 
-	result.apiEndpoint = config.DefaultAPIEndpoint
 	if args.apiEndpoint != "" {
 		result.apiEndpoint = args.apiEndpoint
 	}

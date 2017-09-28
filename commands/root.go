@@ -14,7 +14,7 @@ var RootCommand = &cobra.Command{
 }
 
 func init() {
-	RootCommand.PersistentFlags().StringVarP(&cmdAPIEndpoint, "api-endpoint", "", config.DefaultAPIEndpoint, "The URL base path, to access the API")
+	RootCommand.PersistentFlags().StringVarP(&cmdAPIEndpoint, "api-endpoint", "", "", "The URL base path, to access the API")
 	RootCommand.PersistentFlags().StringVarP(&cmdToken, "auth-token", "", "", "Authorization token to use")
 	RootCommand.PersistentFlags().StringVarP(&cmdConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
 	RootCommand.PersistentFlags().BoolVarP(&cmdVerbose, "verbose", "v", false, "Print more information")

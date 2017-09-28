@@ -27,9 +27,6 @@ const (
 	// ProgramName is the name of this program
 	ProgramName = "gsctl"
 
-	// DefaultAPIEndpoint is the endpoint used if none is configured
-	DefaultAPIEndpoint = "https://api.giantswarm.io"
-
 	// VersionCheckURL is the URL telling us what the latest gsctl version is
 	VersionCheckURL = "https://downloads.giantswarm.io/gsctl/VERSION"
 
