@@ -56,9 +56,6 @@ var (
 	// ConfigDirPath is the actual path of the config dir
 	ConfigDirPath string
 
-	// LegacyConfigDirPath is the path where we had the config stuff earlier
-	LegacyConfigDirPath string
-
 	// CertsDirPath is the path of the directory holding certificates
 	CertsDirPath string
 
@@ -108,7 +105,6 @@ func init() {
 
 	// create default config dir path
 	DefaultConfigDirPath = path.Join(HomeDirPath, ".config", ProgramName)
-	LegacyConfigDirPath = path.Join(HomeDirPath, "."+ProgramName)
 }
 
 // Initialize sets up all configuration.
@@ -127,12 +123,6 @@ func Initialize(configDirPath string) error {
 	viper.AddConfigPath(ConfigDirPath)
 
 	ConfigFilePath = path.Join(ConfigDirPath, ConfigFileName+"."+ConfigFileType)
-
-	// 2017-05-11: move legacy config from old to new default config path,
-	// if present. This is independent of the config path actually applied by the
-	// user.
-	// TODO: remove this after a couple of months.
-	migrateConfigDir()
 
 	// if config file doesn't exist, create empty one
 	_, err := os.Stat(ConfigFilePath)
@@ -267,50 +257,4 @@ func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint st
 	}
 
 	return "", nil
-}
-
-// migrateConfigDir migrates a configuration directory from the old
-// default path to the new default path. Conditions:
-// - old config dir exists
-// - new config dir does not exist
-func migrateConfigDir() error {
-	_, err := os.Stat(DefaultConfigDirPath)
-	if !os.IsNotExist(err) {
-		// new config dir already exists
-		return nil
-	}
-
-	_, err = os.Stat(LegacyConfigDirPath)
-	if os.IsNotExist(err) {
-		// old config dir does not exist
-		return nil
-	}
-
-	// ensure ~/.config exists
-	os.MkdirAll(path.Dir(DefaultConfigDirPath), 0700)
-
-	err = os.Rename(LegacyConfigDirPath, DefaultConfigDirPath)
-	if err != nil {
-		return err
-	}
-
-	// adapt certificate paths in kubeconfig
-	if len(KubeConfigPaths) > 0 {
-		// we only adapt the first file found (on purpose)
-		theKubeConfigPath := KubeConfigPaths[0]
-		if stat, err := os.Stat(theKubeConfigPath); err == nil {
-			oldConfig, configErr := ioutil.ReadFile(theKubeConfigPath)
-			if configErr != nil {
-				return configErr
-			}
-			newConfig := strings.Replace(string(oldConfig), LegacyConfigDirPath, DefaultConfigDirPath, -1)
-			// write back
-			writeErr := ioutil.WriteFile(theKubeConfigPath, []byte(newConfig), stat.Mode())
-			if writeErr != nil {
-				return errors.New("could not overwrite kubectl config file")
-			}
-		}
-	}
-
-	return nil
 }
