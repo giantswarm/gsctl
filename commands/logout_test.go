@@ -7,12 +7,10 @@ import (
 	"testing"
 
 	"github.com/giantswarm/gsctl/config"
-	"github.com/spf13/viper"
 )
 
 // Test_LogoutValidToken tests the logout for a valid token
 func Test_LogoutValidToken(t *testing.T) {
-	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	config.Initialize(dir)
@@ -37,7 +35,6 @@ func Test_LogoutValidToken(t *testing.T) {
 
 // Test_LogoutInvalidToken tests the logout for an invalid token
 func Test_LogoutInvalidToken(t *testing.T) {
-	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	config.Initialize(dir)
@@ -63,7 +60,6 @@ func Test_LogoutInvalidToken(t *testing.T) {
 // Test_LogoutCommand simply calls the functions cobra would call,
 // with a temporary config path and mock server as endpoint.
 func Test_LogoutCommand(t *testing.T) {
-	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	config.Initialize(dir)

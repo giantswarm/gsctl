@@ -7,12 +7,10 @@ import (
 	"testing"
 
 	"github.com/giantswarm/gsctl/config"
-	"github.com/spf13/viper"
 )
 
 // Test_LoginValidPassword simulates a login with a valid email/password combination
 func Test_LoginValidPassword(t *testing.T) {
-	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	config.Initialize(dir)
@@ -53,7 +51,6 @@ func Test_LoginValidPassword(t *testing.T) {
 
 // Test_LoginInvalidPassword simulates a login with a bad email/password combination
 func Test_LoginInvalidPassword(t *testing.T) {
-	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	config.Initialize(dir)
@@ -83,7 +80,6 @@ func Test_LoginInvalidPassword(t *testing.T) {
 // Test_LoginWhenUserLoggedInBefore simulates an okay login when the user was
 // logged in before.
 func Test_LoginWhenUserLoggedInBefore(t *testing.T) {
-	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	config.Initialize(dir)

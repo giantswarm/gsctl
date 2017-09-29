@@ -6,18 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/spf13/viper"
-
 	"github.com/giantswarm/gsctl/config"
 )
 
 func Test_PrintInfo(t *testing.T) {
-	defer viper.Reset()
 	printInfo(InfoCommand, []string{})
 }
 
 func Test_PrintInfoVerbose(t *testing.T) {
-	defer viper.Reset()
 	cmdVerbose = true
 	printInfo(InfoCommand, []string{})
 }
@@ -25,7 +21,6 @@ func Test_PrintInfoVerbose(t *testing.T) {
 // Test_InfoWithTempDirAndToken tests the info() function with a custom
 // configuration path and an auth-token
 func Test_InfoWithTempDirAndToken(t *testing.T) {
-	defer viper.Reset()
 	dir, _ := ioutil.TempDir("", config.ProgramName)
 	defer os.RemoveAll(dir)
 

@@ -7,13 +7,11 @@ import (
 	"testing"
 
 	"github.com/giantswarm/gsctl/config"
-	"github.com/spf13/viper"
 )
 
 // Test_ListKeypairs_NotLoggedIn checks whether we are detecting whether or not the user
 // is logged in or provides an auth token.
 func Test_ListKeypairs_NotLoggedIn(t *testing.T) {
-	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	config.Initialize(dir)
@@ -29,7 +27,6 @@ func Test_ListKeypairs_NotLoggedIn(t *testing.T) {
 // Test_ListKeypairs_Empty simulates the situation where there are no
 // key pairs for a given cluster.
 func Test_ListKeypairs_Empty(t *testing.T) {
-	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	config.Initialize(dir)
@@ -65,7 +62,6 @@ func Test_ListKeypairs_Empty(t *testing.T) {
 // Test_ListKeypairs_NotFound simulates the situation where the cluster
 // to list key pairs for is not found
 func Test_ListKeypairs_NotFound(t *testing.T) {
-	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	config.Initialize(dir)
@@ -98,7 +94,6 @@ func Test_ListKeypairs_NotFound(t *testing.T) {
 // Test_ListKeyPairs_Nonempty simulates listing key pairs where several
 // items are returned.
 func Test_ListKeyPairs_Nonempty(t *testing.T) {
-	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	config.Initialize(dir)
