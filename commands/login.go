@@ -225,8 +225,7 @@ func login(args loginArguments) (loginResult, error) {
 		// successful login
 		result.token = loginResponse.Data.Id
 		result.email = args.email
-		config.Config.Token = result.token
-		config.Config.Email = args.email
+		config.Config.SelectEndpoint(args.apiEndpoint, args.email, result.token)
 		config.WriteToFile()
 
 		return result, nil
