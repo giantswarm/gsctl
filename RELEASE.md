@@ -13,6 +13,7 @@
 - Push permissions for https://github.com/giantswarm/gsctl
 - Push permissions for https://github.com/giantswarm/homebrew-giantswarm
 - env variable `BUILDER_GITHUB_TOKEN` set to a valid Github token
+- Code signing certificate from keePass
 
 ## Instructions
 
@@ -37,12 +38,23 @@ make clean
 git checkout <version-tag>
 ```
 
-Open the [release draft](https://github.com/giantswarm/gsctl/releases/) on Github. Edit the description to inform about what has changed since the last release. Save and publish the release.
+Create the folder `certs` inside the repo, if not there, and place the file `code-signing.p12` from keePass (code signing certificate) there.
 
-To also upload the binaries to AWS S3 and provide an update for homebrew users, execute this:
+Set the environment variable `$CODE_SIGNING_CERT_BUNDLE_PASSWORD` to the PKCS#12 encryption password you find in keePass.
+
+Then run this:
 
 ```nohighlight
 make release
 ```
+
+Open the [release draft](https://github.com/giantswarm/gsctl/releases/) on Github.
+
+Upload the windows binaries to the release.
+
+Edit the description to inform about what has changed since the last release. Save and publish the release.
+
+To also upload the binaries to AWS S3 and provide an update for homebrew users, execute this:
+
 
 Finally, when everything went fine, do another `make clean`.
