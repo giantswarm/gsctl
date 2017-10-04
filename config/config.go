@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/user"
 	"path"
@@ -11,9 +12,8 @@ import (
 	"time"
 
 	"github.com/giantswarm/gsctl/client"
-
 	"github.com/giantswarm/microerror"
-	"github.com/spf13/viper"
+
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -69,29 +69,105 @@ var (
 	SystemUser *user.User
 )
 
-// configStruct is used to serialize our configuration back into a file
+// configStruct is the top-level data structure used to serialize and
+// deserialize our configuration from/to a YAML file
 type configStruct struct {
-	// Email is the email address of the authenticated user.
-	Email string `yaml:"email,omitempty"`
 
 	// LastVersionCheck is the last time when we successfully checked for a gsctl update.
 	// It has no "omitempty", to enforce the output. Marshaling failed otherwise.
 	LastVersionCheck time.Time `yaml:"last_version_check"`
 
-	// Token is the session token of the authenticated user.
-	Token string `yaml:"token,omitempty"`
-
 	// Updated is the time when the config has last been written.
-	Updated string `yaml:"updated,omitempty"`
+	Updated string `yaml:"updated"`
+
+	// Endpoints is a map of endpoints
+	Endpoints map[string]endpointConfigStruct `yaml:"endpoints"`
+
+	// SelectedEndpoint is the URL of the selected endpoint
+	SelectedEndpoint string `yaml:"selected_endpoint"`
+
+	// Token is the token found for the selected endpoint. Might be empty.
+	// Not marshalled back to the config file, as it is contained in the
+	// endpoint's entry.
+	Token string `yaml:"-"`
+
+	// Email is the user email found for the selected endpoint. Might be empty.
+	// Not marshalled back to the config file, as it is contained in the
+	// endpoint's entry.
+	Email string `yaml:"-"`
 }
 
-// init sets up viper and sets defaults
-func init() {
-	viper.SetConfigType(ConfigFileType)
-	viper.SetConfigName(ConfigFileName)
-	viper.SetEnvPrefix(ProgramName)
-	viper.SetTypeByDefaultValue(true)
+// endpointConfigStruct is used to serialize/deserialize endpoint configuration
+// to/from a config file
+type endpointConfigStruct struct {
+	// Email is the email address of the authenticated user.
+	Email string `yaml:"email"`
 
+	// Token is the session token of the authenticated user.
+	Token string `yaml:"token"`
+}
+
+// SetEndpoint adds an endpoint to the configStruct.Endpoints field
+// (if not yet there) and makes it the selected endpoint.
+// This should only be done after successful authentication.
+func (c *configStruct) SelectEndpoint(endpointURL string, email string, token string) {
+	ep := normalizeEndpoint(endpointURL)
+
+	c.Endpoints[ep] = endpointConfigStruct{
+		Email: email,
+		Token: token,
+	}
+
+	c.SelectedEndpoint = ep
+	c.Token = token
+	c.Email = email
+}
+
+// SelectedEndpoint returns the selected endpoint URL.
+// If the argument overridingEndpointURL is not empty, this will
+// be used as the returned endpoint URL.
+// Errors are only printed to inform users, but not returned, to simplify
+// usage of this function.
+func (c *configStruct) ChooseEndpoint(overridingEndpointURL string) string {
+	if overridingEndpointURL != "" {
+		ep := normalizeEndpoint(overridingEndpointURL)
+		return ep
+	}
+
+	envEndpoint := os.Getenv("GSCTL_ENDPOINT")
+	if envEndpoint != "" {
+		ep := normalizeEndpoint(envEndpoint)
+		return ep
+	}
+
+	return c.SelectedEndpoint
+}
+
+// Logout removes the email and token values from the selected endpoint.
+func (c *configStruct) Logout(endpointURL string) {
+	c.Token = ""
+	c.Email = ""
+	if c.SelectedEndpoint != "" {
+		c.Endpoints[c.SelectedEndpoint] = endpointConfigStruct{
+			Email: "",
+			Token: "",
+		}
+		// deselect endpoint
+		c.SelectedEndpoint = ""
+	}
+}
+
+// EndpointURLs returns a slice of all known endpoint URLs
+// func (c *configStruct) EndpointURLs() []string {
+// 	endpoints := make([]string, 0, len(c.Endpoints))
+// 	for endpoint := range c.Endpoints {
+// 		endpoints = append(endpoints, endpoint)
+// 	}
+// 	return endpoints
+// }
+
+// init sets defaults and initializes config paths
+func init() {
 	SystemUser, err := user.Current()
 	if err != nil {
 		fmt.Println("Could not get system user details using os/user.Current().")
@@ -113,14 +189,12 @@ func init() {
 // It's supposed to be called after init().
 // The configDirPath argument can be given to override the DefaultConfigDirPath.
 func Initialize(configDirPath string) error {
-
 	// configDirPath argument overrides default, if given
 	if configDirPath != "" {
 		ConfigDirPath = configDirPath
 	} else {
 		ConfigDirPath = DefaultConfigDirPath
 	}
-	viper.AddConfigPath(ConfigDirPath)
 
 	ConfigFilePath = path.Join(ConfigDirPath, ConfigFileName+"."+ConfigFileType)
 
@@ -140,11 +214,11 @@ func Initialize(configDirPath string) error {
 		file.Close()
 	}
 
-	err = viper.ReadInConfig()
+	myConfig, err := readFromFile(ConfigFilePath)
 	if err != nil {
-		return err
+		return microerror.Mask(err)
 	}
-	populateConfigStruct()
+	populateConfigStruct(myConfig)
 
 	CertsDirPath = path.Join(ConfigDirPath, "certs")
 	os.MkdirAll(CertsDirPath, 0700)
@@ -154,22 +228,53 @@ func Initialize(configDirPath string) error {
 	return nil
 }
 
-// populateConfigStruct assigns configuration values from viper to Config
-func populateConfigStruct() {
-	if viper.IsSet("email") {
-		Config.Email = viper.GetString("email")
+// populateConfigStruct assigns configuration values from the unmarshalled
+// structure to Config.
+// cs here is what we read from the file.
+func populateConfigStruct(cs configStruct) {
+
+	Config.LastVersionCheck = cs.LastVersionCheck
+	Config.Updated = cs.Updated
+
+	Config.Endpoints = cs.Endpoints
+	if Config.Endpoints == nil {
+		Config.Endpoints = make(map[string]endpointConfigStruct)
 	}
-	if viper.IsSet("token") {
-		Config.Token = viper.GetString("token")
+
+	if cs.SelectedEndpoint != "" {
+		Config.SelectedEndpoint = cs.SelectedEndpoint
+		if _, ok := cs.Endpoints[cs.SelectedEndpoint]; ok {
+			Config.Email = cs.Endpoints[cs.SelectedEndpoint].Email
+			Config.Token = cs.Endpoints[cs.SelectedEndpoint].Token
+		}
 	}
-	if viper.IsSet("last_version_check") {
-		Config.LastVersionCheck = viper.GetTime("last_version_check")
-	}
+
 }
 
 // UserAgent returns the user agent string identifying us in HTTP requests
 func UserAgent() string {
 	return fmt.Sprintf("%s/%s", ProgramName, Version)
+}
+
+// readFromFile reads configuration from the YAML config file
+func readFromFile(filePath string) (configStruct, error) {
+	myConfig := configStruct{}
+	data, readErr := ioutil.ReadFile(filePath)
+	if readErr != nil {
+		if os.IsNotExist(readErr) {
+			// ignore if file does not exist,
+			// as this is not an error.
+			return myConfig, nil
+		}
+		return myConfig, microerror.Mask(readErr)
+	}
+
+	yamlErr := yaml.Unmarshal(data, &myConfig)
+	if yamlErr != nil {
+		return myConfig, microerror.Mask(yamlErr)
+	}
+
+	return myConfig, nil
 }
 
 // WriteToFile writes the configuration data to a YAML file
@@ -229,14 +334,15 @@ func getKubeconfigPaths(homeDir string) []string {
 // @param requestIDHeader  Request ID to pass with API requests
 // @param activityName     Name of the activity calling this function (for tracking)
 // @param cmdLine          Command line content used to run the CLI (for tracking)
-func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint string) (clusterID string, err error) {
+// @param apiEndpoint      Endpoint URL
+func GetDefaultCluster(requestIDHeader, activityName, cmdLine, apiEndpoint string) (clusterID string, err error) {
 	// Go through available orgs and clusters to find all clusters
 	if Config.Token == "" {
 		return "", errors.New("user not logged in")
 	}
 
 	clientConfig := client.Configuration{
-		Endpoint:  cmdAPIEndpoint,
+		Endpoint:  apiEndpoint,
 		Timeout:   10 * time.Second,
 		UserAgent: UserAgent(),
 	}
@@ -257,4 +363,30 @@ func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint st
 	}
 
 	return "", nil
+}
+
+// normalizeEndpoint sanitizes a user-entered endpoint URL.
+// - turn to lowercase
+// - Adds https:// if no scheme is given
+// - Removes path and other junk
+// Errors are printed immediately here, to simplify handling of this function.
+func normalizeEndpoint(u string) string {
+	// lowercase
+	u = strings.ToLower(u)
+
+	// if URL has no scheme, prefix it with the default scheme
+	if !strings.HasPrefix(u, "https://") && !strings.HasPrefix(u, "http://") {
+		u = "https://" + u
+	}
+
+	// strip extra stuff
+	p, err := url.Parse(u)
+	if err != nil {
+		fmt.Printf("[Warning] Endpoint URL normalization yielded: %s\n", err)
+	}
+
+	// remove everything but scheme and host
+	u = p.Scheme + "://" + p.Host
+
+	return u
 }

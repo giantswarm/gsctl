@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -10,8 +9,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/spf13/viper"
 )
 
 func tempDir() string {
@@ -20,9 +17,10 @@ func tempDir() string {
 }
 
 // Test_Initialize_Empty tests the case where a config file and its directory
-// do not yet exist
+// do not yet exist.
+// Configuration is created and then serialized to the YAML file.
+// We roughtly check the YAML whether it contains the expected info.
 func Test_Initialize_Empty(t *testing.T) {
-	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	// additional non-existing sub directory
@@ -33,9 +31,13 @@ func Test_Initialize_Empty(t *testing.T) {
 		t.Error("Error in Initialize:", err)
 	}
 
-	Config.Email = "email@example.com"
-	Config.Token = "some-token"
+	testEndpointURL := "https://myapi.domain.tld"
+	testEmail := "user@domain.tld"
+	testToken := "some-token"
+
+	// directly set some configuration
 	Config.LastVersionCheck = time.Time{}
+	Config.SelectEndpoint(testEndpointURL, testEmail, testToken)
 
 	err = WriteToFile()
 	if err != nil {
@@ -46,15 +48,40 @@ func Test_Initialize_Empty(t *testing.T) {
 		t.Error(readErr)
 	}
 	yamlText := string(content)
+
 	if !strings.Contains(yamlText, "updated:") {
 		t.Log(yamlText)
 		t.Error("Written YAML doesn't contain the expected string 'updated:'")
 	}
+
+	if !strings.Contains(yamlText, "selected_endpoint: "+testEndpointURL) {
+		t.Log(yamlText)
+		t.Errorf("Written YAML doesn't contain the expected string 'selected_endpoint: %s'", testEndpointURL)
+	}
+
+	// test what happens after logout
+	Config.Logout(testEndpointURL)
+
+	err = WriteToFile()
+	if err != nil {
+		t.Error(err)
+	}
+	content, readErr = ioutil.ReadFile(ConfigFilePath)
+	if readErr != nil {
+		t.Error(readErr)
+	}
+	yamlText = string(content)
+
+	if !strings.Contains(yamlText, `selected_endpoint: ""`) {
+		t.Log(yamlText)
+		t.Error(`Written YAML doesn't contain the expected string 'selected_endpoint: ""'`)
+	}
+	t.Log(yamlText)
 }
 
-// Test_Initialize_NonEmpty tests initializing with a dummy config file
+// Test_Initialize_NonEmpty tests initializing with a dummy config file.
+// The config file has one endpoint, which is also the selected one.
 func Test_Initialize_NonEmpty(t *testing.T) {
-	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	filePath := path.Join(dir, ConfigFileName+"."+ConfigFileType)
@@ -65,9 +92,18 @@ func Test_Initialize_NonEmpty(t *testing.T) {
 		t.Error(fileErr)
 	}
 
+	// our test config YAML
+	yamlText := `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  https://myapi.domain.tld:
+    email: email@example.com
+    token: some-token
+selected_endpoint: https://myapi.domain.tld`
+
 	email := "email@example.com"
 	token := "some-token"
-	file.WriteString(fmt.Sprintf("email: %s\ntoken: %s\n", email, token))
+	file.WriteString(yamlText)
 	file.Close()
 
 	err := Initialize(dir)
@@ -87,7 +123,6 @@ func Test_Initialize_NonEmpty(t *testing.T) {
 // when the KUBECONFIG env variable points to the
 // same dir as we use for config, and it's empty
 func Test_Kubeconfig_Env_Nonexisting(t *testing.T) {
-	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	os.Setenv("KUBECONFIG", dir)
@@ -126,5 +161,27 @@ func Test_GetDefaultCluster(t *testing.T) {
 	}
 	if clusterID != "cluster-id" {
 		t.Errorf("Expected 'cluster-id', got '%s'", clusterID)
+	}
+}
+
+var normalizeEndpointTests = []struct {
+	in  string
+	out string
+}{
+	{"myapi", "https://myapi"},
+	{"myapi.com", "https://myapi.com"},
+	{"some.api.server/foo/bar", "https://some.api.server"},
+	{"http://localhost:9000", "http://localhost:9000"},
+	{"http://localhost:9000/", "http://localhost:9000"},
+	{"http://user:pass@localhost:9000/", "http://localhost:9000"},
+}
+
+// Test_NormalizeEndpoint tests the normalizeEndpoint function
+func Test_NormalizeEndpoint(t *testing.T) {
+	for _, tt := range normalizeEndpointTests {
+		normalized := normalizeEndpoint(tt.in)
+		if normalized != tt.out {
+			t.Errorf("normalizeEndpoint('%s') returned '%s', expected '%s'", tt.in, normalized, tt.out)
+		}
 	}
 }
