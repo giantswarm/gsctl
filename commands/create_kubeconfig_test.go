@@ -26,7 +26,6 @@ func tempKubeconfig() (string, error) {
 	dir := tempDir()
 	config.HomeDirPath = dir
 	config.DefaultConfigDirPath = path.Join(config.HomeDirPath, ".config", config.ProgramName)
-	config.LegacyConfigDirPath = path.Join(config.HomeDirPath, "."+config.ProgramName)
 
 	// add a test kubectl config file
 	kubeConfigPath := path.Join(dir, "tempkubeconfig")
