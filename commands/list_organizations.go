@@ -43,7 +43,8 @@ func checkListOrgs(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// list organizations the user is member of
+// listOrgs fetches a list organizations the user is member of
+// and prints it in tabular form
 func listOrgs(cmd *cobra.Command, args []string) {
 	output, err := orgsTable()
 	if err != nil {
@@ -56,9 +57,11 @@ func listOrgs(cmd *cobra.Command, args []string) {
 	fmt.Print(output)
 }
 
+// orgsTable fetches the organizations the user is a member of
+// and returns a table in string form
 func orgsTable() (string, error) {
 	clientConfig := client.Configuration{
-		Endpoint:  cmdAPIEndpoint,
+		Endpoint:  config.Config.ChooseEndpoint(cmdAPIEndpoint),
 		Timeout:   5 * time.Second,
 		UserAgent: config.UserAgent(),
 	}

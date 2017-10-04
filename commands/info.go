@@ -34,7 +34,7 @@ func defaultInfoArguments() infoArguments {
 	return infoArguments{
 		token:       cmdToken,
 		verbose:     cmdVerbose,
-		apiEndpoint: cmdAPIEndpoint,
+		apiEndpoint: config.Config.ChooseEndpoint(cmdAPIEndpoint),
 	}
 }
 

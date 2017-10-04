@@ -33,7 +33,8 @@ func init() {
 // runPingCommand executes the ping() function
 // and prints output in a user-friendly way
 func runPingCommand(cmd *cobra.Command, args []string) {
-	duration, err := ping(cmdAPIEndpoint)
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	duration, err := ping(endpoint)
 	if err != nil {
 		fmt.Println(color.RedString("Could not reach API"))
 		fmt.Println(err)

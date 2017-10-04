@@ -47,7 +47,7 @@ type listKeypairsArguments struct {
 // based on global variables (= command line options from cobra).
 func defaultListKeypairsArguments() listKeypairsArguments {
 	return listKeypairsArguments{
-		apiEndpoint: cmdAPIEndpoint,
+		apiEndpoint: config.Config.ChooseEndpoint(cmdAPIEndpoint),
 		clusterID:   cmdClusterID,
 		token:       cmdToken,
 	}

@@ -64,7 +64,7 @@ func addKeypair(cmd *cobra.Command, args []string) {
 	}
 
 	clientConfig := client.Configuration{
-		Endpoint:  cmdAPIEndpoint,
+		Endpoint:  config.Config.ChooseEndpoint(cmdAPIEndpoint),
 		UserAgent: config.UserAgent(),
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)

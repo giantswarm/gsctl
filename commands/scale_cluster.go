@@ -65,7 +65,7 @@ type scaleClusterArguments struct {
 
 func defaultScaleClusterArguments() scaleClusterArguments {
 	return scaleClusterArguments{
-		apiEndpoint:         cmdAPIEndpoint,
+		apiEndpoint:         config.Config.ChooseEndpoint(cmdAPIEndpoint),
 		authToken:           cmdToken,
 		clusterID:           cmdClusterID,
 		numWorkersDesired:   cmdNumWorkers,

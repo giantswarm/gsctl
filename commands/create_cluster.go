@@ -37,7 +37,7 @@ type addClusterArguments struct {
 
 func defaultAddClusterArguments() addClusterArguments {
 	return addClusterArguments{
-		apiEndpoint:         cmdAPIEndpoint,
+		apiEndpoint:         config.Config.ChooseEndpoint(cmdAPIEndpoint),
 		clusterName:         cmdClusterName,
 		dryRun:              cmdDryRun,
 		inputYAMLFile:       cmdInputYAMLFile,

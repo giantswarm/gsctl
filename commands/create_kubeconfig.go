@@ -76,7 +76,7 @@ func checkCreateKubeconfig(cmd *cobra.Command, args []string) error {
 // createKubeconfig adds configuration for kubectl
 func createKubeconfig(cmd *cobra.Command, args []string) {
 	clientConfig := client.Configuration{
-		Endpoint:  cmdAPIEndpoint,
+		Endpoint:  config.Config.ChooseEndpoint(cmdAPIEndpoint),
 		Timeout:   10 * time.Second,
 		UserAgent: config.UserAgent(),
 	}

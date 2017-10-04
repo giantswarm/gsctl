@@ -70,7 +70,7 @@ type loginArguments struct {
 
 func defaultLoginArguments() loginArguments {
 	return loginArguments{
-		apiEndpoint: cmdAPIEndpoint,
+		apiEndpoint: config.Config.ChooseEndpoint(cmdAPIEndpoint),
 		email:       cmdEmail,
 		password:    cmdPassword,
 		verbose:     cmdVerbose,

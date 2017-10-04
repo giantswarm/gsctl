@@ -43,7 +43,7 @@ type logoutArguments struct {
 
 func defaultLogoutArguments() logoutArguments {
 	return logoutArguments{
-		apiEndpoint: cmdAPIEndpoint,
+		apiEndpoint: config.Config.ChooseEndpoint(cmdAPIEndpoint),
 		token:       cmdToken,
 	}
 }

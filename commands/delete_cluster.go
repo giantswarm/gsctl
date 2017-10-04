@@ -27,7 +27,7 @@ type deleteClusterArguments struct {
 
 func defaultDeleteClusterArguments() deleteClusterArguments {
 	return deleteClusterArguments{
-		apiEndpoint: cmdAPIEndpoint,
+		apiEndpoint: config.Config.ChooseEndpoint(cmdAPIEndpoint),
 		clusterID:   cmdClusterID,
 		force:       cmdForce,
 		token:       cmdToken,

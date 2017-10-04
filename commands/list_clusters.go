@@ -61,7 +61,7 @@ func listClusters(cmd *cobra.Command, args []string) {
 // clustersTable returns a table of clusters the user has access to
 func clustersTable() (string, error) {
 	clientConfig := client.Configuration{
-		Endpoint:  cmdAPIEndpoint,
+		Endpoint:  config.Config.ChooseEndpoint(cmdAPIEndpoint),
 		Timeout:   3 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
