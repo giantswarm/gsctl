@@ -17,9 +17,6 @@ import (
 
 const (
 	logoutActivityName = "login"
-
-	// errors
-	errInvalidToken = "submitted token was not valid"
 )
 
 var (
