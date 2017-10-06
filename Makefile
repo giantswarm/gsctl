@@ -148,6 +148,9 @@ release: bin-dist
 	# homebrew
 	./update-homebrew.sh
 
+	# scoop
+	./update-scoop.sh
+
 	# Update version number occurrences in README.md
 	#perl -pi -e "s:gsctl\/[0-9]+\.[0-9]+\.[0-9]+\/:gsctl\/${VERSION}\/:g" README.md
 	#perl -pi -e "s:gsctl\-[0-9]+\.[0-9]+\.[0-9]+\-:gsctl\-${VERSION}\-:g" README.md
