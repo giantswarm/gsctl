@@ -26,9 +26,11 @@ const (
 var (
 	// LogoutCommand performs a logout
 	LogoutCommand = &cobra.Command{
-		Use:     "logout",
-		Short:   "Sign the current user out",
-		Long:    `This will terminate the current user's session and invalidate the authentication token.`,
+		Use:   "logout",
+		Short: "Sign the current user out",
+		Long: `Terminates the user's session with the current endpoint and invalidates the authentication token.
+
+If an endpoint was selected before, it remains selected. Re-login using 'gsctl login <email>'.`,
 		PreRunE: logoutValidationOutput,
 		Run:     logoutOutput,
 	}
@@ -93,8 +95,7 @@ func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 // Returns nil in case of success, or an error otherwise.
 func logout(args logoutArguments) error {
 	// erase local credentials, no matter what the result on the API side is
-	config.Config.Token = ""
-	config.Config.Email = ""
+	config.Config.Logout(config.Config.ChooseEndpoint(cmdAPIEndpoint))
 	config.WriteToFile()
 
 	clientConfig := client.Configuration{
