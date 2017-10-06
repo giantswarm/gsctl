@@ -36,7 +36,8 @@ func listEndpoints(cmd *cobra.Command, args []string) {
 // endpointsTable returns a table of clusters the user has access to
 func endpointsTable() string {
 	if len(config.Config.Endpoints) == 0 {
-		return ""
+		return fmt.Sprintf("No endpoints configured.\n\nTo add an endpoint and authenticate for it, use\n\n\t%s\n",
+			color.YellowString("gsctl login <email> -e <endpoint>"))
 	}
 
 	// table headers
