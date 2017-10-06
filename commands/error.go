@@ -177,3 +177,11 @@ var cannotScaleBelowMinimumWorkersError = errgo.New("cannot scale below minimum 
 func IsCannotScaleBelowMinimumWorkersError(err error) bool {
 	return errgo.Cause(err) == cannotScaleBelowMinimumWorkersError
 }
+
+// the user has not given an endpoint where expected
+var endpointMissingError = errgo.New("no endpoint given")
+
+// IsEndpointMissingError asserts endpointMissingError.
+func IsEndpointMissingError(err error) bool {
+	return errgo.Cause(err) == endpointMissingError
+}
