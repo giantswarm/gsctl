@@ -72,7 +72,7 @@ func Test_LoginInvalidPassword(t *testing.T) {
 	args.password = "bad password"
 
 	_, err := login(args)
-	if IsInvalidCredentialsError(err) {
+	if !IsInvalidCredentialsError(err) {
 		t.Errorf("Expected error '%s', got %v", invalidCredentialsError, err)
 	}
 }
