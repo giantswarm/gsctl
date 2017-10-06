@@ -1,7 +1,7 @@
 PROJECT=gsctl
 ORGANISATION=giantswarm
 BIN=$(PROJECT)
-GOVERSION := 1.8
+GOVERSION := 1.9
 BUILDDATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 VERSION := $(shell cat VERSION)
 COMMIT := $(shell git rev-parse HEAD | cut -c1-10)
@@ -47,7 +47,7 @@ build/bin/$(BIN)-linux-amd64:
 	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		-e GOPATH=/go -e GOOS=linux -e GOARCH=amd64 -e CGO_ENABLED=1 \
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
-		golang:$(GOVERSION)-jessie go build -a -installsuffix cgo -o build/bin/$(BIN)-linux-amd64 \
+		golang:$(GOVERSION)-stretch go build -a -installsuffix cgo -o build/bin/$(BIN)-linux-amd64 \
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 # platform-specific build
