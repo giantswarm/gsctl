@@ -73,6 +73,12 @@ func printInfo(cmd *cobra.Command, args []string) {
 		output = append(output, color.YellowString("Email:")+"|"+color.CyanString(config.Config.Email))
 	}
 
+	if result.token == "" {
+		output = append(output, color.YellowString("Logged in:")+"|"+color.CyanString("no"))
+	} else {
+		output = append(output, color.YellowString("Logged in:")+"|"+color.CyanString("yes"))
+	}
+
 	if infoArgs.verbose {
 		if result.token != "" {
 			output = append(output, color.YellowString("Auth token:")+"|"+color.CyanString(result.token))
