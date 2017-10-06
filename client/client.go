@@ -37,6 +37,11 @@ type GenericResponse struct {
 // with specific configuration
 func NewClient(clientConfig Configuration) (*gsclientgen.DefaultApi, error) {
 	configuration := gsclientgen.NewConfiguration()
+
+	if clientConfig.Endpoint == "" {
+		return &gsclientgen.DefaultApi{}, microerror.Mask(endpointNotSpecifiedError)
+	}
+
 	configuration.BasePath = clientConfig.Endpoint
 	configuration.UserAgent = clientConfig.UserAgent
 	configuration.Timeout = &DefaultTimeout
