@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -31,8 +30,8 @@ var (
 		Long: `Terminates the user's session with the current endpoint and invalidates the authentication token.
 
 If an endpoint was selected before, it remains selected. Re-login using 'gsctl login <email>'.`,
-		PreRunE: logoutValidationOutput,
-		Run:     logoutOutput,
+		PreRun: logoutValidationOutput,
+		Run:    logoutOutput,
 	}
 )
 
@@ -55,11 +54,11 @@ func init() {
 }
 
 // TODO: separate validation and validation result output
-func logoutValidationOutput(cmd *cobra.Command, args []string) error {
+func logoutValidationOutput(cmd *cobra.Command, args []string) {
 	if config.Config.Token == "" && cmdToken == "" {
-		return errors.New("You are not logged in")
+		fmt.Println("You weren't logged in here, but better be safe than sorry.")
+		os.Exit(1)
 	}
-	return nil
 }
 
 // logoutOutput performs our logout function and displays the result.
@@ -88,6 +87,8 @@ func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 		}
 		os.Exit(1)
 	}
+
+	fmt.Printf("You have logged out from endpoint %s.\n", color.CyanString(logoutArgs.apiEndpoint))
 }
 
 // logout terminates the current user session.
