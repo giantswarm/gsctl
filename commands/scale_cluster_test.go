@@ -11,7 +11,7 @@ import (
 	"github.com/giantswarm/gsctl/config"
 )
 
-// TestScaleClusterNotLoggedIn tests if e can prevent an attempt to do things
+// TestScaleClusterNotLoggedIn tests if we can prevent an attempt to do things
 // when not logged in and no token has been provided.
 func TestScaleClusterNotLoggedIn(t *testing.T) {
 	// This server should not get any request, because we avoid unauthenticated requests.
