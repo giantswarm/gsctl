@@ -40,23 +40,27 @@ func endpointsTable() string {
 	}
 
 	// table headers
-	output := []string{color.CyanString("ENDPOINT URL") + "|" + color.CyanString("SELECTED") + "|" + color.CyanString("LOGGED IN") + "|" + color.CyanString("EMAIL")}
+	output := []string{color.CyanString("ENDPOINT URL") + "|" + color.CyanString("EMAIL") + "|" + color.CyanString("SELECTED") + "|" + color.CyanString("LOGGED IN")}
 
 	for endpoint := range config.Config.Endpoints {
 		selected := "no"
 		loggedIn := "no"
 		email := "n/a"
 
-		if endpoint == config.Config.SelectedEndpoint {
+		selectedEndpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+		if endpoint == selectedEndpoint {
 			selected = "yes"
 		}
 
-		if config.Config.Endpoints[endpoint].Token != "" && config.Config.Endpoints[endpoint].Email != "" {
+		if config.Config.Endpoints[endpoint].Token != "" {
 			loggedIn = "yes"
+		}
+
+		if config.Config.Endpoints[endpoint].Email != "" {
 			email = config.Config.Endpoints[endpoint].Email
 		}
 
-		output = append(output, endpoint+"|"+selected+"|"+loggedIn+"|"+email)
+		output = append(output, endpoint+"|"+email+"|"+selected+"|"+loggedIn)
 	}
 
 	return columnize.SimpleFormat(output)
