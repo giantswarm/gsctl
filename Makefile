@@ -1,7 +1,7 @@
 PROJECT=gsctl
 ORGANISATION=giantswarm
 BIN=$(PROJECT)
-GOVERSION := 1.8
+GOVERSION := 1.9
 BUILDDATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 VERSION := $(shell cat VERSION)
 COMMIT := $(shell git rev-parse HEAD | cut -c1-10)
@@ -47,7 +47,7 @@ build/bin/$(BIN)-linux-amd64:
 	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		-e GOPATH=/go -e GOOS=linux -e GOARCH=amd64 -e CGO_ENABLED=1 \
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
-		golang:$(GOVERSION)-jessie go build -a -installsuffix cgo -o build/bin/$(BIN)-linux-amd64 \
+		golang:$(GOVERSION)-stretch go build -a -installsuffix cgo -o build/bin/$(BIN)-linux-amd64 \
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 # platform-specific build
@@ -92,7 +92,16 @@ test:
 # Create binary files for releases
 bin-dist: crosscompile
 
-	mkdir -p bin-dist
+	@mkdir -p bin-dist
+
+	@# test if code signing certificate is available in ./certs/code-signing.p12
+	test -f ./certs/code-signing.p12
+
+	@# test if code signing bundle password is in $CODE_SIGNING_CERT_BUNDLE_PASSWORD
+	@ if [ "${CODE_SIGNING_CERT_BUNDLE_PASSWORD}" = "" ]; then \
+	  echo 'Environment variable $$CODE_SIGNING_CERT_BUNDLE_PASSWORD not set'; \
+	  exit 1; \
+  fi
 
 	for OS in darwin-amd64 linux-amd64; do \
 		mkdir -p build/$(BIN)-$(VERSION)-$$OS; \
@@ -105,12 +114,23 @@ bin-dist: crosscompile
 		cd ..; \
 	done
 
-	# little different treatment for windows
+	@# little different treatment for windows,
+	@# becaue of .exe suffix and code signing
 	for OS in windows-386 windows-amd64; do \
 		mkdir -p build/$(BIN)-$(VERSION)-$$OS; \
 		cp README.md build/$(BIN)-$(VERSION)-$$OS/; \
 		cp LICENSE build/$(BIN)-$(VERSION)-$$OS/; \
-		cp build/bin/$(BIN)-$$OS build/$(BIN)-$(VERSION)-$$OS/$(BIN).exe; \
+		docker run --rm -ti \
+		  -v $(shell pwd)/certs:/mnt/certs \
+		  -v $(shell pwd)/build:/mnt/binaries \
+		  quay.io/giantswarm/signcode-util:latest \
+		  sign \
+		  -pkcs12 /mnt/certs/code-signing.p12 \
+		  -n "gsctl" \
+		  -i https://github.com/giantswarm/gsctl \
+		  -in /mnt/binaries/bin/$(BIN)-$$OS \
+		  -out /mnt/binaries/$(BIN)-$(VERSION)-$$OS/$(BIN).exe \
+		  -pass $(CODE_SIGNING_CERT_BUNDLE_PASSWORD); \
 		cd build; \
 		zip $(BIN)-$(VERSION)-$$OS.zip $(BIN)-$(VERSION)-$$OS/*; \
 		mv ./$(BIN)-$(VERSION)-$$OS.zip ../bin-dist/; \
@@ -127,6 +147,9 @@ release: bin-dist
 
 	# homebrew
 	./update-homebrew.sh
+
+	# scoop
+	./update-scoop.sh
 
 	# Update version number occurrences in README.md
 	#perl -pi -e "s:gsctl\/[0-9]+\.[0-9]+\.[0-9]+\/:gsctl\/${VERSION}\/:g" README.md
