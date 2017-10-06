@@ -81,7 +81,7 @@ type configStruct struct {
 	Updated string `yaml:"updated"`
 
 	// Endpoints is a map of endpoints
-	Endpoints map[string]endpointConfigStruct `yaml:"endpoints"`
+	Endpoints map[string]*endpointConfigStruct `yaml:"endpoints"`
 
 	// SelectedEndpoint is the URL of the selected endpoint
 	SelectedEndpoint string `yaml:"selected_endpoint"`
@@ -107,20 +107,39 @@ type endpointConfigStruct struct {
 	Token string `yaml:"token"`
 }
 
-// SetEndpoint adds an endpoint to the configStruct.Endpoints field
-// (if not yet there) and makes it the selected endpoint.
-// This should only be done after successful authentication.
-func (c *configStruct) SelectEndpoint(endpointURL string, email string, token string) {
+// StoreEndpointAuth adds an endpoint to the configStruct.Endpoints field
+// (if not yet there). This should only be done after successful authentication.
+func (c *configStruct) StoreEndpointAuth(endpointURL string, email string, token string) error {
 	ep := normalizeEndpoint(endpointURL)
 
-	c.Endpoints[ep] = endpointConfigStruct{
+	if email == "" || token == "" {
+		return microerror.Mask(credentialsRequiredError)
+	}
+
+	c.Endpoints[ep] = &endpointConfigStruct{
 		Email: email,
 		Token: token,
 	}
 
+	WriteToFile()
+
+	return nil
+}
+
+// SelectEndpoint makes the given endpoint URL the selected one
+func (c *configStruct) SelectEndpoint(endpointURL string) error {
+	ep := normalizeEndpoint(endpointURL)
+	if _, ok := c.Endpoints[ep]; !ok {
+		return microerror.Mask(endpointNotDefinedError)
+	}
+
 	c.SelectedEndpoint = ep
-	c.Token = token
-	c.Email = email
+	c.Token = c.Endpoints[ep].Token
+	c.Email = c.Endpoints[ep].Email
+
+	WriteToFile()
+
+	return nil
 }
 
 // SelectedEndpoint returns the selected endpoint URL.
@@ -143,28 +162,20 @@ func (c *configStruct) ChooseEndpoint(overridingEndpointURL string) string {
 	return c.SelectedEndpoint
 }
 
-// Logout removes the email and token values from the selected endpoint.
+// Logout removes the token value from the selected endpoint.
 func (c *configStruct) Logout(endpointURL string) {
-	c.Token = ""
-	c.Email = ""
-	if c.SelectedEndpoint != "" {
-		c.Endpoints[c.SelectedEndpoint] = endpointConfigStruct{
-			Email: "",
-			Token: "",
-		}
-		// deselect endpoint
-		c.SelectedEndpoint = ""
-	}
-}
+	ep := normalizeEndpoint(endpointURL)
+	fmt.Printf("Logout ep: '%s'\n", ep)
 
-// EndpointURLs returns a slice of all known endpoint URLs
-// func (c *configStruct) EndpointURLs() []string {
-// 	endpoints := make([]string, 0, len(c.Endpoints))
-// 	for endpoint := range c.Endpoints {
-// 		endpoints = append(endpoints, endpoint)
-// 	}
-// 	return endpoints
-// }
+	if ep == c.SelectedEndpoint {
+		c.Token = ""
+	}
+
+	if element, ok := c.Endpoints[ep]; ok {
+		element.Token = ""
+	}
+	fmt.Printf("configStruct: %#v\n", c)
+}
 
 // init sets defaults and initializes config paths
 func init() {
@@ -189,6 +200,10 @@ func init() {
 // It's supposed to be called after init().
 // The configDirPath argument can be given to override the DefaultConfigDirPath.
 func Initialize(configDirPath string) error {
+	// Reset our Config object. This is particularly necessary for running
+	// multiple tests in a row.
+	Config = configStruct{}
+
 	// configDirPath argument overrides default, if given
 	if configDirPath != "" {
 		ConfigDirPath = configDirPath
@@ -238,7 +253,7 @@ func populateConfigStruct(cs configStruct) {
 
 	Config.Endpoints = cs.Endpoints
 	if Config.Endpoints == nil {
-		Config.Endpoints = make(map[string]endpointConfigStruct)
+		Config.Endpoints = make(map[string]*endpointConfigStruct)
 	}
 
 	if cs.SelectedEndpoint != "" {

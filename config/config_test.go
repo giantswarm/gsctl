@@ -37,7 +37,15 @@ func Test_Initialize_Empty(t *testing.T) {
 
 	// directly set some configuration
 	Config.LastVersionCheck = time.Time{}
-	Config.SelectEndpoint(testEndpointURL, testEmail, testToken)
+	err = Config.StoreEndpointAuth(testEndpointURL, testEmail, testToken)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = Config.SelectEndpoint(testEndpointURL)
+	if err != nil {
+		t.Error(err)
+	}
 
 	err = WriteToFile()
 	if err != nil {
@@ -72,9 +80,9 @@ func Test_Initialize_Empty(t *testing.T) {
 	}
 	yamlText = string(content)
 
-	if !strings.Contains(yamlText, `selected_endpoint: ""`) {
+	if !strings.Contains(yamlText, "selected_endpoint: "+testEndpointURL) {
 		t.Log(yamlText)
-		t.Error(`Written YAML doesn't contain the expected string 'selected_endpoint: ""'`)
+		t.Errorf("Written YAML doesn't contain the expected string 'selected_endpoint: %s'", testEndpointURL)
 	}
 	t.Log(yamlText)
 }
@@ -117,6 +125,25 @@ selected_endpoint: https://myapi.domain.tld`
 	if Config.Token != "some-token" {
 		t.Errorf("Expected token '%s', got '%s'", token, Config.Token)
 	}
+
+	// test what happens after logout
+	Config.Logout("https://myapi.domain.tld")
+
+	err = WriteToFile()
+	if err != nil {
+		t.Error(err)
+	}
+	content, readErr := ioutil.ReadFile(ConfigFilePath)
+	if readErr != nil {
+		t.Error(readErr)
+	}
+	yamlText = string(content)
+
+	if strings.Contains(yamlText, "some-token") {
+		t.Log(yamlText)
+		t.Errorf("Written YAML still contains token after logout")
+	}
+	t.Log(yamlText)
 }
 
 // Test_Kubeconfig_Env_Nonexisting tests what happens
@@ -155,12 +182,36 @@ func Test_GetDefaultCluster(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
+	// config
+	dir := tempDir()
+	defer os.RemoveAll(dir)
+	filePath := path.Join(dir, ConfigFileName+"."+ConfigFileType)
+	file, fileErr := os.Create(filePath)
+	if fileErr != nil {
+		t.Error(fileErr)
+	}
+	yamlText := `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  ` + mockServer.URL + `:
+    email: email@example.com
+    token: some-token
+selected_endpoint: ` + mockServer.URL
+	t.Log(yamlText)
+	file.WriteString(yamlText)
+	file.Close()
+
+	err := Initialize(dir)
+	if err != nil {
+		t.Error("Error in Initialize:", err)
+	}
+
 	clusterID, err := GetDefaultCluster("", "", "", mockServer.URL)
 	if err != nil {
 		t.Error(err)
 	}
 	if clusterID != "cluster-id" {
-		t.Errorf("Expected 'cluster-id', got '%s'", clusterID)
+		t.Errorf("Expected 'cluster-id', got %#v", clusterID)
 	}
 }
 
@@ -171,6 +222,7 @@ var normalizeEndpointTests = []struct {
 	{"myapi", "https://myapi"},
 	{"myapi.com", "https://myapi.com"},
 	{"some.api.server/foo/bar", "https://some.api.server"},
+	{"http://127.0.0.1:64703", "http://127.0.0.1:64703"},
 	{"http://localhost:9000", "http://localhost:9000"},
 	{"http://localhost:9000/", "http://localhost:9000"},
 	{"http://user:pass@localhost:9000/", "http://localhost:9000"},
