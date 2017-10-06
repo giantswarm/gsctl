@@ -173,6 +173,8 @@ func (c *configStruct) Logout(endpointURL string) {
 	if element, ok := c.Endpoints[ep]; ok {
 		element.Token = ""
 	}
+
+	WriteToFile()
 }
 
 // init sets defaults and initializes config paths

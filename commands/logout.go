@@ -96,7 +96,6 @@ func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 func logout(args logoutArguments) error {
 	// erase local credentials, no matter what the result on the API side is
 	config.Config.Logout(config.Config.ChooseEndpoint(cmdAPIEndpoint))
-	config.WriteToFile()
 
 	clientConfig := client.Configuration{
 		Endpoint:  args.apiEndpoint,
