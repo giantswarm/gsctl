@@ -37,13 +37,15 @@ var (
 
 	// LoginCommand is the "login" CLI command
 	LoginCommand = &cobra.Command{
-		Use:   "login <email>",
+		Use:   "login <email> [-e|--endpoint <endpoint>]",
 		Short: "Sign in as a user",
 		Long: `Sign in against an endpoint with email address and password.
 
 This will select the given endpoint for subsequent commands.
 
-The password has to be entered interactively or given as -p / --password flag.`,
+The password has to be entered interactively or given as -p / --password flag.
+
+The -e or --endpoint argument can be omitted if an endpoint is already selected.`,
 		Example: "  gsctl login user@example.com --endpoint api.example.com",
 		PreRun:  loginValidationOutput,
 		Run:     loginOutput,
@@ -55,6 +57,8 @@ type loginResult struct {
 	apiEndpoint string
 	// loggedOutBefore is true if the user has been logged out from a previous session
 	loggedOutBefore bool
+	// endpointSwitched is true when the endpoint has been changed during login
+	endpointSwitched bool
 	// email is the email address we are signed in with
 	email string
 	// token is the new session token received
@@ -128,9 +132,11 @@ func loginValidation(positionalArgs []string) error {
 		return errors.New(errTokenArgumentNotApplicable)
 	}
 
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+
 	// interactive password prompt
 	if cmdPassword == "" {
-		fmt.Printf("Password for %s: ", cmdEmail)
+		fmt.Printf("Password for %s on %s: ", color.CyanString(cmdEmail), color.CyanString(endpoint))
 		password, err := gopass.GetPasswd()
 		if err != nil {
 			return err
@@ -179,6 +185,10 @@ func loginOutput(cmd *cobra.Command, args []string) {
 		fmt.Println("You have been logged out from your previous session.")
 	}
 
+	if result.endpointSwitched {
+		fmt.Printf("Endpoint selected: %s\n", result.apiEndpoint)
+	}
+
 	fmt.Println(color.GreenString("You are logged in as %s at %s.",
 		result.email, result.apiEndpoint))
 }
@@ -187,9 +197,15 @@ func loginOutput(cmd *cobra.Command, args []string) {
 // If the user was logged in before, a logout is performed first.
 func login(args loginArguments) (loginResult, error) {
 	result := loginResult{
-		apiEndpoint:     args.apiEndpoint,
-		email:           args.email,
-		loggedOutBefore: false,
+		apiEndpoint:      args.apiEndpoint,
+		email:            args.email,
+		loggedOutBefore:  false,
+		endpointSwitched: false,
+	}
+
+	endpointBefore := config.Config.SelectedEndpoint
+	if result.apiEndpoint != endpointBefore {
+		result.endpointSwitched = true
 	}
 
 	encodedPassword := base64.StdEncoding.EncodeToString([]byte(args.password))
@@ -225,7 +241,14 @@ func login(args loginArguments) (loginResult, error) {
 		// successful login
 		result.token = loginResponse.Data.Id
 		result.email = args.email
-		config.Config.SelectEndpoint(args.apiEndpoint, args.email, result.token)
+
+		if err := config.Config.StoreEndpointAuth(args.apiEndpoint, args.email, result.token); err != nil {
+			return result, microerror.Mask(err)
+		}
+		if err := config.Config.SelectEndpoint(args.apiEndpoint); err != nil {
+			return result, microerror.Mask(err)
+		}
+
 		config.WriteToFile()
 
 		return result, nil
