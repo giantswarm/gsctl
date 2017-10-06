@@ -165,7 +165,6 @@ func (c *configStruct) ChooseEndpoint(overridingEndpointURL string) string {
 // Logout removes the token value from the selected endpoint.
 func (c *configStruct) Logout(endpointURL string) {
 	ep := normalizeEndpoint(endpointURL)
-	fmt.Printf("Logout ep: '%s'\n", ep)
 
 	if ep == c.SelectedEndpoint {
 		c.Token = ""
@@ -174,7 +173,6 @@ func (c *configStruct) Logout(endpointURL string) {
 	if element, ok := c.Endpoints[ep]; ok {
 		element.Token = ""
 	}
-	fmt.Printf("configStruct: %#v\n", c)
 }
 
 // init sets defaults and initializes config paths
