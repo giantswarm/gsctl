@@ -185,3 +185,35 @@ var endpointMissingError = errgo.New("no endpoint given")
 func IsEndpointMissingError(err error) bool {
 	return errgo.Cause(err) == endpointMissingError
 }
+
+// the password supplied by the user was empty
+var emptyPasswordError = errgo.New("empty password given")
+
+// IsEmptyPasswordError asserts emptyPasswordError.
+func IsEmptyPasswordError(err error) bool {
+	return errgo.Cause(err) == emptyPasswordError
+}
+
+// user used --auth-token argument but it wasn't permitted
+var tokenArgumentNotApplicableError = errgo.New("token argument cannot be used here")
+
+// IsTokenArgumentNotApplicableError asserts tokenArgumentNotApplicableError.
+func IsTokenArgumentNotApplicableError(err error) bool {
+	return errgo.Cause(err) == tokenArgumentNotApplicableError
+}
+
+// the email argument was required but not given/empty
+var noEmailArgumentGivenError = errgo.New("no email argument given")
+
+// IsNoEmailArgumentGivenError asserts noEmailArgumentGivenError
+func IsNoEmailArgumentGivenError(err error) bool {
+	return errgo.Cause(err) == noEmailArgumentGivenError
+}
+
+// the user's credentials could not be verified by the API
+var invalidCredentialsError = errgo.New("invalid credentials submitted")
+
+// IsInvalidCredentialsError asserts invalidCredentialsError
+func IsInvalidCredentialsError(err error) bool {
+	return errgo.Cause(err) == invalidCredentialsError
+}

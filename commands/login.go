@@ -2,7 +2,6 @@ package commands
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -20,12 +19,6 @@ import (
 
 const (
 	loginActivityName = "login"
-
-	// errors
-	errTokenArgumentNotApplicable = "token argument cannot be used here"
-	errNoEmailArgumentGiven       = "no email argument given"
-	errInvalidCredentials         = "invalid credentials submitted"
-	errEmptyPassword              = "password must not be empty"
 )
 
 var (
@@ -94,15 +87,15 @@ func loginValidationOutput(cmd *cobra.Command, positionalArgs []string) {
 	if err != nil {
 		var headline = ""
 		var subtext = ""
-		switch err.Error() {
-		case "":
+		switch {
+		case err.Error() == "":
 			return
-		case errNoEmailArgumentGiven:
+		case IsNoEmailArgumentGivenError(err):
 			headline = "The email argument is required."
 			subtext = "Please execute the command as 'gsctl login <email>'. See 'gsctl login --help' for details."
-		case errTokenArgumentNotApplicable:
+		case IsTokenArgumentNotApplicableError(err):
 			headline = "The '--auth-token' flag cannot be used with the 'gsctl login' command."
-		case errEmptyPassword:
+		case IsEmptyPasswordError(err):
 			headline = "The password cannot be empty."
 			subtext = "Please call the command again and enter a non-empty password. See 'gsctl login --help' for details."
 		default:
@@ -123,13 +116,13 @@ func loginValidation(positionalArgs []string) error {
 		// set cmdEmail for later use, as cobra doesn't do that for us
 		cmdEmail = positionalArgs[0]
 	} else {
-		return errors.New(errNoEmailArgumentGiven)
+		return microerror.Mask(noEmailArgumentGivenError)
 	}
 
 	// using auth token flag? The 'login' command is the only exception
 	// where we can't accept this argument.
 	if cmdToken != "" {
-		return errors.New(errTokenArgumentNotApplicable)
+		return microerror.Mask(tokenArgumentNotApplicableError)
 	}
 
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
@@ -142,7 +135,7 @@ func loginValidation(positionalArgs []string) error {
 			return err
 		}
 		if string(password) == "" {
-			return errors.New(errEmptyPassword)
+			return microerror.Mask(emptyPasswordError)
 		}
 		cmdPassword = string(password)
 	}
@@ -159,14 +152,17 @@ func loginOutput(cmd *cobra.Command, args []string) {
 	if err != nil {
 		var headline = ""
 		var subtext = ""
-		switch err.Error() {
-		case "":
+		switch {
+		case err.Error() == "":
 			return
-		case errEmptyPassword:
+		case client.IsEndpointNotSpecifiedError(err):
+			headline = "No endpoint has been specified."
+			subtext = "Please use the '-e|--endpoint' flag."
+		case IsEmptyPasswordError(err):
 			headline = "Empty password submitted"
 			subtext = "The API server complains about the password provided."
 			subtext += " Please make sure to provide a string with more than white space characters."
-		case errInvalidCredentials:
+		case IsInvalidCredentialsError(err):
 			headline = "Bad password or email address."
 			subtext = fmt.Sprintf("Could not log you in to %s.", color.CyanString(loginArgs.apiEndpoint))
 			subtext += " The email or the password provided (or both) was incorrect."
@@ -227,7 +223,7 @@ func login(args loginArguments) (loginResult, error) {
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return result, microerror.Mask(couldNotCreateClientError)
+		return result, microerror.Mask(clientErr)
 	}
 
 	requestBody := gsclientgen.LoginBodyModel{Password: string(encodedPassword)}
@@ -254,13 +250,13 @@ func login(args loginArguments) (loginResult, error) {
 		return result, nil
 	case apischema.STATUS_CODE_RESOURCE_INVALID_CREDENTIALS:
 		// bad credentials
-		return result, errors.New(errInvalidCredentials)
+		return result, microerror.Mask(invalidCredentialsError)
 	case apischema.STATUS_CODE_RESOURCE_NOT_FOUND:
 		// user unknown or user/password mismatch
-		return result, errors.New(errInvalidCredentials)
+		return result, microerror.Mask(invalidCredentialsError)
 	case apischema.STATUS_CODE_WRONG_INPUT:
 		// empty password
-		return result, errors.New(errEmptyPassword)
+		return result, microerror.Mask(emptyPasswordError)
 	default:
 		return result, fmt.Errorf("Unhandled response code: %v", loginResponse.StatusCode)
 	}
