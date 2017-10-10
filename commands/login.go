@@ -245,8 +245,6 @@ func login(args loginArguments) (loginResult, error) {
 			return result, microerror.Mask(err)
 		}
 
-		config.WriteToFile()
-
 		return result, nil
 	case apischema.STATUS_CODE_RESOURCE_INVALID_CREDENTIALS:
 		// bad credentials

@@ -6,45 +6,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path"
 	"strings"
 	"testing"
 
 	"github.com/giantswarm/gsctl/config"
 )
-
-// create a temporary directory
-func tempDir() string {
-	dir, _ := ioutil.TempDir("", config.ProgramName)
-	return dir
-}
-
-// create a temporary kubectl config file
-func tempKubeconfig() (string, error) {
-
-	// override standard paths for testing
-	dir := tempDir()
-	config.HomeDirPath = dir
-	config.DefaultConfigDirPath = path.Join(config.HomeDirPath, ".config", config.ProgramName)
-
-	// add a test kubectl config file
-	kubeConfigPath := path.Join(dir, "tempkubeconfig")
-	config.KubeConfigPaths = []string{kubeConfigPath}
-	kubeConfig := []byte(`apiVersion: v1
-kind: Config
-preferences: {}
-current-context: g8s-system
-clusters:
-users:
-contexts:
-`)
-	fileErr := ioutil.WriteFile(kubeConfigPath, kubeConfig, 0700)
-	if fileErr != nil {
-		return "", fileErr
-	}
-
-	return kubeConfigPath, nil
-}
 
 func Test_CreateKubeconfig(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
