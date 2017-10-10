@@ -60,8 +60,11 @@ func listClusters(cmd *cobra.Command, args []string) {
 
 // clustersTable returns a table of clusters the user has access to
 func clustersTable() (string, error) {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
 	clientConfig := client.Configuration{
-		Endpoint:  config.Config.ChooseEndpoint(cmdAPIEndpoint),
+		Endpoint:  endpoint,
 		Timeout:   3 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
@@ -69,7 +72,7 @@ func clustersTable() (string, error) {
 	if clientErr != nil {
 		return "", microerror.Mask(couldNotCreateClientError)
 	}
-	authHeader := "giantswarm " + config.Config.Token
+	authHeader := "giantswarm " + token
 
 	clusters, apiResponse, err := apiClient.GetClusters(authHeader,
 		requestIDHeader, listClustersActivityName, cmdLine)

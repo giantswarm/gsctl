@@ -64,9 +64,12 @@ type scaleClusterArguments struct {
 }
 
 func defaultScaleClusterArguments() scaleClusterArguments {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
 	return scaleClusterArguments{
-		apiEndpoint:         config.Config.ChooseEndpoint(cmdAPIEndpoint),
-		authToken:           cmdToken,
+		apiEndpoint:         endpoint,
+		authToken:           token,
 		clusterID:           cmdClusterID,
 		numWorkersDesired:   cmdNumWorkers,
 		workerNumCPUs:       cmdWorkerNumCPUs,
@@ -145,11 +148,7 @@ func getClusterDetails(args scaleClusterArguments) (gsclientgen.V4ClusterDetails
 	result := gsclientgen.V4ClusterDetailsModel{}
 
 	// perform API call
-	authHeader := "giantswarm " + config.Config.Token
-	if args.authToken != "" {
-		// command line flag overwrites
-		authHeader = "giantswarm " + args.authToken
-	}
+	authHeader := "giantswarm " + args.authToken
 	clientConfig := client.Configuration{
 		Endpoint:  args.apiEndpoint,
 		UserAgent: config.UserAgent(),

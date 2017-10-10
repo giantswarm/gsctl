@@ -63,8 +63,11 @@ func addKeypair(cmd *cobra.Command, args []string) {
 		cmdDescription = "Added by user " + config.Config.Email + " using 'gsctl create keypair'"
 	}
 
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
 	clientConfig := client.Configuration{
-		Endpoint:  config.Config.ChooseEndpoint(cmdAPIEndpoint),
+		Endpoint:  endpoint,
 		UserAgent: config.UserAgent(),
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
@@ -72,7 +75,8 @@ func addKeypair(cmd *cobra.Command, args []string) {
 		fmt.Println(color.RedString("Error: %s", clientErr))
 		os.Exit(1)
 	}
-	authHeader := "giantswarm " + config.Config.Token
+
+	authHeader := "giantswarm " + token
 	ttlHours := int32(cmdTTLDays * 24)
 	addKeyPairBody := gsclientgen.V4AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours, CnPrefix: cmdCNPrefix, CertificateOrganizations: cmdCertificateOrganizations}
 	keypairResponse, apiResponse, err := apiClient.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, addKeyPairActivityName, cmdLine)

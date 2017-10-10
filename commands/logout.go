@@ -40,9 +40,12 @@ type logoutArguments struct {
 }
 
 func defaultLogoutArguments() logoutArguments {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
 	return logoutArguments{
-		apiEndpoint: config.Config.ChooseEndpoint(cmdAPIEndpoint),
-		token:       cmdToken,
+		apiEndpoint: endpoint,
+		token:       token,
 	}
 }
 
@@ -50,7 +53,6 @@ func init() {
 	RootCommand.AddCommand(LogoutCommand)
 }
 
-// TODO: separate validation and validation result output
 func logoutValidationOutput(cmd *cobra.Command, args []string) {
 	if config.Config.Token == "" && cmdToken == "" {
 		fmt.Println("You weren't logged in here, but better be safe than sorry.")
@@ -61,11 +63,6 @@ func logoutValidationOutput(cmd *cobra.Command, args []string) {
 // logoutOutput performs our logout function and displays the result.
 func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 	logoutArgs := defaultLogoutArguments()
-
-	logoutArgs.token = config.Config.Token
-	if cmdToken != "" {
-		logoutArgs.token = cmdToken
-	}
 
 	err := logout(logoutArgs)
 	if err != nil {
@@ -93,7 +90,7 @@ func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 // Returns nil in case of success, or an error otherwise.
 func logout(args logoutArguments) error {
 	// erase local credentials, no matter what the result on the API side is
-	config.Config.Logout(config.Config.ChooseEndpoint(cmdAPIEndpoint))
+	config.Config.Logout(args.apiEndpoint)
 
 	clientConfig := client.Configuration{
 		Endpoint:  args.apiEndpoint,

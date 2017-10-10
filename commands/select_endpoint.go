@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	// ListEndpointsCommand performs the "list endpoints" function
+	// SelectEndpointCommand performs the "select endpoint" function
 	SelectEndpointCommand = &cobra.Command{
 		Use:   "endpoint",
 		Short: "Select endpoint to use",

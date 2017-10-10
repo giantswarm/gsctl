@@ -60,8 +60,11 @@ func listOrgs(cmd *cobra.Command, args []string) {
 // orgsTable fetches the organizations the user is a member of
 // and returns a table in string form
 func orgsTable() (string, error) {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
 	clientConfig := client.Configuration{
-		Endpoint:  config.Config.ChooseEndpoint(cmdAPIEndpoint),
+		Endpoint:  endpoint,
 		Timeout:   5 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
@@ -70,12 +73,7 @@ func orgsTable() (string, error) {
 		return "", microerror.Mask(couldNotCreateClientError)
 	}
 
-	// if token is set via flags, we unauthenticate using this token
-	authHeader := "giantswarm " + config.Config.Token
-	if cmdToken != "" {
-		authHeader = "giantswarm " + cmdToken
-	}
-
+	authHeader := "giantswarm " + token
 	organizations, apiResponse, err := apiClient.GetUserOrganizations(authHeader, requestIDHeader, listOrganizationsActivityName, cmdLine)
 	if err != nil {
 		return "", APIError{err.Error(), *apiResponse}

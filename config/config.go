@@ -166,6 +166,27 @@ func (c *configStruct) ChooseEndpoint(overridingEndpointURL string) string {
 	return c.SelectedEndpoint
 }
 
+// ChooseToken chooses a token to use, according to a rule set.
+// - If the given token is not empty, we use (return) that
+// - If the given token is empty and we have an auth token for the given
+//   endpoint, we return that
+// - otherwise we return an empty string
+func (c *configStruct) ChooseToken(endpoint, overridingToken string) string {
+	ep := normalizeEndpoint(endpoint)
+
+	if overridingToken != "" {
+		return overridingToken
+	}
+
+	if endpointStruct, ok := c.Endpoints[ep]; ok {
+		if endpointStruct != nil && endpointStruct.Token != "" {
+			return endpointStruct.Token
+		}
+	}
+
+	return ""
+}
+
 // Logout removes the token value from the selected endpoint.
 func (c *configStruct) Logout(endpointURL string) {
 	ep := normalizeEndpoint(endpointURL)

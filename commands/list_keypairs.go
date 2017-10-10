@@ -46,10 +46,13 @@ type listKeypairsArguments struct {
 // defaultListKeypairsArguments returns a new listKeypairsArguments struct
 // based on global variables (= command line options from cobra).
 func defaultListKeypairsArguments() listKeypairsArguments {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
 	return listKeypairsArguments{
-		apiEndpoint: config.Config.ChooseEndpoint(cmdAPIEndpoint),
+		apiEndpoint: endpoint,
 		clusterID:   cmdClusterID,
-		token:       cmdToken,
+		token:       token,
 	}
 }
 
@@ -199,15 +202,11 @@ func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
 		UserAgent: config.UserAgent(),
 	}
 
-	token := config.Config.Token
-	if args.token != "" {
-		token = args.token
-	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
 		return result, microerror.Mask(couldNotCreateClientError)
 	}
-	authHeader := "giantswarm " + token
+	authHeader := "giantswarm " + args.token
 	keypairsResponse, apiResponse, err := apiClient.GetKeyPairs(authHeader,
 		cmdClusterID, requestIDHeader, listKeypairsActivityName, cmdLine)
 

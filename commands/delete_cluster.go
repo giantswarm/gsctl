@@ -26,11 +26,13 @@ type deleteClusterArguments struct {
 }
 
 func defaultDeleteClusterArguments() deleteClusterArguments {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
 	return deleteClusterArguments{
-		apiEndpoint: config.Config.ChooseEndpoint(cmdAPIEndpoint),
+		apiEndpoint: endpoint,
 		clusterID:   cmdClusterID,
 		force:       cmdForce,
-		token:       cmdToken,
+		token:       token,
 		verbose:     cmdVerbose,
 	}
 }
@@ -147,11 +149,7 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 	}
 
 	// perform API call
-	authHeader := "giantswarm " + config.Config.Token
-	if args.token != "" {
-		// command line flag overwrites
-		authHeader = "giantswarm " + args.token
-	}
+	authHeader := "giantswarm " + args.token
 	clientConfig := client.Configuration{
 		Endpoint:  args.apiEndpoint,
 		UserAgent: config.UserAgent(),

@@ -36,15 +36,17 @@ type addClusterArguments struct {
 }
 
 func defaultAddClusterArguments() addClusterArguments {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
 	return addClusterArguments{
-		apiEndpoint:         config.Config.ChooseEndpoint(cmdAPIEndpoint),
+		apiEndpoint:         endpoint,
 		clusterName:         cmdClusterName,
 		dryRun:              cmdDryRun,
 		inputYAMLFile:       cmdInputYAMLFile,
 		kubernetesVersion:   cmdKubernetesVersion,
 		numWorkers:          cmdNumWorkers,
 		owner:               cmdOwner,
-		token:               cmdToken,
+		token:               token,
 		workerNumCPUs:       cmdWorkerNumCPUs,
 		workerMemorySizeGB:  cmdWorkerMemorySizeGB,
 		workerStorageSizeGB: cmdWorkerStorageSizeGB,
@@ -203,6 +205,10 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 		case IsCouldNotCreateJSONRequestBodyError(err):
 			headline = "Could not create the JSON body for cluster creation API request"
 			subtext = "There seems to be a problem in parsing the cluster definition. Please contact Giant Swarm via Slack or via support@giantswarm.io with details on how you executes this command."
+		case IsNotAuthorizedError(err):
+			headline = "Not authorized"
+			subtext = "No cluster has been created, as you are are not authenticated or not authorized to perform this action."
+			subtext += " Please check your credentials or, to make sure, use 'gsctl login' to log in again."
 		case IsCouldNotCreateClusterError(err):
 			headline = "The cluster could not be created."
 			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
@@ -411,11 +417,7 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
 
 		// perform API call
-		authHeader := "giantswarm " + config.Config.Token
-		if args.token != "" {
-			// command line flag overwrites
-			authHeader = "giantswarm " + args.token
-		}
+		authHeader := "giantswarm " + args.token
 		clientConfig := client.Configuration{
 			Endpoint:  args.apiEndpoint,
 			UserAgent: config.UserAgent(),
@@ -428,6 +430,10 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		if err != nil {
 			// lower level connection problem
 			return result, microerror.Mask(err)
+		}
+
+		if apiResponse.StatusCode == 401 {
+			return result, microerror.Mask(notAuthorizedError)
 		}
 
 		// handle API result

@@ -75,8 +75,11 @@ func checkCreateKubeconfig(cmd *cobra.Command, args []string) error {
 
 // createKubeconfig adds configuration for kubectl
 func createKubeconfig(cmd *cobra.Command, args []string) {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
 	clientConfig := client.Configuration{
-		Endpoint:  config.Config.ChooseEndpoint(cmdAPIEndpoint),
+		Endpoint:  endpoint,
 		Timeout:   10 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
@@ -85,7 +88,7 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		fmt.Println(color.RedString("Error: %s", clientErr.Error()))
 		os.Exit(1)
 	}
-	authHeader := "giantswarm " + config.Config.Token
+	authHeader := "giantswarm " + token
 
 	// get cluster details
 	clusterDetailsResponse, apiResponse, err := apiClient.GetCluster(authHeader, cmdClusterID, requestIDHeader, createKubeconfigActivityName, cmdLine)
