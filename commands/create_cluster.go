@@ -97,8 +97,8 @@ Examples:
 	gsctl create cluster --owner=myorg --name="My Cluster" --num-workers=5 --num-cpus=2
 
   gsctl create cluster --owner=myorg --num-workers=3 --dry-run --verbose`,
-		PreRun: validationOutput,
-		Run:    executionOutput,
+		PreRun: createClusterValidationOutput,
+		Run:    createClusterExecutionOutput,
 	}
 
 	// path to the input file used optionally as cluster definition
@@ -129,16 +129,16 @@ func init() {
 	CreateCommand.AddCommand(CreateClusterCommand)
 }
 
-// validationOutput runs our pre-checks.
+// createClusterValidationOutput runs our pre-checks.
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
-func validationOutput(cmd *cobra.Command, args []string) {
+func createClusterValidationOutput(cmd *cobra.Command, args []string) {
 	aca := defaultAddClusterArguments()
 
 	headline := ""
 	subtext := ""
 
-	err := validatePreConditions(aca)
+	err := validateCreateClusterPreConditions(aca)
 	if err != nil {
 		switch {
 		case err.Error() == "":
@@ -177,8 +177,8 @@ func validationOutput(cmd *cobra.Command, args []string) {
 	}
 }
 
-// executionOutput calls addCluster() and creates user-friendly output of the result
-func executionOutput(cmd *cobra.Command, args []string) {
+// createClusterExecutionOutput calls addCluster() and creates user-friendly output of the result
+func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 	// use arguments as passed from command line via cobra
 	aca := defaultAddClusterArguments()
 
@@ -230,8 +230,8 @@ func executionOutput(cmd *cobra.Command, args []string) {
 	fmt.Printf("    %s\n\n", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s", result.id)))
 }
 
-// validatePreConditions checks preconditions and returns an error in case
-func validatePreConditions(args addClusterArguments) error {
+// validateCreateClusterPreConditions checks preconditions and returns an error in case
+func validateCreateClusterPreConditions(args addClusterArguments) error {
 	// logged in?
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(notLoggedInError)
@@ -381,7 +381,7 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 	}
 
 	// Validations based on definition file.
-	// For validations based on command line flags, see validatePreConditions()
+	// For validations based on command line flags, see validateCreateClusterPreConditions()
 	if args.inputYAMLFile != "" {
 		// number of workers
 		if len(result.definition.Workers) > 0 && len(result.definition.Workers) < minimumNumWorkers {
