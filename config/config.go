@@ -116,6 +116,10 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, email string, token
 		return microerror.Mask(credentialsRequiredError)
 	}
 
+	if c.Endpoints == nil {
+		c.Endpoints = map[string]*endpointConfigStruct{}
+	}
+
 	c.Endpoints[ep] = &endpointConfigStruct{
 		Email: email,
 		Token: token,
