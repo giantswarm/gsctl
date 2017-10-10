@@ -38,6 +38,12 @@ func Test_ListClusters(t *testing.T) {
         "id": "` + randomClusterID() + `",
         "name": "Some random test cluster",
 				"owner": "acme"
+      },
+			{
+        "create_date": "2017-10-06T02:24:55.192170835Z",
+        "id": "` + randomClusterID() + `",
+        "name": "Another random test cluster",
+				"owner": "acme"
       }
     ]`))
 	}))

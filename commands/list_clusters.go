@@ -81,20 +81,23 @@ func clustersTable() (string, error) {
 		return "", nil
 	}
 	// table headers
-	output := []string{color.CyanString("ID") + "|" + color.CyanString("NAME") + "|" + color.CyanString("CREATED") + "|" + color.CyanString("ORGANIZATION")}
+	output := []string{color.CyanString("ORGANIZATION") + "|" + color.CyanString("ID") + "|" + color.CyanString("NAME") + "|" + color.CyanString("CREATED")}
 
 	// sort clusters by organization
 	slice.Sort(clusters[:], func(i, j int) bool {
-		return clusters[i].Owner < clusters[j].Id
+		if clusters[i].Owner == clusters[j].Owner {
+			return clusters[i].Id < clusters[j].Id
+		}
+		return clusters[i].Owner < clusters[j].Owner
 	})
 
 	for _, cluster := range clusters {
 		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
 		output = append(output,
-			cluster.Id+"|"+
+			cluster.Owner+"|"+
+				cluster.Id+"|"+
 				cluster.Name+"|"+
-				created+"|"+
-				cluster.Owner)
+				created)
 	}
 
 	return columnize.SimpleFormat(output), nil
