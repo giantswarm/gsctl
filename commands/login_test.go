@@ -102,8 +102,8 @@ func Test_LoginWhenUserLoggedInBefore(t *testing.T) {
 	// config
 	yamlText := `endpoints:
   "` + mockServer.URL + `":
-  email: email@foo.com
-  token: token
+    email: email@foo.com
+    token: token
 selected_endpoint: "` + mockServer.URL + `"
 `
 	dir, err := tempConfig(yamlText)
