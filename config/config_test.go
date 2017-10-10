@@ -16,6 +16,30 @@ func tempDir() string {
 	return dir
 }
 
+// tempConfig creates a temporary config directory with config.yaml file
+// containing the given YAML content and initializes our config from it.
+// The directory path ist returned.
+func tempConfig(configYAML string) (string, error) {
+	dir := tempDir()
+	filePath := path.Join(dir, ConfigFileName+"."+ConfigFileType)
+
+	if configYAML != "" {
+		file, fileErr := os.Create(filePath)
+		if fileErr != nil {
+			return dir, fileErr
+		}
+		file.WriteString(configYAML)
+		file.Close()
+	}
+
+	err := Initialize(dir)
+	if err != nil {
+		return dir, err
+	}
+
+	return dir, nil
+}
+
 // Test_Initialize_Empty tests the case where a config file and its directory
 // do not yet exist.
 // Configuration is created and then serialized to the YAML file.
@@ -90,16 +114,6 @@ func Test_Initialize_Empty(t *testing.T) {
 // Test_Initialize_NonEmpty tests initializing with a dummy config file.
 // The config file has one endpoint, which is also the selected one.
 func Test_Initialize_NonEmpty(t *testing.T) {
-	dir := tempDir()
-	defer os.RemoveAll(dir)
-	filePath := path.Join(dir, ConfigFileName+"."+ConfigFileType)
-
-	// write dummy config
-	file, fileErr := os.Create(filePath)
-	if fileErr != nil {
-		t.Error(fileErr)
-	}
-
 	// our test config YAML
 	yamlText := `last_version_check: 0001-01-01T00:00:00Z
 updated: 2017-09-29T11:23:15+02:00
@@ -108,16 +122,14 @@ endpoints:
     email: email@example.com
     token: some-token
 selected_endpoint: https://myapi.domain.tld`
-
 	email := "email@example.com"
 	token := "some-token"
-	file.WriteString(yamlText)
-	file.Close()
 
-	err := Initialize(dir)
+	dir, err := tempConfig(yamlText)
 	if err != nil {
-		t.Error("Error in Initialize:", err)
+		t.Error(err)
 	}
+	defer os.RemoveAll(dir)
 
 	if Config.Email != email {
 		t.Errorf("Expected email '%s', got '%s'", email, Config.Email)
@@ -129,10 +141,6 @@ selected_endpoint: https://myapi.domain.tld`
 	// test what happens after logout
 	Config.Logout("https://myapi.domain.tld")
 
-	err = WriteToFile()
-	if err != nil {
-		t.Error(err)
-	}
 	content, readErr := ioutil.ReadFile(ConfigFilePath)
 	if readErr != nil {
 		t.Error(readErr)
@@ -183,13 +191,6 @@ func Test_GetDefaultCluster(t *testing.T) {
 	defer mockServer.Close()
 
 	// config
-	dir := tempDir()
-	defer os.RemoveAll(dir)
-	filePath := path.Join(dir, ConfigFileName+"."+ConfigFileType)
-	file, fileErr := os.Create(filePath)
-	if fileErr != nil {
-		t.Error(fileErr)
-	}
 	yamlText := `last_version_check: 0001-01-01T00:00:00Z
 updated: 2017-09-29T11:23:15+02:00
 endpoints:
@@ -197,13 +198,10 @@ endpoints:
     email: email@example.com
     token: some-token
 selected_endpoint: ` + mockServer.URL
-	t.Log(yamlText)
-	file.WriteString(yamlText)
-	file.Close()
-
-	err := Initialize(dir)
+	dir, err := tempConfig(yamlText)
+	defer os.RemoveAll(dir)
 	if err != nil {
-		t.Error("Error in Initialize:", err)
+		t.Error(err)
 	}
 
 	clusterID, err := GetDefaultCluster("", "", "", mockServer.URL)
