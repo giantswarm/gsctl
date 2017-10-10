@@ -259,8 +259,10 @@ func populateConfigStruct(cs configStruct) {
 	if cs.SelectedEndpoint != "" {
 		Config.SelectedEndpoint = cs.SelectedEndpoint
 		if _, ok := cs.Endpoints[cs.SelectedEndpoint]; ok {
-			Config.Email = cs.Endpoints[cs.SelectedEndpoint].Email
-			Config.Token = cs.Endpoints[cs.SelectedEndpoint].Token
+			if cs.Endpoints[cs.SelectedEndpoint] != nil {
+				Config.Email = cs.Endpoints[cs.SelectedEndpoint].Email
+				Config.Token = cs.Endpoints[cs.SelectedEndpoint].Token
+			}
 		}
 	}
 
