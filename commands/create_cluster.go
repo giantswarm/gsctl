@@ -21,34 +21,36 @@ import (
 // addClusterArguments contains all possible input parameter needed
 // (and optionally available) for creating a cluster
 type addClusterArguments struct {
-	apiEndpoint         string
-	clusterName         string
-	dryRun              bool
-	inputYAMLFile       string
-	kubernetesVersion   string
-	numWorkers          int
-	owner               string
-	token               string
-	workerNumCPUs       int
-	workerMemorySizeGB  float32
-	workerStorageSizeGB float32
-	verbose             bool
+	apiEndpoint             string
+	clusterName             string
+	dryRun                  bool
+	inputYAMLFile           string
+	kubernetesVersion       string
+	numWorkers              int
+	owner                   string
+	token                   string
+	wokerAwsEc2InstanceType string
+	workerNumCPUs           int
+	workerMemorySizeGB      float32
+	workerStorageSizeGB     float32
+	verbose                 bool
 }
 
 func defaultAddClusterArguments() addClusterArguments {
 	return addClusterArguments{
-		apiEndpoint:         cmdAPIEndpoint,
-		clusterName:         cmdClusterName,
-		dryRun:              cmdDryRun,
-		inputYAMLFile:       cmdInputYAMLFile,
-		kubernetesVersion:   cmdKubernetesVersion,
-		numWorkers:          cmdNumWorkers,
-		owner:               cmdOwner,
-		token:               cmdToken,
-		workerNumCPUs:       cmdWorkerNumCPUs,
-		workerMemorySizeGB:  cmdWorkerMemorySizeGB,
-		workerStorageSizeGB: cmdWorkerStorageSizeGB,
-		verbose:             cmdVerbose,
+		apiEndpoint:       cmdAPIEndpoint,
+		clusterName:       cmdClusterName,
+		dryRun:            cmdDryRun,
+		inputYAMLFile:     cmdInputYAMLFile,
+		kubernetesVersion: cmdKubernetesVersion,
+		numWorkers:        cmdNumWorkers,
+		owner:             cmdOwner,
+		token:             cmdToken,
+		wokerAwsEc2InstanceType: cmdWorkerAwsEc2InstanceType,
+		workerNumCPUs:           cmdWorkerNumCPUs,
+		workerMemorySizeGB:      cmdWorkerMemorySizeGB,
+		workerStorageSizeGB:     cmdWorkerStorageSizeGB,
+		verbose:                 cmdVerbose,
 	}
 }
 
@@ -111,6 +113,8 @@ Examples:
 	cmdOwner string
 	// number of workers required via flag on execution
 	cmdNumWorkers int
+	// AWS EC2 instance type to use, provided as a command line flag
+	cmdWorkerAwsEc2InstanceType string
 	// dry run command line flag
 	cmdDryRun bool
 )
@@ -121,6 +125,7 @@ func init() {
 	CreateClusterCommand.Flags().StringVarP(&cmdKubernetesVersion, "kubernetes-version", "", "", "Kubernetes version of the cluster")
 	CreateClusterCommand.Flags().StringVarP(&cmdOwner, "owner", "", "", "Organization to own the cluster")
 	CreateClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "", 0, "Number of worker nodes. Can't be used with -f|--file.")
+	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
 	CreateClusterCommand.Flags().IntVarP(&cmdWorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
@@ -239,11 +244,11 @@ func validatePreConditions(args addClusterArguments) error {
 
 	// false flag combination?
 	if args.inputYAMLFile != "" {
-		if args.numWorkers != 0 || args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 {
+		if args.numWorkers != 0 || args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" {
 			return microerror.MaskAny(conflictingFlagsError)
 		}
 	} else {
-		if args.numWorkers == 0 && (args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0) {
+		if args.numWorkers == 0 && (args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "") {
 			return microerror.MaskAny(numWorkerNodesMissingError)
 		}
 	}
@@ -266,6 +271,18 @@ func validatePreConditions(args addClusterArguments) error {
 	// validate storage size specified by flag
 	if args.workerStorageSizeGB > 0 && args.workerStorageSizeGB < minimumWorkerStorageSizeGB {
 		return microerror.MaskAny(notEnoughStoragePerWorkerError)
+	}
+
+	if args.wokerAwsEc2InstanceType != "" {
+		// validate user-provided instance type
+		if _, ok := AwsEc2InstanceTypes[args.wokerAwsEc2InstanceType]; !ok {
+			return microerror.MaskAny(invalidAwsEc2InstanceTypeError)
+		}
+
+		// check for incompatibilities
+		if args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 {
+			return microerror.MaskAny(incompatibleSettingsError)
+		}
 	}
 
 	return nil

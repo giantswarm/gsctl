@@ -177,3 +177,19 @@ var cannotScaleBelowMinimumWorkersError = errgo.New("cannot scale below minimum 
 func IsCannotScaleBelowMinimumWorkersError(err error) bool {
 	return errgo.Cause(err) == cannotScaleBelowMinimumWorkersError
 }
+
+// user has selected an unknown AWS EC2 instance type
+var invalidAwsEc2InstanceTypeError = errgo.New("invalid AWS EC2 instance type selected")
+
+// IsInvalidAwsEc2InstanceTypeError asserts invalidAwsEc2InstanceTypeError.
+func IsInvalidAwsEc2InstanceTypeError(err error) bool {
+	return errgo.Cause(err) == invalidAwsEc2InstanceTypeError
+}
+
+// user has mixed incompatible settings related to different providers
+var incompatibleSettingsError = errgo.New("incompatible mix of settings used")
+
+// IsIncompatibleSettingsError asserts incompatibleSettingsError.
+func IsIncompatibleSettingsError(err error) bool {
+	return errgo.Cause(err) == incompatibleSettingsError
+}
