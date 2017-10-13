@@ -81,7 +81,7 @@ type configStruct struct {
 	Updated string `yaml:"updated"`
 
 	// Endpoints is a map of endpoints
-	Endpoints map[string]*endpointConfigStruct `yaml:"endpoints"`
+	Endpoints map[string]*endpointConfig `yaml:"endpoints"`
 
 	// SelectedEndpoint is the URL of the selected endpoint
 	SelectedEndpoint string `yaml:"selected_endpoint"`
@@ -97,9 +97,9 @@ type configStruct struct {
 	Email string `yaml:"-"`
 }
 
-// endpointConfigStruct is used to serialize/deserialize endpoint configuration
+// endpointConfig is used to serialize/deserialize endpoint configuration
 // to/from a config file
-type endpointConfigStruct struct {
+type endpointConfig struct {
 	// Email is the email address of the authenticated user.
 	Email string `yaml:"email"`
 
@@ -117,10 +117,10 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, email string, token
 	}
 
 	if c.Endpoints == nil {
-		c.Endpoints = map[string]*endpointConfigStruct{}
+		c.Endpoints = map[string]*endpointConfig{}
 	}
 
-	c.Endpoints[ep] = &endpointConfigStruct{
+	c.Endpoints[ep] = &endpointConfig{
 		Email: email,
 		Token: token,
 	}
@@ -278,7 +278,7 @@ func populateConfigStruct(cs configStruct) {
 
 	Config.Endpoints = cs.Endpoints
 	if Config.Endpoints == nil {
-		Config.Endpoints = make(map[string]*endpointConfigStruct)
+		Config.Endpoints = make(map[string]*endpointConfig)
 	}
 
 	if cs.SelectedEndpoint != "" {
