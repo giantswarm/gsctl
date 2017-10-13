@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/bradfitz/slice"
@@ -84,7 +85,12 @@ func clustersTable() (string, error) {
 		return "", nil
 	}
 	// table headers
-	output := []string{color.CyanString("ID") + "|" + color.CyanString("ORGANIZATION") + "|" + color.CyanString("NAME") + "|" + color.CyanString("CREATED")}
+	output := []string{strings.Join([]string{
+		color.CyanString("ID"),
+		color.CyanString("ORGANIZATION"),
+		color.CyanString("NAME"),
+		color.CyanString("CREATED"),
+	}, "|")}
 
 	// sort clusters by ID
 	slice.Sort(clusters[:], func(i, j int) bool {
@@ -93,11 +99,12 @@ func clustersTable() (string, error) {
 
 	for _, cluster := range clusters {
 		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
-		output = append(output,
-			cluster.Id+"|"+
-				cluster.Owner+"|"+
-				cluster.Name+"|"+
-				created)
+		output = append(output, strings.Join([]string{
+			cluster.Id,
+			cluster.Owner,
+			cluster.Name,
+			created,
+		}, "|"))
 	}
 
 	return columnize.SimpleFormat(output), nil
