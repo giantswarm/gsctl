@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gsctl/config"
@@ -41,7 +42,14 @@ func endpointsTable() string {
 	}
 
 	// table headers
-	output := []string{color.CyanString("ENDPOINT URL") + "|" + color.CyanString("EMAIL") + "|" + color.CyanString("SELECTED") + "|" + color.CyanString("LOGGED IN")}
+	output := []string{
+		strings.Join([]string{
+			color.CyanString("ENDPOINT URL"),
+			color.CyanString("EMAIL"),
+			color.CyanString("SELECTED"),
+			color.CyanString("LOGGED IN"),
+		}, "|"),
+	}
 
 	for endpoint := range config.Config.Endpoints {
 		selected := "no"
@@ -61,7 +69,7 @@ func endpointsTable() string {
 			email = config.Config.Endpoints[endpoint].Email
 		}
 
-		output = append(output, endpoint+"|"+email+"|"+selected+"|"+loggedIn)
+		output = append(output, strings.Join([]string{endpoint, email, selected, loggedIn}, "|"))
 	}
 
 	return columnize.SimpleFormat(output)
