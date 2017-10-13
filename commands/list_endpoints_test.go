@@ -37,4 +37,9 @@ selected_endpoint: https://my.second.endpoint
 	if table == "" {
 		t.Error("Got no output where I expected a table")
 	}
+
+	testString := "https://my.second.endpoint  email@example.com  yes       yes"
+	if !strings.Contains(table, testString) {
+		t.Errorf("Table does not contain expected row '%s'", testString)
+	}
 }
