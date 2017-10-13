@@ -2,7 +2,7 @@ package config
 
 import "github.com/juju/errgo"
 
-// the user tries to use an endpoint that is not defined
+// endpointNotDefinedError means the user tries to use an endpoint that is not defined
 var endpointNotDefinedError = errgo.New("the given endpoint is not defined")
 
 // IsEndpointNotDefinedError asserts endpointNotDefinedError.
@@ -10,7 +10,7 @@ func IsEndpointNotDefinedError(err error) bool {
 	return errgo.Cause(err) == endpointNotDefinedError
 }
 
-// attempt to store incomplete credentials in the config
+// credentialsRequiredError means an attempt to store incomplete credentials in the config
 var credentialsRequiredError = errgo.New("email and password must not be empty")
 
 // IsCredentialsRequiredError asserts credentialsRequiredError.
