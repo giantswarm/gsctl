@@ -8,8 +8,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/giantswarm/gsctl/config"
 )
 
 func Test_CreateKubeconfig(t *testing.T) {
@@ -37,8 +35,12 @@ func Test_CreateKubeconfig(t *testing.T) {
 	}
 	os.Setenv("KUBECONFIG", kubeConfigPath)
 
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	configDir, err := tempConfig("")
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.RemoveAll(configDir)
+
 	cmdAPIEndpoint = mockServer.URL
 	cmdClusterID = "test-cluster-id"
 	checkCreateKubeconfig(CreateKeypairCommand, []string{})
