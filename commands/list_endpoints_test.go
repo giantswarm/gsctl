@@ -2,9 +2,13 @@ package commands
 
 import (
 	"os"
+	"strings"
 	"testing"
+
+	"github.com/giantswarm/gsctl/config"
 )
 
+// Test_ListEndpoints tests the listing of a few endpoints
 func Test_ListEndpoints(t *testing.T) {
 	// dummy config
 	yamlText := `last_version_check: 0001-01-01T00:00:00Z
@@ -24,7 +28,12 @@ selected_endpoint: https://my.second.endpoint
 	}
 	defer os.RemoveAll(dir)
 
-	table := endpointsTable()
+	args := listEndpointsArguments{
+		// "" here means that we don't override the selected endpoint
+		apiEndpoint: config.Config.ChooseEndpoint(""),
+	}
+
+	table := endpointsTable(args)
 	if table == "" {
 		t.Error("Got no output where I expected a table")
 	}

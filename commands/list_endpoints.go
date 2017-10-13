@@ -11,6 +11,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// listEndpointsArgs are the arguments we pass to the actual functions
+// listing endpoints and printing endpoints lists
+type listEndpointsArguments struct {
+	apiEndpoint string
+	token       string
+}
+
 var (
 	// ListEndpointsCommand performs the "list endpoints" function
 	ListEndpointsCommand = &cobra.Command{
@@ -26,16 +33,28 @@ func init() {
 	ListCommand.AddCommand(ListEndpointsCommand)
 }
 
+// defaultListEndpointArgs returns listEndpointsArguments
+// with settings laoded from flags etc.
+func defaultListEndpointArguments() listEndpointsArguments {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+	return listEndpointsArguments{
+		apiEndpoint: endpoint,
+		token:       token,
+	}
+}
+
 // listEndpoints prints a table with all endpoint URLs the user has used
 func listEndpoints(cmd *cobra.Command, args []string) {
-	output := endpointsTable()
+	myArgs := defaultListEndpointArguments()
+	output := endpointsTable(myArgs)
 	if output != "" {
 		fmt.Println(output)
 	}
 }
 
 // endpointsTable returns a table of clusters the user has access to
-func endpointsTable() string {
+func endpointsTable(args listEndpointsArguments) string {
 	if len(config.Config.Endpoints) == 0 {
 		return fmt.Sprintf("No endpoints configured.\n\nTo add an endpoint and authenticate for it, use\n\n\t%s\n",
 			color.YellowString("gsctl login <email> -e <endpoint>"))
@@ -56,8 +75,7 @@ func endpointsTable() string {
 		loggedIn := "no"
 		email := "n/a"
 
-		selectedEndpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-		if endpoint == selectedEndpoint {
+		if endpoint == args.apiEndpoint {
 			selected = "yes"
 		}
 
