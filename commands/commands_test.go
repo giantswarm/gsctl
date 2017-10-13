@@ -10,7 +10,10 @@ import (
 
 // create a temporary directory
 func tempDir() string {
-	dir, _ := ioutil.TempDir("", config.ProgramName)
+	dir, err := ioutil.TempDir("", config.ProgramName)
+	if err != nil {
+		panic(err)
+	}
 	return dir
 }
 

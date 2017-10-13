@@ -12,7 +12,10 @@ import (
 )
 
 func tempDir() string {
-	dir, _ := ioutil.TempDir("", ProgramName)
+	dir, err := ioutil.TempDir("", ProgramName)
+	if err != nil {
+		panic(err)
+	}
 	return dir
 }
 
