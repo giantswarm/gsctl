@@ -14,7 +14,7 @@ import (
 var (
 	// SelectEndpointCommand performs the "select endpoint" function
 	SelectEndpointCommand = &cobra.Command{
-		Use:   "endpoint",
+		Use:   "endpoint <endpoint>",
 		Short: "Select endpoint to use",
 		Long: `Select the API endpoint to use in subsequent commands.
 
