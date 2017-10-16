@@ -5,22 +5,20 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-
-	"github.com/giantswarm/gsctl/config"
-	"github.com/spf13/viper"
 )
 
 // Test_ListKeypairs_NotLoggedIn checks whether we are detecting whether or not the user
-// is logged in or provides an auth token.
+// is logged in or provides an auth token. Here we use an empty config to have
+// an unauthorized user.
 func Test_ListKeypairs_NotLoggedIn(t *testing.T) {
-	defer viper.Reset()
-	dir := tempDir()
+	dir, err := tempConfig("")
+	if err != nil {
+		t.Error(err)
+	}
 	defer os.RemoveAll(dir)
-	config.Initialize(dir)
-	config.Config.Token = ""
 
 	args := listKeypairsArguments{}
-	err := listKeypairsValidate(&args)
+	err = listKeypairsValidate(&args)
 	if err == nil {
 		t.Error("No error thrown where we expected an error.")
 	}
@@ -29,10 +27,11 @@ func Test_ListKeypairs_NotLoggedIn(t *testing.T) {
 // Test_ListKeypairs_Empty simulates the situation where there are no
 // key pairs for a given cluster.
 func Test_ListKeypairs_Empty(t *testing.T) {
-	defer viper.Reset()
-	dir := tempDir()
+	dir, err := tempConfig("")
+	if err != nil {
+		t.Error(err)
+	}
 	defer os.RemoveAll(dir)
-	config.Initialize(dir)
 
 	// mock service returning empty key pair array.
 	keyPairsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +47,7 @@ func Test_ListKeypairs_Empty(t *testing.T) {
 	args.token = "my-token"
 	args.clusterID = "my-cluster"
 
-	err := listKeypairsValidate(&args)
+	err = listKeypairsValidate(&args)
 	if err != nil {
 		t.Error(err)
 	}
@@ -65,10 +64,11 @@ func Test_ListKeypairs_Empty(t *testing.T) {
 // Test_ListKeypairs_NotFound simulates the situation where the cluster
 // to list key pairs for is not found
 func Test_ListKeypairs_NotFound(t *testing.T) {
-	defer viper.Reset()
-	dir := tempDir()
+	dir, err := tempConfig("")
+	if err != nil {
+		t.Error(err)
+	}
 	defer os.RemoveAll(dir)
-	config.Initialize(dir)
 
 	keyPairsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -82,7 +82,7 @@ func Test_ListKeypairs_NotFound(t *testing.T) {
 	args.token = "my-token"
 	args.clusterID = "unknown-cluster"
 
-	err := listKeypairsValidate(&args)
+	err = listKeypairsValidate(&args)
 	if err != nil {
 		t.Error(err)
 	}
@@ -98,10 +98,11 @@ func Test_ListKeypairs_NotFound(t *testing.T) {
 // Test_ListKeyPairs_Nonempty simulates listing key pairs where several
 // items are returned.
 func Test_ListKeyPairs_Nonempty(t *testing.T) {
-	defer viper.Reset()
-	dir := tempDir()
+	dir, err := tempConfig("")
+	if err != nil {
+		t.Error(err)
+	}
 	defer os.RemoveAll(dir)
-	config.Initialize(dir)
 
 	// mock service returning key pairs. For the sake of simplicity,
 	// it doesn't care about auth tokens.
@@ -130,7 +131,7 @@ func Test_ListKeyPairs_Nonempty(t *testing.T) {
 	args.token = "my-token"
 	args.clusterID = "my-cluster"
 
-	err := listKeypairsValidate(&args)
+	err = listKeypairsValidate(&args)
 	if err != nil {
 		t.Error(err)
 	}

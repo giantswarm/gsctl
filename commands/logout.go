@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -9,7 +8,7 @@ import (
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
@@ -18,19 +17,18 @@ import (
 
 const (
 	logoutActivityName = "login"
-
-	// errors
-	errInvalidToken = "submitted token was not valid"
 )
 
 var (
 	// LogoutCommand performs a logout
 	LogoutCommand = &cobra.Command{
-		Use:     "logout",
-		Short:   "Sign the current user out",
-		Long:    `This will terminate the current user's session and invalidate the authentication token.`,
-		PreRunE: logoutValidationOutput,
-		Run:     logoutOutput,
+		Use:   "logout",
+		Short: "Sign the current user out",
+		Long: `Terminates the user's session with the current endpoint and invalidates the authentication token.
+
+If an endpoint was selected before, it remains selected. Re-login using 'gsctl login <email>'.`,
+		PreRun: logoutValidationOutput,
+		Run:    logoutOutput,
 	}
 )
 
@@ -42,9 +40,12 @@ type logoutArguments struct {
 }
 
 func defaultLogoutArguments() logoutArguments {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
 	return logoutArguments{
-		apiEndpoint: cmdAPIEndpoint,
-		token:       cmdToken,
+		apiEndpoint: endpoint,
+		token:       token,
 	}
 }
 
@@ -52,22 +53,16 @@ func init() {
 	RootCommand.AddCommand(LogoutCommand)
 }
 
-// TODO: separate validation and validation result output
-func logoutValidationOutput(cmd *cobra.Command, args []string) error {
+func logoutValidationOutput(cmd *cobra.Command, args []string) {
 	if config.Config.Token == "" && cmdToken == "" {
-		return errors.New("You are not logged in")
+		fmt.Println("You weren't logged in here, but better be safe than sorry.")
+		os.Exit(1)
 	}
-	return nil
 }
 
 // logoutOutput performs our logout function and displays the result.
 func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 	logoutArgs := defaultLogoutArguments()
-
-	logoutArgs.token = config.Config.Token
-	if cmdToken != "" {
-		logoutArgs.token = cmdToken
-	}
 
 	err := logout(logoutArgs)
 	if err != nil {
@@ -86,6 +81,8 @@ func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 		}
 		os.Exit(1)
 	}
+
+	fmt.Printf("You have logged out from endpoint %s.\n", color.CyanString(logoutArgs.apiEndpoint))
 }
 
 // logout terminates the current user session.
@@ -93,9 +90,7 @@ func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 // Returns nil in case of success, or an error otherwise.
 func logout(args logoutArguments) error {
 	// erase local credentials, no matter what the result on the API side is
-	config.Config.Token = ""
-	config.Config.Email = ""
-	config.WriteToFile()
+	config.Config.Logout(args.apiEndpoint)
 
 	clientConfig := client.Configuration{
 		Endpoint:  args.apiEndpoint,
@@ -104,7 +99,7 @@ func logout(args logoutArguments) error {
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return microerror.MaskAny(couldNotCreateClientError)
+		return microerror.Mask(couldNotCreateClientError)
 	}
 
 	authHeader := "giantswarm " + args.token

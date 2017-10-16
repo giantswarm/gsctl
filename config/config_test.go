@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -10,19 +9,45 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/spf13/viper"
 )
 
 func tempDir() string {
-	dir, _ := ioutil.TempDir("", ProgramName)
+	dir, err := ioutil.TempDir("", ProgramName)
+	if err != nil {
+		panic(err)
+	}
 	return dir
 }
 
+// tempConfig creates a temporary config directory with config.yaml file
+// containing the given YAML content and initializes our config from it.
+// The directory path ist returned.
+func tempConfig(configYAML string) (string, error) {
+	dir := tempDir()
+	filePath := path.Join(dir, ConfigFileName+"."+ConfigFileType)
+
+	if configYAML != "" {
+		file, fileErr := os.Create(filePath)
+		if fileErr != nil {
+			return dir, fileErr
+		}
+		file.WriteString(configYAML)
+		file.Close()
+	}
+
+	err := Initialize(dir)
+	if err != nil {
+		return dir, err
+	}
+
+	return dir, nil
+}
+
 // Test_Initialize_Empty tests the case where a config file and its directory
-// do not yet exist
+// do not yet exist.
+// Configuration is created and then serialized to the YAML file.
+// We roughtly check the YAML whether it contains the expected info.
 func Test_Initialize_Empty(t *testing.T) {
-	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	// additional non-existing sub directory
@@ -33,9 +58,21 @@ func Test_Initialize_Empty(t *testing.T) {
 		t.Error("Error in Initialize:", err)
 	}
 
-	Config.Email = "email@example.com"
-	Config.Token = "some-token"
+	testEndpointURL := "https://myapi.domain.tld"
+	testEmail := "user@domain.tld"
+	testToken := "some-token"
+
+	// directly set some configuration
 	Config.LastVersionCheck = time.Time{}
+	err = Config.StoreEndpointAuth(testEndpointURL, testEmail, testToken)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = Config.SelectEndpoint(testEndpointURL)
+	if err != nil {
+		t.Error(err)
+	}
 
 	err = WriteToFile()
 	if err != nil {
@@ -46,34 +83,56 @@ func Test_Initialize_Empty(t *testing.T) {
 		t.Error(readErr)
 	}
 	yamlText := string(content)
+
 	if !strings.Contains(yamlText, "updated:") {
 		t.Log(yamlText)
 		t.Error("Written YAML doesn't contain the expected string 'updated:'")
 	}
+
+	if !strings.Contains(yamlText, "selected_endpoint: "+testEndpointURL) {
+		t.Log(yamlText)
+		t.Errorf("Written YAML doesn't contain the expected string 'selected_endpoint: %s'", testEndpointURL)
+	}
+
+	// test what happens after logout
+	Config.Logout(testEndpointURL)
+
+	err = WriteToFile()
+	if err != nil {
+		t.Error(err)
+	}
+	content, readErr = ioutil.ReadFile(ConfigFilePath)
+	if readErr != nil {
+		t.Error(readErr)
+	}
+	yamlText = string(content)
+
+	if !strings.Contains(yamlText, "selected_endpoint: "+testEndpointURL) {
+		t.Log(yamlText)
+		t.Errorf("Written YAML doesn't contain the expected string 'selected_endpoint: %s'", testEndpointURL)
+	}
+	t.Log(yamlText)
 }
 
-// Test_Initialize_NonEmpty tests initializing with a dummy config file
+// Test_Initialize_NonEmpty tests initializing with a dummy config file.
+// The config file has one endpoint, which is also the selected one.
 func Test_Initialize_NonEmpty(t *testing.T) {
-	defer viper.Reset()
-	dir := tempDir()
-	defer os.RemoveAll(dir)
-	filePath := path.Join(dir, ConfigFileName+"."+ConfigFileType)
-
-	// write dummy config
-	file, fileErr := os.Create(filePath)
-	if fileErr != nil {
-		t.Error(fileErr)
-	}
-
+	// our test config YAML
+	yamlText := `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  https://myapi.domain.tld:
+    email: email@example.com
+    token: some-token
+selected_endpoint: https://myapi.domain.tld`
 	email := "email@example.com"
 	token := "some-token"
-	file.WriteString(fmt.Sprintf("email: %s\ntoken: %s\n", email, token))
-	file.Close()
 
-	err := Initialize(dir)
+	dir, err := tempConfig(yamlText)
 	if err != nil {
-		t.Error("Error in Initialize:", err)
+		t.Error(err)
 	}
+	defer os.RemoveAll(dir)
 
 	if Config.Email != email {
 		t.Errorf("Expected email '%s', got '%s'", email, Config.Email)
@@ -81,13 +140,27 @@ func Test_Initialize_NonEmpty(t *testing.T) {
 	if Config.Token != "some-token" {
 		t.Errorf("Expected token '%s', got '%s'", token, Config.Token)
 	}
+
+	// test what happens after logout
+	Config.Logout("https://myapi.domain.tld")
+
+	content, readErr := ioutil.ReadFile(ConfigFilePath)
+	if readErr != nil {
+		t.Error(readErr)
+	}
+	yamlText = string(content)
+
+	if strings.Contains(yamlText, "some-token") {
+		t.Log(yamlText)
+		t.Errorf("Written YAML still contains token after logout")
+	}
+	t.Log(yamlText)
 }
 
 // Test_Kubeconfig_Env_Nonexisting tests what happens
 // when the KUBECONFIG env variable points to the
 // same dir as we use for config, and it's empty
 func Test_Kubeconfig_Env_Nonexisting(t *testing.T) {
-	defer viper.Reset()
 	dir := tempDir()
 	defer os.RemoveAll(dir)
 	os.Setenv("KUBECONFIG", dir)
@@ -95,72 +168,6 @@ func Test_Kubeconfig_Env_Nonexisting(t *testing.T) {
 	if err != nil {
 		t.Error("Error in Initialize:", err)
 	}
-}
-
-// Test_Config_Migration tests the config dir migration from the old
-// to the new default location, including updating certificate paths
-// in the kubectl config file.
-func Test_Config_Migration(t *testing.T) {
-	defer viper.Reset()
-
-	// override standard paths for testing
-	dir := tempDir()
-	HomeDirPath = dir
-	DefaultConfigDirPath = path.Join(HomeDirPath, ".config", ProgramName)
-	LegacyConfigDirPath = path.Join(HomeDirPath, "."+ProgramName)
-
-	// create fake certs file
-	certsPath := path.Join(HomeDirPath, "."+ProgramName, "certs")
-	err := os.MkdirAll(certsPath, 0700)
-	if err != nil {
-		t.Error(err)
-	}
-	certFile, _ := os.Create(path.Join(certsPath, "test-ca.crt"))
-	certFile.Close()
-	certFile, _ = os.Create(path.Join(certsPath, "test-12345-client.crt"))
-	certFile.Close()
-	certFile, _ = os.Create(path.Join(certsPath, "test-12345-client.key"))
-	certFile.Close()
-
-	// add a test kubectl config file
-	kubeconfigpath := path.Join(dir, "tempkubeconfig")
-	KubeConfigPaths = []string{kubeconfigpath}
-	kubeConfig := []byte(`apiVersion: v1
-kind: Config
-preferences: {}
-current-context: g8s-system
-clusters:
-- cluster:
-    certificate-authority: ` + LegacyConfigDirPath + `/certs/test-ca.crt
-    server: https://api.n41en.g8s.fra-1.giantswarm.io
-  name: giantswarm-test
-users:
-- name: testuser
-  user:
-    client-certificate: ` + LegacyConfigDirPath + `/certs/test-12345-client.crt
-    client-key: ` + LegacyConfigDirPath + `/certs/test-12345-client.key
-contexts:
-- context:
-    cluster: giantswarm-test
-    user: testuser
-  name: giantswarm-test
-`)
-	fileErr := ioutil.WriteFile(kubeconfigpath, kubeConfig, 0700)
-	if fileErr != nil {
-		t.Error(fileErr)
-	}
-
-	t.Log("DefaultConfigDirPath:", DefaultConfigDirPath)
-	t.Log("LegacyConfigDirPath:", LegacyConfigDirPath)
-
-	migrateConfigDir()
-
-	// spit out config
-	newConf, confReadErr := ioutil.ReadFile(kubeconfigpath)
-	if confReadErr != nil {
-		t.Error(confReadErr)
-	}
-	t.Log(string(newConf))
 }
 
 func Test_UserAgent(t *testing.T) {
@@ -186,11 +193,48 @@ func Test_GetDefaultCluster(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
+	// config
+	yamlText := `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  ` + mockServer.URL + `:
+    email: email@example.com
+    token: some-token
+selected_endpoint: ` + mockServer.URL
+	dir, err := tempConfig(yamlText)
+	defer os.RemoveAll(dir)
+	if err != nil {
+		t.Error(err)
+	}
+
 	clusterID, err := GetDefaultCluster("", "", "", mockServer.URL)
 	if err != nil {
 		t.Error(err)
 	}
 	if clusterID != "cluster-id" {
-		t.Errorf("Expected 'cluster-id', got '%s'", clusterID)
+		t.Errorf("Expected 'cluster-id', got %#v", clusterID)
+	}
+}
+
+var normalizeEndpointTests = []struct {
+	in  string
+	out string
+}{
+	{"myapi", "https://myapi"},
+	{"myapi.com", "https://myapi.com"},
+	{"some.api.server/foo/bar", "https://some.api.server"},
+	{"http://127.0.0.1:64703", "http://127.0.0.1:64703"},
+	{"http://localhost:9000", "http://localhost:9000"},
+	{"http://localhost:9000/", "http://localhost:9000"},
+	{"http://user:pass@localhost:9000/", "http://localhost:9000"},
+}
+
+// Test_NormalizeEndpoint tests the normalizeEndpoint function
+func Test_NormalizeEndpoint(t *testing.T) {
+	for _, tt := range normalizeEndpointTests {
+		normalized := normalizeEndpoint(tt.in)
+		if normalized != tt.out {
+			t.Errorf("normalizeEndpoint('%s') returned '%s', expected '%s'", tt.in, normalized, tt.out)
+		}
 	}
 }

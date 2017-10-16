@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/giantswarm/gsclientgen"
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 	rootcerts "github.com/hashicorp/go-rootcerts"
 )
 
@@ -37,6 +37,11 @@ type GenericResponse struct {
 // with specific configuration
 func NewClient(clientConfig Configuration) (*gsclientgen.DefaultApi, error) {
 	configuration := gsclientgen.NewConfiguration()
+
+	if clientConfig.Endpoint == "" {
+		return &gsclientgen.DefaultApi{}, microerror.Mask(endpointNotSpecifiedError)
+	}
+
 	configuration.BasePath = clientConfig.Endpoint
 	configuration.UserAgent = clientConfig.UserAgent
 	configuration.Timeout = &DefaultTimeout
@@ -51,7 +56,7 @@ func NewClient(clientConfig Configuration) (*gsclientgen.DefaultApi, error) {
 		CAPath: os.Getenv("GSCTL_CAPATH"),
 	})
 	if rootCertsErr != nil {
-		return nil, microerror.MaskAny(rootCertsErr)
+		return nil, microerror.Mask(rootCertsErr)
 	}
 	configuration.Transport = &http.Transport{
 		Proxy:           http.ProxyFromEnvironment,
