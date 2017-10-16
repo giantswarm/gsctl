@@ -9,6 +9,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
@@ -58,7 +59,13 @@ func checkCreateKubeconfig(cmd *cobra.Command, args []string) error {
 		return errors.New(errorMessage)
 	}
 
-	if config.Config.Token == "" {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
+	if endpoint == "" {
+		return microerror.Mask(endpointMissingError)
+	}
+	if token == "" {
 		return errors.New("You are not logged in. Use '" + config.ProgramName + " login' to log in.")
 	}
 	if cmdClusterID == "" {
