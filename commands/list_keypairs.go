@@ -171,6 +171,8 @@ func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
 			color.CyanString("EXPIRES"),
 			color.CyanString("ID"),
 			color.CyanString("DESCRIPTION"),
+			color.CyanString("CN"),
+			color.CyanString("O"),
 		}
 		output = append(output, strings.Join(headers, "|"))
 
@@ -184,6 +186,8 @@ func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
 				util.ShortDate(expires),
 				util.Truncate(util.CleanKeypairID(keypair.Id), 10),
 				keypair.Description,
+				util.Truncate(keypair.CommonName, 24),
+				keypair.CertificateOrganizations,
 			}
 			output = append(output, strings.Join(row, "|"))
 		}
