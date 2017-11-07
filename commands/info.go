@@ -107,13 +107,7 @@ func info(args infoArguments) infoResult {
 	}
 
 	result.email = config.Config.Email
-
-	if args.token != "" {
-		result.token = args.token
-	} else if config.Config.Token != "" {
-		result.token = config.Config.Token
-	}
-
+	result.token = config.Config.ChooseToken(result.apiEndpoint, args.token)
 	result.version = config.Version
 	result.buildDate = config.BuildDate
 
