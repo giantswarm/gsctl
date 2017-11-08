@@ -44,7 +44,7 @@ for FILENAME in *.zip *.tar.gz; do
     curl \
       -H "Authorization: token ${GITHUB_TOKEN}" \
       -H "Content-Type: application/octet-stream" \
-      --data-binary @${PROJECT} \
+      --data-binary @${FILENAME} \
         https://uploads.github.com/repos/giantswarm/${PROJECT}/releases/${RELEASE_ID}/assets?name=${FILENAME}
 done
 cd ..
