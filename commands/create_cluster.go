@@ -327,28 +327,42 @@ func enhanceDefinitionWithFlags(def *clusterDefinition, args addClusterArguments
 // flags/arguments the user has given
 func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 	def := clusterDefinition{}
+
 	if args.clusterName != "" {
 		def.Name = args.clusterName
 	}
+
 	if args.kubernetesVersion != "" {
 		def.KubernetesVersion = args.kubernetesVersion
 	}
+
 	if args.owner != "" {
 		def.Owner = args.owner
 	}
+
 	if args.numWorkers != 0 {
 		workers := []nodeDefinition{}
 		for i := 0; i < args.numWorkers; i++ {
+
 			worker := nodeDefinition{}
+
 			if args.workerNumCPUs != 0 {
 				worker.CPU = cpuDefinition{Cores: args.workerNumCPUs}
 			}
+
 			if args.workerStorageSizeGB != 0 {
 				worker.Storage = storageDefinition{SizeGB: args.workerStorageSizeGB}
 			}
+
 			if args.workerMemorySizeGB != 0 {
 				worker.Memory = memoryDefinition{SizeGB: args.workerMemorySizeGB}
 			}
+
+			// AWS-specific
+			if args.wokerAwsEc2InstanceType != "" {
+				worker.AWS.InstanceType = args.wokerAwsEc2InstanceType
+			}
+
 			workers = append(workers, worker)
 		}
 		def.Workers = workers
@@ -369,6 +383,7 @@ func createAddClusterBody(d clusterDefinition) gsclientgen.V4AddClusterRequest {
 		ndmWorker.Cpu = gsclientgen.V4NodeDefinitionCpu{Cores: int32(dWorker.CPU.Cores)}
 		ndmWorker.Storage = gsclientgen.V4NodeDefinitionStorage{SizeGb: dWorker.Storage.SizeGB}
 		ndmWorker.Labels = dWorker.Labels
+		ndmWorker.Aws = gsclientgen.V4NodeDefinitionAws{InstanceType: dWorker.AWS.InstanceType}
 		a.Workers = append(a.Workers, ndmWorker)
 	}
 
