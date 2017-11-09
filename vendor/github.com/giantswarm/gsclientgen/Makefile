@@ -7,7 +7,7 @@ generate: clean
 	docker run --rm -it \
 		-v ${PWD}:/swagger-api/out \
 		-v ${PWD}/api-spec:/swagger-api/yaml \
-		jimschubert/swagger-codegen-cli generate \
+		jimschubert/swagger-codegen-cli:gsclientgen generate \
 		--input-spec /swagger-api/yaml/oai-spec.yaml \
 		--lang go \
 		--config /swagger-api/out/swagger-codegen-conf.json \

@@ -542,6 +542,11 @@ definitions:
       labels:
         type: object
         additionalProperties: true
+      aws:
+        type: object
+        properties:
+          instance_type:
+            type: string
 
   # Definition of a cluster node
   # only for the purpose of fetching cluster details
