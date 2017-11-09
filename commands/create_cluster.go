@@ -280,11 +280,6 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 	}
 
 	if args.wokerAwsEc2InstanceType != "" {
-		// validate user-provided instance type
-		if _, ok := AwsEc2InstanceTypes[args.wokerAwsEc2InstanceType]; !ok {
-			return microerror.Mask(invalidAwsEc2InstanceTypeError)
-		}
-
 		// check for incompatibilities
 		if args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 {
 			return microerror.Mask(incompatibleSettingsError)
