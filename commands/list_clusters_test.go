@@ -21,6 +21,7 @@ func randomClusterID() string {
 	return string(b)
 }
 
+// Test_ListClusters tests listing a non-empty clusters table
 func Test_ListClusters(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -67,6 +68,7 @@ func Test_ListClusters(t *testing.T) {
 	listClusters(ListClustersCommand, []string{})
 }
 
+// Test_ListClustersEmpty tests listing an empty cluster table
 func Test_ListClustersEmpty(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

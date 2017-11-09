@@ -15,11 +15,6 @@ import:
 - package: go4.org
   subpackages:
   - reflectutil
-- package: github.com/spf13/viper
-- package: github.com/giantswarm/microkit
-  version: 4e085764fbe2e0301e2065bbb01d74847e47c4cc
-  subpackages:
-  - error
 - package: github.com/coreos/go-semver
   version: v0.2.0
   subpackages:
@@ -27,5 +22,8 @@ import:
 - package: github.com/hashicorp/go-rootcerts
 - package: github.com/mitchellh/go-homedir
 - package: github.com/Jeffail/gabs
-- package: golang.org/x/sys/windows
+- package: golang.org/x/sys
   version: master
+  subpackages:
+  - windows
+- package: github.com/giantswarm/microerror

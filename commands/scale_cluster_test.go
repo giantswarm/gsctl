@@ -7,16 +7,13 @@ import (
 	"testing"
 
 	"github.com/Jeffail/gabs"
-	"github.com/spf13/viper"
 
 	"github.com/giantswarm/gsctl/config"
 )
 
-// TestScaleClusterNotLoggedIn tests if e can prevent an attempt to do things
+// TestScaleClusterNotLoggedIn tests if we can prevent an attempt to do things
 // when not logged in and no token has been provided.
 func TestScaleClusterNotLoggedIn(t *testing.T) {
-	defer viper.Reset()
-
 	// This server should not get any request, because we avoid unauthenticated requests.
 	// That's why it issues an error in case it does.
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -46,8 +43,6 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 // does not return cluster details with the PATCH response.
 // See https://github.com/giantswarm/api/issues/437
 func TestScaleCluster(t *testing.T) {
-	defer viper.Reset()
-
 	var numWorkersDesired = 5
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

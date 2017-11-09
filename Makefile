@@ -22,17 +22,17 @@ TESTBIN := build/bin/${BIN}-${GOOS}-${GOARCH}
 all: build
 
 # build binary for current platform
-build: $(SOURCE) build/bin/$(BIN)-$(GOOS)-$(GOARCH)
+build: build/bin/$(BIN)-$(GOOS)-$(GOARCH)
 
 # install binary for current platform (not expected to work on Win)
-install: $(SOURCE) build/bin/$(BIN)-$(GOOS)-$(GOARCH)
+install: build
 	cp build/bin/$(BIN)-$(GOOS)-$(GOARCH) /usr/local/bin/$(BIN)
 
 # build for all platforms
 crosscompile: build/bin/$(BIN)-darwin-amd64 build/bin/$(BIN)-linux-amd64 build/bin/$(BIN)-windows-386 build/bin/$(BIN)-windows-amd64
 
 # platform-specific build
-build/bin/$(BIN)-darwin-amd64:
+build/bin/$(BIN)-darwin-amd64: $(SOURCE)
 	@mkdir -p build/bin
 	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		-e GOPATH=/go -e GOOS=darwin -e GOARCH=amd64 -e CGO_ENABLED=0 \
@@ -42,7 +42,7 @@ build/bin/$(BIN)-darwin-amd64:
 
 # platform-specific build for linux-amd64
 # - here we have CGO_ENABLED=1
-build/bin/$(BIN)-linux-amd64:
+build/bin/$(BIN)-linux-amd64: $(SOURCE)
 	@mkdir -p build/bin
 	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		-e GOPATH=/go -e GOOS=linux -e GOARCH=amd64 -e CGO_ENABLED=1 \
@@ -51,7 +51,7 @@ build/bin/$(BIN)-linux-amd64:
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 # platform-specific build
-build/bin/$(BIN)-windows-386:
+build/bin/$(BIN)-windows-386: $(SOURCE)
 	@mkdir -p build/bin
 	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		-e GOPATH=/go -e GOOS=windows -e GOARCH=386 -e CGO_ENABLED=0 \
@@ -60,7 +60,7 @@ build/bin/$(BIN)-windows-386:
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
 # platform-specific build
-build/bin/$(BIN)-windows-amd64:
+build/bin/$(BIN)-windows-amd64: $(SOURCE)
 	@mkdir -p build/bin
 	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		-e GOPATH=/go -e GOOS=windows -e GOARCH=amd64 -e CGO_ENABLED=0 \
@@ -136,31 +136,6 @@ bin-dist: crosscompile
 		mv ./$(BIN)-$(VERSION)-$$OS.zip ../bin-dist/; \
 		cd .. ; \
 	done
-
-
-# This automates a release (except for a GitHub release)
-release: bin-dist
-	# file uploads to S3
-	aws s3 cp bin-dist s3://downloads.giantswarm.io/gsctl/$(VERSION)/ --recursive --exclude="*" --include="*.tar.gz" --acl=public-read
-	aws s3 cp bin-dist s3://downloads.giantswarm.io/gsctl/$(VERSION)/ --recursive --exclude="*" --include="*.zip" --acl=public-read
-	aws s3 cp VERSION s3://downloads.giantswarm.io/gsctl/VERSION --acl=public-read
-
-	# homebrew
-	./update-homebrew.sh
-
-	# scoop
-	./update-scoop.sh
-
-	# Update version number occurrences in README.md
-	#perl -pi -e "s:gsctl\/[0-9]+\.[0-9]+\.[0-9]+\/:gsctl\/${VERSION}\/:g" README.md
-	#perl -pi -e "s:gsctl\-[0-9]+\.[0-9]+\.[0-9]+\-:gsctl\-${VERSION}\-:g" README.md
-
-	#@echo ""
-	#@echo "README.md has changed. Please commit and push this change using these commands:"
-	#@echo ""
-	#@echo "  git commit -m \"Updated version number in README.md to ${VERSION}\" README.md"
-	#@echo "git push origin master"
-	#@echo ""
 
 # remove generated stuff
 clean:

@@ -1,3 +1,7 @@
+// Copyright (c) 2015-2017 Jeevanandam M. (jeeva@myjeeva.com), All rights reserved.
+// resty source code and usage is governed by a MIT style
+// license that can be found in the LICENSE file.
+
 package resty_test
 
 import (
@@ -5,9 +9,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
+
+	"golang.org/x/net/proxy"
 
 	"github.com/go-resty/resty"
 )
@@ -43,7 +50,7 @@ func Example_get() {
 	fmt.Printf("\nResponse Status: %v", resp.Status())
 	fmt.Printf("\nResponse Body: %v", resp)
 	fmt.Printf("\nResponse Time: %v", resp.Time())
-	fmt.Printf("\nResponse Recevied At: %v", resp.ReceivedAt)
+	fmt.Printf("\nResponse Recevied At: %v", resp.ReceivedAt())
 }
 
 func Example_enhancedGet() {
@@ -161,11 +168,13 @@ func Example_customRootCertificate() {
 func ExampleNew() {
 	// Creating client1
 	client1 := resty.New()
-	client1.R().Get("http://httpbin.org/get")
+	resp1, err1 := client1.R().Get("http://httpbin.org/get")
+	fmt.Println(resp1, err1)
 
 	// Creating client2
 	client2 := resty.New()
-	client2.R().Get("http://httpbin.org/get")
+	resp2, err2 := client2.R().Get("http://httpbin.org/get")
+	fmt.Println(resp2, err2)
 }
 
 //
@@ -180,6 +189,27 @@ func ExampleClient_SetCertificates() {
 	}
 
 	resty.SetCertificates(cert)
+}
+
+//
+// Resty Socks5 Proxy request
+//
+
+func Example_socks5Proxy() {
+	// create a dailer
+	dialer, err := proxy.SOCKS5("tcp", "127.0.0.1:9150", nil, proxy.Direct)
+	if err != nil {
+		log.Fatalf("Unable to obtain proxy dialer: %v\n", err)
+	}
+
+	// create a transport
+	ptransport := &http.Transport{Dial: dialer.Dial}
+
+	// set transport into resty
+	resty.SetTransport(ptransport)
+
+	resp, err := resty.R().Get("http://check.torproject.org")
+	fmt.Println(err, resp)
 }
 
 func printOutput(resp *resty.Response, err error) {

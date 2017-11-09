@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2016 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2017 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -22,6 +21,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -45,7 +45,7 @@ func TestGet(t *testing.T) {
 	assertError(t, err)
 	assertEqual(t, http.StatusOK, resp.StatusCode())
 	assertEqual(t, "200 OK", resp.Status())
-	assertEqual(t, true, resp.Body() != nil)
+	assertNotNil(t, resp.Body())
 	assertEqual(t, "TestGet: text response", resp.String())
 
 	logResponse(t, resp)
@@ -137,17 +137,9 @@ func TestPostJSONStringSuccess(t *testing.T) {
 	assertEqual(t, http.StatusOK, resp.StatusCode())
 
 	logResponse(t, resp)
-}
 
-func TestPostJSONStringError(t *testing.T) {
-	ts := createPostServer(t)
-	defer ts.Close()
-
-	c := dc()
-	c.SetHeader(hdrContentTypeKey, jsonContentType).
-		SetHeaders(map[string]string{hdrUserAgentKey: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) go-resty v0.1", hdrAcceptKey: jsonContentType})
-
-	resp, err := c.R().
+	// PostJSONStringError
+	resp, err = c.R().
 		SetBody(`{"username":"testuser" "password":"testpass"}`).
 		Post(ts.URL + "/login")
 
@@ -257,7 +249,7 @@ func TestPostJSONMapSuccess(t *testing.T) {
 	logResponse(t, resp)
 }
 
-func TestPostJSONMapInvaildResponseJson(t *testing.T) {
+func TestPostJSONMapInvalidResponseJson(t *testing.T) {
 	ts := createPostServer(t)
 	defer ts.Close()
 
@@ -369,7 +361,7 @@ func TestPostXMLStructInvalidLogin(t *testing.T) {
 	logResponse(t, resp)
 }
 
-func TestPostXMLStructInvaildResponseXml(t *testing.T) {
+func TestPostXMLStructInvalidResponseXml(t *testing.T) {
 	ts := createPostServer(t)
 	defer ts.Close()
 
@@ -397,26 +389,6 @@ func TestPostXMLMapNotSupported(t *testing.T) {
 		Post(ts.URL + "/login")
 
 	assertEqual(t, "Unsupported 'Body' type/value", err.Error())
-}
-
-func TestClientBasicAuth(t *testing.T) {
-	ts := createAuthServer(t)
-	defer ts.Close()
-
-	c := dc()
-	c.SetBasicAuth("myuser", "basicauth").
-		SetHostURL(ts.URL).
-		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-
-	resp, err := c.R().
-		SetResult(&AuthSuccess{}).
-		Post("/login")
-
-	assertError(t, err)
-	assertEqual(t, http.StatusOK, resp.StatusCode())
-
-	t.Logf("Result Success: %q", resp.Result().(*AuthSuccess))
-	logResponse(t, resp)
 }
 
 func TestRequestBasicAuth(t *testing.T) {
@@ -456,21 +428,6 @@ func TestRequestBasicAuthFail(t *testing.T) {
 
 	t.Logf("Result Error: %q", resp.Error().(*AuthError))
 	logResponse(t, resp)
-}
-
-func TestClientAuthToken(t *testing.T) {
-	ts := createAuthServer(t)
-	defer ts.Close()
-
-	c := dc()
-	c.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}).
-		SetAuthToken("004DDB79-6801-4587-B976-F093E6AC44FF").
-		SetHostURL(ts.URL + "/")
-
-	resp, err := c.R().Get("/profile")
-
-	assertError(t, err)
-	assertEqual(t, http.StatusOK, resp.StatusCode())
 }
 
 func TestRequestAuthToken(t *testing.T) {
@@ -805,27 +762,6 @@ func TestOnBeforeMiddleware(t *testing.T) {
 	assertEqual(t, "TestPut: plain text response", resp.String())
 }
 
-func TestOnAfterMiddleware(t *testing.T) {
-	ts := createGenServer(t)
-	defer ts.Close()
-
-	c := dc()
-	c.OnAfterResponse(func(c *Client, res *Response) error {
-		t.Logf("Request sent at: %v", res.Request.Time)
-		t.Logf("Response Recevied at: %v", res.ReceivedAt())
-
-		return nil
-	})
-
-	resp, err := c.R().
-		SetBody("OnAfterResponse: This is plain text body to server").
-		Put(ts.URL + "/plaintext")
-
-	assertError(t, err)
-	assertEqual(t, http.StatusOK, resp.StatusCode())
-	assertEqual(t, "TestPut: plain text response", resp.String())
-}
-
 func TestNoAutoRedirect(t *testing.T) {
 	ts := createRedirectServer(t)
 	defer ts.Close()
@@ -835,7 +771,7 @@ func TestNoAutoRedirect(t *testing.T) {
 	assertEqual(t, "Get /redirect-2: Auto redirect is disabled", err.Error())
 }
 
-func TestHTTPAutoRedirectUpto10(t *testing.T) {
+func TestHTTPAutoRedirectUpTo10(t *testing.T) {
 	ts := createRedirectServer(t)
 	defer ts.Close()
 
@@ -855,56 +791,8 @@ func TestHostCheckRedirectPolicy(t *testing.T) {
 
 	_, err := c.R().Get(ts.URL + "/redirect-host-check-1")
 
-	assertEqual(t, true, err != nil)
+	assertNotNil(t, err)
 	assertEqual(t, true, strings.Contains(err.Error(), "Redirect is not allowed as per DomainCheckRedirectPolicy"))
-}
-
-func TestClientRedirectPolicy(t *testing.T) {
-	ts := createRedirectServer(t)
-	defer ts.Close()
-
-	c := dc()
-	c.SetHTTPMode().
-		SetRedirectPolicy(FlexibleRedirectPolicy(20))
-
-	_, err := c.R().Get(ts.URL + "/redirect-1")
-
-	assertEqual(t, "Get /redirect-21: Stopped after 20 redirects", err.Error())
-}
-
-func TestClientTimeout(t *testing.T) {
-	ts := createGetServer(t)
-	defer ts.Close()
-
-	c := dc()
-	c.SetHTTPMode().
-		SetTimeout(time.Duration(time.Second * 3))
-
-	_, err := c.R().Get(ts.URL + "/set-timeout-test")
-
-	assertEqual(t, true, strings.Contains(err.Error(), "i/o timeout"))
-}
-
-func TestClientRetry(t *testing.T) {
-	ts := createGetServer(t)
-	defer ts.Close()
-
-	c := dc()
-	c.SetHTTPMode().
-		SetTimeout(time.Duration(time.Second * 3)).
-		SetRetryCount(3)
-
-	_, err := c.R().Get(ts.URL + "/set-retrycount-test")
-
-	assertError(t, err)
-}
-
-func TestClientTimeoutInternalError(t *testing.T) {
-	c := dc()
-	c.SetHTTPMode()
-	c.SetTimeout(time.Duration(time.Second * 1))
-
-	c.R().Get("http://localhost:9000/set-timeout-test")
 }
 
 func TestHeadMethod(t *testing.T) {
@@ -962,77 +850,26 @@ func TestRawFileUploadByBody(t *testing.T) {
 func TestProxySetting(t *testing.T) {
 	c := dc()
 
-	assertEqual(t, true, c.proxyURL == nil)
-	assertEqual(t, true, (c.transport.Proxy == nil))
+	transport, err := c.getTransport()
+
+	assertNil(t, err)
+
+	assertEqual(t, false, c.IsProxySet())
+	assertNil(t, transport.Proxy)
 
 	c.SetProxy("http://sampleproxy:8888")
-	assertEqual(t, true, c.proxyURL != nil)
-	assertEqual(t, true, (c.transport.Proxy == nil))
+	assertEqual(t, true, c.IsProxySet())
+	assertNotNil(t, transport.Proxy)
 
 	c.SetProxy("//not.a.user@%66%6f%6f.com:8888")
-	assertEqual(t, true, (c.proxyURL == nil))
-	assertEqual(t, true, (c.transport.Proxy == nil))
+	assertEqual(t, false, c.IsProxySet())
+	assertNil(t, transport.Proxy)
 
 	SetProxy("http://sampleproxy:8888")
+	assertEqual(t, true, IsProxySet())
 	RemoveProxy()
-	assertEqual(t, true, (DefaultClient.proxyURL == nil))
-	assertEqual(t, true, (DefaultClient.transport.Proxy == nil))
-}
-
-func TestClientProxy(t *testing.T) {
-	ts := createGetServer(t)
-	defer ts.Close()
-
-	c := dc()
-	c.SetTimeout(1 * time.Second)
-	c.SetProxy("http://sampleproxy:8888")
-
-	resp, err := c.R().Get(ts.URL)
-	assertEqual(t, true, resp != nil)
-	assertEqual(t, true, err != nil)
-}
-
-func TestPerRequestProxy(t *testing.T) {
-	ts := createGetServer(t)
-	defer ts.Close()
-
-	c := dc()
-	c.SetTimeout(1 * time.Second)
-
-	resp, err := c.R().
-		SetProxy("http://sampleproxy:8888").
-		Get(ts.URL)
-	assertEqual(t, true, resp != nil)
-	assertEqual(t, true, err != nil)
-}
-
-func TestClientProxyOverride(t *testing.T) {
-	ts := createGetServer(t)
-	defer ts.Close()
-
-	c := dc()
-	c.SetTimeout(1 * time.Second)
-	c.SetProxy("http://sampleproxy:8888")
-
-	resp, err := c.R().
-		SetProxy("http://requestproxy:8888").
-		Get(ts.URL)
-	assertEqual(t, true, resp != nil)
-	assertEqual(t, true, err != nil)
-}
-
-func TestClientProxyOverrideError(t *testing.T) {
-	ts := createGetServer(t)
-	defer ts.Close()
-
-	c := dc()
-	c.SetTimeout(1 * time.Second)
-
-	resp, err := c.R().
-		SetProxy("//not.a.user@%66%6f%6f.com:8888").
-		Get(ts.URL)
-	assertEqual(t, false, resp == nil)
-	assertEqual(t, true, err == nil)
+	assertNil(t, DefaultClient.proxyURL)
+	assertNil(t, transport.Proxy)
 }
 
 func TestIncorrectURL(t *testing.T) {
@@ -1139,7 +976,7 @@ func TestDetectContentTypeForSlice(t *testing.T) {
 	logResponse(t, resp)
 }
 
-func TestMuliParamQueryString(t *testing.T) {
+func TestMultiParamsQueryString(t *testing.T) {
 	ts1 := createGetServer(t)
 	defer ts1.Close()
 
@@ -1148,15 +985,19 @@ func TestMuliParamQueryString(t *testing.T) {
 
 	client.SetQueryParam("status", "open")
 
-	req1.SetQueryParam("status", "pending").
-		SetQueryParam("status", "approved").
+	_, _ = req1.SetQueryParam("status", "pending").
 		Get(ts1.URL)
 
 	assertEqual(t, true, strings.Contains(req1.URL, "status=pending"))
-	assertEqual(t, true, strings.Contains(req1.URL, "status=approved"))
-
-	// because it's removed by key
+	// pending overrides open
 	assertEqual(t, false, strings.Contains(req1.URL, "status=open"))
+
+	_, _ = req1.SetQueryParam("status", "approved").
+		Get(ts1.URL)
+
+	assertEqual(t, true, strings.Contains(req1.URL, "status=approved"))
+	// approved overrides pending
+	assertEqual(t, false, strings.Contains(req1.URL, "status=pending"))
 
 	ts2 := createGetServer(t)
 	defer ts2.Close()
@@ -1167,7 +1008,7 @@ func TestMuliParamQueryString(t *testing.T) {
 		"status": []string{"pending", "approved", "reject"},
 	}
 
-	req2.SetMultiValueQueryParams(v).Get(ts2.URL)
+	_, _ = req2.SetMultiValueQueryParams(v).Get(ts2.URL)
 
 	assertEqual(t, true, strings.Contains(req2.URL, "status=pending"))
 	assertEqual(t, true, strings.Contains(req2.URL, "status=approved"))
@@ -1189,13 +1030,8 @@ func TestSetQueryStringTypical(t *testing.T) {
 	assertEqual(t, http.StatusOK, resp.StatusCode())
 	assertEqual(t, "200 OK", resp.Status())
 	assertEqual(t, "TestGet: text response", resp.String())
-}
 
-func TestSetQueryStringTypicalError(t *testing.T) {
-	ts := createGetServer(t)
-	defer ts.Close()
-
-	resp, err := dclr().
+	resp, err = dclr().
 		SetQueryString("&%%amp;").
 		Get(ts.URL)
 
@@ -1203,27 +1039,6 @@ func TestSetQueryStringTypicalError(t *testing.T) {
 	assertEqual(t, http.StatusOK, resp.StatusCode())
 	assertEqual(t, "200 OK", resp.Status())
 	assertEqual(t, "TestGet: text response", resp.String())
-}
-
-func TestSetCertificates(t *testing.T) {
-	DefaultClient = dc()
-	SetCertificates(tls.Certificate{})
-
-	assertEqual(t, 1, len(DefaultClient.transport.TLSClientConfig.Certificates))
-}
-
-func TestSetRootCertificate(t *testing.T) {
-	DefaultClient = dc()
-	SetRootCertificate(getTestDataPath() + "/sample-root.pem")
-
-	assertEqual(t, true, DefaultClient.transport.TLSClientConfig.RootCAs != nil)
-}
-
-func TestSetRootCertificateNotExists(t *testing.T) {
-	DefaultClient = dc()
-	SetRootCertificate(getTestDataPath() + "/not-exists-sample-root.pem")
-
-	assertEqual(t, true, DefaultClient.transport.TLSClientConfig == nil)
 }
 
 func TestOutputFileWithBaseDirAndRelativePath(t *testing.T) {
@@ -1280,165 +1095,187 @@ func TestOutputFileAbsPath(t *testing.T) {
 	assertError(t, err)
 }
 
-func TestSetTransport(t *testing.T) {
+func TestContextInternal(t *testing.T) {
 	ts := createGetServer(t)
 	defer ts.Close()
-	DefaultClient = dc()
 
-	transport := &http.Transport{
-		// somthing like Proxying to httptest.Server, etc...
-		Proxy: func(req *http.Request) (*url.URL, error) {
-			return url.Parse(ts.URL)
-		},
+	r := R().
+		SetQueryParam("request_no", strconv.FormatInt(time.Now().Unix(), 10))
+
+	if r.isContextCancelledIfAvailable() {
+		t.Error("isContextCancelledIfAvailable != false for vanilla R()")
 	}
-	SetTransport(transport)
+	r.addContextIfAvailable()
 
-	assertEqual(t, true, DefaultClient.transport != nil)
+	resp, err := r.Get(ts.URL + "/")
+
+	assertError(t, err)
+	assertEqual(t, http.StatusOK, resp.StatusCode())
 }
 
-func TestSetScheme(t *testing.T) {
-	DefaultClient = dc()
+func TestSRV(t *testing.T) {
+	c := dc().
+		SetRedirectPolicy(FlexibleRedirectPolicy(20)).
+		SetScheme("http")
 
-	SetScheme("http")
+	r := c.R().
+		SetSRV(&SRVRecord{"xmpp-server", "google.com"})
 
-	assertEqual(t, true, DefaultClient.scheme == "http")
-}
+	assertEqual(t, "xmpp-server", r.SRV.Service)
+	assertEqual(t, "google.com", r.SRV.Domain)
 
-func TestClientOptions(t *testing.T) {
-	SetHTTPMode().SetContentLength(true)
-	assertEqual(t, Mode(), "http")
-	assertEqual(t, DefaultClient.setContentLength, true)
-
-	SetRESTMode()
-	assertEqual(t, Mode(), "rest")
-
-	SetHostURL("http://httpbin.org")
-	assertEqual(t, "http://httpbin.org", DefaultClient.HostURL)
-
-	SetHeader(hdrContentTypeKey, jsonContentType)
-	SetHeaders(map[string]string{
-		hdrUserAgentKey: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) go-resty v0.1",
-		"X-Request-Id":  strconv.FormatInt(time.Now().UnixNano(), 10),
-	})
-	assertEqual(t, jsonContentType, DefaultClient.Header.Get(hdrContentTypeKey))
-
-	SetCookie(&http.Cookie{
-		Name:     "default-cookie",
-		Value:    "This is cookie default-cookie value",
-		Path:     "/",
-		Domain:   "localhost",
-		MaxAge:   36000,
-		HttpOnly: true,
-		Secure:   false,
-	})
-	assertEqual(t, "default-cookie", DefaultClient.Cookies[0].Name)
-
-	var cookies []*http.Cookie
-	cookies = append(cookies, &http.Cookie{
-		Name:  "default-cookie-1",
-		Value: "This is default-cookie 1 value",
-		Path:  "/",
-	})
-	cookies = append(cookies, &http.Cookie{
-		Name:  "default-cookie-2",
-		Value: "This is default-cookie 2 value",
-		Path:  "/",
-	})
-	SetCookies(cookies)
-	assertEqual(t, "default-cookie-1", DefaultClient.Cookies[1].Name)
-	assertEqual(t, "default-cookie-2", DefaultClient.Cookies[2].Name)
-
-	SetQueryParam("test_param_1", "Param_1")
-	SetQueryParams(map[string]string{"test_param_2": "Param_2", "test_param_3": "Param_3"})
-	assertEqual(t, "Param_3", DefaultClient.QueryParam.Get("test_param_3"))
-
-	rTime := strconv.FormatInt(time.Now().UnixNano(), 10)
-	SetFormData(map[string]string{"r_time": rTime})
-	assertEqual(t, rTime, DefaultClient.FormData.Get("r_time"))
-
-	SetBasicAuth("myuser", "mypass")
-	assertEqual(t, "myuser", DefaultClient.UserInfo.Username)
-
-	SetAuthToken("AC75BD37F019E08FBC594900518B4F7E")
-	assertEqual(t, "AC75BD37F019E08FBC594900518B4F7E", DefaultClient.Token)
-
-	SetDisableWarn(true)
-	assertEqual(t, DefaultClient.DisableWarn, true)
-
-	SetRetryCount(3)
-	assertEqual(t, 3, DefaultClient.RetryCount)
-
-	err := &AuthError{}
-	SetError(err)
-	if reflect.TypeOf(err) == DefaultClient.Error {
-		t.Error("SetError failed")
+	resp, err := r.Get("/")
+	assertError(t, err)
+	assertNotNil(t, resp)
+	if resp != nil {
+		assertEqual(t, http.StatusOK, resp.StatusCode())
 	}
-
-	SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	assertEqual(t, true, DefaultClient.transport.TLSClientConfig.InsecureSkipVerify)
-
-	OnBeforeRequest(func(c *Client, r *Request) error {
-		c.Log.Println("I'm in Request middleware")
-		return nil // if it success
-	})
-	OnAfterResponse(func(c *Client, r *Response) error {
-		c.Log.Println("I'm in Response middleware")
-		return nil // if it success
-	})
-
-	SetTimeout(time.Duration(5 * time.Second))
-	SetRedirectPolicy(FlexibleRedirectPolicy(10), func(req *http.Request, via []*http.Request) error {
-		return errors.New("sample test redirect")
-	})
-	SetContentLength(true)
-
-	SetDebug(true)
-	assertEqual(t, DefaultClient.Debug, true)
-
-	SetScheme("http")
-	assertEqual(t, DefaultClient.scheme, "http")
-
-	SetCloseConnection(true)
-	assertEqual(t, DefaultClient.closeConnection, true)
-
-	SetLogger(ioutil.Discard)
 }
+
+func TestSRVInvalidService(t *testing.T) {
+	_, err := R().
+		SetSRV(&SRVRecord{"nonexistantservice", "sampledomain"}).
+		Get("/")
+
+	assertNotNil(t, err)
+	assertEqual(t, true, strings.Contains(err.Error(), "no such host"))
+}
+
+func TestDeprecatedCodeCovergae(t *testing.T) {
+	var user1 User
+	err := Unmarshal("application/json",
+		[]byte(`{"username":"testuser", "password":"testpass"}`), &user1)
+	assertError(t, err)
+	assertEqual(t, "testuser", user1.Username)
+	assertEqual(t, "testpass", user1.Password)
+
+	var user2 User
+	err = Unmarshal("application/xml",
+		[]byte(`<?xml version="1.0" encoding="UTF-8"?><User><Username>testuser</Username><Password>testpass</Password></User>`),
+		&user2)
+	assertError(t, err)
+	assertEqual(t, "testuser", user1.Username)
+	assertEqual(t, "testpass", user1.Password)
+}
+
+func TestRequestDoNotParseResponse(t *testing.T) {
+	ts := createGetServer(t)
+	defer ts.Close()
+
+	resp, err := dc().R().
+		SetDoNotParseResponse(true).
+		SetQueryParam("request_no", strconv.FormatInt(time.Now().Unix(), 10)).
+		Get(ts.URL + "/")
+
+	assertError(t, err)
+
+	buf := acquireBuffer()
+	defer releaseBuffer(buf)
+	_, _ = io.Copy(buf, resp.RawBody())
+
+	assertEqual(t, "TestGet: text response", buf.String())
+	_ = resp.RawBody().Close()
+
+	// Manually setting RawResponse as nil
+	resp, err = dc().R().
+		SetDoNotParseResponse(true).
+		Get(ts.URL + "/")
+
+	assertError(t, err)
+
+	resp.RawResponse = nil
+	assertNil(t, resp.RawBody())
+
+	// just set test part
+	SetDoNotParseResponse(true)
+	assertEqual(t, true, DefaultClient.notParseResponse)
+	SetDoNotParseResponse(false)
+}
+
+type noCtTest struct {
+	Response string `json:"response"`
+}
+
+func TestRequestExpectContentTypeTest(t *testing.T) {
+	ts := createGenServer(t)
+	defer ts.Close()
+
+	c := dc()
+	resp, err := c.R().
+		SetResult(noCtTest{}).
+		ExpectContentType("application/json").
+		Get(ts.URL + "/json-no-set")
+
+	assertError(t, err)
+	assertEqual(t, http.StatusOK, resp.StatusCode())
+	assertNotNil(t, resp.Result())
+	assertEqual(t, "json response no content type set", resp.Result().(*noCtTest).Response)
+
+	assertEqual(t, "", firstNonEmpty("", ""))
+}
+
+//‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+// Testing Unexported methods
+//___________________________________
 
 func getTestDataPath() string {
 	pwd, _ := os.Getwd()
 	return pwd + "/test-data"
 }
 
-// Used for retry testing...
-var attempt int
-
 func createGetServer(t *testing.T) *httptest.Server {
+	var attempt int32
+	var sequence int32
+	var lastRequest time.Time
 	ts := createTestServer(func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Method: %v", r.Method)
 		t.Logf("Path: %v", r.URL.Path)
 
-		if r.Method == GET {
+		if r.Method == MethodGet {
 			if r.URL.Path == "/" {
-				w.Write([]byte("TestGet: text response"))
+				_, _ = w.Write([]byte("TestGet: text response"))
 			} else if r.URL.Path == "/mypage" {
 				w.WriteHeader(http.StatusBadRequest)
 			} else if r.URL.Path == "/mypage2" {
-				w.Write([]byte("TestGet: text response from mypage2"))
+				_, _ = w.Write([]byte("TestGet: text response from mypage2"))
 			} else if r.URL.Path == "/set-retrycount-test" {
-				attempt++
-				if attempt != 3 {
+				attp := atomic.AddInt32(&attempt, 1)
+				if attp <= 3 {
 					time.Sleep(time.Second * 6)
 				}
-				w.Write([]byte("TestClientRetry page"))
+				_, _ = w.Write([]byte("TestClientRetry page"))
+			} else if r.URL.Path == "/set-retrywaittime-test" {
+				// Returns time.Duration since last request here
+				// or 0 for the very first request
+				if atomic.LoadInt32(&attempt) == 0 {
+					lastRequest = time.Now()
+					_, _ = fmt.Fprint(w, "0")
+				} else {
+					now := time.Now()
+					sinceLastRequest := now.Sub(lastRequest)
+					lastRequest = now
+					_, _ = fmt.Fprintf(w, "%d", uint64(sinceLastRequest))
+				}
+				atomic.AddInt32(&attempt, 1)
+			} else if r.URL.Path == "/set-timeout-test-with-sequence" {
+				seq := atomic.AddInt32(&sequence, 1)
+				time.Sleep(time.Second * 2)
+				_, _ = fmt.Fprintf(w, "%d", seq)
 			} else if r.URL.Path == "/set-timeout-test" {
 				time.Sleep(time.Second * 6)
-				w.Write([]byte("TestClientTimeout page"))
+				_, _ = w.Write([]byte("TestClientTimeout page"))
 
 			} else if r.URL.Path == "/my-image.png" {
 				fileBytes, _ := ioutil.ReadFile(getTestDataPath() + "/test-img.png")
 				w.Header().Set("Content-Type", "image/png")
 				w.Header().Set("Content-Length", strconv.Itoa(len(fileBytes)))
-				w.Write(fileBytes)
+				_, _ = w.Write(fileBytes)
+			} else if r.URL.Path == "/get-method-payload-test" {
+				body, err := ioutil.ReadAll(r.Body)
+				if err != nil {
+					t.Errorf("Error: could not read get body: %s", err.Error())
+				}
+				_, _ = w.Write(body)
 			}
 		}
 	})
@@ -1458,18 +1295,18 @@ func handleLoginEndpoint(t *testing.T, w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				t.Logf("Error: %#v", err)
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(`{ "id": "bad_request", "message": "Unable to read user info" }`))
+				_, _ = w.Write([]byte(`{ "id": "bad_request", "message": "Unable to read user info" }`))
 				return
 			}
 
 			if user.Username == "testuser" && user.Password == "testpass" {
-				w.Write([]byte(`{ "id": "success", "message": "login successful" }`))
+				_, _ = w.Write([]byte(`{ "id": "success", "message": "login successful" }`))
 			} else if user.Username == "testuser" && user.Password == "invalidjson" {
-				w.Write([]byte(`{ "id": "success", "message": "login successful", }`))
+				_, _ = w.Write([]byte(`{ "id": "success", "message": "login successful", }`))
 			} else {
 				w.Header().Set("Www-Authenticate", "Protected Realm")
 				w.WriteHeader(http.StatusUnauthorized)
-				w.Write([]byte(`{ "id": "unauthorized", "message": "Invalid credentials" }`))
+				_, _ = w.Write([]byte(`{ "id": "unauthorized", "message": "Invalid credentials" }`))
 			}
 
 			return
@@ -1484,22 +1321,22 @@ func handleLoginEndpoint(t *testing.T, w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				t.Logf("Error: %v", err)
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>`))
-				w.Write([]byte(`<AuthError><Id>bad_request</Id><Message>Unable to read user info</Message></AuthError>`))
+				_, _ = w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>`))
+				_, _ = w.Write([]byte(`<AuthError><Id>bad_request</Id><Message>Unable to read user info</Message></AuthError>`))
 				return
 			}
 
 			if user.Username == "testuser" && user.Password == "testpass" {
-				w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>`))
-				w.Write([]byte(`<AuthSuccess><Id>success</Id><Message>login successful</Message></AuthSuccess>`))
+				_, _ = w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>`))
+				_, _ = w.Write([]byte(`<AuthSuccess><Id>success</Id><Message>login successful</Message></AuthSuccess>`))
 			} else if user.Username == "testuser" && user.Password == "invalidxml" {
-				w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>`))
-				w.Write([]byte(`<AuthSuccess><Id>success</Id><Message>login successful</AuthSuccess>`))
+				_, _ = w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>`))
+				_, _ = w.Write([]byte(`<AuthSuccess><Id>success</Id><Message>login successful</AuthSuccess>`))
 			} else {
 				w.Header().Set("Www-Authenticate", "Protected Realm")
 				w.WriteHeader(http.StatusUnauthorized)
-				w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>`))
-				w.Write([]byte(`<AuthError><Id>unauthorized</Id><Message>Invalid credentials</Message></AuthError>`))
+				_, _ = w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>`))
+				_, _ = w.Write([]byte(`<AuthError><Id>unauthorized</Id><Message>Invalid credentials</Message></AuthError>`))
 			}
 
 			return
@@ -1518,7 +1355,7 @@ func handleUsersEndpoint(t *testing.T, w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				t.Logf("Error: %v", err)
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(`{ "id": "bad_request", "message": "Unable to read user info" }`))
+				_, _ = w.Write([]byte(`{ "id": "bad_request", "message": "Unable to read user info" }`))
 				return
 			}
 
@@ -1526,14 +1363,14 @@ func handleUsersEndpoint(t *testing.T, w http.ResponseWriter, r *http.Request) {
 			if len(users) != 3 {
 				t.Log("Error: Excepted count of 3 records")
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(`{ "id": "bad_request", "message": "Expected record count doesn't match" }`))
+				_, _ = w.Write([]byte(`{ "id": "bad_request", "message": "Expected record count doesn't match" }`))
 				return
 			}
 
 			eu := users[2]
 			if eu.FirstName == "firstname3" && eu.ZipCode == "10003" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte(`{ "message": "Accepted" }`))
+				_, _ = w.Write([]byte(`{ "message": "Accepted" }`))
 			}
 
 			return
@@ -1545,9 +1382,10 @@ func createPostServer(t *testing.T) *httptest.Server {
 	ts := createTestServer(func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Method: %v", r.Method)
 		t.Logf("Path: %v", r.URL.Path)
+		t.Logf("RawQuery: %v", r.URL.RawQuery)
 		t.Logf("Content-Type: %v", r.Header.Get(hdrContentTypeKey))
 
-		if r.Method == POST {
+		if r.Method == MethodPost {
 			handleLoginEndpoint(t, w, r)
 
 			handleUsersEndpoint(t, w, r)
@@ -1555,6 +1393,18 @@ func createPostServer(t *testing.T) *httptest.Server {
 			if r.URL.Path == "/usersmap" {
 				// JSON
 				if IsJSONType(r.Header.Get(hdrContentTypeKey)) {
+					if r.URL.Query().Get("status") == "500" {
+						body, err := ioutil.ReadAll(r.Body)
+						if err != nil {
+							t.Errorf("Error: could not read post body: %s", err.Error())
+						}
+						t.Logf("Got query param: status=500 so we're returning the post body as response and a 500 status code. body: %s", string(body))
+						w.Header().Set(hdrContentTypeKey, jsonContentType)
+						w.WriteHeader(http.StatusInternalServerError)
+						_, _ = w.Write(body)
+						return
+					}
+
 					var users []map[string]interface{}
 					jd := json.NewDecoder(r.Body)
 					err := jd.Decode(&users)
@@ -1562,7 +1412,7 @@ func createPostServer(t *testing.T) *httptest.Server {
 					if err != nil {
 						t.Logf("Error: %v", err)
 						w.WriteHeader(http.StatusBadRequest)
-						w.Write([]byte(`{ "id": "bad_request", "message": "Unable to read user info" }`))
+						_, _ = w.Write([]byte(`{ "id": "bad_request", "message": "Unable to read user info" }`))
 						return
 					}
 
@@ -1570,12 +1420,12 @@ func createPostServer(t *testing.T) *httptest.Server {
 					if len(users) != 1 {
 						t.Log("Error: Excepted count of 1 map records")
 						w.WriteHeader(http.StatusBadRequest)
-						w.Write([]byte(`{ "id": "bad_request", "message": "Expected record count doesn't match" }`))
+						_, _ = w.Write([]byte(`{ "id": "bad_request", "message": "Expected record count doesn't match" }`))
 						return
 					}
 
 					w.WriteHeader(http.StatusAccepted)
-					w.Write([]byte(`{ "message": "Accepted" }`))
+					_, _ = w.Write([]byte(`{ "message": "Accepted" }`))
 
 					return
 				}
@@ -1592,8 +1442,8 @@ func createFormPostServer(t *testing.T) *httptest.Server {
 		t.Logf("Path: %v", r.URL.Path)
 		t.Logf("Content-Type: %v", r.Header.Get(hdrContentTypeKey))
 
-		if r.Method == POST {
-			r.ParseMultipartForm(10e6)
+		if r.Method == MethodPost {
+			_ = r.ParseMultipartForm(10e6)
 
 			if r.URL.Path == "/profile" {
 				t.Logf("FirstName: %v", r.FormValue("first_name"))
@@ -1601,7 +1451,7 @@ func createFormPostServer(t *testing.T) *httptest.Server {
 				t.Logf("City: %v", r.FormValue("city"))
 				t.Logf("Zip Code: %v", r.FormValue("zip_code"))
 
-				w.Write([]byte("Success"))
+				_, _ = w.Write([]byte("Success"))
 				return
 			} else if r.URL.Path == "/search" {
 				formEncodedData := r.Form.Encode()
@@ -1610,14 +1460,14 @@ func createFormPostServer(t *testing.T) *httptest.Server {
 				assertEqual(t, true, strings.Contains(formEncodedData, "search_criteria=pencil"))
 				assertEqual(t, true, strings.Contains(formEncodedData, "search_criteria=glass"))
 
-				w.Write([]byte("Success"))
+				_, _ = w.Write([]byte("Success"))
 				return
 			} else if r.URL.Path == "/upload" {
 				t.Logf("FirstName: %v", r.FormValue("first_name"))
 				t.Logf("LastName: %v", r.FormValue("last_name"))
 
 				targetPath := getTestDataPath() + "/upload"
-				os.MkdirAll(targetPath, 0700)
+				_ = os.MkdirAll(targetPath, 0700)
 
 				for _, fhdrs := range r.MultipartForm.File {
 					for _, hdr := range fhdrs {
@@ -1634,10 +1484,12 @@ func createFormPostServer(t *testing.T) *httptest.Server {
 							t.Logf("Error: %v", err)
 							return
 						}
-						defer f.Close()
-						io.Copy(f, infile)
+						defer func() {
+							_ = f.Close()
+						}()
+						_, _ = io.Copy(f, infile)
 
-						w.Write([]byte(fmt.Sprintf("File: %v, uploaded as: %v\n", hdr.Filename, fname)))
+						_, _ = w.Write([]byte(fmt.Sprintf("File: %v, uploaded as: %v\n", hdr.Filename, fname)))
 					}
 				}
 
@@ -1655,7 +1507,7 @@ func createAuthServer(t *testing.T) *httptest.Server {
 		t.Logf("Path: %v", r.URL.Path)
 		t.Logf("Content-Type: %v", r.Header.Get(hdrContentTypeKey))
 
-		if r.Method == GET {
+		if r.Method == MethodGet {
 			if r.URL.Path == "/profile" {
 				// 004DDB79-6801-4587-B976-F093E6AC44FF
 				auth := r.Header.Get("Authorization")
@@ -1666,20 +1518,20 @@ func createAuthServer(t *testing.T) *httptest.Server {
 				if !strings.HasPrefix(auth, "Bearer ") {
 					w.Header().Set("Www-Authenticate", "Protected Realm")
 					w.WriteHeader(http.StatusUnauthorized)
-					w.Write([]byte(`{ "id": "unauthorized", "message": "Invalid credentials" }`))
+					_, _ = w.Write([]byte(`{ "id": "unauthorized", "message": "Invalid credentials" }`))
 
 					return
 				}
 
 				if auth[7:] == "004DDB79-6801-4587-B976-F093E6AC44FF" || auth[7:] == "004DDB79-6801-4587-B976-F093E6AC44FF-Request" {
-					w.Write([]byte(`{ "id": "success", "message": "login successful" }`))
+					_, _ = w.Write([]byte(`{ "id": "success", "message": "login successful" }`))
 				}
 			}
 
 			return
 		}
 
-		if r.Method == POST {
+		if r.Method == MethodPost {
 			if r.URL.Path == "/login" {
 				auth := r.Header.Get("Authorization")
 				t.Logf("Basic Auth: %v", auth)
@@ -1690,12 +1542,12 @@ func createAuthServer(t *testing.T) *httptest.Server {
 				if err != nil || string(password) != "myuser:basicauth" {
 					w.Header().Set("Www-Authenticate", "Protected Realm")
 					w.WriteHeader(http.StatusUnauthorized)
-					w.Write([]byte(`{ "id": "unauthorized", "message": "Invalid credentials" }`))
+					_, _ = w.Write([]byte(`{ "id": "unauthorized", "message": "Invalid credentials" }`))
 
 					return
 				}
 
-				w.Write([]byte(`{ "id": "success", "message": "login successful" }`))
+				_, _ = w.Write([]byte(`{ "id": "success", "message": "login successful" }`))
 			}
 
 			return
@@ -1710,27 +1562,40 @@ func createGenServer(t *testing.T) *httptest.Server {
 		t.Logf("Method: %v", r.Method)
 		t.Logf("Path: %v", r.URL.Path)
 
-		if r.Method == PUT {
-			if r.URL.Path == "/plaintext" {
-				w.Write([]byte("TestPut: plain text response"))
-			} else if r.URL.Path == "/json" {
-				w.Header().Set(hdrContentTypeKey, jsonContentType)
-				w.Write([]byte(`{"response":"json response"}`))
-			} else if r.URL.Path == "/xml" {
-				w.Header().Set(hdrContentTypeKey, "application/xml")
-				w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?><Response>XML response</Response>`))
+		if r.Method == MethodGet {
+			if r.URL.Path == "/json-no-set" {
+				// Set empty header value for testing, since Go server sets to
+				// text/plain; charset=utf-8
+				w.Header().Set(hdrContentTypeKey, "")
+				_, _ = w.Write([]byte(`{"response":"json response no content type set"}`))
 			}
+			return
 		}
 
-		if r.Method == OPTIONS && r.URL.Path == "/options" {
+		if r.Method == MethodPut {
+			if r.URL.Path == "/plaintext" {
+				_, _ = w.Write([]byte("TestPut: plain text response"))
+			} else if r.URL.Path == "/json" {
+				w.Header().Set(hdrContentTypeKey, jsonContentType)
+				_, _ = w.Write([]byte(`{"response":"json response"}`))
+			} else if r.URL.Path == "/xml" {
+				w.Header().Set(hdrContentTypeKey, "application/xml")
+				_, _ = w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?><Response>XML response</Response>`))
+			}
+			return
+		}
+
+		if r.Method == MethodOptions && r.URL.Path == "/options" {
 			w.Header().Set("Access-Control-Allow-Origin", "localhost")
 			w.Header().Set("Access-Control-Allow-Methods", "PUT, PATCH")
 			w.Header().Set("Access-Control-Expose-Headers", "x-go-resty-id")
 			w.WriteHeader(http.StatusOK)
+			return
 		}
 
-		if r.Method == PATCH && r.URL.Path == "/patch" {
+		if r.Method == MethodPatch && r.URL.Path == "/patch" {
 			w.WriteHeader(http.StatusOK)
+			return
 		}
 	})
 
@@ -1742,7 +1607,7 @@ func createRedirectServer(t *testing.T) *httptest.Server {
 		t.Logf("Method: %v", r.Method)
 		t.Logf("Path: %v", r.URL.Path)
 
-		if r.Method == GET {
+		if r.Method == MethodGet {
 			if strings.HasPrefix(r.URL.Path, "/redirect-host-check-") {
 				cntStr := strings.SplitAfter(r.URL.Path, "-")[3]
 				cnt, _ := strconv.Atoi(cntStr)
@@ -1787,6 +1652,18 @@ func dclr() *Request {
 	return c.R()
 }
 
+func assertNil(t *testing.T, v interface{}) {
+	if !isNil(v) {
+		t.Errorf("[%v] was expected to be nil", v)
+	}
+}
+
+func assertNotNil(t *testing.T, v interface{}) {
+	if isNil(v) {
+		t.Errorf("[%v] was expected to be non-nil", v)
+	}
+}
+
 func assertError(t *testing.T, err error) {
 	if err != nil {
 		t.Errorf("Error occurred [%v]", err)
@@ -1794,8 +1671,7 @@ func assertError(t *testing.T, err error) {
 }
 
 func assertEqual(t *testing.T, e, g interface{}) (r bool) {
-	r = compare(e, g)
-	if !r {
+	if !equal(e, g) {
 		t.Errorf("Expected [%v], got [%v]", e, g)
 	}
 
@@ -1803,7 +1679,7 @@ func assertEqual(t *testing.T, e, g interface{}) (r bool) {
 }
 
 func assertNotEqual(t *testing.T, e, g interface{}) (r bool) {
-	if compare(e, g) {
+	if equal(e, g) {
 		t.Errorf("Expected [%v], got [%v]", e, g)
 	} else {
 		r = true
@@ -1812,28 +1688,22 @@ func assertNotEqual(t *testing.T, e, g interface{}) (r bool) {
 	return
 }
 
-func compare(e, g interface{}) (r bool) {
-	ev := reflect.ValueOf(e)
-	gv := reflect.ValueOf(g)
+func equal(expected, got interface{}) bool {
+	return reflect.DeepEqual(expected, got)
+}
 
-	if ev.Kind() != gv.Kind() {
-		return
+func isNil(v interface{}) bool {
+	if v == nil {
+		return true
 	}
 
-	switch ev.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		r = (ev.Int() == gv.Int())
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		r = (ev.Uint() == gv.Uint())
-	case reflect.Float32, reflect.Float64:
-		r = (ev.Float() == gv.Float())
-	case reflect.String:
-		r = (ev.String() == gv.String())
-	case reflect.Bool:
-		r = (ev.Bool() == gv.Bool())
+	rv := reflect.ValueOf(v)
+	kind := rv.Kind()
+	if kind >= reflect.Chan && kind <= reflect.Slice && rv.IsNil() {
+		return true
 	}
 
-	return
+	return false
 }
 
 func logResponse(t *testing.T, resp *Response) {
