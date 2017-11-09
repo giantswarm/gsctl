@@ -66,7 +66,7 @@ func clustersTable() (string, error) {
 
 	clientConfig := client.Configuration{
 		Endpoint:  endpoint,
-		Timeout:   3 * time.Second,
+		Timeout:   5 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
