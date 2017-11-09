@@ -24,4 +24,8 @@ type KeyPairModel struct {
 	ClientKeyData string `json:"client_key_data,omitempty"`
 
 	ClientCertificateData string `json:"client_certificate_data,omitempty"`
+
+	CommonName string `json:"common_name,omitempty"`
+
+	CertificateOrganizations string `json:"certificate_organizations,omitempty"`
 }

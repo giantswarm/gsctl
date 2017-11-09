@@ -1,5 +1,5 @@
 hash: bf20906668b84689459d44158497b9946055e30edc9ae1136d8d0898455f9627
-updated: 2017-11-09T17:16:01.481606+01:00
+updated: 2017-11-09T17:34:31.193205+01:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -14,7 +14,7 @@ imports:
 - name: github.com/giantswarm/columnize
   version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
 - name: github.com/giantswarm/gsclientgen
-  version: 7b0408528bc1a5b56a82cdd74f94a808c9fec73d
+  version: 2b5ef553ccabe383bf63b8daff5ed183219e77f9
 - name: github.com/giantswarm/microerror
   version: 5ade94eb4ee35ef72eb9382228470caeddb29989
 - name: github.com/go-resty/resty
