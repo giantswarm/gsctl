@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsctl/client"
@@ -26,17 +26,19 @@ type deleteClusterArguments struct {
 }
 
 func defaultDeleteClusterArguments() deleteClusterArguments {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
 	return deleteClusterArguments{
-		apiEndpoint: cmdAPIEndpoint,
+		apiEndpoint: endpoint,
 		clusterID:   cmdClusterID,
 		force:       cmdForce,
-		token:       cmdToken,
+		token:       token,
 		verbose:     cmdVerbose,
 	}
 }
 
 const (
-	deleteClusterActivityName string = "delete-cluster"
+	deleteClusterActivityName = "delete-cluster"
 )
 
 var (
@@ -56,9 +58,6 @@ Example:
 		PreRun: deleteClusterValidationOutput,
 		Run:    deleteClusterExecutionOutput,
 	}
-
-	// force flag
-	cmdForce bool
 )
 
 func init() {
@@ -107,10 +106,10 @@ func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
 // validateDeleteClusterPreConditions checks preconditions and returns an error in case
 func validateDeleteClusterPreConditions(args deleteClusterArguments) error {
 	if args.clusterID == "" {
-		return microerror.MaskAny(clusterIDMissingError)
+		return microerror.Mask(clusterIDMissingError)
 	}
 	if config.Config.Token == "" && args.token == "" {
-		return microerror.MaskAny(notLoggedInError)
+		return microerror.Mask(notLoggedInError)
 	}
 	return nil
 }
@@ -150,22 +149,18 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 	}
 
 	// perform API call
-	authHeader := "giantswarm " + config.Config.Token
-	if args.token != "" {
-		// command line flag overwrites
-		authHeader = "giantswarm " + args.token
-	}
+	authHeader := "giantswarm " + args.token
 	clientConfig := client.Configuration{
 		Endpoint:  args.apiEndpoint,
 		UserAgent: config.UserAgent(),
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return false, microerror.MaskAny(couldNotCreateClientError)
+		return false, microerror.Mask(couldNotCreateClientError)
 	}
 	responseBody, _, err := apiClient.DeleteCluster(authHeader, args.clusterID, requestIDHeader, createClusterActivityName, cmdLine)
 	if err != nil {
-		return false, microerror.MaskAny(err)
+		return false, microerror.Mask(err)
 	}
 
 	// handle API result
@@ -173,7 +168,7 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		return true, nil
 	}
 
-	return false, microerror.MaskAnyf(couldNotDeleteClusterError,
+	return false, microerror.Maskf(couldNotDeleteClusterError,
 		fmt.Sprintf("Error in API request to create cluster: %s (Code: %s)",
 			responseBody.Message, responseBody.Code))
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
@@ -28,12 +29,14 @@ var (
 )
 
 const (
-	createKubeconfigActivityName string = "create-kubeconfig"
+	createKubeconfigActivityName = "create-kubeconfig"
 )
 
 func init() {
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key pair")
+	CreateKubeconfigCommand.Flags().StringVarP(&cmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
+	CreateKubeconfigCommand.Flags().StringVarP(&cmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
 	CreateKubeconfigCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key pair in days")
 
 	CreateCommand.AddCommand(CreateKubeconfigCommand)
@@ -56,7 +59,13 @@ func checkCreateKubeconfig(cmd *cobra.Command, args []string) error {
 		return errors.New(errorMessage)
 	}
 
-	if config.Config.Token == "" {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
+	if endpoint == "" {
+		return microerror.Mask(endpointMissingError)
+	}
+	if token == "" {
 		return errors.New("You are not logged in. Use '" + config.ProgramName + " login' to log in.")
 	}
 	if cmdClusterID == "" {
@@ -73,8 +82,11 @@ func checkCreateKubeconfig(cmd *cobra.Command, args []string) error {
 
 // createKubeconfig adds configuration for kubectl
 func createKubeconfig(cmd *cobra.Command, args []string) {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
 	clientConfig := client.Configuration{
-		Endpoint:  cmdAPIEndpoint,
+		Endpoint:  endpoint,
 		Timeout:   10 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
@@ -83,7 +95,7 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		fmt.Println(color.RedString("Error: %s", clientErr.Error()))
 		os.Exit(1)
 	}
-	authHeader := "giantswarm " + config.Config.Token
+	authHeader := "giantswarm " + token
 
 	// get cluster details
 	clusterDetailsResponse, apiResponse, err := apiClient.GetCluster(authHeader, cmdClusterID, requestIDHeader, createKubeconfigActivityName, cmdLine)
@@ -100,7 +112,7 @@ func createKubeconfig(cmd *cobra.Command, args []string) {
 		cmdDescription = "Added by user " + config.Config.Email + " using 'gsctl create kubeconfig'"
 	}
 
-	addKeyPairBody := gsclientgen.V4AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
+	addKeyPairBody := gsclientgen.V4AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours, CnPrefix: cmdCNPrefix, CertificateOrganizations: cmdCertificateOrganizations}
 
 	fmt.Println("Creating new key pair…")
 

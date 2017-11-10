@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/fatih/color"
@@ -17,32 +17,6 @@ import (
 	"github.com/giantswarm/gsctl/config"
 	"github.com/spf13/cobra"
 )
-
-type cpuDefinition struct {
-	Cores int `yaml:"cores,omitempty"`
-}
-
-type memoryDefinition struct {
-	SizeGB float32 `yaml:"size_gb,omitempty"`
-}
-
-type storageDefinition struct {
-	SizeGB float32 `yaml:"size_gb,omitempty"`
-}
-
-type nodeDefinition struct {
-	Memory  memoryDefinition  `yaml:"memory,omitempty"`
-	CPU     cpuDefinition     `yaml:"cpu,omitempty"`
-	Storage storageDefinition `yaml:"storage,omitempty"`
-	Labels  map[string]string `yaml:"labels,omitempty"`
-}
-
-type clusterDefinition struct {
-	Name              string           `yaml:"name,omitempty"`
-	Owner             string           `yaml:"owner,omitempty"`
-	KubernetesVersion string           `yaml:"kubernetes_version,omitempty"`
-	Workers           []nodeDefinition `yaml:"workers,omitempty"`
-}
 
 // addClusterArguments contains all possible input parameter needed
 // (and optionally available) for creating a cluster
@@ -62,15 +36,17 @@ type addClusterArguments struct {
 }
 
 func defaultAddClusterArguments() addClusterArguments {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
 	return addClusterArguments{
-		apiEndpoint:         cmdAPIEndpoint,
+		apiEndpoint:         endpoint,
 		clusterName:         cmdClusterName,
 		dryRun:              cmdDryRun,
 		inputYAMLFile:       cmdInputYAMLFile,
 		kubernetesVersion:   cmdKubernetesVersion,
 		numWorkers:          cmdNumWorkers,
 		owner:               cmdOwner,
-		token:               cmdToken,
+		token:               token,
 		workerNumCPUs:       cmdWorkerNumCPUs,
 		workerMemorySizeGB:  cmdWorkerMemorySizeGB,
 		workerStorageSizeGB: cmdWorkerStorageSizeGB,
@@ -94,7 +70,7 @@ const (
 	minimumWorkerMemorySizeGB  float32 = 1
 	minimumWorkerStorageSizeGB float32 = 1
 
-	createClusterActivityName string = "create-cluster"
+	createClusterActivityName = "create-cluster"
 )
 
 var (
@@ -123,8 +99,8 @@ Examples:
 	gsctl create cluster --owner=myorg --name="My Cluster" --num-workers=5 --num-cpus=2
 
   gsctl create cluster --owner=myorg --num-workers=3 --dry-run --verbose`,
-		PreRun: validationOutput,
-		Run:    executionOutput,
+		PreRun: createClusterValidationOutput,
+		Run:    createClusterExecutionOutput,
 	}
 
 	// path to the input file used optionally as cluster definition
@@ -137,12 +113,6 @@ Examples:
 	cmdOwner string
 	// number of workers required via flag on execution
 	cmdNumWorkers int
-	// number of CPUs per worker as required via flag on execution
-	cmdWorkerNumCPUs int
-	// RAM size in GB per worker as required via flag on execution
-	cmdWorkerMemorySizeGB float32
-	// Local storage in GB per worker as required via flag on execution
-	cmdWorkerStorageSizeGB float32
 	// dry run command line flag
 	cmdDryRun bool
 )
@@ -161,16 +131,16 @@ func init() {
 	CreateCommand.AddCommand(CreateClusterCommand)
 }
 
-// validationOutput runs our pre-checks.
+// createClusterValidationOutput runs our pre-checks.
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
-func validationOutput(cmd *cobra.Command, args []string) {
+func createClusterValidationOutput(cmd *cobra.Command, args []string) {
 	aca := defaultAddClusterArguments()
 
 	headline := ""
 	subtext := ""
 
-	err := validatePreConditions(aca)
+	err := validateCreateClusterPreConditions(aca)
 	if err != nil {
 		switch {
 		case err.Error() == "":
@@ -209,8 +179,8 @@ func validationOutput(cmd *cobra.Command, args []string) {
 	}
 }
 
-// executionOutput calls addCluster() and creates user-friendly output of the result
-func executionOutput(cmd *cobra.Command, args []string) {
+// createClusterExecutionOutput calls addCluster() and creates user-friendly output of the result
+func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 	// use arguments as passed from command line via cobra
 	aca := defaultAddClusterArguments()
 
@@ -235,6 +205,10 @@ func executionOutput(cmd *cobra.Command, args []string) {
 		case IsCouldNotCreateJSONRequestBodyError(err):
 			headline = "Could not create the JSON body for cluster creation API request"
 			subtext = "There seems to be a problem in parsing the cluster definition. Please contact Giant Swarm via Slack or via support@giantswarm.io with details on how you executes this command."
+		case IsNotAuthorizedError(err):
+			headline = "Not authorized"
+			subtext = "No cluster has been created, as you are are not authenticated or not authorized to perform this action."
+			subtext += " Please check your credentials or, to make sure, use 'gsctl login' to log in again."
 		case IsCouldNotCreateClusterError(err):
 			headline = "The cluster could not be created."
 			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
@@ -262,42 +236,42 @@ func executionOutput(cmd *cobra.Command, args []string) {
 	fmt.Printf("    %s\n\n", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s", result.id)))
 }
 
-// validatePreConditions checks preconditions and returns an error in case
-func validatePreConditions(args addClusterArguments) error {
+// validateCreateClusterPreConditions checks preconditions and returns an error in case
+func validateCreateClusterPreConditions(args addClusterArguments) error {
 	// logged in?
 	if config.Config.Token == "" && args.token == "" {
-		return microerror.MaskAny(notLoggedInError)
+		return microerror.Mask(notLoggedInError)
 	}
 
 	// false flag combination?
 	if args.inputYAMLFile != "" {
 		if args.numWorkers != 0 || args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 {
-			return microerror.MaskAny(conflictingFlagsError)
+			return microerror.Mask(conflictingFlagsError)
 		}
 	} else {
 		if args.numWorkers == 0 && (args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0) {
-			return microerror.MaskAny(numWorkerNodesMissingError)
+			return microerror.Mask(numWorkerNodesMissingError)
 		}
 	}
 
 	// validate number of workers specified by flag
 	if args.numWorkers > 0 && args.numWorkers < minimumNumWorkers {
-		return microerror.MaskAny(notEnoughWorkerNodesError)
+		return microerror.Mask(notEnoughWorkerNodesError)
 	}
 
 	// validate number of CPUs specified by flag
 	if args.workerNumCPUs > 0 && args.workerNumCPUs < minimumWorkerNumCPUs {
-		return microerror.MaskAny(notEnoughCPUCoresPerWorkerError)
+		return microerror.Mask(notEnoughCPUCoresPerWorkerError)
 	}
 
 	// validate memory size specified by flag
 	if args.workerMemorySizeGB > 0 && args.workerMemorySizeGB < minimumWorkerMemorySizeGB {
-		return microerror.MaskAny(notEnoughMemoryPerWorkerError)
+		return microerror.Mask(notEnoughMemoryPerWorkerError)
 	}
 
 	// validate storage size specified by flag
 	if args.workerStorageSizeGB > 0 && args.workerStorageSizeGB < minimumWorkerStorageSizeGB {
-		return microerror.MaskAny(notEnoughStoragePerWorkerError)
+		return microerror.Mask(notEnoughStoragePerWorkerError)
 	}
 
 	return nil
@@ -399,7 +373,7 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		// definition from file (and optionally flags)
 		result.definition, err = readDefinitionFromFile(args.inputYAMLFile)
 		if err != nil {
-			return addClusterResult{}, microerror.MaskAnyf(yamlFileNotReadableError, err.Error())
+			return addClusterResult{}, microerror.Maskf(yamlFileNotReadableError, err.Error())
 		}
 		enhanceDefinitionWithFlags(&result.definition, args)
 	} else {
@@ -409,15 +383,15 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 
 	// Validate definition
 	if result.definition.Owner == "" {
-		return result, microerror.MaskAny(clusterOwnerMissingError)
+		return result, microerror.Mask(clusterOwnerMissingError)
 	}
 
 	// Validations based on definition file.
-	// For validations based on command line flags, see validatePreConditions()
+	// For validations based on command line flags, see validateCreateClusterPreConditions()
 	if args.inputYAMLFile != "" {
 		// number of workers
 		if len(result.definition.Workers) > 0 && len(result.definition.Workers) < minimumNumWorkers {
-			return result, microerror.MaskAny(notEnoughWorkerNodesError)
+			return result, microerror.Mask(notEnoughWorkerNodesError)
 		}
 	}
 
@@ -436,35 +410,35 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 	addClusterBody := createAddClusterBody(result.definition)
 	_, marshalErr := json.Marshal(addClusterBody)
 	if marshalErr != nil {
-		return result, microerror.MaskAnyf(couldNotCreateJSONRequestBodyError, marshalErr.Error())
+		return result, microerror.Maskf(couldNotCreateJSONRequestBodyError, marshalErr.Error())
 	}
 
 	if !args.dryRun {
 		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
 
 		// perform API call
-		authHeader := "giantswarm " + config.Config.Token
-		if args.token != "" {
-			// command line flag overwrites
-			authHeader = "giantswarm " + args.token
-		}
+		authHeader := "giantswarm " + args.token
 		clientConfig := client.Configuration{
 			Endpoint:  args.apiEndpoint,
 			UserAgent: config.UserAgent(),
 		}
 		apiClient, clientErr := client.NewClient(clientConfig)
 		if clientErr != nil {
-			return result, microerror.MaskAny(couldNotCreateClientError)
+			return result, microerror.Mask(couldNotCreateClientError)
 		}
 		responseBody, apiResponse, err := apiClient.AddCluster(authHeader, addClusterBody, requestIDHeader, createClusterActivityName, cmdLine)
 		if err != nil {
 			// lower level connection problem
-			return result, microerror.MaskAny(err)
+			return result, microerror.Mask(err)
+		}
+
+		if apiResponse.StatusCode == 401 {
+			return result, microerror.Mask(notAuthorizedError)
 		}
 
 		// handle API result
 		if responseBody.Code != "RESOURCE_CREATED" {
-			return result, microerror.MaskAnyf(couldNotCreateClusterError,
+			return result, microerror.Maskf(couldNotCreateClusterError,
 				fmt.Sprintf("Error in API request to create cluster: %s (Code: %s)",
 					responseBody.Message, responseBody.Code))
 		}

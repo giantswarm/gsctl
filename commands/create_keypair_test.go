@@ -2,12 +2,10 @@ package commands
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
-
-	"github.com/giantswarm/gsctl/config"
 )
 
 func Test_CreateKeypair(t *testing.T) {
@@ -28,8 +26,12 @@ func Test_CreateKeypair(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	dir, err := tempConfig("")
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.RemoveAll(dir)
+
 	cmdAPIEndpoint = mockServer.URL
 	cmdClusterID = "test-cluster-id"
 	checkAddKeypair(CreateKeypairCommand, []string{})

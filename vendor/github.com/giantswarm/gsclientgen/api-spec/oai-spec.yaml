@@ -299,6 +299,30 @@ paths:
           description: Unknown error
           schema:
             $ref: '#/definitions/V4GenericResponse'
+    patch:
+      operationId: modifyCluster
+      summary: Modify cluster
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+        - $ref: '#/parameters/RequiredClusterIdPathParameter'
+        - name: body
+          in: body
+          required: true
+          description: Modified cluster definition (JSON merge-patch)
+          schema:
+            $ref: '#/definitions/V4ModifyClusterRequest'
+      responses:
+        "200":
+          description: Cluster modified
+          schema:
+            $ref: '#/definitions/V4ClusterDetailsModel'
+        default:
+          description: error
+          schema:
+            $ref: '#/definitions/V4GenericResponse'
     delete:
       operationId: deleteCluster
       parameters:
@@ -479,6 +503,19 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/V4NodeDefinition'
+
+  # Request to modify a cluster
+  V4ModifyClusterRequest:
+    type: object
+    properties:
+      workers:
+        type: array
+        items:
+          $ref: '#/definitions/V4NodeDefinition'
+      owner:
+        type: string
+      name:
+        type: string
 
   # Definition of a cluster node
   V4NodeDefinition:

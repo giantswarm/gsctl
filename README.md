@@ -14,8 +14,8 @@ Call `gsctl` without any arguments to get an overview on commands. Some usage ex
 #### Log in using your Giant Swarm credentials
 
 ```nohighlight
-$ gsctl login demo@example.com
-Password:
+$ gsctl login demo@example.com -e <giant-swarm-api-endpoint>
+Password for demo@example.com at <giant-swarm-api-endpoint>:
 Successfully logged in!
 ```
 

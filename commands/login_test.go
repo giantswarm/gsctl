@@ -1,21 +1,22 @@
 package commands
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 
 	"github.com/giantswarm/gsctl/config"
-	"github.com/spf13/viper"
 )
 
 // Test_LoginValidPassword simulates a login with a valid email/password combination
 func Test_LoginValidPassword(t *testing.T) {
-	defer viper.Reset()
-	dir := tempDir()
+	dir, err := tempConfig("")
+	if err != nil {
+		t.Error(err)
+	}
 	defer os.RemoveAll(dir)
-	config.Initialize(dir)
 
 	// this server will respond positively in any case
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -53,10 +54,11 @@ func Test_LoginValidPassword(t *testing.T) {
 
 // Test_LoginInvalidPassword simulates a login with a bad email/password combination
 func Test_LoginInvalidPassword(t *testing.T) {
-	defer viper.Reset()
-	dir := tempDir()
+	dir, err := tempConfig("")
+	if err != nil {
+		t.Error(err)
+	}
 	defer os.RemoveAll(dir)
-	config.Initialize(dir)
 
 	// this server will respond positively in any case
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -74,22 +76,15 @@ func Test_LoginInvalidPassword(t *testing.T) {
 	args.email = "email@example.com"
 	args.password = "bad password"
 
-	_, err := login(args)
-	if err.Error() != errInvalidCredentials {
-		t.Errorf("Expected error '%s', got %v", errInvalidCredentials, err)
+	_, err = login(args)
+	if !IsInvalidCredentialsError(err) {
+		t.Errorf("Expected error '%s', got %v", invalidCredentialsError, err)
 	}
 }
 
 // Test_LoginWhenUserLoggedInBefore simulates an okay login when the user was
 // logged in before.
 func Test_LoginWhenUserLoggedInBefore(t *testing.T) {
-	defer viper.Reset()
-	dir := tempDir()
-	defer os.RemoveAll(dir)
-	config.Initialize(dir)
-	config.Config.Token = "token-from-previous-session"
-	config.Config.Email = "email-from-previous-session@example.com"
-
 	// this server will respond positively in any case
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -104,13 +99,27 @@ func Test_LoginWhenUserLoggedInBefore(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
+	// config
+	yamlText := `endpoints:
+  "` + mockServer.URL + `":
+    email: email@foo.com
+    token: token
+selected_endpoint: "` + mockServer.URL + `"
+`
+	dir, err := tempConfig(yamlText)
+	if err != nil {
+		fmt.Printf(yamlText)
+		t.Error(err)
+	}
+	defer os.RemoveAll(dir)
+
 	args := loginArguments{}
 	args.apiEndpoint = mockServer.URL
 	args.email = "email@example.com"
 	args.password = "test password"
 
-	result, err := login(args)
-	if err != nil {
+	result, loginErr := login(args)
+	if loginErr != nil {
 		t.Error(err)
 	}
 	if result.email != args.email {

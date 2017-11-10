@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/user"
 	"path"
@@ -11,9 +12,8 @@ import (
 	"time"
 
 	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/microerror"
 
-	microerror "github.com/giantswarm/microkit/error"
-	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -27,8 +27,11 @@ const (
 	// ProgramName is the name of this program
 	ProgramName = "gsctl"
 
-	// DefaultAPIEndpoint is the endpoint used if none is configured
-	DefaultAPIEndpoint = "https://api.giantswarm.io"
+	// VersionCheckURL is the URL telling us what the latest gsctl version is
+	VersionCheckURL = "https://downloads.giantswarm.io/gsctl/VERSION"
+
+	// VersionCheckInterval is the minimum time to wait between two version checks
+	VersionCheckInterval = time.Hour * 24
 )
 
 var (
@@ -53,9 +56,6 @@ var (
 	// ConfigDirPath is the actual path of the config dir
 	ConfigDirPath string
 
-	// LegacyConfigDirPath is the path where we had the config stuff earlier
-	LegacyConfigDirPath string
-
 	// CertsDirPath is the path of the directory holding certificates
 	CertsDirPath string
 
@@ -69,20 +69,141 @@ var (
 	SystemUser *user.User
 )
 
-// configStruct is used to serialize our configuration back into a file
+// configStruct is the top-level data structure used to serialize and
+// deserialize our configuration from/to a YAML file
 type configStruct struct {
-	Token   string `yaml:"token,omitempty"`
-	Email   string `yaml:"email,omitempty"`
-	Updated string `yaml:"updated,omitempty"`
+
+	// LastVersionCheck is the last time when we successfully checked for a gsctl update.
+	// It has no "omitempty", to enforce the output. Marshaling failed otherwise.
+	LastVersionCheck time.Time `yaml:"last_version_check"`
+
+	// Updated is the time when the config has last been written.
+	Updated string `yaml:"updated"`
+
+	// Endpoints is a map of endpoints
+	Endpoints map[string]*endpointConfig `yaml:"endpoints"`
+
+	// SelectedEndpoint is the URL of the selected endpoint
+	SelectedEndpoint string `yaml:"selected_endpoint"`
+
+	// Token is the token found for the selected endpoint. Might be empty.
+	// Not marshalled back to the config file, as it is contained in the
+	// endpoint's entry.
+	Token string `yaml:"-"`
+
+	// Email is the user email found for the selected endpoint. Might be empty.
+	// Not marshalled back to the config file, as it is contained in the
+	// endpoint's entry.
+	Email string `yaml:"-"`
 }
 
-// init sets up viper and sets defaults
-func init() {
-	viper.SetConfigType(ConfigFileType)
-	viper.SetConfigName(ConfigFileName)
-	viper.SetEnvPrefix(ProgramName)
-	viper.SetTypeByDefaultValue(true)
+// endpointConfig is used to serialize/deserialize endpoint configuration
+// to/from a config file
+type endpointConfig struct {
+	// Email is the email address of the authenticated user.
+	Email string `yaml:"email"`
 
+	// Token is the session token of the authenticated user.
+	Token string `yaml:"token"`
+}
+
+// StoreEndpointAuth adds an endpoint to the configStruct.Endpoints field
+// (if not yet there). This should only be done after successful authentication.
+func (c *configStruct) StoreEndpointAuth(endpointURL string, email string, token string) error {
+	ep := normalizeEndpoint(endpointURL)
+
+	if email == "" || token == "" {
+		return microerror.Mask(credentialsRequiredError)
+	}
+
+	if c.Endpoints == nil {
+		c.Endpoints = map[string]*endpointConfig{}
+	}
+
+	c.Endpoints[ep] = &endpointConfig{
+		Email: email,
+		Token: token,
+	}
+
+	WriteToFile()
+
+	return nil
+}
+
+// SelectEndpoint makes the given endpoint URL the selected one
+func (c *configStruct) SelectEndpoint(endpointURL string) error {
+	ep := normalizeEndpoint(endpointURL)
+	if _, ok := c.Endpoints[ep]; !ok {
+		return microerror.Mask(endpointNotDefinedError)
+	}
+
+	c.SelectedEndpoint = ep
+	c.Token = c.Endpoints[ep].Token
+	c.Email = c.Endpoints[ep].Email
+
+	WriteToFile()
+
+	return nil
+}
+
+// SelectedEndpoint returns the selected endpoint URL.
+// If the argument overridingEndpointURL is not empty, this will
+// be used as the returned endpoint URL.
+// Errors are only printed to inform users, but not returned, to simplify
+// usage of this function.
+func (c *configStruct) ChooseEndpoint(overridingEndpointURL string) string {
+	if overridingEndpointURL != "" {
+		ep := normalizeEndpoint(overridingEndpointURL)
+		return ep
+	}
+
+	envEndpoint := os.Getenv("GSCTL_ENDPOINT")
+	if envEndpoint != "" {
+		ep := normalizeEndpoint(envEndpoint)
+		return ep
+	}
+
+	return c.SelectedEndpoint
+}
+
+// ChooseToken chooses a token to use, according to a rule set.
+// - If the given token is not empty, we use (return) that
+// - If the given token is empty and we have an auth token for the given
+//   endpoint, we return that
+// - otherwise we return an empty string
+func (c *configStruct) ChooseToken(endpoint, overridingToken string) string {
+	ep := normalizeEndpoint(endpoint)
+
+	if overridingToken != "" {
+		return overridingToken
+	}
+
+	if endpointStruct, ok := c.Endpoints[ep]; ok {
+		if endpointStruct != nil && endpointStruct.Token != "" {
+			return endpointStruct.Token
+		}
+	}
+
+	return ""
+}
+
+// Logout removes the token value from the selected endpoint.
+func (c *configStruct) Logout(endpointURL string) {
+	ep := normalizeEndpoint(endpointURL)
+
+	if ep == c.SelectedEndpoint {
+		c.Token = ""
+	}
+
+	if element, ok := c.Endpoints[ep]; ok {
+		element.Token = ""
+	}
+
+	WriteToFile()
+}
+
+// init sets defaults and initializes config paths
+func init() {
 	SystemUser, err := user.Current()
 	if err != nil {
 		fmt.Println("Could not get system user details using os/user.Current().")
@@ -96,7 +217,6 @@ func init() {
 
 	// create default config dir path
 	DefaultConfigDirPath = path.Join(HomeDirPath, ".config", ProgramName)
-	LegacyConfigDirPath = path.Join(HomeDirPath, "."+ProgramName)
 }
 
 // Initialize sets up all configuration.
@@ -105,6 +225,9 @@ func init() {
 // It's supposed to be called after init().
 // The configDirPath argument can be given to override the DefaultConfigDirPath.
 func Initialize(configDirPath string) error {
+	// Reset our Config object. This is particularly necessary for running
+	// multiple tests in a row.
+	Config = configStruct{}
 
 	// configDirPath argument overrides default, if given
 	if configDirPath != "" {
@@ -112,15 +235,8 @@ func Initialize(configDirPath string) error {
 	} else {
 		ConfigDirPath = DefaultConfigDirPath
 	}
-	viper.AddConfigPath(ConfigDirPath)
 
 	ConfigFilePath = path.Join(ConfigDirPath, ConfigFileName+"."+ConfigFileType)
-
-	// 2017-05-11: move legacy config from old to new default config path,
-	// if present. This is independent of the config path actually applied by the
-	// user.
-	// TODO: remove this after a couple of months.
-	migrateConfigDir()
 
 	// if config file doesn't exist, create empty one
 	_, err := os.Stat(ConfigFilePath)
@@ -138,11 +254,11 @@ func Initialize(configDirPath string) error {
 		file.Close()
 	}
 
-	err = viper.ReadInConfig()
+	myConfig, err := readFromFile(ConfigFilePath)
 	if err != nil {
-		return err
+		return microerror.Mask(err)
 	}
-	populateConfigStruct()
+	populateConfigStruct(myConfig)
 
 	CertsDirPath = path.Join(ConfigDirPath, "certs")
 	os.MkdirAll(CertsDirPath, 0700)
@@ -152,19 +268,55 @@ func Initialize(configDirPath string) error {
 	return nil
 }
 
-// populateConfigStruct assigns configuration values from viper to Config
-func populateConfigStruct() {
-	if viper.IsSet("email") {
-		Config.Email = viper.GetString("email")
+// populateConfigStruct assigns configuration values from the unmarshalled
+// structure to Config.
+// cs here is what we read from the file.
+func populateConfigStruct(cs configStruct) {
+
+	Config.LastVersionCheck = cs.LastVersionCheck
+	Config.Updated = cs.Updated
+
+	Config.Endpoints = cs.Endpoints
+	if Config.Endpoints == nil {
+		Config.Endpoints = make(map[string]*endpointConfig)
 	}
-	if viper.IsSet("token") {
-		Config.Token = viper.GetString("token")
+
+	if cs.SelectedEndpoint != "" {
+		Config.SelectedEndpoint = cs.SelectedEndpoint
+		if _, ok := cs.Endpoints[cs.SelectedEndpoint]; ok {
+			if cs.Endpoints[cs.SelectedEndpoint] != nil {
+				Config.Email = cs.Endpoints[cs.SelectedEndpoint].Email
+				Config.Token = cs.Endpoints[cs.SelectedEndpoint].Token
+			}
+		}
 	}
+
 }
 
 // UserAgent returns the user agent string identifying us in HTTP requests
 func UserAgent() string {
 	return fmt.Sprintf("%s/%s", ProgramName, Version)
+}
+
+// readFromFile reads configuration from the YAML config file
+func readFromFile(filePath string) (configStruct, error) {
+	myConfig := configStruct{}
+	data, readErr := ioutil.ReadFile(filePath)
+	if readErr != nil {
+		if os.IsNotExist(readErr) {
+			// ignore if file does not exist,
+			// as this is not an error.
+			return myConfig, nil
+		}
+		return myConfig, microerror.Mask(readErr)
+	}
+
+	yamlErr := yaml.Unmarshal(data, &myConfig)
+	if yamlErr != nil {
+		return myConfig, microerror.Mask(yamlErr)
+	}
+
+	return myConfig, nil
 }
 
 // WriteToFile writes the configuration data to a YAML file
@@ -175,12 +327,12 @@ func WriteToFile() error {
 
 	yamlBytes, err := yaml.Marshal(&data)
 	if err != nil {
-		return err
+		return microerror.Mask(err)
 	}
 
 	err = ioutil.WriteFile(ConfigFilePath, yamlBytes, 0600)
 	if err != nil {
-		return err
+		return microerror.Mask(err)
 	}
 
 	return nil
@@ -224,20 +376,21 @@ func getKubeconfigPaths(homeDir string) []string {
 // @param requestIDHeader  Request ID to pass with API requests
 // @param activityName     Name of the activity calling this function (for tracking)
 // @param cmdLine          Command line content used to run the CLI (for tracking)
-func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint string) (clusterID string, err error) {
+// @param apiEndpoint      Endpoint URL
+func GetDefaultCluster(requestIDHeader, activityName, cmdLine, apiEndpoint string) (clusterID string, err error) {
 	// Go through available orgs and clusters to find all clusters
 	if Config.Token == "" {
 		return "", errors.New("user not logged in")
 	}
 
 	clientConfig := client.Configuration{
-		Endpoint:  cmdAPIEndpoint,
+		Endpoint:  apiEndpoint,
 		Timeout:   10 * time.Second,
 		UserAgent: UserAgent(),
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return "", microerror.MaskAny(clientErr)
+		return "", microerror.Mask(clientErr)
 	}
 
 	authHeader := "giantswarm " + Config.Token
@@ -254,48 +407,28 @@ func GetDefaultCluster(requestIDHeader, activityName, cmdLine, cmdAPIEndpoint st
 	return "", nil
 }
 
-// migrateConfigDir migrates a configuration directory from the old
-// default path to the new default path. Conditions:
-// - old config dir exists
-// - new config dir does not exist
-func migrateConfigDir() error {
-	_, err := os.Stat(DefaultConfigDirPath)
-	if !os.IsNotExist(err) {
-		// new config dir already exists
-		return nil
+// normalizeEndpoint sanitizes a user-entered endpoint URL.
+// - turn to lowercase
+// - Adds https:// if no scheme is given
+// - Removes path and other junk
+// Errors are printed immediately here, to simplify handling of this function.
+func normalizeEndpoint(u string) string {
+	// lowercase
+	u = strings.ToLower(u)
+
+	// if URL has no scheme, prefix it with the default scheme
+	if !strings.HasPrefix(u, "https://") && !strings.HasPrefix(u, "http://") {
+		u = "https://" + u
 	}
 
-	_, err = os.Stat(LegacyConfigDirPath)
-	if os.IsNotExist(err) {
-		// old config dir does not exist
-		return nil
-	}
-
-	// ensure ~/.config exists
-	os.MkdirAll(path.Dir(DefaultConfigDirPath), 0700)
-
-	err = os.Rename(LegacyConfigDirPath, DefaultConfigDirPath)
+	// strip extra stuff
+	p, err := url.Parse(u)
 	if err != nil {
-		return err
+		fmt.Printf("[Warning] Endpoint URL normalization yielded: %s\n", err)
 	}
 
-	// adapt certificate paths in kubeconfig
-	if len(KubeConfigPaths) > 0 {
-		// we only adapt the first file found (on purpose)
-		theKubeConfigPath := KubeConfigPaths[0]
-		if stat, err := os.Stat(theKubeConfigPath); err == nil {
-			oldConfig, configErr := ioutil.ReadFile(theKubeConfigPath)
-			if configErr != nil {
-				return configErr
-			}
-			newConfig := strings.Replace(string(oldConfig), LegacyConfigDirPath, DefaultConfigDirPath, -1)
-			// write back
-			writeErr := ioutil.WriteFile(theKubeConfigPath, []byte(newConfig), stat.Mode())
-			if writeErr != nil {
-				return errors.New("could not overwrite kubectl config file")
-			}
-		}
-	}
+	// remove everything but scheme and host
+	u = p.Scheme + "://" + p.Host
 
-	return nil
+	return u
 }

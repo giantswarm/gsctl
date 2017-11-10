@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
@@ -29,7 +30,7 @@ var (
 )
 
 const (
-	listClustersActivityName string = "list-clusters"
+	listClustersActivityName = "list-clusters"
 )
 
 func init() {
@@ -53,21 +54,26 @@ func listClusters(cmd *cobra.Command, args []string) {
 		}
 		os.Exit(1)
 	}
-	fmt.Println(output)
+	if output != "" {
+		fmt.Println(output)
+	}
 }
 
 // clustersTable returns a table of clusters the user has access to
 func clustersTable() (string, error) {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
 	clientConfig := client.Configuration{
-		Endpoint:  cmdAPIEndpoint,
-		Timeout:   3 * time.Second,
+		Endpoint:  endpoint,
+		Timeout:   5 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return "", microerror.MaskAny(couldNotCreateClientError)
+		return "", microerror.Mask(couldNotCreateClientError)
 	}
-	authHeader := "giantswarm " + config.Config.Token
+	authHeader := "giantswarm " + token
 
 	clusters, apiResponse, err := apiClient.GetClusters(authHeader,
 		requestIDHeader, listClustersActivityName, cmdLine)
@@ -79,20 +85,26 @@ func clustersTable() (string, error) {
 		return "", nil
 	}
 	// table headers
-	output := []string{color.CyanString("ID") + "|" + color.CyanString("NAME") + "|" + color.CyanString("CREATED") + "|" + color.CyanString("ORGANIZATION")}
+	output := []string{strings.Join([]string{
+		color.CyanString("ID"),
+		color.CyanString("ORGANIZATION"),
+		color.CyanString("NAME"),
+		color.CyanString("CREATED"),
+	}, "|")}
 
-	// sort clusters by organization
+	// sort clusters by ID
 	slice.Sort(clusters[:], func(i, j int) bool {
-		return clusters[i].Owner < clusters[j].Id
+		return clusters[i].Id < clusters[j].Id
 	})
 
 	for _, cluster := range clusters {
 		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
-		output = append(output,
-			cluster.Id+"|"+
-				cluster.Name+"|"+
-				created+"|"+
-				cluster.Owner)
+		output = append(output, strings.Join([]string{
+			cluster.Id,
+			cluster.Owner,
+			cluster.Name,
+			created,
+		}, "|"))
 	}
 
 	return columnize.SimpleFormat(output), nil

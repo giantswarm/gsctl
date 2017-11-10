@@ -4,10 +4,12 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **Id** | **string** |  | [default to null]
+**CommonName** | **string** |  | [optional] [default to null]
 **Description** | **string** |  | [default to null]
 **TtlHours** | **int32** |  | [default to null]
 **CreateDate** | **string** |  | [optional] [default to null]
 **CertificateAuthorityData** | **string** |  | [optional] [default to null]
+**CertificateOrganizations** | **string** |  | [optional] [default to null]
 **ClientKeyData** | **string** |  | [optional] [default to null]
 **ClientCertificateData** | **string** |  | [optional] [default to null]
 

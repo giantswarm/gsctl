@@ -145,7 +145,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 	executeErr := errors.New("")
 
 	for i, testCase := range testCases {
-		validateErr = validatePreConditions(testCase)
+		validateErr = validateCreateClusterPreConditions(testCase)
 		if validateErr != nil {
 			t.Error(fmt.Sprintf("Validation error in testCase %v: %s", i, validateErr.Error()))
 		}
@@ -198,7 +198,7 @@ func Test_CreateClusterFailures(t *testing.T) {
 	}
 
 	for i, testCase := range testCases {
-		validateErr := validatePreConditions(testCase)
+		validateErr := validateCreateClusterPreConditions(testCase)
 		if validateErr == nil {
 			_, execErr := addCluster(testCase)
 			if execErr == nil {

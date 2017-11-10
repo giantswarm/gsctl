@@ -1,23 +1,20 @@
 package commands
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/spf13/viper"
-
-	"github.com/giantswarm/gsctl/config"
 )
 
+// Test_PrintInfo simply executes the printInfo function.
+// TODO: actually test what this does
 func Test_PrintInfo(t *testing.T) {
-	defer viper.Reset()
 	printInfo(InfoCommand, []string{})
 }
 
+// Test_PrintInfoVerbose simply executes the printInfo function with verbose=true
+// TODO: actually test what this does
 func Test_PrintInfoVerbose(t *testing.T) {
-	defer viper.Reset()
 	cmdVerbose = true
 	printInfo(InfoCommand, []string{})
 }
@@ -25,12 +22,11 @@ func Test_PrintInfoVerbose(t *testing.T) {
 // Test_InfoWithTempDirAndToken tests the info() function with a custom
 // configuration path and an auth-token
 func Test_InfoWithTempDirAndToken(t *testing.T) {
-	defer viper.Reset()
-	dir, _ := ioutil.TempDir("", config.ProgramName)
+	dir, err := tempConfig("")
+	if err != nil {
+		t.Error(err)
+	}
 	defer os.RemoveAll(dir)
-
-	// Normally cobra does this for us, but here we don't use cobra.
-	config.Initialize(dir)
 
 	args := defaultInfoArguments()
 	args.token = "fake token"

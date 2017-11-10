@@ -34,7 +34,7 @@ func defaultInfoArguments() infoArguments {
 	return infoArguments{
 		token:       cmdToken,
 		verbose:     cmdVerbose,
-		apiEndpoint: cmdAPIEndpoint,
+		apiEndpoint: config.Config.ChooseEndpoint(cmdAPIEndpoint),
 	}
 }
 
@@ -61,12 +61,22 @@ func printInfo(cmd *cobra.Command, args []string) {
 
 	output := []string{}
 
-	output = append(output, color.YellowString("API endpoint:")+"|"+color.CyanString(result.apiEndpoint))
+	if result.apiEndpoint == "" {
+		output = append(output, color.YellowString("API endpoint:")+"|n/a")
+	} else {
+		output = append(output, color.YellowString("API endpoint:")+"|"+color.CyanString(result.apiEndpoint))
+	}
 
 	if result.email == "" {
-		output = append(output, color.YellowString("Email:")+"|"+"n/a")
+		output = append(output, color.YellowString("Email:")+"|n/a")
 	} else {
 		output = append(output, color.YellowString("Email:")+"|"+color.CyanString(config.Config.Email))
+	}
+
+	if result.token == "" {
+		output = append(output, color.YellowString("Logged in:")+"|"+color.CyanString("no"))
+	} else {
+		output = append(output, color.YellowString("Logged in:")+"|"+color.CyanString("yes"))
 	}
 
 	if infoArgs.verbose {
@@ -92,19 +102,12 @@ func printInfo(cmd *cobra.Command, args []string) {
 func info(args infoArguments) infoResult {
 	result := infoResult{}
 
-	result.apiEndpoint = config.DefaultAPIEndpoint
 	if args.apiEndpoint != "" {
 		result.apiEndpoint = args.apiEndpoint
 	}
 
 	result.email = config.Config.Email
-
-	if args.token != "" {
-		result.token = args.token
-	} else if config.Config.Token != "" {
-		result.token = config.Config.Token
-	}
-
+	result.token = config.Config.ChooseToken(result.apiEndpoint, args.token)
 	result.version = config.Version
 	result.buildDate = config.BuildDate
 

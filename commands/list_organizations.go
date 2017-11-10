@@ -9,7 +9,7 @@ import (
 
 	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
@@ -29,7 +29,7 @@ var (
 )
 
 const (
-	listOrganizationsActivityName string = "list-organizations"
+	listOrganizationsActivityName = "list-organizations"
 )
 
 func init() {
@@ -43,7 +43,8 @@ func checkListOrgs(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// list organizations the user is member of
+// listOrgs fetches a list organizations the user is member of
+// and prints it in tabular form
 func listOrgs(cmd *cobra.Command, args []string) {
 	output, err := orgsTable()
 	if err != nil {
@@ -56,23 +57,23 @@ func listOrgs(cmd *cobra.Command, args []string) {
 	fmt.Print(output)
 }
 
+// orgsTable fetches the organizations the user is a member of
+// and returns a table in string form
 func orgsTable() (string, error) {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
 	clientConfig := client.Configuration{
-		Endpoint:  cmdAPIEndpoint,
+		Endpoint:  endpoint,
 		Timeout:   5 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return "", microerror.MaskAny(couldNotCreateClientError)
+		return "", microerror.Mask(couldNotCreateClientError)
 	}
 
-	// if token is set via flags, we unauthenticate using this token
-	authHeader := "giantswarm " + config.Config.Token
-	if cmdToken != "" {
-		authHeader = "giantswarm " + cmdToken
-	}
-
+	authHeader := "giantswarm " + token
 	organizations, apiResponse, err := apiClient.GetUserOrganizations(authHeader, requestIDHeader, listOrganizationsActivityName, cmdLine)
 	if err != nil {
 		return "", APIError{err.Error(), *apiResponse}

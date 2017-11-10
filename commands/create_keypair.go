@@ -7,6 +7,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
@@ -26,19 +27,28 @@ var (
 )
 
 const (
-	addKeyPairActivityName string = "add-keypair"
+	addKeyPairActivityName = "add-keypair"
 )
 
 func init() {
 	CreateKeypairCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to create a key pair for")
 	CreateKeypairCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key pair")
+	CreateKeypairCommand.Flags().StringVarP(&cmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
+	CreateKeypairCommand.Flags().StringVarP(&cmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
 	CreateKeypairCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key pair in days")
 
 	CreateCommand.AddCommand(CreateKeypairCommand)
 }
 
 func checkAddKeypair(cmd *cobra.Command, args []string) error {
-	if config.Config.Token == "" {
+
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
+	if endpoint == "" {
+		return microerror.Mask(endpointMissingError)
+	}
+	if token == "" {
 		return errors.New("You are not logged in. Use '" + config.ProgramName + " login' to log in.")
 	}
 	if cmdClusterID == "" {
@@ -61,8 +71,11 @@ func addKeypair(cmd *cobra.Command, args []string) {
 		cmdDescription = "Added by user " + config.Config.Email + " using 'gsctl create keypair'"
 	}
 
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
 	clientConfig := client.Configuration{
-		Endpoint:  cmdAPIEndpoint,
+		Endpoint:  endpoint,
 		UserAgent: config.UserAgent(),
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
@@ -70,9 +83,10 @@ func addKeypair(cmd *cobra.Command, args []string) {
 		fmt.Println(color.RedString("Error: %s", clientErr))
 		os.Exit(1)
 	}
-	authHeader := "giantswarm " + config.Config.Token
+
+	authHeader := "giantswarm " + token
 	ttlHours := int32(cmdTTLDays * 24)
-	addKeyPairBody := gsclientgen.V4AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours}
+	addKeyPairBody := gsclientgen.V4AddKeyPairBody{Description: cmdDescription, TtlHours: ttlHours, CnPrefix: cmdCNPrefix, CertificateOrganizations: cmdCertificateOrganizations}
 	keypairResponse, apiResponse, err := apiClient.AddKeyPair(authHeader, cmdClusterID, addKeyPairBody, requestIDHeader, addKeyPairActivityName, cmdLine)
 
 	if err != nil {

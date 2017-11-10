@@ -2,7 +2,6 @@ package commands
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -10,7 +9,7 @@ import (
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/gsclientgen"
-	microerror "github.com/giantswarm/microkit/error"
+	"github.com/giantswarm/microerror"
 	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 
@@ -20,12 +19,6 @@ import (
 
 const (
 	loginActivityName = "login"
-
-	// errors
-	errTokenArgumentNotApplicable = "token argument cannot be used here"
-	errNoEmailArgumentGiven       = "no email argument given"
-	errInvalidCredentials         = "invalid credentials submitted"
-	errEmptyPassword              = "password must not be empty"
 )
 
 var (
@@ -37,11 +30,18 @@ var (
 
 	// LoginCommand is the "login" CLI command
 	LoginCommand = &cobra.Command{
-		Use:    "login <email>",
-		Short:  "Sign in as a user",
-		Long:   `Sign in with email address and password. Password has to be entered interactively or given as -p flag.`,
-		PreRun: loginValidationOutput,
-		Run:    loginOutput,
+		Use:   "login <email> [-e|--endpoint <endpoint>]",
+		Short: "Sign in as a user",
+		Long: `Sign in against an endpoint with email address and password.
+
+This will select the given endpoint for subsequent commands.
+
+The password has to be entered interactively or given as -p / --password flag.
+
+The -e or --endpoint argument can be omitted if an endpoint is already selected.`,
+		Example: "  gsctl login user@example.com --endpoint api.example.com",
+		PreRun:  loginValidationOutput,
+		Run:     loginOutput,
 	}
 )
 
@@ -50,6 +50,8 @@ type loginResult struct {
 	apiEndpoint string
 	// loggedOutBefore is true if the user has been logged out from a previous session
 	loggedOutBefore bool
+	// endpointSwitched is true when the endpoint has been changed during login
+	endpointSwitched bool
 	// email is the email address we are signed in with
 	email string
 	// token is the new session token received
@@ -65,7 +67,7 @@ type loginArguments struct {
 
 func defaultLoginArguments() loginArguments {
 	return loginArguments{
-		apiEndpoint: cmdAPIEndpoint,
+		apiEndpoint: config.Config.ChooseEndpoint(cmdAPIEndpoint),
 		email:       cmdEmail,
 		password:    cmdPassword,
 		verbose:     cmdVerbose,
@@ -85,15 +87,15 @@ func loginValidationOutput(cmd *cobra.Command, positionalArgs []string) {
 	if err != nil {
 		var headline = ""
 		var subtext = ""
-		switch err.Error() {
-		case "":
+		switch {
+		case err.Error() == "":
 			return
-		case errNoEmailArgumentGiven:
+		case IsNoEmailArgumentGivenError(err):
 			headline = "The email argument is required."
 			subtext = "Please execute the command as 'gsctl login <email>'. See 'gsctl login --help' for details."
-		case errTokenArgumentNotApplicable:
+		case IsTokenArgumentNotApplicableError(err):
 			headline = "The '--auth-token' flag cannot be used with the 'gsctl login' command."
-		case errEmptyPassword:
+		case IsEmptyPasswordError(err):
 			headline = "The password cannot be empty."
 			subtext = "Please call the command again and enter a non-empty password. See 'gsctl login --help' for details."
 		default:
@@ -114,24 +116,26 @@ func loginValidation(positionalArgs []string) error {
 		// set cmdEmail for later use, as cobra doesn't do that for us
 		cmdEmail = positionalArgs[0]
 	} else {
-		return errors.New(errNoEmailArgumentGiven)
+		return microerror.Mask(noEmailArgumentGivenError)
 	}
 
 	// using auth token flag? The 'login' command is the only exception
 	// where we can't accept this argument.
 	if cmdToken != "" {
-		return errors.New(errTokenArgumentNotApplicable)
+		return microerror.Mask(tokenArgumentNotApplicableError)
 	}
+
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 
 	// interactive password prompt
 	if cmdPassword == "" {
-		fmt.Printf("Password for %s: ", cmdEmail)
+		fmt.Printf("Password for %s on %s: ", color.CyanString(cmdEmail), color.CyanString(endpoint))
 		password, err := gopass.GetPasswd()
 		if err != nil {
 			return err
 		}
 		if string(password) == "" {
-			return errors.New(errEmptyPassword)
+			return microerror.Mask(emptyPasswordError)
 		}
 		cmdPassword = string(password)
 	}
@@ -148,14 +152,17 @@ func loginOutput(cmd *cobra.Command, args []string) {
 	if err != nil {
 		var headline = ""
 		var subtext = ""
-		switch err.Error() {
-		case "":
+		switch {
+		case err.Error() == "":
 			return
-		case errEmptyPassword:
+		case client.IsEndpointNotSpecifiedError(err):
+			headline = "No endpoint has been specified."
+			subtext = "Please use the '-e|--endpoint' flag."
+		case IsEmptyPasswordError(err):
 			headline = "Empty password submitted"
 			subtext = "The API server complains about the password provided."
 			subtext += " Please make sure to provide a string with more than white space characters."
-		case errInvalidCredentials:
+		case IsInvalidCredentialsError(err):
 			headline = "Bad password or email address."
 			subtext = fmt.Sprintf("Could not log you in to %s.", color.CyanString(loginArgs.apiEndpoint))
 			subtext += " The email or the password provided (or both) was incorrect."
@@ -174,6 +181,10 @@ func loginOutput(cmd *cobra.Command, args []string) {
 		fmt.Println("You have been logged out from your previous session.")
 	}
 
+	if result.endpointSwitched {
+		fmt.Printf("Endpoint selected: %s\n", result.apiEndpoint)
+	}
+
 	fmt.Println(color.GreenString("You are logged in as %s at %s.",
 		result.email, result.apiEndpoint))
 }
@@ -182,9 +193,15 @@ func loginOutput(cmd *cobra.Command, args []string) {
 // If the user was logged in before, a logout is performed first.
 func login(args loginArguments) (loginResult, error) {
 	result := loginResult{
-		apiEndpoint:     args.apiEndpoint,
-		email:           args.email,
-		loggedOutBefore: false,
+		apiEndpoint:      args.apiEndpoint,
+		email:            args.email,
+		loggedOutBefore:  false,
+		endpointSwitched: false,
+	}
+
+	endpointBefore := config.Config.SelectedEndpoint
+	if result.apiEndpoint != endpointBefore {
+		result.endpointSwitched = true
 	}
 
 	encodedPassword := base64.StdEncoding.EncodeToString([]byte(args.password))
@@ -206,7 +223,7 @@ func login(args loginArguments) (loginResult, error) {
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return result, microerror.MaskAny(couldNotCreateClientError)
+		return result, microerror.Mask(clientErr)
 	}
 
 	requestBody := gsclientgen.LoginBodyModel{Password: string(encodedPassword)}
@@ -220,20 +237,24 @@ func login(args loginArguments) (loginResult, error) {
 		// successful login
 		result.token = loginResponse.Data.Id
 		result.email = args.email
-		config.Config.Token = result.token
-		config.Config.Email = args.email
-		config.WriteToFile()
+
+		if err := config.Config.StoreEndpointAuth(args.apiEndpoint, args.email, result.token); err != nil {
+			return result, microerror.Mask(err)
+		}
+		if err := config.Config.SelectEndpoint(args.apiEndpoint); err != nil {
+			return result, microerror.Mask(err)
+		}
 
 		return result, nil
 	case apischema.STATUS_CODE_RESOURCE_INVALID_CREDENTIALS:
 		// bad credentials
-		return result, errors.New(errInvalidCredentials)
+		return result, microerror.Mask(invalidCredentialsError)
 	case apischema.STATUS_CODE_RESOURCE_NOT_FOUND:
 		// user unknown or user/password mismatch
-		return result, errors.New(errInvalidCredentials)
+		return result, microerror.Mask(invalidCredentialsError)
 	case apischema.STATUS_CODE_WRONG_INPUT:
 		// empty password
-		return result, errors.New(errEmptyPassword)
+		return result, microerror.Mask(emptyPasswordError)
 	default:
 		return result, fmt.Errorf("Unhandled response code: %v", loginResponse.StatusCode)
 	}

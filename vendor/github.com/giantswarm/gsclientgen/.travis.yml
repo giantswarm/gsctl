@@ -1,19 +1,8 @@
-services:
-  - docker
-
 language: go
 
-go:
-  - 1.8
-
-before_install:
-  - sudo apt-get install -y python-pip
-  - sudo pip install yamllint
-
-install: make get-deps
+install:
+  - go get -d -v .
 
 script:
-    - make validate
+  - go build -v ./
 
-notifications:
-  email: false

@@ -36,7 +36,7 @@ Dependencies are managed using [`glide`](https://github.com/Masterminds/glide).
 
 **CAUTION:** The `vendor` directory is _flattened_. Make sure to use glide with the `-v` (or `--strip-vendor`) flag.
 
-## Executing gsctl During Development
+## Executing gsctl during development
 
 One option is to execute the program via `go run`, like in this example:
 
@@ -53,6 +53,7 @@ $ go build && ./gsctl info
 To build a binary for your platform like the release build would do, do this:
 
 ```nohighlight
+& make clean
 $ make
 $ make install
 ```
