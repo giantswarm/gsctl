@@ -206,6 +206,14 @@ func IsCannotScaleBelowMinimumWorkersError(err error) bool {
 	return errgo.Cause(err) == cannotScaleBelowMinimumWorkersError
 }
 
+// user has mixed incompatible settings related to different providers
+var incompatibleSettingsError = errgo.New("incompatible mix of settings used")
+
+// IsIncompatibleSettingsError asserts incompatibleSettingsError.
+func IsIncompatibleSettingsError(err error) bool {
+	return errgo.Cause(err) == incompatibleSettingsError
+}
+
 // endpointMissingError means the user has not given an endpoint where expected
 var endpointMissingError = errgo.New("no endpoint given")
 

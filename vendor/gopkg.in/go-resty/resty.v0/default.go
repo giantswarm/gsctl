@@ -6,7 +6,6 @@ package resty
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -37,13 +36,11 @@ func New() *Client {
 		RetryCount:       0,
 		RetryWaitTime:    defaultWaitTime,
 		RetryMaxWaitTime: defaultMaxWaitTime,
-		JSONMarshal:      json.Marshal,
-		JSONUnmarshal:    json.Unmarshal,
 		httpClient:       &http.Client{Jar: cookieJar},
+		transport:        &http.Transport{},
 	}
 
-	// Default transport
-	c.SetTransport(&http.Transport{})
+	c.httpClient.Transport = c.transport
 
 	// Default redirect policy
 	c.SetRedirectPolicy(NoRedirectPolicy())
@@ -75,12 +72,6 @@ func New() *Client {
 // such as GET, POST, PUT, DELETE, HEAD, PATCH and OPTIONS.
 func R() *Request {
 	return DefaultClient.R()
-}
-
-// NewRequest is an alias for R(). Creates a new resty request object, it is used form a HTTP/RESTful request
-// such as GET, POST, PUT, DELETE, HEAD, PATCH and OPTIONS.
-func NewRequest() *Request {
-	return R()
 }
 
 // SetHostURL sets Host URL. See `Client.SetHostURL for more information.
@@ -156,11 +147,6 @@ func SetPreRequestHook(h func(*Client, *Request) error) *Client {
 // SetDebug method enables the debug mode. See `Client.SetDebug` for more information.
 func SetDebug(d bool) *Client {
 	return DefaultClient.SetDebug(d)
-}
-
-// SetAllowGetMethodPayload method allows the GET method with payload. See `Client.SetAllowGetMethodPayload` for more information.
-func SetAllowGetMethodPayload(a bool) *Client {
-	return DefaultClient.SetAllowGetMethodPayload(a)
 }
 
 // SetRetryCount method sets the retry count. See `Client.SetRetryCount` for more information.
@@ -260,10 +246,9 @@ func SetOutputDirectory(dirPath string) *Client {
 	return DefaultClient.SetOutputDirectory(dirPath)
 }
 
-// SetTransport method sets custom `*http.Transport` or any `http.RoundTripper`
-// compatible interface implementation in the resty client.
+// SetTransport method sets custom *http.Transport in the resty client.
 // See `Client.SetTransport` for more information.
-func SetTransport(transport http.RoundTripper) *Client {
+func SetTransport(transport *http.Transport) *Client {
 	return DefaultClient.SetTransport(transport)
 }
 
@@ -277,12 +262,6 @@ func SetScheme(scheme string) *Client {
 // See `Client.SetCloseConnection` for more information.
 func SetCloseConnection(close bool) *Client {
 	return DefaultClient.SetCloseConnection(close)
-}
-
-// SetDoNotParseResponse method instructs `Resty` not to parse the response body automatically.
-// See `Client.SetDoNotParseResponse` for more information.
-func SetDoNotParseResponse(parse bool) *Client {
-	return DefaultClient.SetDoNotParseResponse(parse)
 }
 
 // IsProxySet method returns the true if proxy is set on client otherwise false.

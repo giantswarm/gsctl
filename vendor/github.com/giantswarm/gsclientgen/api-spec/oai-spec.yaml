@@ -445,6 +445,10 @@ definitions:
         type: string
       client_certificate_data:
         type: string
+      common_name:
+        type: string
+      certificate_organizations:
+        type: string
 
   V4AddKeyPairBody:
     type: object
@@ -455,6 +459,10 @@ definitions:
       ttl_hours:
         type: integer
         format: int32
+      cn_prefix:
+        type: string
+      certificate_organizations:
+        type: string
 
   V4AddKeyPairResponse:
     type: object
@@ -542,6 +550,11 @@ definitions:
       labels:
         type: object
         additionalProperties: true
+      aws:
+        type: object
+        properties:
+          instance_type:
+            type: string
 
   # Definition of a cluster node
   # only for the purpose of fetching cluster details
