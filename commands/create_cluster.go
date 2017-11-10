@@ -98,9 +98,11 @@ Examples:
 
 	gsctl create cluster --file my-cluster.yaml
 
-	gsctl create cluster --owner=myorg --name="My Cluster" --num-workers=5 --num-cpus=2
+	gsctl create cluster --owner myorg --name "My Cluster" --num-workers 5 --num-cpus 2
 
-  gsctl create cluster --owner=myorg --num-workers=3 --dry-run --verbose`,
+	gsctl create cluster --owner myorg --name "My AWS Cluster" --num-workers 2 --aws-instance-type m3.medium
+
+	gsctl create cluster --owner myorg --num-workers 3 --dry-run --verbose`,
 		PreRun: createClusterValidationOutput,
 		Run:    createClusterExecutionOutput,
 	}
