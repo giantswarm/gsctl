@@ -70,7 +70,14 @@ build/bin/$(BIN)-windows-amd64: $(SOURCE)
 
 # run unittests
 gotest:
-	go test -cover ./...
+	# This is only expected to work on CircleCI!
+	# In a local dev environment, simply run `go test -cover ./...`
+	docker run --rm \
+	  -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		-v /usr/local/bin/kubectl:/usr/local/bin/kubectl \
+		-e GOPATH=/go -e GOOS=darwin -e GOARCH=amd64 -e CGO_ENABLED=0 \
+		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		golang:$(GOVERSION)-alpine go test -cover ./...
 
 # run some tests
 test:
