@@ -13,7 +13,7 @@ package gsclientgen
 import (
 	"bytes"
 	"fmt"
-	"github.com/go-resty/resty"
+	"gopkg.in/go-resty/resty.v0"
 	"io/ioutil"
 	"net/url"
 	"path/filepath"

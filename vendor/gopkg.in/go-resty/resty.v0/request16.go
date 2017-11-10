@@ -1,4 +1,4 @@
-// +build go1.7 go1.8
+// +build !go1.7
 
 // Copyright (c) 2015-2016 Jeevanandam M (jeeva@myjeeva.com)
 // 2016 Andrew Grigorev (https://github.com/ei-grad)
@@ -10,7 +10,6 @@ package resty
 
 import (
 	"bytes"
-	"context"
 	"net/http"
 	"net/url"
 	"time"
@@ -36,39 +35,21 @@ type Request struct {
 	RawRequest *http.Request
 	SRV        *SRVRecord
 
-	client              *Client
-	bodyBuf             *bytes.Buffer
-	isMultiPart         bool
-	isFormData          bool
-	setContentLength    bool
-	isSaveResponse      bool
-	outputFile          string
-	multipartFiles      []*File
-	notParseResponse    bool
-	ctx                 context.Context
-	fallbackContentType string
-}
-
-// SetContext method sets the context.Context for current Request. It allows
-// to interrupt the request execution if ctx.Done() channel is closed.
-// See https://blog.golang.org/context article and the "context" package
-// documentation.
-func (r *Request) SetContext(ctx context.Context) *Request {
-	r.ctx = ctx
-	return r
+	client           *Client
+	bodyBuf          *bytes.Buffer
+	isMultiPart      bool
+	isFormData       bool
+	setContentLength bool
+	isSaveResponse   bool
+	outputFile       string
+	multipartFiles   []*File
 }
 
 func (r *Request) addContextIfAvailable() {
-	if r.ctx != nil {
-		r.RawRequest = r.RawRequest.WithContext(r.ctx)
-	}
+	// nothing to do for golang<1.7
 }
 
 func (r *Request) isContextCancelledIfAvailable() bool {
-	if r.ctx != nil {
-		if r.ctx.Err() != nil {
-			return true
-		}
-	}
+	// just always return false golang<1.7
 	return false
 }

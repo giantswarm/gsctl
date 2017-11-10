@@ -6,8 +6,6 @@ package resty
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -108,33 +106,20 @@ func (r *Response) Size() int64 {
 	return r.size
 }
 
-// RawBody method exposes the HTTP raw response body. Use this method in-conjunction with `SetDoNotParseResponse`
-// option otherwise you get an error as `read err: http: read on closed response body`.
-//
-// Do not forget to close the body, otherwise you might get into connection leaks, no connection reuse.
-// Basically you have taken over the control of response parsing from `Resty`.
-func (r *Response) RawBody() io.ReadCloser {
-	if r.RawResponse == nil {
-		return nil
-	}
-	return r.RawResponse.Body
-}
-
-func (r *Response) fmtBodyString(sl int64) string {
+func (r *Response) fmtBodyString() string {
+	bodyStr := "***** NO CONTENT *****"
 	if r.body != nil {
-		if int64(len(r.body)) > sl {
-			return fmt.Sprintf("***** RESPONSE TOO LARGE (size - %d) *****", len(r.body))
-		}
 		ct := r.Header().Get(hdrContentTypeKey)
 		if IsJSONType(ct) {
-			out := acquireBuffer()
-			defer releaseBuffer(out)
+			out := getBuffer()
+			defer putBuffer(out)
 			if err := json.Indent(out, r.body, "", "   "); err == nil {
-				return out.String()
+				bodyStr = string(out.Bytes())
 			}
+		} else {
+			bodyStr = r.String()
 		}
-		return r.String()
 	}
 
-	return "***** NO CONTENT *****"
+	return bodyStr
 }

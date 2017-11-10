@@ -8,15 +8,20 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
+	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -66,48 +71,40 @@ var (
 // Client type is used for HTTP/RESTful global values
 // for all request raised from the client
 type Client struct {
-	HostURL               string
-	QueryParam            url.Values
-	FormData              url.Values
-	Header                http.Header
-	UserInfo              *User
-	Token                 string
-	Cookies               []*http.Cookie
-	Error                 reflect.Type
-	Debug                 bool
-	DisableWarn           bool
-	AllowGetMethodPayload bool
-	Log                   *log.Logger
-	RetryCount            int
-	RetryWaitTime         time.Duration
-	RetryMaxWaitTime      time.Duration
-	RetryConditions       []RetryConditionFunc
-	JSONMarshal           func(v interface{}) ([]byte, error)
-	JSONUnmarshal         func(data []byte, v interface{}) error
+	HostURL          string
+	QueryParam       url.Values
+	FormData         url.Values
+	Header           http.Header
+	UserInfo         *User
+	Token            string
+	Cookies          []*http.Cookie
+	Error            reflect.Type
+	Debug            bool
+	DisableWarn      bool
+	Log              *log.Logger
+	RetryCount       int
+	RetryWaitTime    time.Duration
+	RetryMaxWaitTime time.Duration
+	RetryConditions  []RetryConditionFunc
 
-	httpClient         *http.Client
-	setContentLength   bool
-	isHTTPMode         bool
-	outputDirectory    string
-	scheme             string
-	proxyURL           *url.URL
-	closeConnection    bool
-	notParseResponse   bool
-	debugBodySizeLimit int64
-	beforeRequest      []func(*Client, *Request) error
-	udBeforeRequest    []func(*Client, *Request) error
-	preReqHook         func(*Client, *Request) error
-	afterResponse      []func(*Client, *Response) error
+	httpClient       *http.Client
+	transport        *http.Transport
+	setContentLength bool
+	isHTTPMode       bool
+	outputDirectory  string
+	scheme           string
+	proxyURL         *url.URL
+	closeConnection  bool
+	beforeRequest    []func(*Client, *Request) error
+	udBeforeRequest  []func(*Client, *Request) error
+	preReqHook       func(*Client, *Request) error
+	afterResponse    []func(*Client, *Response) error
 }
 
 // User type is to hold an username and password information
 type User struct {
 	Username, Password string
 }
-
-//‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
-// Client methods
-//___________________________________
 
 // SetHostURL method is to set Host URL in the client instance. It will be used with request
 // raised from this client with relative URL
@@ -315,12 +312,6 @@ func (c *Client) R() *Request {
 	return r
 }
 
-// NewRequest is an alias for R(). Creates a request instance, its used for
-// Get, Post, Put, Delete, Patch, Head and Options.
-func (c *Client) NewRequest() *Request {
-	return c.R()
-}
-
 // OnBeforeRequest method appends request middleware into the before request chain.
 // Its gets applied after default `go-resty` request middlewares and before request
 // been sent from `go-resty` to host server.
@@ -373,29 +364,12 @@ func (c *Client) SetDebug(d bool) *Client {
 	return c
 }
 
-// SetDebugBodyLimit sets the maximum size for which the response body will be logged in debug mode.
-//		resty.SetDebugBodyLimit(1000000)
-//
-func (c *Client) SetDebugBodyLimit(sl int64) *Client {
-	c.debugBodySizeLimit = sl
-	return c
-}
-
 // SetDisableWarn method disables the warning message on `go-resty` client.
 // For example: go-resty warns the user when BasicAuth used on HTTP mode.
 //		resty.SetDisableWarn(true)
 //
 func (c *Client) SetDisableWarn(d bool) *Client {
 	c.DisableWarn = d
-	return c
-}
-
-// SetAllowGetMethodPayload method allows the GET method with payload on `go-resty` client.
-// For example: go-resty allows the user sends request with a payload on HTTP GET method.
-//		resty.SetAllowGetMethodPayload(true)
-//
-func (c *Client) SetAllowGetMethodPayload(a bool) *Client {
-	c.AllowGetMethodPayload = a
 	return c
 }
 
@@ -564,12 +538,8 @@ func (c *Client) Mode() string {
 // Note: This method overwrites existing `TLSClientConfig`.
 //
 func (c *Client) SetTLSClientConfig(config *tls.Config) *Client {
-	transport, err := c.getTransport()
-	if err != nil {
-		c.Log.Printf("ERROR [%v]", err)
-		return c
-	}
-	transport.TLSClientConfig = config
+	c.transport.TLSClientConfig = config
+	c.httpClient.Transport = c.transport
 	return c
 }
 
@@ -580,14 +550,10 @@ func (c *Client) SetTLSClientConfig(config *tls.Config) *Client {
 // you can also set Proxy via environment variable. By default `Go` uses setting from `HTTP_PROXY`.
 //
 func (c *Client) SetProxy(proxyURL string) *Client {
-	transport, err := c.getTransport()
-	if err != nil {
-		c.Log.Printf("ERROR [%v]", err)
-		return c
-	}
 	if pURL, err := url.Parse(proxyURL); err == nil {
 		c.proxyURL = pURL
-		transport.Proxy = http.ProxyURL(c.proxyURL)
+		c.transport.Proxy = http.ProxyURL(c.proxyURL)
+		c.httpClient.Transport = c.transport
 	} else {
 		c.Log.Printf("ERROR [%v]", err)
 		c.RemoveProxy()
@@ -600,24 +566,17 @@ func (c *Client) SetProxy(proxyURL string) *Client {
 //		resty.RemoveProxy()
 //
 func (c *Client) RemoveProxy() *Client {
-	transport, err := c.getTransport()
-	if err != nil {
-		c.Log.Printf("ERROR [%v]", err)
-		return c
-	}
 	c.proxyURL = nil
-	transport.Proxy = nil
+	c.transport.Proxy = nil
+	c.httpClient.Transport = c.transport
+
 	return c
 }
 
 // SetCertificates method helps to set client certificates into resty conveniently.
 //
 func (c *Client) SetCertificates(certs ...tls.Certificate) *Client {
-	config, err := c.getTLSConfig()
-	if err != nil {
-		c.Log.Printf("ERROR [%v]", err)
-		return c
-	}
+	config := c.getTLSConfig()
 	config.Certificates = append(config.Certificates, certs...)
 	return c
 }
@@ -632,11 +591,7 @@ func (c *Client) SetRootCertificate(pemFilePath string) *Client {
 		return c
 	}
 
-	config, err := c.getTLSConfig()
-	if err != nil {
-		c.Log.Printf("ERROR [%v]", err)
-		return c
-	}
+	config := c.getTLSConfig()
 	if config.RootCAs == nil {
 		config.RootCAs = x509.NewCertPool()
 	}
@@ -652,20 +607,19 @@ func (c *Client) SetRootCertificate(pemFilePath string) *Client {
 // 		resty.SetOutputDirectory("/save/http/response/here")
 //
 func (c *Client) SetOutputDirectory(dirPath string) *Client {
+	err := createDirectory(dirPath)
+	if err != nil {
+		c.Log.Printf("ERROR [%v]", err)
+	}
+
 	c.outputDirectory = dirPath
+
 	return c
 }
 
-// SetTransport method sets custom `*http.Transport` or any `http.RoundTripper`
-// compatible interface implementation in the resty client.
+// SetTransport method sets custom *http.Transport in the resty client. Its way to override default.
 //
-// Please Note:
-//
-// - If transport is not type of `*http.Transport` then you may not be able to
-// take advantage of some of the `resty` client settings.
-//
-// - It overwrites the resty client transport instance and it's configurations.
-//
+// **Note:** It overwrites the default resty transport instance and its configurations.
 //		transport := &http.Transport{
 //			// somthing like Proxying to httptest.Server, etc...
 //			Proxy: func(req *http.Request) (*url.URL, error) {
@@ -675,10 +629,12 @@ func (c *Client) SetOutputDirectory(dirPath string) *Client {
 //
 //		resty.SetTransport(transport)
 //
-func (c *Client) SetTransport(transport http.RoundTripper) *Client {
+func (c *Client) SetTransport(transport *http.Transport) *Client {
 	if transport != nil {
-		c.httpClient.Transport = transport
+		c.transport = transport
+		c.httpClient.Transport = c.transport
 	}
+
 	return c
 }
 
@@ -693,21 +649,10 @@ func (c *Client) SetScheme(scheme string) *Client {
 	return c
 }
 
-// SetCloseConnection method sets variable `Close` in http request struct with the given
+// SetCloseConnection method sets variable Close in http request struct with the given
 // value. More info: https://golang.org/src/net/http/request.go
 func (c *Client) SetCloseConnection(close bool) *Client {
 	c.closeConnection = close
-	return c
-}
-
-// SetDoNotParseResponse method instructs `Resty` not to parse the response body automatically.
-// Resty exposes the raw response body as `io.ReadCloser`. Also do not forget to close the body,
-// otherwise you might get into connection leaks, no connection reuse.
-//
-// Please Note: Response middlewares are not applicable, if you use this option. Basically you have
-// taken over the control of response parsing from `Resty`.
-func (c *Client) SetDoNotParseResponse(parse bool) *Client {
-	c.notParseResponse = parse
 	return c
 }
 
@@ -716,18 +661,9 @@ func (c *Client) IsProxySet() bool {
 	return c.proxyURL != nil
 }
 
-// GetClient method returns the current http.Client used by the resty client.
-func (c *Client) GetClient() *http.Client {
-	return c.httpClient
-}
-
-//‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
-// Client Unexported methods
-//___________________________________
-
 // executes the given `Request` object and returns response
 func (c *Client) execute(req *Request) (*Response, error) {
-	defer releaseBuffer(req.bodyBuf)
+	defer putBuffer(req.bodyBuf)
 	// Apply Request middleware
 	var err error
 
@@ -762,7 +698,7 @@ func (c *Client) execute(req *Request) (*Response, error) {
 		receivedAt:  time.Now(),
 	}
 
-	if err != nil || req.notParseResponse || c.notParseResponse {
+	if err != nil {
 		return response, err
 	}
 
@@ -801,24 +737,12 @@ func (c *Client) disableLogPrefix() {
 }
 
 // getting TLS client config if not exists then create one
-func (c *Client) getTLSConfig() (*tls.Config, error) {
-	transport, err := c.getTransport()
-	if err != nil {
-		return nil, err
+func (c *Client) getTLSConfig() *tls.Config {
+	if c.transport.TLSClientConfig == nil {
+		c.transport.TLSClientConfig = &tls.Config{}
+		c.httpClient.Transport = c.transport
 	}
-	if transport.TLSClientConfig == nil {
-		transport.TLSClientConfig = &tls.Config{}
-	}
-	return transport.TLSClientConfig, nil
-}
-
-// returns `*http.Transport` currently in use or error
-// in case currently used `transport` is not an `*http.Transport`
-func (c *Client) getTransport() (*http.Transport, error) {
-	if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
-		return transport, nil
-	}
-	return nil, errors.New("current transport is not an *http.Transport instance")
+	return c.transport.TLSClientConfig
 }
 
 //
@@ -835,4 +759,144 @@ type File struct {
 // String returns string value of current file details
 func (f *File) String() string {
 	return fmt.Sprintf("ParamName: %v; FileName: %v", f.ParamName, f.Name)
+}
+
+//
+// Helper methods
+//
+
+// IsStringEmpty method tells whether given string is empty or not
+func IsStringEmpty(str string) bool {
+	return (len(strings.TrimSpace(str)) == 0)
+}
+
+// DetectContentType method is used to figure out `Request.Body` content type for request header
+func DetectContentType(body interface{}) string {
+	contentType := plainTextType
+	kind := kindOf(body)
+	switch kind {
+	case reflect.Struct, reflect.Map:
+		contentType = jsonContentType
+	case reflect.String:
+		contentType = plainTextType
+	default:
+		if b, ok := body.([]byte); ok {
+			contentType = http.DetectContentType(b)
+		} else if kind == reflect.Slice {
+			contentType = jsonContentType
+		}
+	}
+
+	return contentType
+}
+
+// IsJSONType method is to check JSON content type or not
+func IsJSONType(ct string) bool {
+	return jsonCheck.MatchString(ct)
+}
+
+// IsXMLType method is to check XML content type or not
+func IsXMLType(ct string) bool {
+	return xmlCheck.MatchString(ct)
+}
+
+// Unmarshal content into object from JSON or XML
+func Unmarshal(ct string, b []byte, d interface{}) (err error) {
+	if IsJSONType(ct) {
+		err = json.Unmarshal(b, d)
+	} else if IsXMLType(ct) {
+		err = xml.Unmarshal(b, d)
+	}
+
+	return
+}
+
+func getLogger(w io.Writer) *log.Logger {
+	return log.New(w, "RESTY ", log.LstdFlags)
+}
+
+func addFile(w *multipart.Writer, fieldName, path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	part, err := w.CreateFormFile(fieldName, filepath.Base(path))
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(part, file)
+
+	return err
+}
+
+func addFileReader(w *multipart.Writer, f *File) error {
+	part, err := w.CreateFormFile(f.ParamName, f.Name)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(part, f.Reader)
+
+	return err
+}
+
+func getPointer(v interface{}) interface{} {
+	vv := valueOf(v)
+	if vv.Kind() == reflect.Ptr {
+		return v
+	}
+	return reflect.New(vv.Type()).Interface()
+}
+
+func isPayloadSupported(m string) bool {
+	return (m == MethodPost || m == MethodPut || m == MethodDelete || m == MethodPatch)
+}
+
+func typeOf(i interface{}) reflect.Type {
+	return indirect(valueOf(i)).Type()
+}
+
+func valueOf(i interface{}) reflect.Value {
+	return reflect.ValueOf(i)
+}
+
+func indirect(v reflect.Value) reflect.Value {
+	return reflect.Indirect(v)
+}
+
+func kindOf(v interface{}) reflect.Kind {
+	return typeOf(v).Kind()
+}
+
+func createDirectory(dir string) (err error) {
+	if _, err = os.Stat(dir); err != nil {
+		if os.IsNotExist(err) {
+			if err = os.MkdirAll(dir, 0755); err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+func canJSONMarshal(contentType string, kind reflect.Kind) bool {
+	return IsJSONType(contentType) && (kind == reflect.Struct || kind == reflect.Map)
+}
+
+func functionName(i interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+
+func getBuffer() *bytes.Buffer {
+	return bufPool.Get().(*bytes.Buffer)
+}
+
+func putBuffer(buf *bytes.Buffer) {
+	if buf != nil {
+		buf.Reset()
+		bufPool.Put(buf)
+	}
 }

@@ -1,5 +1,5 @@
-hash: bf20906668b84689459d44158497b9946055e30edc9ae1136d8d0898455f9627
-updated: 2017-11-09T17:34:31.193205+01:00
+hash: 296bcedcc8ca8d24b0fc7b69c9a0a3a21c6a9ad185f3b6211e76b75d23dd6aa5
+updated: 2017-11-10T15:01:25.654791+01:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -14,11 +14,9 @@ imports:
 - name: github.com/giantswarm/columnize
   version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
 - name: github.com/giantswarm/gsclientgen
-  version: 2b5ef553ccabe383bf63b8daff5ed183219e77f9
+  version: f798e771dce447a2afebc570a3d9a43b8249a48e
 - name: github.com/giantswarm/microerror
   version: 5ade94eb4ee35ef72eb9382228470caeddb29989
-- name: github.com/go-resty/resty
-  version: 13d77a7f95fd8d1bad97c56bf1b8562633c2f01a
 - name: github.com/hashicorp/go-rootcerts
   version: 6bb64b370b90e7ef1fa532be9e591a81c3493e00
 - name: github.com/howeyc/gopass
@@ -54,10 +52,12 @@ imports:
   subpackages:
   - publicsuffix
 - name: golang.org/x/sys
-  version: 4b45465282a4624cf39876842a017334f13b8aff
+  version: 1e2299c37cc91a509f1b12369872d27be0ce98a6
   subpackages:
   - unix
   - windows
+- name: gopkg.in/go-resty/resty.v0
+  version: cf81ed0a604d373be63b4c036c6b05c06520615f
 - name: gopkg.in/yaml.v2
   version: eb3733d160e74a9c7e442f435eb3bea458e1d19f
 testImports: []
