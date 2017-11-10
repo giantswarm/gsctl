@@ -23,6 +23,7 @@ dependencies:
 
 test:
   override:
+    - make gotest
     - make crosscompile
   post:
     - bash <(curl -s https://codecov.io/bash)
