@@ -73,7 +73,7 @@ See [Releases](https://github.com/giantswarm/gsctl/releases)
 
 ## Development
 
-See [DEVELOPMENT.md](https://github.com/giantswarm/gsctl/blob/master/DEVELOPMENT.md)
+See [docs/Development.md](https://github.com/giantswarm/gsctl/blob/master/docs/Development.md)
 
 ## Contributing
 
@@ -81,4 +81,4 @@ We welcome contributions! Please read our additional information on [how to cont
 
 ## Publishing a Release
 
-See [RELEASE.md](https://github.com/giantswarm/gsctl/blob/master/RELEASE.md)
+See [docs/Release.md](https://github.com/giantswarm/gsctl/blob/master/docs/Release.md)
