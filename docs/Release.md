@@ -20,7 +20,10 @@ profile, run
 aws configure --profile gsctl-release
 ```
 
-and let all fields empty.
+and set the access key ID and the secret key to values matching your IAM account.
+
+Then, if you have ever made a release before, you'll likely have to clean `~/.aws/credentials`
+to remove any existing `aws_session_token` entry from the `gsctl-release` profile.
 
 The use of multi factor authentication (MFA) requires us to create short-lived
 credentials for AWS client. Have your MFA device and it's ARN (from the web
@@ -46,9 +49,9 @@ Now take the output of the following command and place it in the
 credentials file `~/.aws/credentials` at the `[gsctl-release]` entry.
 
 ```bash
-echo "aws_access_key_id = $(echo $CREDENTIALS | jq .AccessKeyId )" && \
-  echo "aws_secret_access_key = $(echo $CREDENTIALS | jq .SecretAccessKey )" && \
-  echo "aws_session_token = $(echo $CREDENTIALS | jq .SessionToken )"
+echo "aws_access_key_id = $(echo $CREDENTIALS | jq -r .AccessKeyId )" && \
+  echo "aws_secret_access_key = $(echo $CREDENTIALS | jq -r .SecretAccessKey )" && \
+  echo "aws_session_token = $(echo $CREDENTIALS | jq -r .SessionToken )"
 ```
 
 Test your credentials like this:
