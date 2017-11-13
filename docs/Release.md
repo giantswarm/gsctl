@@ -9,6 +9,7 @@
 - `git` command line utility
 - Push permissions for https://github.com/giantswarm/gsctl,  https://github.com/giantswarm/homebrew-giantswarm, https://github.com/giantswarm/scoop-bucket
 - Code signing certificate from keePass
+- `CODE_SIGNING_CERT_BUNDLE_PASSWORD` environment variable set to code signing PKCS#12 encryption password (from keePass)
 
 ## Authenticating for the AWS CLI
 
