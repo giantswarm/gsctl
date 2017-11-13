@@ -28,7 +28,7 @@ Flags should only use the characters `a-z` and `-`, mainly to simplify input.
 
 Commands like `gsctl create cluster` will have provider-specific options, for
 example, for setting the AWS EC2 instance types of worker nodes. These flags get
-prefixxed with the provider name, e. g. `aws` and `azure`.
+prefixed with the provider name, e. g. `aws` and `azure`.
 
 Examples:
 
