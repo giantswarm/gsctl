@@ -14,6 +14,14 @@ type Test struct {
 var tests = []Test{
 	{
 		// input string
+		"2006-01-02T15:04:05Z",
+		// time value
+		time.Date(2006, time.January, 2, 15, 4, 5, 0, time.UTC),
+		// output string
+		"2006 Jan 02, 15:04 UTC",
+	},
+	{
+		// input string
 		"2006-01-02T15:04:05.000Z",
 		// time value
 		time.Date(2006, time.January, 2, 15, 4, 5, 0, time.UTC),
