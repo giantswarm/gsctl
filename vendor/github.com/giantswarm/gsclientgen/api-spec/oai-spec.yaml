@@ -353,6 +353,27 @@ paths:
             $ref: '#/definitions/V4GenericResponse'
 
 
+  /v4/releases/:
+    get:
+      operationId: getReleases
+      summary: Get releases
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+      responses:
+        "200":
+          description: Releases
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/V4ReleaseListItem'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/V4GenericResponse'
+
 definitions:
 
   GenericResponseModel:
@@ -613,6 +634,60 @@ definitions:
       owner:
         type: string
         description: Name of the organization owning the cluster
+
+  V4ReleaseChangelogItem:
+    type: object
+    properties:
+      component:
+        type: string
+        description: |
+          If the changed item was a component, this attribute is the
+          name of the component.
+      description:
+        type: string
+        description: Human-friendly description of the change
+
+  V4ReleaseComponent:
+    type: object
+    required: ["name", "version"]
+    properties:
+      name:
+        type: string
+        description: Name of the component
+      version:
+        type: string
+        description: Version number of the component
+
+  V4ReleaseListItem:
+    type: object
+    required: ["version", "timestamp", "changelog", "components"]
+    properties:
+      version:
+        type: string
+        description: The semantic version number
+      timestamp:
+        type: string
+        description: Date and time of the release creation
+      active:
+        type: boolean
+        description: |
+          If true, the version is available for new clusters and cluster
+          upgrades. Older versions become unavailable and thus have the
+          value `false` here.
+      changelog:
+        description: |
+          Structured list of changes in this release, in comparison to the
+          previous version, with respect to the contained components.
+        type: array
+        items:
+          $ref: '#/definitions/V4ReleaseChangelogItem'
+      components:
+        description: |
+          List of components and their version contained in the release
+        type: array
+        items:
+          $ref: '#/definitions/V4ReleaseComponent'
+
 
 parameters:
   RequiredAuthorizationHeader:

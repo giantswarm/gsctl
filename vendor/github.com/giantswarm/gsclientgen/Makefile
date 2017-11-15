@@ -25,7 +25,7 @@ validate:
 	    boiyaa/yamllint:1.8.1 ./oai-spec.yaml
 	docker run --rm -it \
 		-v ${PWD}/api-spec:/swagger-api/yaml \
-		jimschubert/swagger-codegen-cli generate \
+		jimschubert/swagger-codegen-cli:2.2.3 generate \
 		--input-spec /swagger-api/yaml/oai-spec.yaml \
 		--lang swagger \
 		--output /tmp/
