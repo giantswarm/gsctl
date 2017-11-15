@@ -160,6 +160,7 @@ func listReleasesOutput(cmd *cobra.Command, extraArgs []string) {
 		headers := []string{
 			color.CyanString("VERSION"),
 			color.CyanString("CREATED"),
+			color.CyanString("ACTIVE"),
 			color.CyanString("COMPONENTS"),
 		}
 		output = append(output, strings.Join(headers, "|"))
@@ -167,9 +168,15 @@ func listReleasesOutput(cmd *cobra.Command, extraArgs []string) {
 		for _, release := range result.releases {
 			created := util.ParseDate(release.Timestamp)
 
+			active := "No"
+			if release.Active {
+				active = "Yes"
+			}
+
 			row := []string{
 				release.Version,
 				util.ShortDate(created),
+				active,
 				componentsString(release.Components),
 			}
 			output = append(output, strings.Join(row, "|"))
