@@ -26,9 +26,11 @@ var (
 
 	// ListReleasesCommand performs the "list keypairs" function
 	ListReleasesCommand = &cobra.Command{
-		Use:    "releases",
-		Short:  "List releases to be used with clusters",
-		Long:   `Prints detail on all available releases`,
+		Use:   "releases",
+		Short: "List releases to be used with clusters",
+		Long: `Prints detail on all available releases.
+
+A release is a software bundle that constitutes a cluster. It is identified by its semantic version number.`,
 		PreRun: listReleasesValidationOutput,
 		Run:    listReleasesOutput,
 	}
