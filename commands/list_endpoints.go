@@ -87,7 +87,19 @@ func endpointsTable(args listEndpointsArguments) string {
 			email = config.Config.Endpoints[endpoint].Email
 		}
 
-		output = append(output, strings.Join([]string{endpoint, email, selected, loggedIn}, "|"))
+		row := ""
+		if endpoint == args.apiEndpoint {
+			// highlight if selected
+			row = strings.Join([]string{
+				color.YellowString(endpoint),
+				color.YellowString(email),
+				color.YellowString(selected),
+				color.YellowString(loggedIn),
+			}, "|")
+		} else {
+			row = strings.Join([]string{endpoint, email, selected, loggedIn}, "|")
+		}
+		output = append(output, row)
 	}
 
 	return columnize.SimpleFormat(output)
