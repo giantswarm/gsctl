@@ -9,7 +9,6 @@ import (
 
 	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
-	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
@@ -153,35 +152,36 @@ func listReleasesOutput(cmd *cobra.Command, extraArgs []string) {
 	// success output
 	if len(result.releases) == 0 {
 		fmt.Println(color.RedString("No releases available."))
-		fmt.Println("We cannot find any releases. Please contact the Giant Swarm support team to find out if there is a problem to be solved..")
+		fmt.Println("We cannot find any releases. Please contact the Giant Swarm support team to find out if there is a problem to be solved.")
+		os.Exit(1)
 	} else {
-		output := []string{}
-
-		headers := []string{
-			color.CyanString("VERSION"),
-			color.CyanString("CREATED"),
-			color.CyanString("ACTIVE"),
-			color.CyanString("COMPONENTS"),
-		}
-		output = append(output, strings.Join(headers, "|"))
 
 		for _, release := range result.releases {
+
 			created := util.ParseDate(release.Timestamp)
-
-			active := "No"
+			active := "false"
 			if release.Active {
-				active = "Yes"
+				active = "true"
 			}
 
-			row := []string{
-				release.Version,
-				util.ShortDate(created),
-				active,
-				componentsString(release.Components),
+			// YAML-style output of all release details
+			fmt.Println("---")
+			fmt.Printf("%s %s\n", color.YellowString("Version:"), release.Version)
+			fmt.Printf("%s %s\n", color.YellowString("Created:"), util.ShortDate(created))
+			fmt.Printf("%s %s\n", color.YellowString("Active:"), active)
+			fmt.Printf("%s\n", color.YellowString("Components:"))
+
+			for _, component := range release.Components {
+				fmt.Printf("  %s %s\n", color.YellowString(component.Name+":"), component.Version)
 			}
-			output = append(output, strings.Join(row, "|"))
+
+			fmt.Printf("%s\n", color.YellowString("Changelog:"))
+
+			for _, change := range release.Changelog {
+				fmt.Printf("  %s %s\n", color.YellowString(change.Component+":"), change.Description)
+			}
+
 		}
-		fmt.Println(columnize.SimpleFormat(output))
 	}
 }
 
@@ -223,6 +223,16 @@ func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 	if len(releasesResponse) > 1 {
 		slice.Sort(releasesResponse[:], func(i, j int) bool {
 			return releasesResponse[i].Timestamp > releasesResponse[j].Timestamp
+		})
+	}
+
+	// sort changelog and components by component name
+	for n := range releasesResponse {
+		slice.Sort(releasesResponse[n].Components[:], func(i, j int) bool {
+			return releasesResponse[n].Components[i].Name < releasesResponse[n].Components[j].Name
+		})
+		slice.Sort(releasesResponse[n].Changelog[:], func(i, j int) bool {
+			return releasesResponse[n].Changelog[i].Component < releasesResponse[n].Changelog[j].Component
 		})
 	}
 
