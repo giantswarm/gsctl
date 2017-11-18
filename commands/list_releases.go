@@ -24,7 +24,7 @@ const (
 
 var (
 
-	// ListReleasesCommand performs the "list keypairs" function
+	// ListReleasesCommand performs the "list releases" function
 	ListReleasesCommand = &cobra.Command{
 		Use:   "releases",
 		Short: "List releases to be used with clusters",
@@ -55,7 +55,7 @@ func defaultListReleasesArguments() listReleasesArguments {
 	}
 }
 
-// listKeypairsResult is the data structure returned by the listKeypairs() function.
+// listReleasesResult is the data structure returned by the listReleases() function.
 type listReleasesResult struct {
 	releases []gsclientgen.V4ReleaseListItem
 }
@@ -64,7 +64,7 @@ func init() {
 	ListCommand.AddCommand(ListReleasesCommand)
 }
 
-// listKeypairsValidationOutput does our pre-checks and shows errors, in case
+// listReleasesValidationOutput does our pre-checks and shows errors, in case
 // something is missing.
 func listReleasesValidationOutput(cmd *cobra.Command, extraArgs []string) {
 	args := defaultListReleasesArguments()
@@ -77,7 +77,7 @@ func listReleasesValidationOutput(cmd *cobra.Command, extraArgs []string) {
 		case IsNotLoggedInError(err):
 			headline = "You are not logged in."
 			subtext = "Please log in using 'gsctl login <email>' or set an auth token as a command line argument."
-			subtext += " See `gsctl list keypairs --help` for details."
+			subtext += " See `gsctl list releases --help` for details."
 		default:
 			headline = err.Error()
 		}
@@ -115,7 +115,7 @@ func componentsString(components []gsclientgen.V4ReleaseComponent) string {
 	return strings.Join(items, " ")
 }
 
-// listReleasesOutput is the function called to list keypairs and display
+// listReleasesOutput is the function called to list releases and display
 // errors in case they happen
 func listReleasesOutput(cmd *cobra.Command, extraArgs []string) {
 	args := defaultListReleasesArguments()
@@ -130,16 +130,16 @@ func listReleasesOutput(cmd *cobra.Command, extraArgs []string) {
 		case IsNotLoggedInError(err):
 			headline = "You are not logged in."
 			subtext = "Please log in using 'gsctl login <email>' or set an auth token as a command line argument."
-			subtext += " See `gsctl list keypairs --help` for details."
+			subtext += " See `gsctl list releases --help` for details."
 		case IsNotAuthorizedError(err):
 			headline = "You are not authorized for this cluster."
-			subtext = "You have no permission to access key pairs for this cluster. Please check your credentials."
+			subtext = "You have no permission to access releases for this cluster. Please check your credentials."
 		case IsInternalServerError(err):
 			headline = "An internal error occurred."
-			subtext = "Please notify the Giant Swarm support team, or try listing key pairs again in a few moments."
+			subtext = "Please notify the Giant Swarm support team, or try listing releases again in a few moments."
 		case IsUnknownError(err):
 			headline = "An error occurred."
-			subtext = "Please notify the Giant Swarm support team, or try listing key pairs again in a few moments."
+			subtext = "Please notify the Giant Swarm support team, or try listing releases again in a few moments."
 		default:
 			headline = err.Error()
 		}
