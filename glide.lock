@@ -1,5 +1,5 @@
-hash: 296bcedcc8ca8d24b0fc7b69c9a0a3a21c6a9ad185f3b6211e76b75d23dd6aa5
-updated: 2017-11-10T15:01:25.654791+01:00
+hash: a7762b9c93aa66e1fda06e1fb5e0324e3cb4e5cec649aaddd5e077bb673a5058
+updated: 2017-11-15T15:50:28.975655+01:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -14,7 +14,7 @@ imports:
 - name: github.com/giantswarm/columnize
   version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
 - name: github.com/giantswarm/gsclientgen
-  version: f798e771dce447a2afebc570a3d9a43b8249a48e
+  version: 2430a4acdb4fbd3e719abaa9a7b830e448a69bf5
 - name: github.com/giantswarm/microerror
   version: 5ade94eb4ee35ef72eb9382228470caeddb29989
 - name: github.com/hashicorp/go-rootcerts
@@ -44,7 +44,7 @@ imports:
   subpackages:
   - reflectutil
 - name: golang.org/x/crypto
-  version: 6a293f2d4b14b8e6d3f0539e383f6d0d30fce3fd
+  version: 9f005a07e0d31d45e6656d241bb5c0f2efd4bc94
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
@@ -52,7 +52,7 @@ imports:
   subpackages:
   - publicsuffix
 - name: golang.org/x/sys
-  version: 1e2299c37cc91a509f1b12369872d27be0ce98a6
+  version: bf42f188b9bc6f2cf5b8ee5a912ef1aedd0eba4c
   subpackages:
   - unix
   - windows

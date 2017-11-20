@@ -18,8 +18,10 @@ func ParseDate(dateString string) time.Time {
 
 	// normalizing the number of decimal places to 3
 	// and discarding sub-second detail along the way
-	re := regexp.MustCompile("\\.[0-9]+")
-	dateString = re.ReplaceAllLiteralString(dateString, ".000")
+	re1 := regexp.MustCompile(":([0-9]{2})Z")
+	re2 := regexp.MustCompile("\\.[0-9]+")
+	dateString = re1.ReplaceAllString(dateString, ":$1.000Z")
+	dateString = re2.ReplaceAllLiteralString(dateString, ".000")
 
 	// try parsing with several formats
 	t, err := time.Parse(template, dateString)
