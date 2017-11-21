@@ -1,5 +1,5 @@
-hash: 296bcedcc8ca8d24b0fc7b69c9a0a3a21c6a9ad185f3b6211e76b75d23dd6aa5
-updated: 2017-11-21T14:22:50.816688+01:00
+hash: 41f48a14ab8eba9db1b0284e66aabb9ef340edfb220edbbfd195e0124e513845
+updated: 2017-11-21T15:40:52.825574+01:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -14,7 +14,7 @@ imports:
 - name: github.com/giantswarm/columnize
   version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
 - name: github.com/giantswarm/gsclientgen
-  version: a4455184e56cba691bc6e0aef3fa805221b1db3a
+  version: 9a965a88d40f2be1601415664d31ea9ab258f7ea
 - name: github.com/giantswarm/microerror
   version: ec5f66bb657662031c0d651504fee6908cdf28d9
 - name: github.com/hashicorp/go-rootcerts
