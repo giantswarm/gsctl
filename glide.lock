@@ -1,5 +1,5 @@
-hash: a7762b9c93aa66e1fda06e1fb5e0324e3cb4e5cec649aaddd5e077bb673a5058
-updated: 2017-11-15T15:50:28.975655+01:00
+hash: 296bcedcc8ca8d24b0fc7b69c9a0a3a21c6a9ad185f3b6211e76b75d23dd6aa5
+updated: 2017-11-21T14:22:50.816688+01:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -14,9 +14,9 @@ imports:
 - name: github.com/giantswarm/columnize
   version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
 - name: github.com/giantswarm/gsclientgen
-  version: 2430a4acdb4fbd3e719abaa9a7b830e448a69bf5
+  version: a4455184e56cba691bc6e0aef3fa805221b1db3a
 - name: github.com/giantswarm/microerror
-  version: 5ade94eb4ee35ef72eb9382228470caeddb29989
+  version: ec5f66bb657662031c0d651504fee6908cdf28d9
 - name: github.com/hashicorp/go-rootcerts
   version: 6bb64b370b90e7ef1fa532be9e591a81c3493e00
 - name: github.com/howeyc/gopass
@@ -36,7 +36,7 @@ imports:
 - name: github.com/mitchellh/go-homedir
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/spf13/cobra
-  version: 2da4a54c5ceefcee7ca5dd0eea1e18a3b6366489
+  version: 19e54c4a2b8a78c9d54b2bed61b1a6c5e1bfcf6f
 - name: github.com/spf13/pflag
   version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
 - name: go4.org
@@ -48,16 +48,16 @@ imports:
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: a337091b0525af65de94df2eb7e98bd9962dcbe2
+  version: 9dfe39835686865bff950a07b394c12a98ddc811
   subpackages:
   - publicsuffix
 - name: golang.org/x/sys
-  version: bf42f188b9bc6f2cf5b8ee5a912ef1aedd0eba4c
+  version: 328643532ee3c60c099171d4ce2cad0ca0354ca9
   subpackages:
   - unix
   - windows
 - name: gopkg.in/go-resty/resty.v0
   version: cf81ed0a604d373be63b4c036c6b05c06520615f
 - name: gopkg.in/yaml.v2
-  version: eb3733d160e74a9c7e442f435eb3bea458e1d19f
+  version: 287cf08546ab5e7e37d55a84f7ed3fd1db036de5
 testImports: []
