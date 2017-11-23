@@ -39,6 +39,8 @@ func init() {
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
 	CreateKubeconfigCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key pair in days")
 
+	CreateKubeconfigCommand.MarkFlagRequired("cluster")
+
 	CreateCommand.AddCommand(CreateKubeconfigCommand)
 }
 
