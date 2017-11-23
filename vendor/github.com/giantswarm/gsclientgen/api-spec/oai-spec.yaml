@@ -439,11 +439,9 @@ definitions:
         type: string
       kubernetes_version:
         type: string
+      release_version:
+        type: string
       workers:
-        type: array
-        items:
-          $ref: '#/definitions/V4NodeDefinitionResponse'
-      masters:
         type: array
         items:
           $ref: '#/definitions/V4NodeDefinitionResponse'
@@ -583,6 +581,11 @@ definitions:
   V4NodeDefinitionResponse:
     type: object
     properties:
+      aws:
+        type: object
+        properties:
+          instance_type:
+            type: string
       memory:
         type: object
         properties:
