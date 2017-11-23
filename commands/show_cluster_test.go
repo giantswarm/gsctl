@@ -59,3 +59,41 @@ func TestShowAWSCluster(t *testing.T) {
 	}
 
 }
+
+// TestShowClusterNotLoggedIn tests the case where the client is not logged in
+func TestShowClusterNotLoggedIn(t *testing.T) {
+	// temp config
+	configDir, _ := ioutil.TempDir("", config.ProgramName)
+	config.Initialize(configDir)
+
+	testArgs := showClusterArguments{
+		apiEndpoint: "foo.bar",
+		clusterID:   "cluster-id",
+		authToken:   "",
+	}
+
+	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	if !IsNotLoggedInError(err) {
+		t.Errorf("Expected notLoggedInError, got '%s'", err.Error())
+	}
+
+}
+
+// TestShowClusterMissingID tests the case where the cluster ID is missing
+func TestShowClusterMissingID(t *testing.T) {
+	// temp config
+	configDir, _ := ioutil.TempDir("", config.ProgramName)
+	config.Initialize(configDir)
+
+	testArgs := showClusterArguments{
+		apiEndpoint: "foo.bar",
+		clusterID:   "",
+		authToken:   "auth-token",
+	}
+
+	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	if !IsClusterIDMissingError(err) {
+		t.Errorf("Expected clusterIdMissingError, got '%s'", err.Error())
+	}
+
+}
