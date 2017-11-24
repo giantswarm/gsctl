@@ -68,7 +68,7 @@ func checkCreateKubeconfig(cmd *cobra.Command, args []string) error {
 		return microerror.Mask(endpointMissingError)
 	}
 	if token == "" {
-		return errors.New("You are not logged in. Use '" + config.ProgramName + " login' to log in.")
+		return microerror.Mask(notLoggedInError)
 	}
 	if cmdClusterID == "" {
 		// use default cluster if possible
@@ -76,7 +76,7 @@ func checkCreateKubeconfig(cmd *cobra.Command, args []string) error {
 		if clusterID != "" {
 			cmdClusterID = clusterID
 		} else {
-			return errors.New("No cluster given. Please use the -c/--cluster flag to set a cluster ID.")
+			return microerror.Mask(clusterIDMissingError)
 		}
 	}
 	return nil
