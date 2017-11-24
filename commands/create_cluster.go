@@ -238,9 +238,12 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
 			subtext += " Sorry for the inconvenience!"
 
+			// more details for backend side / connection errors
+			subtext += "\n\nDetails:\n"
 			if richErrorOK {
-				subtext += "\n\nDetails:\n"
 				subtext += richError.Message()
+			} else {
+				subtext += err.Error()
 			}
 
 		default:
