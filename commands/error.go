@@ -256,3 +256,12 @@ var invalidCredentialsError = errgo.New("invalid credentials submitted")
 func IsInvalidCredentialsError(err error) bool {
 	return errgo.Cause(err) == invalidCredentialsError
 }
+
+// invalidReleaseError should be issued if the user selects a release that is
+// either not active or does not exist
+var invalidReleaseError = errgo.New("invalid release")
+
+// IsInvalidReleaseError asserts invalidReleaseError
+func IsInvalidReleaseError(err error) bool {
+	return errgo.Cause(err) == invalidReleaseError
+}

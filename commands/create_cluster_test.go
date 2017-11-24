@@ -104,9 +104,32 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Log("mockServer request: ", r.Method, r.URL)
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Location", "/v4/clusters/f6e8r/")
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(`{"code": "RESOURCE_CREATED", "message": "Yeah!"}`))
+		if r.Method == "POST" && r.URL.String() == "/v4/clusters/" {
+			w.Header().Set("Location", "/v4/clusters/f6e8r/")
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{"code": "RESOURCE_CREATED", "message": "Yeah!"}`))
+		} else if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[
+			  {
+					"timestamp": "2017-10-15T12:00:00Z",
+			    "version": "0.3.0",
+			    "active": true,
+			    "changelog": [
+			      {
+			        "component": "firstComponent",
+			        "description": "firstComponent added."
+			      }
+			    ],
+			    "components": [
+			      {
+			        "name": "firstComponent",
+			        "version": "0.0.1"
+			      }
+			    ]
+			  }
+			]`))
+		}
 	}))
 	defer mockServer.Close()
 

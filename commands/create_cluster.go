@@ -186,6 +186,9 @@ func createClusterValidationOutput(cmd *cobra.Command, args []string) {
 		case IsNotEnoughStoragePerWorkerError(err):
 			headline = "Not enough Storage per worker specified"
 			subtext = fmt.Sprintf("You'll need at least %.1f GB per worker node.", minimumWorkerStorageSizeGB)
+		case IsInvalidReleaseError(err):
+			headline = "Invalid release"
+			subtext = fmt.Sprintf("The selected release version '%s' either does not exist, or is not active.", aca.releaseVersion)
 		default:
 			headline = err.Error()
 		}
@@ -307,6 +310,28 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 		// check for incompatibilities
 		if args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 {
 			return microerror.Mask(incompatibleSettingsError)
+		}
+	}
+
+	if args.releaseVersion != "" {
+		// check release validity
+		releaseValid := false
+		listReleasesArgs := defaultListReleasesArguments()
+		listReleasesArgs.apiEndpoint = args.apiEndpoint
+		listReleasesArgs.token = args.token
+		listReleasesResult, err := listReleases(listReleasesArgs)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		for _, release := range listReleasesResult.releases {
+			if release.Version == args.releaseVersion && release.Active {
+				releaseValid = true
+			}
+		}
+
+		if !releaseValid {
+			return microerror.Mask(invalidReleaseError)
 		}
 	}
 
