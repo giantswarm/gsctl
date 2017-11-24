@@ -96,7 +96,7 @@ func verifyShowClusterPreconditions(args showClusterArguments, cmdLineArgs []str
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(notLoggedInError)
 	}
-	if len(cmdLineArgs) == 0 || args.clusterID == "" {
+	if len(cmdLineArgs) == 0 {
 		return microerror.Mask(clusterIDMissingError)
 	}
 	return nil
