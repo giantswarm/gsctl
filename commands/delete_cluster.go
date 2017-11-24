@@ -63,6 +63,9 @@ Example:
 func init() {
 	DeleteClusterCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to delete")
 	DeleteClusterCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
+
+	DeleteClusterCommand.MarkFlagRequired("cluster")
+
 	DeleteCommand.AddCommand(DeleteClusterCommand)
 }
 

@@ -63,6 +63,8 @@ type listKeypairsResult struct {
 
 func init() {
 	ListKeypairsCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to list key pairs for")
+
+	ListKeypairsCommand.MarkFlagRequired("cluster")
 	ListCommand.AddCommand(ListKeypairsCommand)
 }
 

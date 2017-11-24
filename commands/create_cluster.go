@@ -145,6 +145,8 @@ func init() {
 	// kubernetes-version never had any effect, and is deprecated now on the API side, too
 	CreateClusterCommand.Flags().MarkDeprecated("kubernetes-version", "please use --release-version to specify a release to use")
 
+	CreateClusterCommand.MarkFlagRequired("owner")
+
 	CreateCommand.AddCommand(CreateClusterCommand)
 }
 

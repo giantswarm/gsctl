@@ -37,6 +37,8 @@ func init() {
 	CreateKeypairCommand.Flags().StringVarP(&cmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
 	CreateKeypairCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key pair in days")
 
+	CreateKeypairCommand.MarkFlagRequired("cluster")
+
 	CreateCommand.AddCommand(CreateKeypairCommand)
 }
 
