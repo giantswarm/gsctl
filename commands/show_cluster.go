@@ -189,6 +189,12 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	created := util.ParseDate(clusterDetails.CreateDate)
 
 	output = append(output, color.YellowString("ID:")+"|"+clusterDetails.Id)
+
+	if clusterDetails.Name != "" {
+		output = append(output, color.YellowString("Name:")+"|"+clusterDetails.Name)
+	} else {
+		output = append(output, color.YellowString("Name:")+"|n/a")
+	}
 	output = append(output, color.YellowString("Created:")+"|"+util.ShortDate(created))
 	output = append(output, color.YellowString("Organization:")+"|"+clusterDetails.Owner)
 	output = append(output, color.YellowString("Kubernetes API endpoint:")+"|"+clusterDetails.ApiEndpoint)
