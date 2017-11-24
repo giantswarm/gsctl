@@ -61,7 +61,7 @@ func defaultVerbNounArguments() verbNounArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
 
-	return showClusterArguments{
+	return verbNounArguments{
 		apiEndpoint:       endpoint,
 		authToken:         token,
 		anotherArgument:   "",
