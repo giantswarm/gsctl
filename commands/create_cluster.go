@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/giantswarm/microerror"
+	"github.com/juju/errgo"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/fatih/color"
@@ -207,6 +208,7 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 	if err != nil {
 		var headline string
 		var subtext string
+		richError, richErrorOK := err.(*errgo.Err)
 
 		switch {
 		case IsClusterOwnerMissingError(err):
@@ -232,6 +234,12 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 			headline = "The cluster could not be created."
 			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
 			subtext += " Sorry for the inconvenience!"
+
+			if richErrorOK {
+				subtext += "\n\nDetails:\n"
+				subtext += richError.Message()
+			}
+
 		default:
 			headline = err.Error()
 		}
@@ -482,8 +490,8 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		// handle API result
 		if responseBody.Code != "RESOURCE_CREATED" {
 			return result, microerror.Maskf(couldNotCreateClusterError,
-				fmt.Sprintf("Error in API request to create cluster: %s (Code: %s)",
-					responseBody.Message, responseBody.Code))
+				fmt.Sprintf("Error in API request to create cluster: %s (Code: %s, HTTP status: %d)",
+					responseBody.Message, responseBody.Code, apiResponse.StatusCode))
 		}
 		result.location = apiResponse.Header["Location"][0]
 		result.id = strings.Split(result.location, "/")[3]
