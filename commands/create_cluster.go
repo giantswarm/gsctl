@@ -135,6 +135,8 @@ func init() {
 	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().BoolVarP(&cmdDryRun, "dry-run", "", false, "If set, the cluster won't be created. Useful with -v|--verbose.")
 
+	CreateClusterCommand.MarkFlagRequired("owner")
+
 	CreateCommand.AddCommand(CreateClusterCommand)
 }
 

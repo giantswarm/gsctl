@@ -32,6 +32,8 @@ build
 release
 /gsctl
 /gsctl.exe
+/gsctl-completion-bash.sh
+/gsctl-completion-zsh.sh
 
 /coverage.txt
 
