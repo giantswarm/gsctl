@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/giantswarm/microerror"
+	"github.com/juju/errgo"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/fatih/color"
@@ -25,7 +26,6 @@ type addClusterArguments struct {
 	clusterName             string
 	dryRun                  bool
 	inputYAMLFile           string
-	kubernetesVersion       string
 	numWorkers              int
 	owner                   string
 	token                   string
@@ -33,6 +33,7 @@ type addClusterArguments struct {
 	workerNumCPUs           int
 	workerMemorySizeGB      float32
 	workerStorageSizeGB     float32
+	releaseVersion          string
 	verbose                 bool
 }
 
@@ -40,14 +41,14 @@ func defaultAddClusterArguments() addClusterArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
 	return addClusterArguments{
-		apiEndpoint:       endpoint,
-		clusterName:       cmdClusterName,
-		dryRun:            cmdDryRun,
-		inputYAMLFile:     cmdInputYAMLFile,
-		kubernetesVersion: cmdKubernetesVersion,
-		numWorkers:        cmdNumWorkers,
-		owner:             cmdOwner,
-		token:             token,
+		apiEndpoint:             endpoint,
+		clusterName:             cmdClusterName,
+		dryRun:                  cmdDryRun,
+		inputYAMLFile:           cmdInputYAMLFile,
+		numWorkers:              cmdNumWorkers,
+		owner:                   cmdOwner,
+		token:                   token,
+		releaseVersion:          cmdRelease,
 		wokerAwsEc2InstanceType: cmdWorkerAwsEc2InstanceType,
 		workerNumCPUs:           cmdWorkerNumCPUs,
 		workerMemorySizeGB:      cmdWorkerMemorySizeGB,
@@ -66,7 +67,8 @@ type addClusterResult struct {
 }
 
 const (
-	// TODO: These settings should come from the API
+	// TODO: These settings should come from the API.
+	// See https://github.com/giantswarm/gsctl/issues/155
 	minimumNumWorkers          int     = 1
 	minimumWorkerNumCPUs       int     = 1
 	minimumWorkerMemorySizeGB  float32 = 1
@@ -90,15 +92,15 @@ Alternatively, the --file|-f flag allows to pass a detailed definition YAML file
 that can contain specs for each individual worker node, like number of CPUs,
 memory size, local storage size, and node labels.
 
-When using a definition file, some command line flags like --name and --owner
-can be used to extend the definition given as a file. Command line flags take
-precedence.
+When using a definition file, some command line flags like --name|-n and
+--owner|-o can be used to extend the definition given as a file. Command line
+flags take precedence.
 
 Examples:
 
 	gsctl create cluster --file my-cluster.yaml
 
-	gsctl create cluster --owner myorg --name "My Cluster" --num-workers 5 --num-cpus 2
+	gsctl create cluster -o myorg -n "My Cluster" --num-workers 5 --num-cpus 2
 
 	gsctl create cluster --owner myorg --name "My AWS Cluster" --num-workers 2 --aws-instance-type m3.medium
 
@@ -111,7 +113,7 @@ Examples:
 	cmdInputYAMLFile string
 	// cluster name set via flag on execution
 	cmdClusterName string
-	// Kubernetes version number required via flag on execution
+	// Kubernetes version number required via flag on execution (deprecated)
 	cmdKubernetesVersion string
 	// owner organization of the cluster as set via flag on execution
 	cmdOwner string
@@ -119,21 +121,30 @@ Examples:
 	cmdNumWorkers int
 	// AWS EC2 instance type to use, provided as a command line flag
 	cmdWorkerAwsEc2InstanceType string
+	// cmdRelease sets a release to use, provided as a command line flag
+	cmdRelease string
 	// dry run command line flag
 	cmdDryRun bool
 )
 
 func init() {
 	CreateClusterCommand.Flags().StringVarP(&cmdInputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file")
-	CreateClusterCommand.Flags().StringVarP(&cmdClusterName, "name", "", "", "Cluster name")
+	CreateClusterCommand.Flags().StringVarP(&cmdClusterName, "name", "n", "", "Cluster name")
 	CreateClusterCommand.Flags().StringVarP(&cmdKubernetesVersion, "kubernetes-version", "", "", "Kubernetes version of the cluster")
-	CreateClusterCommand.Flags().StringVarP(&cmdOwner, "owner", "", "", "Organization to own the cluster")
+	CreateClusterCommand.Flags().StringVarP(&cmdOwner, "owner", "o", "", "Organization to own the cluster")
+	CreateClusterCommand.Flags().StringVarP(&cmdRelease, "release", "r", "", "Release version to use, e. g. '0.3.0'. Defaults to the latest. See 'gsctl list releases -h' for details.")
 	CreateClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "", 0, "Number of worker nodes. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
 	CreateClusterCommand.Flags().IntVarP(&cmdWorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().BoolVarP(&cmdDryRun, "dry-run", "", false, "If set, the cluster won't be created. Useful with -v|--verbose.")
+
+	// we mark this hidden until while it is not useful and undocumented
+	CreateClusterCommand.Flags().MarkHidden("release")
+
+	// kubernetes-version never had any effect, and is deprecated now on the API side, too
+	CreateClusterCommand.Flags().MarkDeprecated("kubernetes-version", "please use --release-version to specify a release to use")
 
 	CreateClusterCommand.MarkFlagRequired("owner")
 
@@ -175,6 +186,9 @@ func createClusterValidationOutput(cmd *cobra.Command, args []string) {
 		case IsNotEnoughStoragePerWorkerError(err):
 			headline = "Not enough Storage per worker specified"
 			subtext = fmt.Sprintf("You'll need at least %.1f GB per worker node.", minimumWorkerStorageSizeGB)
+		case IsInvalidReleaseError(err):
+			headline = "Invalid release"
+			subtext = fmt.Sprintf("The selected release version '%s' either does not exist, or is not active.", aca.releaseVersion)
 		default:
 			headline = err.Error()
 		}
@@ -197,6 +211,7 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 	if err != nil {
 		var headline string
 		var subtext string
+		richError, richErrorOK := err.(*errgo.Err)
 
 		switch {
 		case IsClusterOwnerMissingError(err):
@@ -222,6 +237,15 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 			headline = "The cluster could not be created."
 			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
 			subtext += " Sorry for the inconvenience!"
+
+			// more details for backend side / connection errors
+			subtext += "\n\nDetails:\n"
+			if richErrorOK {
+				subtext += richError.Message()
+			} else {
+				subtext += err.Error()
+			}
+
 		default:
 			headline = err.Error()
 		}
@@ -235,14 +259,16 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 	}
 
 	// success output
-	if result.definition.Name != "" {
-		fmt.Println(color.GreenString("New cluster '%s' (ID '%s') for organization '%s' is launching.", result.definition.Name, result.id, result.definition.Owner))
-	} else {
-		fmt.Println(color.GreenString("New cluster with ID '%s' for organization '%s' is launching.", result.id, result.definition.Owner))
+	if !aca.dryRun {
+		if result.definition.Name != "" {
+			fmt.Println(color.GreenString("New cluster '%s' (ID '%s') for organization '%s' is launching.", result.definition.Name, result.id, result.definition.Owner))
+		} else {
+			fmt.Println(color.GreenString("New cluster with ID '%s' for organization '%s' is launching.", result.id, result.definition.Owner))
+		}
+		fmt.Println("Add key pair and settings to kubectl using")
+		fmt.Println("")
+		fmt.Printf("    %s\n\n", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s", result.id)))
 	}
-	fmt.Println("Add key pair and settings to kubectl using")
-	fmt.Println("")
-	fmt.Printf("    %s\n\n", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s", result.id)))
 }
 
 // validateCreateClusterPreConditions checks preconditions and returns an error in case
@@ -290,6 +316,28 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 		}
 	}
 
+	if args.releaseVersion != "" {
+		// check release validity
+		releaseValid := false
+		listReleasesArgs := defaultListReleasesArguments()
+		listReleasesArgs.apiEndpoint = args.apiEndpoint
+		listReleasesArgs.token = args.token
+		listReleasesResult, err := listReleases(listReleasesArgs)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		for _, release := range listReleasesResult.releases {
+			if release.Version == args.releaseVersion && release.Active {
+				releaseValid = true
+			}
+		}
+
+		if !releaseValid {
+			return microerror.Mask(invalidReleaseError)
+		}
+	}
+
 	return nil
 }
 
@@ -319,8 +367,8 @@ func enhanceDefinitionWithFlags(def *clusterDefinition, args addClusterArguments
 	if args.clusterName != "" {
 		def.Name = args.clusterName
 	}
-	if args.kubernetesVersion != "" {
-		def.KubernetesVersion = args.kubernetesVersion
+	if args.releaseVersion != "" {
+		def.ReleaseVersion = args.releaseVersion
 	}
 	if args.owner != "" {
 		def.Owner = args.owner
@@ -336,8 +384,8 @@ func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 		def.Name = args.clusterName
 	}
 
-	if args.kubernetesVersion != "" {
-		def.KubernetesVersion = args.kubernetesVersion
+	if args.releaseVersion != "" {
+		def.ReleaseVersion = args.releaseVersion
 	}
 
 	if args.owner != "" {
@@ -379,7 +427,7 @@ func createAddClusterBody(d clusterDefinition) gsclientgen.V4AddClusterRequest {
 	a := gsclientgen.V4AddClusterRequest{}
 	a.Name = d.Name
 	a.Owner = d.Owner
-	a.KubernetesVersion = d.KubernetesVersion
+	a.ReleaseVersion = d.ReleaseVersion
 
 	for _, dWorker := range d.Workers {
 		ndmWorker := gsclientgen.V4NodeDefinition{}
@@ -470,8 +518,8 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		// handle API result
 		if responseBody.Code != "RESOURCE_CREATED" {
 			return result, microerror.Maskf(couldNotCreateClusterError,
-				fmt.Sprintf("Error in API request to create cluster: %s (Code: %s)",
-					responseBody.Message, responseBody.Code))
+				fmt.Sprintf("Error in API request to create cluster: %s (Code: %s, HTTP status: %d)",
+					responseBody.Message, responseBody.Code, apiResponse.StatusCode))
 		}
 		result.location = apiResponse.Header["Location"][0]
 		result.id = strings.Split(result.location, "/")[3]

@@ -523,6 +523,9 @@ definitions:
       name:
         type: string
         description: Cluster name
+      release_version:
+        type: string
+        description: Release version number
       kubernetes_version:
         type: string
         description: Kubernetes version number
