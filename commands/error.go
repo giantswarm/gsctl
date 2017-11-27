@@ -256,3 +256,10 @@ var invalidCredentialsError = errgo.New("invalid credentials submitted")
 func IsInvalidCredentialsError(err error) bool {
 	return errgo.Cause(err) == invalidCredentialsError
 }
+
+var kubectlMissingError = errgo.New("kubectl not installed")
+
+// IsKubectlMissingError asserts kubectlMissingError
+func IsKubectlMissingError(err error) bool {
+	return errgo.Cause(err) == kubectlMissingError
+}
