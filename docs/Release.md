@@ -85,7 +85,7 @@ Replace `<MAJOR.MINOR.PATCH>` with the actual version number.
 ```
 export VERSION=<MAJOR.MINOR.PATCH>
 git checkout master
-echo "${VERSION}" > ./VERSION
+echo -n "${VERSION}" > ./VERSION
 git commit -m "Version bump to ${VERSION}" ./VERSION
 git push origin master
 git tag -a ${VERSION} -m "Release version ${VERSION}"
