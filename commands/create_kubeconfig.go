@@ -94,37 +94,42 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultCreateKubeconfigArguments()
 	err := verifyCreateKubeconfigPreconditions(args, cmdLineArgs)
 
-	if err != nil {
-		var headline = ""
-		var subtext = ""
-
-		switch {
-		case err.Error() == "":
-			return
-		case IsNotLoggedInError(err):
-			headline = "You are not logged in."
-			subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
-		case IsKubectlMissingError(err):
-			headline = "kubectl is not installed"
-			if runtime.GOOS == "darwin" {
-				subtext = "Please install via 'brew install kubernetes-cli' or visit\n"
-				subtext += fmt.Sprintf("%s for information on how to install kubectl", kubectlInstallURL)
-			} else if runtime.GOOS == "linux" {
-				subtext = fmt.Sprintf("Please visit %s for information on how to install kubectl", kubectlInstallURL)
-			} else if runtime.GOOS == "windows" {
-				subtext = fmt.Sprintf("Please visit %s to download a recent kubectl binary.", kubectlWindowsInstallURL)
-			}
-		default:
-			headline = err.Error()
-		}
-
-		// print output
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
-		os.Exit(1)
+	if err == nil {
+		return
 	}
+
+	headline := ""
+	subtext := ""
+
+	switch {
+	case err.Error() == "":
+		return
+	case IsNotLoggedInError(err):
+		headline = "You are not logged in."
+		subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
+	case IsKubectlMissingError(err):
+		headline = "kubectl is not installed"
+		if runtime.GOOS == "darwin" {
+			subtext = "Please install via 'brew install kubernetes-cli' or visit\n"
+			subtext += fmt.Sprintf("%s for information on how to install kubectl", kubectlInstallURL)
+		} else if runtime.GOOS == "linux" {
+			subtext = fmt.Sprintf("Please visit %s for information on how to install kubectl", kubectlInstallURL)
+		} else if runtime.GOOS == "windows" {
+			subtext = fmt.Sprintf("Please visit %s to download a recent kubectl binary.", kubectlWindowsInstallURL)
+		}
+	case IsClusterIDMissingError(err):
+		headline = "No cluster specified"
+		subtext = "Please use the --cluster or -c flag to indicate a cluster ID. Use --help for details."
+	default:
+		headline = err.Error()
+	}
+
+	// print output
+	fmt.Println(color.RedString(headline))
+	if subtext != "" {
+		fmt.Println(subtext)
+	}
+	os.Exit(1)
 
 }
 
@@ -154,9 +159,10 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultCreateKubeconfigArguments()
 	result, err := createKubeconfig(args)
 
-	if err != nil {
-		var headline = ""
-		var subtext = ""
+	if err == nil {
+
+		headline := ""
+		subtext := ""
 
 		switch {
 		case IsCouldNotCreateClientError(err):
@@ -229,8 +235,12 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 	authHeader := "giantswarm " + args.authToken
 
 	// get cluster details
-	clusterDetailsResponse, apiResponse, err := apiClient.GetCluster(authHeader,
-		args.clusterID, requestIDHeader, createKubeconfigActivityName, cmdLine)
+	clusterDetailsResponse, apiResponse, err := apiClient.GetCluster(
+		authHeader,
+		args.clusterID,
+		requestIDHeader,
+		createKubeconfigActivityName,
+		cmdLine)
 	if err != nil {
 		return result, microerror.Maskf(err, fmt.Sprintf("HTTP status: %d", apiResponse.StatusCode))
 	}
