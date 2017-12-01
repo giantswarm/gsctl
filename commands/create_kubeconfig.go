@@ -262,7 +262,7 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		result.keypairResponse.TtlHours)
 
 	if result.selfContainedPath != "" {
-		fmt.Printf("Self-contained kubectl config files written to: %s\n", result.selfContainedPath)
+		fmt.Printf("Self-contained kubectl config file written to: %s\n", result.selfContainedPath)
 
 		fmt.Printf("\nTo make use of this file, run:\n\n")
 		fmt.Println(color.YellowString("    export KUBECONFIG=" + result.selfContainedPath))
