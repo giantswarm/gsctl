@@ -16,7 +16,7 @@ func IsCouldNotSetKubectlCredentialsError(err error) bool {
 	return errgo.Cause(err) == CouldNotSetKubectlCredentialsError
 }
 
-var CouldNotSetKubectlContextError = errgo.New("could not set context using 'kubectl config sez-context''")
+var CouldNotSetKubectlContextError = errgo.New("could not set context using 'kubectl config set-context''")
 
 // IsCouldNotSetKubectlContextError asserts CouldNotSetKubectlContextError.
 func IsCouldNotSetKubectlContextError(err error) bool {
