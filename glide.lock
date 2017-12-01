@@ -1,5 +1,5 @@
-hash: 41f48a14ab8eba9db1b0284e66aabb9ef340edfb220edbbfd195e0124e513845
-updated: 2017-11-21T15:40:52.825574+01:00
+hash: de163f7da8d8ed1686a5b801367cea706d01eb9c9d58525167f430502ab6a58f
+updated: 2017-11-24T11:56:29.096696+01:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -14,7 +14,7 @@ imports:
 - name: github.com/giantswarm/columnize
   version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
 - name: github.com/giantswarm/gsclientgen
-  version: 9a965a88d40f2be1601415664d31ea9ab258f7ea
+  version: 2dd9a6c9ab5dafb41d93f389fb39befe1ff6b4c0
 - name: github.com/giantswarm/microerror
   version: ec5f66bb657662031c0d651504fee6908cdf28d9
 - name: github.com/hashicorp/go-rootcerts
@@ -36,7 +36,7 @@ imports:
 - name: github.com/mitchellh/go-homedir
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/spf13/cobra
-  version: 19e54c4a2b8a78c9d54b2bed61b1a6c5e1bfcf6f
+  version: 1be1d2841c773c01bee8289f55f7463b6e2c2539
 - name: github.com/spf13/pflag
   version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
 - name: go4.org
@@ -44,15 +44,15 @@ imports:
   subpackages:
   - reflectutil
 - name: golang.org/x/crypto
-  version: 9f005a07e0d31d45e6656d241bb5c0f2efd4bc94
+  version: b080dc9a8c480b08e698fb1219160d598526310f
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 9dfe39835686865bff950a07b394c12a98ddc811
+  version: c7086645de248775cbf2373cf5ca4d2fa664b8c1
   subpackages:
   - publicsuffix
 - name: golang.org/x/sys
-  version: 328643532ee3c60c099171d4ce2cad0ca0354ca9
+  version: a13efeb2fd213cf4be7227992aa54519af3b2ac0
   subpackages:
   - unix
   - windows

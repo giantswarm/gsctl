@@ -43,7 +43,8 @@ type createKubeconfigArguments struct {
 	ttlHours    int32
 }
 
-// defaultCreateKubeconfigArguments creates arguments based on command line flags and config
+// defaultCreateKubeconfigArguments creates arguments based on command line
+// flags and config and applies defaults
 func defaultCreateKubeconfigArguments() createKubeconfigArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)

@@ -91,7 +91,7 @@ func TestShowClusterMissingID(t *testing.T) {
 		authToken:   "auth-token",
 	}
 
-	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := verifyShowClusterPreconditions(testArgs, []string{})
 	if !IsClusterIDMissingError(err) {
 		t.Errorf("Expected clusterIdMissingError, got '%s'", err.Error())
 	}

@@ -19,6 +19,9 @@ type V4AddClusterRequest struct {
 	// Cluster name
 	Name string `json:"name,omitempty"`
 
+	// Release version number
+	ReleaseVersion string `json:"release_version,omitempty"`
+
 	// Kubernetes version number
 	KubernetesVersion string `json:"kubernetes_version,omitempty"`
 

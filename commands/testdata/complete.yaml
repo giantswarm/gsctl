@@ -2,7 +2,7 @@
 # to be passed via the `gsctl create cluster -f` command
 name: Complete cluster spec
 owner: giantswarm
-kubernetes_version: 1.4.6
+release_version: 1.2.3
 workers:
   - memory:
       size_gb: 2

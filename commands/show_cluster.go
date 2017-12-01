@@ -96,7 +96,7 @@ func verifyShowClusterPreconditions(args showClusterArguments, cmdLineArgs []str
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(notLoggedInError)
 	}
-	if len(cmdLineArgs) == 0 || args.clusterID == "" {
+	if len(cmdLineArgs) == 0 {
 		return microerror.Mask(clusterIDMissingError)
 	}
 	return nil
@@ -189,6 +189,12 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	created := util.ParseDate(clusterDetails.CreateDate)
 
 	output = append(output, color.YellowString("ID:")+"|"+clusterDetails.Id)
+
+	if clusterDetails.Name != "" {
+		output = append(output, color.YellowString("Name:")+"|"+clusterDetails.Name)
+	} else {
+		output = append(output, color.YellowString("Name:")+"|n/a")
+	}
 	output = append(output, color.YellowString("Created:")+"|"+util.ShortDate(created))
 	output = append(output, color.YellowString("Organization:")+"|"+clusterDetails.Owner)
 	output = append(output, color.YellowString("Kubernetes API endpoint:")+"|"+clusterDetails.ApiEndpoint)
