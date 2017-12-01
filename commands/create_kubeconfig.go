@@ -175,6 +175,9 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		case util.IsCouldNotUseKubectlContextError(err):
 			headline = "Error: " + err.Error()
 			subtext = "Context name to select is: giantswarm-" + args.clusterID
+		case IsClusterNotFoundError(err):
+			headline = fmt.Sprintf("Error: Cluster '%s' does not exist.", args.clusterID)
+			subtext = "Please check the ID spelling or list clusters using 'gsctl list clusters'."
 		default:
 			headline = err.Error()
 		}
@@ -278,6 +281,9 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 			return result, microerror.Mask(util.CouldNotUseKubectlContextError)
 		}
 
+	} else if apiResponse.StatusCode == 404 {
+		// cluster not found
+		return result, microerror.Mask(clusterNotFoundError)
 	} else {
 		return result, microerror.Maskf(unknownError,
 			fmt.Sprintf("Unhandled response code: %v", apiResponse.StatusCode))
