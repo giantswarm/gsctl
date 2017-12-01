@@ -1,10 +1,14 @@
 package commands
 
 import (
+	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"runtime"
 	"time"
+
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen"
@@ -25,6 +29,10 @@ var (
 		PreRun: createKubeconfigPreRunOutput,
 		Run:    createKubeconfigRunOutput,
 	}
+
+	// cmdKubeconfigSelfContained is the command line flag for output of a
+	// self-contained kubeconfig file
+	cmdKubeconfigSelfContained = ""
 )
 
 const (
@@ -34,13 +42,14 @@ const (
 // createKubeconfigArguments is an argument struct to pass to our business
 // function and to the validation function
 type createKubeconfigArguments struct {
-	apiEndpoint string
-	authToken   string
-	clusterID   string
-	description string
-	cnPrefix    string
-	certOrgs    string
-	ttlHours    int32
+	apiEndpoint       string
+	authToken         string
+	clusterID         string
+	description       string
+	cnPrefix          string
+	certOrgs          string
+	ttlHours          int32
+	selfContainedPath string
 }
 
 // defaultCreateKubeconfigArguments creates arguments based on command line
@@ -54,13 +63,14 @@ func defaultCreateKubeconfigArguments() createKubeconfigArguments {
 	}
 
 	return createKubeconfigArguments{
-		apiEndpoint: endpoint,
-		authToken:   token,
-		clusterID:   cmdClusterID,
-		description: description,
-		cnPrefix:    cmdCNPrefix,
-		certOrgs:    cmdCertificateOrganizations,
-		ttlHours:    int32(cmdTTLDays) * 24,
+		apiEndpoint:       endpoint,
+		authToken:         token,
+		clusterID:         cmdClusterID,
+		description:       description,
+		cnPrefix:          cmdCNPrefix,
+		certOrgs:          cmdCertificateOrganizations,
+		ttlHours:          int32(cmdTTLDays) * 24,
+		selfContainedPath: cmdKubeconfigSelfContained,
 	}
 }
 
@@ -75,12 +85,62 @@ type createKubeconfigResult struct {
 	clientCertPath string
 	// path where we stored the client's private key
 	clientKeyPath string
+	// absolute path for a self-contained kubeconfig file
+	selfContainedPath string
+}
+
+// Kubeconfig is a struct used to create a kubectl configuration YAML file
+type Kubeconfig struct {
+	APIVersion     string                   `yaml:"apiVersion"`
+	Kind           string                   `yaml:"kind"`
+	Clusters       []KubeconfigNamedCluster `yaml:"clusters"`
+	Users          []KubeconfigUser         `yaml:"users"`
+	Contexts       []KubeconfigNamedContext `yaml:"contexts"`
+	CurrentContext string                   `yaml:"current-context"`
+	Preferences    struct{}                 `yaml:"preferences"`
+}
+
+// KubeconfigUser is a struct used to create a kubectl configuration YAML file
+type KubeconfigUser struct {
+	Name string                `yaml:"name"`
+	User KubeconfigUserKeyPair `yaml:"user"`
+}
+
+// KubeconfigUserKeyPair is a struct used to create a kubectl configuration YAML file
+type KubeconfigUserKeyPair struct {
+	ClientCertificateData string `yaml:"client-certificate-data"`
+	ClientKeyData         string `yaml:"client-key-data"`
+}
+
+// KubeconfigNamedCluster is a struct used to create a kubectl configuration YAML file
+type KubeconfigNamedCluster struct {
+	Name    string            `yaml:"name"`
+	Cluster KubeconfigCluster `yaml:"cluster"`
+}
+
+// KubeconfigCluster is a struct used to create a kubectl configuration YAML file
+type KubeconfigCluster struct {
+	Server                   string `yaml:"server"`
+	CertificateAuthorityData string `yaml:"certificate-authority-data"`
+}
+
+// KubeconfigNamedContext is a struct used to create a kubectl configuration YAML file
+type KubeconfigNamedContext struct {
+	Name    string            `yaml:"name"`
+	Context KubeconfigContext `yaml:"context"`
+}
+
+// KubeconfigContext is a struct used to create a kubectl configuration YAML file
+type KubeconfigContext struct {
+	Cluster string `yaml:"cluster"`
+	User    string `yaml:"user"`
 }
 
 func init() {
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key pair")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
+	CreateKubeconfigCommand.Flags().StringVarP(&cmdKubeconfigSelfContained, "self-contained", "", "", "Create a self-contained kubectl config with embedded credentials and write it to this path.")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
 	CreateKubeconfigCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key pair in days")
 
@@ -178,6 +238,9 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		case IsClusterNotFoundError(err):
 			headline = fmt.Sprintf("Error: Cluster '%s' does not exist.", args.clusterID)
 			subtext = "Please check the ID spelling or list clusters using 'gsctl list clusters'."
+		case IsCouldNotWriteFileError(err):
+			headline = "Error: File could not be written"
+			subtext = fmt.Sprintf("Details: %s", err.Error())
 		default:
 			headline = err.Error()
 		}
@@ -198,19 +261,27 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		util.Truncate(util.CleanKeypairID(result.keypairResponse.Id), 10),
 		result.keypairResponse.TtlHours)
 
-	fmt.Println("Certificate and key files written to:")
-	fmt.Println(result.caCertPath)
-	fmt.Println(result.clientCertPath)
-	fmt.Println(result.clientKeyPath)
+	if result.selfContainedPath != "" {
+		fmt.Printf("Self-contained kubectl config files written to: %s\n", result.selfContainedPath)
 
-	fmt.Printf("Switched to kubectl context 'giantswarm-%s'\n\n", args.clusterID)
+		fmt.Printf("\nTo make use of this file, run:\n\n")
+		fmt.Println(color.YellowString("    export KUBECONFIG=" + result.selfContainedPath))
+		fmt.Println(color.YellowString("    kubectl cluster-info\n"))
 
-	// final success message
-	fmt.Println(color.GreenString("kubectl is set up. Check it using this command:\n"))
-	fmt.Println(color.YellowString("    kubectl cluster-info\n"))
-	fmt.Println(color.GreenString("Whenever you want to switch to using this context:\n"))
-	fmt.Println(color.YellowString("    kubectl config use-context giantswarm-%s\n", args.clusterID))
+	} else {
+		fmt.Println("Certificate and key files written to:")
+		fmt.Println(result.caCertPath)
+		fmt.Println(result.clientCertPath)
+		fmt.Println(result.clientKeyPath)
 
+		fmt.Printf("Switched to kubectl context 'giantswarm-%s'\n\n", args.clusterID)
+
+		// final success message
+		fmt.Println(color.GreenString("kubectl is set up. Check it using this command:\n"))
+		fmt.Println(color.YellowString("    kubectl cluster-info\n"))
+		fmt.Println(color.GreenString("Whenever you want to switch to using this context:\n"))
+		fmt.Println(color.YellowString("    kubectl config use-context giantswarm-%s\n", args.clusterID))
+	}
 }
 
 func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, error) {
@@ -258,8 +329,19 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 		return result, microerror.Mask(err)
 	}
 
-	if apiResponse.StatusCode == 200 || apiResponse.StatusCode == 201 {
-		result.keypairResponse = *keypairResponse
+	if apiResponse.StatusCode == 404 {
+		// cluster not found
+		return result, microerror.Mask(clusterNotFoundError)
+	} else if apiResponse.StatusCode != 200 && apiResponse.StatusCode != 201 {
+		return result, microerror.Maskf(unknownError,
+			fmt.Sprintf("Unhandled response code: %v", apiResponse.StatusCode))
+	}
+
+	// success
+	result.keypairResponse = *keypairResponse
+
+	if args.selfContainedPath == "" {
+		// modify the given kubeconfig file
 		result.caCertPath = util.StoreCaCertificate(config.CertsDirPath,
 			args.clusterID, keypairResponse.CertificateAuthorityData)
 		result.clientCertPath = util.StoreClientCertificate(config.CertsDirPath,
@@ -280,13 +362,53 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 		if err := util.KubectlUseContext(args.clusterID); err != nil {
 			return result, microerror.Mask(util.CouldNotUseKubectlContextError)
 		}
-
-	} else if apiResponse.StatusCode == 404 {
-		// cluster not found
-		return result, microerror.Mask(clusterNotFoundError)
 	} else {
-		return result, microerror.Maskf(unknownError,
-			fmt.Sprintf("Unhandled response code: %v", apiResponse.StatusCode))
+		// create a self-contained kubeconfig
+		kubeconfig := Kubeconfig{
+			APIVersion:     "v1",
+			Kind:           "Config",
+			CurrentContext: "giantswarm-" + args.clusterID,
+			Clusters: []KubeconfigNamedCluster{
+				KubeconfigNamedCluster{
+					Name: "giantswarm-" + args.clusterID,
+					Cluster: KubeconfigCluster{
+						Server: result.apiEndpoint,
+						CertificateAuthorityData: base64.StdEncoding.EncodeToString([]byte(keypairResponse.CertificateAuthorityData)),
+					},
+				},
+			},
+			Contexts: []KubeconfigNamedContext{
+				KubeconfigNamedContext{
+					Name: "giantswarm-" + args.clusterID,
+					Context: KubeconfigContext{
+						Cluster: "giantswarm-" + args.clusterID,
+						User:    "giantswarm-" + args.clusterID + "-user",
+					},
+				},
+			},
+			Users: []KubeconfigUser{
+				KubeconfigUser{
+					Name: "giantswarm-" + args.clusterID + "-user",
+					User: KubeconfigUserKeyPair{
+						ClientCertificateData: base64.StdEncoding.EncodeToString([]byte(keypairResponse.ClientCertificateData)),
+						ClientKeyData:         base64.StdEncoding.EncodeToString([]byte(keypairResponse.ClientKeyData)),
+					},
+				},
+			},
+		}
+
+		// create YAML
+		yamlBytes, err := yaml.Marshal(&kubeconfig)
+		if err != nil {
+			return result, microerror.Mask(err)
+		}
+
+		err = ioutil.WriteFile(args.selfContainedPath, yamlBytes, 0600)
+		if err != nil {
+			return result, microerror.Maskf(couldNotWriteFileError, "could not write self-contained kubeconfig file")
+		}
+
+		result.selfContainedPath = args.selfContainedPath
 	}
 
 	return result, nil
