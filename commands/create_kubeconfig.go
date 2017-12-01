@@ -374,8 +374,8 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 	addKeyPairBody := gsclientgen.V4AddKeyPairBody{
 		Description:              args.description,
 		TtlHours:                 args.ttlHours,
-		CnPrefix:                 cmdCNPrefix,
-		CertificateOrganizations: cmdCertificateOrganizations,
+		CnPrefix:                 args.cnPrefix,
+		CertificateOrganizations: args.certOrgs,
 	}
 
 	clientConfig.Timeout = 60 * time.Second
