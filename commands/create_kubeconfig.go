@@ -50,6 +50,7 @@ type createKubeconfigArguments struct {
 	certOrgs          string
 	ttlHours          int32
 	selfContainedPath string
+	force             bool
 }
 
 // defaultCreateKubeconfigArguments creates arguments based on command line
@@ -71,6 +72,7 @@ func defaultCreateKubeconfigArguments() createKubeconfigArguments {
 		certOrgs:          cmdCertificateOrganizations,
 		ttlHours:          int32(cmdTTLDays) * 24,
 		selfContainedPath: cmdKubeconfigSelfContained,
+		force:             cmdForce,
 	}
 }
 
@@ -142,6 +144,7 @@ func init() {
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdKubeconfigSelfContained, "self-contained", "", "", "Create a self-contained kubectl config with embedded credentials and write it to this path.")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
+	CreateKubeconfigCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, --self-contained will overwrite existing files without interafctive confirmation.")
 	CreateKubeconfigCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key pair in days")
 
 	CreateKubeconfigCommand.MarkFlagRequired("cluster")
@@ -164,6 +167,8 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	switch {
 	case err.Error() == "":
 		return
+	case IsCommandAbortedError(err):
+		headline = "File not overwritten, no kubeconfig created."
 	case IsNotLoggedInError(err):
 		headline = "You are not logged in."
 		subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
@@ -211,6 +216,17 @@ func verifyCreateKubeconfigPreconditions(args createKubeconfigArguments, cmdLine
 		return microerror.Mask(kubectlMissingError)
 	}
 
+	// ask for confirmation to overwrite existing file
+	if args.selfContainedPath != "" && !args.force {
+		if _, err := os.Stat(args.selfContainedPath); !os.IsNotExist(err) {
+			confirmed := askForConfirmation("Do you want to overwrite " + args.selfContainedPath + " ?")
+			if !confirmed {
+				return microerror.Mask(commandAbortedError)
+			}
+		}
+
+	}
+
 	return nil
 }
 
@@ -219,7 +235,7 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultCreateKubeconfigArguments()
 	result, err := createKubeconfig(args)
 
-	if err == nil {
+	if err != nil {
 
 		headline := ""
 		subtext := ""
