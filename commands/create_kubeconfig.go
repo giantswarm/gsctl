@@ -92,7 +92,7 @@ func init() {
 // createKubeconfigPreRunOutput shows our pre-check results
 func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultCreateKubeconfigArguments()
-	err := verifyVerbNounPreconditions(args, cmdLineArgs)
+	err := verifyCreateKubeconfigPreconditions(args, cmdLineArgs)
 
 	if err != nil {
 		var headline = ""
@@ -128,9 +128,9 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 }
 
-// verifyVerbNounPreconditions checks if all preconditions are met and
+// verifyCreateKubeconfigPreconditions checks if all preconditions are met and
 // returns nil if yes, error if not
-func verifyVerbNounPreconditions(args createKubeconfigArguments, cmdLineArgs []string) error {
+func verifyCreateKubeconfigPreconditions(args createKubeconfigArguments, cmdLineArgs []string) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(notLoggedInError)
 	}
