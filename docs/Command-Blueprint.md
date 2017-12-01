@@ -78,29 +78,32 @@ func init() {
 
 // Prints results of our pre-validation
 func verbNounPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
-  args := defaultVerbNounArguments()
+	args := defaultVerbNounArguments()
 	err := verifyVerbNounPreconditions(args, cmdLineArgs)
-	if err != nil {
-		var headline = ""
-		var subtext = ""
 
-		switch {
-		case err.Error() == "":
-			return
-		case IsNotLoggedInError(err):
-			headline = "You are not logged in."
-			subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
-		default:
-			headline = err.Error()
-		}
+  if err == nil {
+    return
+  }
 
-		// print output
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
-		os.Exit(1)
+	headline := ""
+	subtext := ""
+
+	switch {
+	case err.Error() == "":
+		return
+	case IsNotLoggedInError(err):
+		headline = "You are not logged in."
+		subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
+	default:
+		headline = err.Error()
 	}
+
+	// print output
+	fmt.Println(color.RedString(headline))
+	if subtext != "" {
+		fmt.Println(subtext)
+	}
+	os.Exit(1)
 }
 
 // Checks if all preconditions are met, before actually executing
@@ -148,5 +151,4 @@ func verbNounRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 func verbNoun(args verbNoundArguments) (verbNounResult, error) {
 
 }
-
 ```
