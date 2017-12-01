@@ -23,9 +23,32 @@ import (
 var (
 	// CreateKubeconfigCommand performs the "create kubeconfig" function
 	CreateKubeconfigCommand = &cobra.Command{
-		Use:    "kubeconfig",
-		Short:  "Configure kubectl",
-		Long:   `Modifies kubectl configuration to access your Giant Swarm Kubernetes cluster`,
+		Use:   "kubeconfig",
+		Short: "Configure kubectl",
+		Long: `Creates or modifies kubectl configuration to access your Giant Swarm
+Kubernetes cluster
+
+By executing this command, you create a new key pair for your cluster to
+authenticate with as a kubectl user.
+
+By default, your kubectl config is modified to add user, cluster, and context
+entries. The config file is assumed to be in $HOME/.kube/config. If set, the
+path from the $KUBECONFIG environment variable is used. Certificate files are
+stored in the "certs" subfolder of the gsctl config directory. See 'gsctl info'.
+
+Alternatively, the --self-contained <path> flag can be used to create a new
+config file with included certificates.
+
+Examples:
+
+  gsctl create kubeconfig -c my0c3
+
+  gsctl create kubeconfig -c my0c3 --self-contained ./kubeconfig.yaml
+
+  gsctl create kubeconfig -c my0c3 --ttl 1 -d "Short lived key pair"
+
+  gsctl create kubeconfig -c my0c3 --certificate-organizations system:masters
+`,
 		PreRun: createKubeconfigPreRunOutput,
 		Run:    createKubeconfigRunOutput,
 	}
