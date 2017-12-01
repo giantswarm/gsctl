@@ -56,6 +56,9 @@ Examples:
 	// cmdKubeconfigSelfContained is the command line flag for output of a
 	// self-contained kubeconfig file
 	cmdKubeconfigSelfContained = ""
+
+	// flag for setting a kubectl context name to use
+	cmdKubeconfigContextName = ""
 )
 
 const (
@@ -74,6 +77,7 @@ type createKubeconfigArguments struct {
 	ttlHours          int32
 	selfContainedPath string
 	force             bool
+	contextName       string
 }
 
 // defaultCreateKubeconfigArguments creates arguments based on command line
@@ -81,9 +85,15 @@ type createKubeconfigArguments struct {
 func defaultCreateKubeconfigArguments() createKubeconfigArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+
 	description := cmdDescription
 	if description == "" {
 		description = "Added by user " + config.Config.Email + " using 'gsctl create kubeconfig'"
+	}
+
+	contextName := cmdKubeconfigContextName
+	if cmdKubeconfigContextName == "" {
+		contextName = "giantswarm-" + cmdClusterID
 	}
 
 	return createKubeconfigArguments{
@@ -96,6 +106,7 @@ func defaultCreateKubeconfigArguments() createKubeconfigArguments {
 		ttlHours:          int32(cmdTTLDays) * 24,
 		selfContainedPath: cmdKubeconfigSelfContained,
 		force:             cmdForce,
+		contextName:       contextName,
 	}
 }
 
@@ -112,6 +123,8 @@ type createKubeconfigResult struct {
 	clientKeyPath string
 	// absolute path for a self-contained kubeconfig file
 	selfContainedPath string
+	// the context name applied
+	contextName string
 }
 
 // Kubeconfig is a struct used to create a kubectl configuration YAML file
@@ -166,6 +179,7 @@ func init() {
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key pair")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdKubeconfigSelfContained, "self-contained", "", "", "Create a self-contained kubectl config with embedded credentials and write it to this path.")
+	CreateKubeconfigCommand.Flags().StringVarP(&cmdKubeconfigContextName, "context", "", "", "Set a custom context name. Defaults to 'giantswarm-<cluster-id>'.")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
 	CreateKubeconfigCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, --self-contained will overwrite existing files without interafctive confirmation.")
 	CreateKubeconfigCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key pair in days")
@@ -397,6 +411,7 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 			args.clusterID, keypairResponse.Id, keypairResponse.ClientCertificateData)
 		result.clientKeyPath = util.StoreClientKey(config.CertsDirPath,
 			args.clusterID, keypairResponse.Id, keypairResponse.ClientKeyData)
+		result.contextName = args.contextName
 
 		// edit kubectl config
 		if err := util.KubectlSetCluster(args.clusterID, clusterDetailsResponse.ApiEndpoint, result.caCertPath); err != nil {
@@ -405,10 +420,10 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 		if err := util.KubectlSetCredentials(args.clusterID, result.clientKeyPath, result.clientCertPath); err != nil {
 			return result, microerror.Mask(util.CouldNotSetKubectlCredentialsError)
 		}
-		if err := util.KubectlSetContext(args.clusterID); err != nil {
+		if err := util.KubectlSetContext(args.contextName, args.clusterID); err != nil {
 			return result, microerror.Mask(util.CouldNotSetKubectlContextError)
 		}
-		if err := util.KubectlUseContext(args.clusterID); err != nil {
+		if err := util.KubectlUseContext(args.contextName); err != nil {
 			return result, microerror.Mask(util.CouldNotUseKubectlContextError)
 		}
 	} else {
@@ -416,7 +431,7 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 		kubeconfig := Kubeconfig{
 			APIVersion:     "v1",
 			Kind:           "Config",
-			CurrentContext: "giantswarm-" + args.clusterID,
+			CurrentContext: args.contextName,
 			Clusters: []KubeconfigNamedCluster{
 				KubeconfigNamedCluster{
 					Name: "giantswarm-" + args.clusterID,
@@ -428,7 +443,7 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 			},
 			Contexts: []KubeconfigNamedContext{
 				KubeconfigNamedContext{
-					Name: "giantswarm-" + args.clusterID,
+					Name: args.contextName,
 					Context: KubeconfigContext{
 						Cluster: "giantswarm-" + args.clusterID,
 						User:    "giantswarm-" + args.clusterID + "-user",
