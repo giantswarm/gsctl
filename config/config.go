@@ -24,6 +24,9 @@ const (
 	// ConfigFileName is the name of the configuration file, without ending
 	ConfigFileName = "config"
 
+	// ConfigFilePermission is the rights mask for the config file
+	ConfigFilePermission = 0600
+
 	// ProgramName is the name of this program
 	ProgramName = "gsctl"
 
@@ -252,6 +255,11 @@ func Initialize(configDirPath string) error {
 			return fileErr
 		}
 		file.Close()
+
+		err = os.Chmod(ConfigFilePath, ConfigFilePermission)
+		if err != nil {
+			return microerror.Mask(err)
+		}
 	}
 
 	myConfig, err := readFromFile(ConfigFilePath)
