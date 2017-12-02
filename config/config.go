@@ -247,12 +247,12 @@ func Initialize(configDirPath string) error {
 		// ensure directory exists
 		dirErr := os.MkdirAll(ConfigDirPath, 0700)
 		if dirErr != nil {
-			return dirErr
+			return microerror.Mask(dirErr)
 		}
 		// ensure file exists
 		file, fileErr := os.Create(ConfigFilePath)
 		if fileErr != nil {
-			return fileErr
+			return microerror.Mask(fileErr)
 		}
 		file.Close()
 
@@ -338,7 +338,7 @@ func WriteToFile() error {
 		return microerror.Mask(err)
 	}
 
-	err = ioutil.WriteFile(ConfigFilePath, yamlBytes, 0600)
+	err = ioutil.WriteFile(ConfigFilePath, yamlBytes, ConfigFilePermission)
 	if err != nil {
 		return microerror.Mask(err)
 	}
