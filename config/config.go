@@ -343,6 +343,12 @@ func WriteToFile() error {
 		return microerror.Mask(err)
 	}
 
+	// finally update permissions, in case they weren't right before
+	err = os.Chmod(ConfigFilePath, ConfigFilePermission)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
 	return nil
 }
 
