@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -65,11 +66,16 @@ func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 	logoutArgs := defaultLogoutArguments()
 
 	err := logout(logoutArgs)
+
 	if err != nil {
-		var headline = ""
-		var subtext = ""
-		switch err.Error() {
-		case "":
+		headline := ""
+		subtext := ""
+
+		switch {
+		case IsNotAuthorizedError(err):
+			fmt.Printf("You have logged out from endpoint %s.\n", color.CyanString(logoutArgs.apiEndpoint))
+			os.Exit(0)
+		case err.Error() == "":
 			return
 		default:
 			headline = err.Error()
@@ -105,16 +111,18 @@ func logout(args logoutArguments) error {
 	authHeader := "giantswarm " + args.token
 	logoutResponse, apiResponse, err := apiClient.UserLogout(authHeader, requestIDHeader, logoutActivityName, cmdLine)
 	if err != nil {
-		return fmt.Errorf("Error in API request to logout: %s", err.Error())
+		// special treatment for HTTP 401 (unauthorized) error,
+		// in which case no JSON body is returned.
+		if apiResponse.Response.StatusCode == http.StatusUnauthorized {
+			return microerror.Mask(notAuthorizedError)
+		}
+
+		// other cases
+		return microerror.Mask(errors.New("Error in API request to logout: " + err.Error()))
 	}
 
 	if logoutResponse.StatusCode != apischema.STATUS_CODE_RESOURCE_DELETED {
-		if apiResponse.Response.StatusCode == http.StatusUnauthorized {
-			// we ignore a 401 (Unauthorized) response here, as it means in most cases
-			// that the token submitted was already expired.
-			return nil
-		}
-		return fmt.Errorf("Error in API request to logout: %#v", logoutResponse)
+		return microerror.Mask(fmt.Errorf("Error in API request to logout: %#v", logoutResponse))
 	}
 
 	return nil
