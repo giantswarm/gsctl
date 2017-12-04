@@ -257,6 +257,14 @@ func IsInvalidCredentialsError(err error) bool {
 	return errgo.Cause(err) == invalidCredentialsError
 }
 
+// kubectlMissingError means that the 'kubectl' executable is not available
+var kubectlMissingError = errgo.New("kubectl not installed")
+
+// IsKubectlMissingError asserts kubectlMissingError
+func IsKubectlMissingError(err error) bool {
+	return errgo.Cause(err) == kubectlMissingError
+}
+
 // invalidReleaseError should be issued if the user selects a release that is
 // either not active or does not exist
 var invalidReleaseError = errgo.New("invalid release")
@@ -264,4 +272,12 @@ var invalidReleaseError = errgo.New("invalid release")
 // IsInvalidReleaseError asserts invalidReleaseError
 func IsInvalidReleaseError(err error) bool {
 	return errgo.Cause(err) == invalidReleaseError
+}
+
+// couldNotWriteFileError is used when an attempt to write some file fails
+var couldNotWriteFileError = errgo.New("could not write file")
+
+// IsCouldNotWriteFileError asserts couldNotWriteFileError
+func IsCouldNotWriteFileError(err error) bool {
+	return errgo.Cause(err) == couldNotWriteFileError
 }
