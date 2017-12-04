@@ -299,11 +299,10 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	// Success output
 
-	fmt.Println("Creating new key pair…")
-
-	fmt.Printf("New key pair created with ID %s and expiry of %v hours\n",
+	msg := fmt.Sprintf("New key pair created with ID %s and expiry of %v",
 		util.Truncate(util.CleanKeypairID(result.keypairResponse.Id), 10),
-		result.keypairResponse.TtlHours)
+		util.DurationPhrase(int(result.keypairResponse.TtlHours)))
+	fmt.Println(color.GreenString(msg))
 
 	if result.selfContainedPath != "" {
 		fmt.Printf("Self-contained kubectl config file written to: %s\n", result.selfContainedPath)
