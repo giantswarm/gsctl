@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -118,11 +117,11 @@ func logout(args logoutArguments) error {
 		}
 
 		// other cases
-		return microerror.Mask(errors.New("Error in API request to logout: " + err.Error()))
+		return microerror.Maskf(unspecifiedAPIError, err.Error())
 	}
 
 	if logoutResponse.StatusCode != apischema.STATUS_CODE_RESOURCE_DELETED {
-		return microerror.Mask(fmt.Errorf("Error in API request to logout: %#v", logoutResponse))
+		return microerror.Maskf(unspecifiedAPIError, fmt.Sprintf("Error in API request to logout: %v", logoutResponse))
 	}
 
 	return nil
