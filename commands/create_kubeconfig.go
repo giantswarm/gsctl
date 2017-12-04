@@ -198,11 +198,10 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	// Success output
 
-	fmt.Println("Creating new key pair…")
-
-	fmt.Printf("New key pair created with ID %s and expiry of %s\n",
+	msg := fmt.Sprintf("New key pair created with ID %s and expiry of %v",
 		util.Truncate(util.CleanKeypairID(result.keypairResponse.Id), 10),
 		util.DurationPhrase(int(result.keypairResponse.TtlHours)))
+	fmt.Println(color.GreenString(msg))
 
 	fmt.Println("Certificate and key files written to:")
 	fmt.Println(result.caCertPath)

@@ -99,7 +99,7 @@ func addKeypair(cmd *cobra.Command, args []string) {
 
 	if apiResponse.StatusCode == 200 {
 		msg := fmt.Sprintf("New key pair created with ID %s and expiry of %v",
-			util.CleanKeypairID(keypairResponse.Id),
+			util.Truncate(util.CleanKeypairID(keypairResponse.Id), 10),
 			util.DurationPhrase(int(keypairResponse.TtlHours)))
 		fmt.Println(color.GreenString(msg))
 
