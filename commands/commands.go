@@ -137,7 +137,7 @@ func getCommandLine() string {
 			args[index] = "--password=REDACTED"
 		} else if arg == "--password" {
 			args[index+1] = "REDACTED"
-		} else if args[1] == "login" {
+		} else if len(args) > 1 && args[1] == "login" {
 			// this will explicitly only apply to the login command
 			if strings.HasPrefix(arg, "-p=") {
 				args[index] = "-p=REDACTED"
