@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/url"
 	"os"
 	"os/user"
@@ -32,6 +33,10 @@ const (
 
 	// VersionCheckInterval is the minimum time to wait between two version checks
 	VersionCheckInterval = time.Hour * 24
+
+	// garbageCollectionLikelihood is a number between 0 and 1 that sets the
+	// likelihood that we will execute garbage collection functions.
+	garbageCollectionLikelihood = .2
 )
 
 var (
@@ -264,6 +269,13 @@ func Initialize(configDirPath string) error {
 	os.MkdirAll(CertsDirPath, 0700)
 
 	KubeConfigPaths = getKubeconfigPaths(HomeDirPath)
+
+	// apply garbage collection
+	randSource := rand.NewSource(time.Now().UnixNano())
+	randGenerator := rand.New(randSource)
+	if randGenerator.Float32() < garbageCollectionLikelihood {
+		GarbageCollectKeyPairs()
+	}
 
 	return nil
 }
