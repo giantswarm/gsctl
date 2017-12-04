@@ -59,6 +59,7 @@ func Test_CreateKubeconfig(t *testing.T) {
 		t.Error(err)
 	}
 	os.Setenv("KUBECONFIG", kubeConfigPath)
+	defer os.Unsetenv("KUBECONFIG")
 
 	configDir, err := tempConfig("")
 	if err != nil {
@@ -66,13 +67,18 @@ func Test_CreateKubeconfig(t *testing.T) {
 	}
 	defer os.RemoveAll(configDir)
 
-	cmdAPIEndpoint = mockServer.URL
-	cmdClusterID = "test-cluster-id"
+	args := createKubeconfigArguments{
+		authToken:   "auth-token",
+		apiEndpoint: mockServer.URL,
+		clusterID:   "test-cluster-id",
+		contextName: "giantswarm-test-cluster-id",
+	}
 
-	args := defaultCreateKubeconfigArguments()
-	// no additional command line args
-	extraArgs := []string{}
-	verifyCreateKubeconfigPreconditions(args, extraArgs)
+	err = verifyCreateKubeconfigPreconditions(args, []string{})
+	if err != nil {
+		t.Error(err)
+	}
+
 	result, err := createKubeconfig(args)
 	if err != nil {
 		t.Error(err)
@@ -129,15 +135,19 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 	tmpdir := tempDir()
 	defer os.RemoveAll(tmpdir)
 
-	cmdAPIEndpoint = mockServer.URL
-	cmdClusterID = "test-cluster-id"
-	cmdKubeconfigSelfContained = tmpdir + string(os.PathSeparator) + "kubeconfig"
+	args := createKubeconfigArguments{
+		apiEndpoint:       mockServer.URL,
+		authToken:         "auth-token",
+		clusterID:         "test-cluster-id",
+		contextName:       "giantswarm-test-cluster-id",
+		selfContainedPath: tmpdir + string(os.PathSeparator) + "kubeconfig",
+	}
 
-	args := defaultCreateKubeconfigArguments()
+	err = verifyCreateKubeconfigPreconditions(args, []string{})
+	if err != nil {
+		t.Error(err)
+	}
 
-	// no additional command line args
-	extraArgs := []string{}
-	verifyCreateKubeconfigPreconditions(args, extraArgs)
 	result, err := createKubeconfig(args)
 	if err != nil {
 		t.Error(err)
@@ -177,5 +187,59 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 	}
 	if !strings.Contains(string(content), "certificate-authority-data:") {
 		t.Error("Kubeconfig doesn't contain the key certificate-authority-data")
+	}
+}
+
+// Test_CreateKubeconfigCustomContext tests creation of a kubeconfig
+// with custom context name
+func Test_CreateKubeconfigCustomContext(t *testing.T) {
+	mockServer := makeMockServer()
+	defer mockServer.Close()
+
+	// temporary kubeconfig file
+	kubeConfigPath, err := tempKubeconfig()
+	if err != nil {
+		t.Error(err)
+	}
+	os.Setenv("KUBECONFIG", kubeConfigPath)
+	defer os.Unsetenv("KUBECONFIG")
+
+	// temporary config
+	configDir, err := tempConfig("")
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.RemoveAll(configDir)
+
+	args := createKubeconfigArguments{
+		apiEndpoint: mockServer.URL,
+		authToken:   "auth-token",
+		clusterID:   "test-cluster-id",
+		contextName: "test-context",
+	}
+
+	err = verifyCreateKubeconfigPreconditions(args, []string{})
+	if err != nil {
+		t.Error(err)
+	}
+
+	result, err := createKubeconfig(args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// check result object
+	if result.contextName == "" {
+		t.Error("Expected non-empty result.contextName, got empty string")
+	}
+
+	// check kubeconfig content
+	content, err := ioutil.ReadFile(kubeConfigPath)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !strings.Contains(string(content), "current-context: "+args.contextName) {
+		t.Error("Kubeconfig doesn't contain the expected context name")
 	}
 }
