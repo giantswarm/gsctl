@@ -10,9 +10,9 @@ import (
 	"testing"
 )
 
-// makeMockServer returns a mock server to be used in several test cases
-func makeMockServer() *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// Test_CreateKubeconfig tests the createKubeconfig function with expected settings
+func Test_CreateKubeconfig(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("mockServer request: %s %s\n", r.Method, r.URL)
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method == "GET" && r.URL.String() == "/v4/clusters/test-cluster-id/" {
@@ -46,11 +46,6 @@ func makeMockServer() *httptest.Server {
 	      }`))
 		}
 	}))
-}
-
-// Test_CreateKubeconfig tests the createKubeconfig function with expected settings
-func Test_CreateKubeconfig(t *testing.T) {
-	mockServer := makeMockServer()
 	defer mockServer.Close()
 
 	// temporary kubeconfig file
@@ -109,73 +104,5 @@ func Test_CreateKubeconfig(t *testing.T) {
 	}
 	if !strings.Contains(string(content), "certificate-authority: "+configDir) {
 		t.Error("Kubeconfig doesn't contain the expected certificate-authority value")
-	}
-}
-
-// Test_CreateKubeconfigSelfContained tests creation of a self-contained
-// kubeconfig file with inline certs/key
-func Test_CreateKubeconfigSelfContained(t *testing.T) {
-	mockServer := makeMockServer()
-	defer mockServer.Close()
-
-	// temporary config
-	configDir, err := tempConfig("")
-	if err != nil {
-		t.Error(err)
-	}
-	defer os.RemoveAll(configDir)
-
-	// output folder
-	tmpdir := tempDir()
-	defer os.RemoveAll(tmpdir)
-
-	cmdAPIEndpoint = mockServer.URL
-	cmdClusterID = "test-cluster-id"
-	cmdKubeconfigSelfContained = tmpdir + string(os.PathSeparator) + "kubeconfig"
-
-	args := defaultCreateKubeconfigArguments()
-
-	// no additional command line args
-	extraArgs := []string{}
-	verifyCreateKubeconfigPreconditions(args, extraArgs)
-	result, err := createKubeconfig(args)
-	if err != nil {
-		t.Error(err)
-	}
-
-	// check result object contents
-	if result.apiEndpoint == "" {
-		t.Error("Expected non-empty result.apiEndpoint, got empty string")
-	}
-	if result.caCertPath != "" {
-		t.Error("Expected empty result.caCertPath, got non-empty string " + result.caCertPath)
-	}
-	if result.clientKeyPath != "" {
-		t.Error("Expected empty result.clientKeyPath, got non-empty string " + result.clientKeyPath)
-	}
-	if result.clientCertPath != "" {
-		t.Error("Expected empty result.clientCertPath, got non-empty string " + result.clientCertPath)
-	}
-	if result.selfContainedPath == "" {
-		t.Error("Expected non-empty result.selfContainedPath, got empty string")
-	}
-
-	// check kubeconfig content
-	content, err := ioutil.ReadFile(result.selfContainedPath)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if !strings.Contains(string(content), "current-context: giantswarm-"+cmdClusterID) {
-		t.Error("Kubeconfig doesn't contain the expected current-context value")
-	}
-	if !strings.Contains(string(content), "client-certificate-data:") {
-		t.Error("Kubeconfig doesn't contain the key client-certificate-data")
-	}
-	if !strings.Contains(string(content), "client-key-data:") {
-		t.Error("Kubeconfig doesn't contain the key client-key-data")
-	}
-	if !strings.Contains(string(content), "certificate-authority-data:") {
-		t.Error("Kubeconfig doesn't contain the key certificate-authority-data")
 	}
 }

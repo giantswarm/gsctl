@@ -273,11 +273,3 @@ var invalidReleaseError = errgo.New("invalid release")
 func IsInvalidReleaseError(err error) bool {
 	return errgo.Cause(err) == invalidReleaseError
 }
-
-// couldNotWriteFileError is used when an attempt to write some file fails
-var couldNotWriteFileError = errgo.New("could not write file")
-
-// IsCouldNotWriteFileError asserts couldNotWriteFileError
-func IsCouldNotWriteFileError(err error) bool {
-	return errgo.Cause(err) == couldNotWriteFileError
-}
