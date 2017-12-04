@@ -125,10 +125,30 @@ func randomRequestID() string {
 
 // getCommandLine returns the command line that has been called
 func getCommandLine() string {
-	if os.Getenv("GSCTL_DISABLE_CMDLINE_TRACKING") == "" {
-		return strings.Join(os.Args, " ")
+	if os.Getenv("GSCTL_DISABLE_CMDLINE_TRACKING") != "" {
+		return ""
 	}
-	return ""
+
+	args := os.Args
+
+	// redact passwords from command line
+	for index, arg := range args {
+		if strings.HasPrefix(arg, "--password=") {
+			args[index] = "--password=REDACTED"
+		} else if arg == "--password" {
+			args[index+1] = "REDACTED"
+		} else if args[1] == "login" {
+			// this will explicitly only apply to the login command
+			if strings.HasPrefix(arg, "-p=") {
+				args[index] = "-p=REDACTED"
+			} else if arg == "-p" {
+				args[index+1] = "REDACTED"
+			}
+		}
+	}
+
+	fmt.Printf("Args: %#v\n", args)
+	return strings.Join(args, " ")
 }
 
 // dumpAPIResponse prints details on an API response, useful in case of an error
