@@ -247,7 +247,6 @@ func verifyCreateKubeconfigPreconditions(args createKubeconfigArguments, cmdLine
 				return microerror.Mask(commandAbortedError)
 			}
 		}
-
 	}
 
 	return nil
