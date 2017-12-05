@@ -83,6 +83,8 @@ Before pushing any changes, please:
 
 ## Conventions
 
+See [Command Blueprint](https://github.com/giantswarm/gsctl/blob/master/docs/Command-Blueprint.md) for a scaffold of a command file.
+
 ### Typed Errors
 
 We use specific error objects and dedicated matcher functions to assert them. Example:
@@ -98,4 +100,4 @@ func IsNotLoggedInError(err error) bool {
 
 ## Publishing a Release
 
-See [RELEASE.md](https://github.com/giantswarm/gsctl/blob/master/RELEASE.md)
+See [RELEASE.md](https://github.com/giantswarm/gsctl/blob/master/docs/Release.md)

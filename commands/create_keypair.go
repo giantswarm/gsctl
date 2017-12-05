@@ -98,8 +98,9 @@ func addKeypair(cmd *cobra.Command, args []string) {
 	}
 
 	if apiResponse.StatusCode == 200 {
-		cleanID := util.CleanKeypairID(keypairResponse.Id)
-		msg := fmt.Sprintf("New key pair created with ID %s and expiry of %v hours", cleanID, keypairResponse.TtlHours)
+		msg := fmt.Sprintf("New key pair created with ID %s and expiry of %v",
+			util.Truncate(util.CleanKeypairID(keypairResponse.Id), 10),
+			util.DurationPhrase(int(keypairResponse.TtlHours)))
 		fmt.Println(color.GreenString(msg))
 
 		// store credentials to file

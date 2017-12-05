@@ -25,6 +25,9 @@ const (
 	// ConfigFileName is the name of the configuration file, without ending
 	ConfigFileName = "config"
 
+	// ConfigFilePermission is the rights mask for the config file
+	ConfigFilePermission = 0600
+
 	// ProgramName is the name of this program
 	ProgramName = "gsctl"
 
@@ -249,14 +252,19 @@ func Initialize(configDirPath string) error {
 		// ensure directory exists
 		dirErr := os.MkdirAll(ConfigDirPath, 0700)
 		if dirErr != nil {
-			return dirErr
+			return microerror.Mask(dirErr)
 		}
 		// ensure file exists
 		file, fileErr := os.Create(ConfigFilePath)
 		if fileErr != nil {
-			return fileErr
+			return microerror.Mask(fileErr)
 		}
 		file.Close()
+
+		err = os.Chmod(ConfigFilePath, ConfigFilePermission)
+		if err != nil {
+			return microerror.Mask(err)
+		}
 	}
 
 	myConfig, err := readFromFile(ConfigFilePath)
@@ -342,7 +350,13 @@ func WriteToFile() error {
 		return microerror.Mask(err)
 	}
 
-	err = ioutil.WriteFile(ConfigFilePath, yamlBytes, 0600)
+	err = ioutil.WriteFile(ConfigFilePath, yamlBytes, ConfigFilePermission)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	// finally update permissions, in case they weren't right before
+	err = os.Chmod(ConfigFilePath, ConfigFilePermission)
 	if err != nil {
 		return microerror.Mask(err)
 	}
