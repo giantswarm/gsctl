@@ -70,7 +70,7 @@ build/bin/$(BIN)-windows-amd64: $(SOURCE)
 
 # run unittests
 gotest:
-	go test -cover $(shell glide novendor)
+	go test -cover ./...
 
 # run some tests
 test:
@@ -139,4 +139,4 @@ bin-dist: crosscompile
 
 # remove generated stuff
 clean:
-	rm -rf bin-dist build release
+	rm -rf bin-dist build release ./gsctl
