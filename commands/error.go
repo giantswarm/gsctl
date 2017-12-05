@@ -281,3 +281,12 @@ var couldNotWriteFileError = errgo.New("could not write file")
 func IsCouldNotWriteFileError(err error) bool {
 	return errgo.Cause(err) == couldNotWriteFileError
 }
+
+// unspecifiedAPIError means an API error has occurred which we can't or don't
+// need to categorize any further.
+var unspecifiedAPIError = errgo.New("unspecified API error")
+
+// IsUnspecifiedAPIError asserts unspecifiedAPIError
+func IsUnspecifiedAPIError(err error) bool {
+	return errgo.Cause(err) == unspecifiedAPIError
+}

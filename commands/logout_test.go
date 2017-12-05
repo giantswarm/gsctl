@@ -44,7 +44,7 @@ func Test_LogoutInvalidToken(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{}`))
+		w.Write([]byte(``))
 	}))
 	defer mockServer.Close()
 
@@ -54,8 +54,8 @@ func Test_LogoutInvalidToken(t *testing.T) {
 	}
 
 	err = logout(logoutArgs)
-	if err != nil {
-		t.Error(err)
+	if !IsNotAuthorizedError(err) {
+		t.Errorf("Unexpected error: %s", err)
 	}
 }
 
