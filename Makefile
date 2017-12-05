@@ -139,4 +139,4 @@ bin-dist: crosscompile
 
 # remove generated stuff
 clean:
-	rm -rf bin-dist build release
+	rm -rf bin-dist build release ./gsctl
