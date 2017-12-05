@@ -128,10 +128,13 @@ func getCommandLine() string {
 	if os.Getenv("GSCTL_DISABLE_CMDLINE_TRACKING") != "" {
 		return ""
 	}
+	args := redactPasswordArgs(os.Args)
+	return strings.Join(args, " ")
+}
 
-	args := os.Args
-
-	// redact passwords from command line
+// redactPasswordArgs replaces password in an arguments slice
+// with "REDACTED"
+func redactPasswordArgs(args []string) []string {
 	for index, arg := range args {
 		if strings.HasPrefix(arg, "--password=") {
 			args[index] = "--password=REDACTED"
@@ -146,9 +149,7 @@ func getCommandLine() string {
 			}
 		}
 	}
-
-	fmt.Printf("Args: %#v\n", args)
-	return strings.Join(args, " ")
+	return args
 }
 
 // dumpAPIResponse prints details on an API response, useful in case of an error
