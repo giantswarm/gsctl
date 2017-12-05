@@ -121,7 +121,7 @@ func logout(args logoutArguments) error {
 	}
 
 	if logoutResponse.StatusCode != apischema.STATUS_CODE_RESOURCE_DELETED {
-		return microerror.Maskf(unspecifiedAPIError, fmt.Sprintf("Error in API request to logout: %v", logoutResponse))
+		return microerror.Maskf(unspecifiedAPIError, "response: %v", logoutResponse)
 	}
 
 	return nil
