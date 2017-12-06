@@ -61,30 +61,59 @@ func endpointsTable(args listEndpointsArguments) string {
 			color.YellowString("gsctl login <email> -e <endpoint>"))
 	}
 
-	// table headers
-	output := []string{
-		strings.Join([]string{
-			color.CyanString("ENDPOINT URL"),
-			color.CyanString("EMAIL"),
-			color.CyanString("SELECTED"),
-			color.CyanString("LOGGED IN"),
-		}, "|"),
-	}
-
 	// get keys (URLs) and sort by them
 	endpointURLs := make([]string, 0, len(config.Config.Endpoints))
 	for u := range config.Config.Endpoints {
 		endpointURLs = append(endpointURLs, u)
 	}
 
+	// detect if we want to show the alias column
+	haveAlias := false
+	for _, endpoint := range endpointURLs {
+		if config.Config.Endpoints[endpoint].Alias != "" {
+			haveAlias = true
+		}
+	}
+
+	// sort by alias first, endpoint URL second
 	sort.Slice(endpointURLs, func(i, j int) bool {
 		return endpointURLs[i] < endpointURLs[j]
 	})
+	sort.Slice(endpointURLs, func(i, j int) bool {
+		aliasi := config.Config.Endpoints[endpointURLs[i]].Alias
+		aliasj := config.Config.Endpoints[endpointURLs[j]].Alias
+		// sort empty alias to bottom position
+		if aliasi == "" {
+			aliasi = "zzzzz"
+		}
+		if aliasj == "" {
+			aliasj = "zzzzz"
+		}
+		return aliasi < aliasj
+	})
+
+	// table headers
+	output := []string{}
+	headers := []string{}
+
+	if haveAlias {
+		headers = append(headers, color.CyanString("ALIAS"))
+	}
+	headers = append(headers, color.CyanString("ENDPOINT URL"))
+	headers = append(headers, color.CyanString("EMAIL"))
+	headers = append(headers, color.CyanString("SELECTED"))
+	headers = append(headers, color.CyanString("LOGGED IN"))
+	output = append(output, strings.Join(headers, "|"))
 
 	for _, endpoint := range endpointURLs {
 		selected := "no"
 		loggedIn := "no"
 		email := "n/a"
+		alias := "n/a"
+
+		if config.Config.Endpoints[endpoint].Alias != "" {
+			alias = config.Config.Endpoints[endpoint].Alias
+		}
 
 		if endpoint == args.apiEndpoint {
 			selected = "yes"
@@ -98,19 +127,26 @@ func endpointsTable(args listEndpointsArguments) string {
 			email = config.Config.Endpoints[endpoint].Email
 		}
 
-		row := ""
+		columns := []string{}
 		if endpoint == args.apiEndpoint {
 			// highlight if selected
-			row = strings.Join([]string{
-				color.YellowString(endpoint),
-				color.YellowString(email),
-				color.YellowString(selected),
-				color.YellowString(loggedIn),
-			}, "|")
+			if haveAlias {
+				columns = append(columns, color.YellowString(alias))
+			}
+			columns = append(columns, color.YellowString(endpoint))
+			columns = append(columns, color.YellowString(email))
+			columns = append(columns, color.YellowString(selected))
+			columns = append(columns, color.YellowString(loggedIn))
 		} else {
-			row = strings.Join([]string{endpoint, email, selected, loggedIn}, "|")
+			if haveAlias {
+				columns = append(columns, alias)
+			}
+			columns = append(columns, endpoint)
+			columns = append(columns, email)
+			columns = append(columns, selected)
+			columns = append(columns, loggedIn)
 		}
-		output = append(output, row)
+		output = append(output, strings.Join(columns, "|"))
 	}
 
 	return columnize.SimpleFormat(output)
