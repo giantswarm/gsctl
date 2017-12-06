@@ -85,7 +85,7 @@ func TestGarbageCollectKeyPairs(t *testing.T) {
 
 	// Check remaining files.
 	// test1 should be removed
-	if _, err := os.Stat(CertsDirPath + "/test1-client.crt"); err == nil {
+	if _, err = os.Stat(CertsDirPath + "/test1-client.crt"); err == nil {
 		t.Error("test1-client.crt should have been deleted, is still there")
 	}
 	if _, err = os.Stat(CertsDirPath + "/test1-client.key"); err == nil {
@@ -95,8 +95,8 @@ func TestGarbageCollectKeyPairs(t *testing.T) {
 	if _, err = os.Stat(CertsDirPath + "/test2-client.crt"); err != nil {
 		t.Error("test2-client.crt should have been kept, was deleted")
 	}
-	if _, err = os.Stat(CertsDirPath + "/test2-client.key"); err == nil {
-		t.Error("test2-client.crt should have been kept, was deleted")
+	if _, err = os.Stat(CertsDirPath + "/test2-client.key"); err != nil {
+		t.Error("test2-client.key should have been kept, was deleted")
 	}
 
 	files, err = ioutil.ReadDir(CertsDirPath)
