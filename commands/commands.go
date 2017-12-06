@@ -83,16 +83,22 @@ type storageDefinition struct {
 	SizeGB float32 `yaml:"size_gb,omitempty"`
 }
 
+type awsSpecificDefinition struct {
+	InstanceType string `yaml:"instance_type,omitempty"`
+}
+
 type nodeDefinition struct {
-	Memory  memoryDefinition  `yaml:"memory,omitempty"`
-	CPU     cpuDefinition     `yaml:"cpu,omitempty"`
-	Storage storageDefinition `yaml:"storage,omitempty"`
-	Labels  map[string]string `yaml:"labels,omitempty"`
+	Memory  memoryDefinition      `yaml:"memory,omitempty"`
+	CPU     cpuDefinition         `yaml:"cpu,omitempty"`
+	Storage storageDefinition     `yaml:"storage,omitempty"`
+	Labels  map[string]string     `yaml:"labels,omitempty"`
+	AWS     awsSpecificDefinition `yaml:"aws,omitempty"`
 }
 
 type clusterDefinition struct {
 	Name              string           `yaml:"name,omitempty"`
 	Owner             string           `yaml:"owner,omitempty"`
+	ReleaseVersion    string           `yaml:"release_version,omitempty"`
 	KubernetesVersion string           `yaml:"kubernetes_version,omitempty"`
 	Workers           []nodeDefinition `yaml:"workers,omitempty"`
 }

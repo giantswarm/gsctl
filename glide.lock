@@ -1,5 +1,5 @@
 hash: 296bcedcc8ca8d24b0fc7b69c9a0a3a21c6a9ad185f3b6211e76b75d23dd6aa5
-updated: 2017-09-29T12:07:35.246182+02:00
+updated: 2017-12-05T15:13:46.691051+01:00
 imports:
 - name: github.com/bradfitz/slice
   version: d9036e2120b5ddfa53f3ebccd618c4af275f47da
@@ -14,11 +14,9 @@ imports:
 - name: github.com/giantswarm/columnize
   version: 677ded9e47e75ca49bd2541794a7281a49a2f17b
 - name: github.com/giantswarm/gsclientgen
-  version: eadbbda15e37d94a089bf26c3c02adef3b78e3ab
+  version: b387bd08a00d326558509ab4f830a054819e3b20
 - name: github.com/giantswarm/microerror
-  version: 5ade94eb4ee35ef72eb9382228470caeddb29989
-- name: github.com/go-resty/resty
-  version: 9ac9c42358f7c3c69ac9f8610e8790d7c338e85d
+  version: ec5f66bb657662031c0d651504fee6908cdf28d9
 - name: github.com/hashicorp/go-rootcerts
   version: 6bb64b370b90e7ef1fa532be9e591a81c3493e00
 - name: github.com/howeyc/gopass
@@ -26,7 +24,7 @@ imports:
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/Jeffail/gabs
-  version: 44ad915e1baa36caddb7db85303c3406042f7187
+  version: 44cbc27138518b15305cb3eef220d04f2d641b9b
 - name: github.com/juju/errgo
   version: 08cceb5d0b5331634b9826762a8fd53b29b86ad8
 - name: github.com/mattn/go-colorable
@@ -38,26 +36,28 @@ imports:
 - name: github.com/mitchellh/go-homedir
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/spf13/cobra
-  version: b78744579491c1ceeaaa3b40205e56b0591b93a3
+  version: de2d9c4eca8f3c1de17d48b096b6504e0296f003
 - name: github.com/spf13/pflag
-  version: 7aff26db30c1be810f9de5038ec5ef96ac41fd7c
+  version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
 - name: go4.org
   version: 034d17a462f7b2dcd1a4a73553ec5357ff6e6c6e
   subpackages:
   - reflectutil
 - name: golang.org/x/crypto
-  version: 76eec36fa14229c4b25bb894c2d0e591527af429
+  version: 94eea52f7b742c7cbe0b03b22f0c4c8631ece122
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 0a9397675ba34b2845f758fe3cd68828369c6517
+  version: a8b9294777976932365dabb6640cf1468d95c70f
   subpackages:
   - publicsuffix
 - name: golang.org/x/sys
-  version: 314a259e304ff91bd6985da2a7149bbf91237993
+  version: 8b4580aae2a0dd0c231a45d3ccb8434ff533b840
   subpackages:
   - unix
   - windows
+- name: gopkg.in/go-resty/resty.v0
+  version: cf81ed0a604d373be63b4c036c6b05c06520615f
 - name: gopkg.in/yaml.v2
-  version: eb3733d160e74a9c7e442f435eb3bea458e1d19f
+  version: 287cf08546ab5e7e37d55a84f7ed3fd1db036de5
 testImports: []

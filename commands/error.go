@@ -206,6 +206,14 @@ func IsCannotScaleBelowMinimumWorkersError(err error) bool {
 	return errgo.Cause(err) == cannotScaleBelowMinimumWorkersError
 }
 
+// user has mixed incompatible settings related to different providers
+var incompatibleSettingsError = errgo.New("incompatible mix of settings used")
+
+// IsIncompatibleSettingsError asserts incompatibleSettingsError.
+func IsIncompatibleSettingsError(err error) bool {
+	return errgo.Cause(err) == incompatibleSettingsError
+}
+
 // endpointMissingError means the user has not given an endpoint where expected
 var endpointMissingError = errgo.New("no endpoint given")
 
@@ -247,4 +255,38 @@ var invalidCredentialsError = errgo.New("invalid credentials submitted")
 // IsInvalidCredentialsError asserts invalidCredentialsError
 func IsInvalidCredentialsError(err error) bool {
 	return errgo.Cause(err) == invalidCredentialsError
+}
+
+// kubectlMissingError means that the 'kubectl' executable is not available
+var kubectlMissingError = errgo.New("kubectl not installed")
+
+// IsKubectlMissingError asserts kubectlMissingError
+func IsKubectlMissingError(err error) bool {
+	return errgo.Cause(err) == kubectlMissingError
+}
+
+// invalidReleaseError should be issued if the user selects a release that is
+// either not active or does not exist
+var invalidReleaseError = errgo.New("invalid release")
+
+// IsInvalidReleaseError asserts invalidReleaseError
+func IsInvalidReleaseError(err error) bool {
+	return errgo.Cause(err) == invalidReleaseError
+}
+
+// couldNotWriteFileError is used when an attempt to write some file fails
+var couldNotWriteFileError = errgo.New("could not write file")
+
+// IsCouldNotWriteFileError asserts couldNotWriteFileError
+func IsCouldNotWriteFileError(err error) bool {
+	return errgo.Cause(err) == couldNotWriteFileError
+}
+
+// unspecifiedAPIError means an API error has occurred which we can't or don't
+// need to categorize any further.
+var unspecifiedAPIError = errgo.New("unspecified API error")
+
+// IsUnspecifiedAPIError asserts unspecifiedAPIError
+func IsUnspecifiedAPIError(err error) bool {
+	return errgo.Cause(err) == unspecifiedAPIError
 }

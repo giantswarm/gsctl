@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/giantswarm/columnize"
@@ -70,7 +71,17 @@ func endpointsTable(args listEndpointsArguments) string {
 		}, "|"),
 	}
 
-	for endpoint := range config.Config.Endpoints {
+	// get keys (URLs) and sort by them
+	endpointURLs := make([]string, 0, len(config.Config.Endpoints))
+	for u := range config.Config.Endpoints {
+		endpointURLs = append(endpointURLs, u)
+	}
+
+	sort.Slice(endpointURLs, func(i, j int) bool {
+		return endpointURLs[i] < endpointURLs[j]
+	})
+
+	for _, endpoint := range endpointURLs {
 		selected := "no"
 		loggedIn := "no"
 		email := "n/a"
@@ -87,7 +98,19 @@ func endpointsTable(args listEndpointsArguments) string {
 			email = config.Config.Endpoints[endpoint].Email
 		}
 
-		output = append(output, strings.Join([]string{endpoint, email, selected, loggedIn}, "|"))
+		row := ""
+		if endpoint == args.apiEndpoint {
+			// highlight if selected
+			row = strings.Join([]string{
+				color.YellowString(endpoint),
+				color.YellowString(email),
+				color.YellowString(selected),
+				color.YellowString(loggedIn),
+			}, "|")
+		} else {
+			row = strings.Join([]string{endpoint, email, selected, loggedIn}, "|")
+		}
+		output = append(output, row)
 	}
 
 	return columnize.SimpleFormat(output)

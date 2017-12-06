@@ -48,7 +48,6 @@ Examples:
 
 const (
 	scaleClusterActivityName = "scale-cluster"
-	getClusterActivityName   = "get-cluster"
 )
 
 type scaleClusterArguments struct {
@@ -141,33 +140,6 @@ func verifyScaleClusterPreconditions(args scaleClusterArguments, cmdLineArgs []s
 	return nil
 }
 
-// getClusterDetails returns details for one cluster.
-// TODO: once we have a dedicated command for getting cluster details, move this
-// to the right file.
-func getClusterDetails(args scaleClusterArguments) (gsclientgen.V4ClusterDetailsModel, error) {
-	result := gsclientgen.V4ClusterDetailsModel{}
-
-	// perform API call
-	authHeader := "giantswarm " + args.authToken
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Mask(couldNotCreateClientError)
-	}
-	if args.verbose {
-		fmt.Println("Fetching up-to-date cluster information")
-	}
-	clusterDetails, _, err := apiClient.GetCluster(authHeader, args.clusterID, requestIDHeader, getClusterActivityName, cmdLine)
-	if err != nil {
-		return result, microerror.Mask(err)
-	}
-
-	return *clusterDetails, nil
-}
-
 // scaleClusterRunOutput invokes the actual cluster scaling and prints the result and/or errors.
 func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultScaleClusterArguments()
@@ -242,7 +214,8 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 		return results, microerror.Mask(cannotScaleBelowMinimumWorkersError)
 	}
 
-	clusterDetails, err := getClusterDetails(args)
+	clusterDetails, err := getClusterDetails(args.clusterID,
+		args.authToken, args.apiEndpoint)
 	if err != nil {
 		return results, microerror.Mask(err)
 	}

@@ -2,7 +2,7 @@
 # to be passed via the `gsctl create cluster -f` command
 name: Complete AWS cluster spec
 owner: giantswarm
-kubernetes_version: 1.6.4
+release_version: 0.3.0
 workers:
   - aws:
       instance_type: m3.large

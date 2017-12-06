@@ -60,8 +60,7 @@ func KubectlSetCredentials(clusterID, keyPath, certificatePath string) error {
 }
 
 // KubectlSetContext is a wrapper for the `kubectl config set-context` command
-func KubectlSetContext(clusterID string) error {
-	contextName := "giantswarm-" + clusterID
+func KubectlSetContext(contextName, clusterID string) error {
 	clusterArgument := "--cluster=giantswarm-" + clusterID
 	userArgument := "--user=giantswarm-" + clusterID + "-user"
 	cmd := exec.Command(binaryName,
@@ -74,8 +73,7 @@ func KubectlSetContext(clusterID string) error {
 }
 
 // KubectlUseContext applies the context for the given cluster ID
-func KubectlUseContext(clusterID string) error {
-	contextName := "giantswarm-" + clusterID
+func KubectlUseContext(contextName string) error {
 	cmd := exec.Command(binaryName, "config", "use-context", contextName)
 	err := cmd.Run()
 	return err
