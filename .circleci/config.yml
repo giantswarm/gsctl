@@ -23,6 +23,9 @@ jobs:
           command: |
             go build -v
       - run:
+          name: Execute the built binary
+          command: ./gsctl info
+      - run:
           name: Post coverage to Codecov.io
           command: |
             bash ./test_coverage.sh
