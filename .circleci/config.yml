@@ -2,9 +2,9 @@ version: 2
 jobs:
   build:
     machine: true
-    environment:
-      - GOPATH: /home/circleci/go
-        GS_WD: /home/circleci/go/src/github.com/giantswarm/gsctl
+    docker:
+      - image: circleci/golang:1.9
+    working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
     steps:
       - checkout
       - run:
@@ -14,28 +14,16 @@ jobs:
             curl -s -LO https://storage.googleapis.com/kubernetes-release/release/${kubectl_version}/bin/linux/amd64/kubectl
             chmod +x ./kubectl
             sudo mv ./kubectl /usr/local/bin/kubectl
-      - run:
-          name: Create target directory
-          command: |
-            mkdir -p $HOME/go/src/github.com/$CIRCLE_PROJECT_USERNAME
-      - run:
-          name: Copy source
-          command: |
-            cp -rf $HOME/project $GS_WD
       # tests
       - run:
           name: go test
           command: |
-            cd $GS_WD
             go test -v ./...
       - run:
           name: go build
           command: |
-            cd $GS_WD
             go build -v
-      - run:
-          name: Build using "make"
-          command: make
+      - run: make
       - run: make test
       - run: make crosscompile
       - run:
