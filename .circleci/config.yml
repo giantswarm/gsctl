@@ -27,5 +27,5 @@ jobs:
       - run: make test
       - run: make crosscompile
       - run:
-          name: Post to Codecov
+          name: Post to Codecov.io
           command: bash <(curl -s https://codecov.io/bash)
