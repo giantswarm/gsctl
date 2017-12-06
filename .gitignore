@@ -35,6 +35,4 @@ release
 /gsctl-completion-bash.sh
 /gsctl-completion-zsh.sh
 
-/coverage.txt
-
 /certs
