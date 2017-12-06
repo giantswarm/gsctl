@@ -23,5 +23,7 @@ jobs:
           command: |
             go build -v
       - run:
-          name: Post to Codecov.io
-          command: bash <(curl -s https://codecov.io/bash)
+          name: Post coverage to Codecov.io
+          command: |
+            bash ./test_coverage.sh
+            bash <(curl -s https://codecov.io/bash)
