@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -18,7 +17,7 @@ import (
 func GarbageCollectKeyPairs() error {
 	files, err := ioutil.ReadDir(CertsDirPath)
 	if err != nil {
-		return microerror.Maskf(err, "could not list files in certs folder"+CertsDirPath)
+		return microerror.Maskf(err, "could not list files in certs folder "+CertsDirPath)
 	}
 
 	// find out which certificates in certs folder have expired
@@ -46,24 +45,41 @@ func GarbageCollectKeyPairs() error {
 		}
 	}
 
+	errorInfo := []string{}
+
 	for _, file := range expiredCerts {
 		fmt.Printf("Certificate %s is expired and will be deleted.\n", file)
 		certPath := CertsDirPath + "/" + file
 		err := os.Remove(certPath)
 		if err != nil {
-			log.Printf("Certificate %s could not be deleted.", certPath)
+			errorInfo = append(errorInfo, fmt.Sprintf("Certificate file %s could not be deleted (%s)", certPath, err.Error()))
 		}
 
 		keyPath := CertsDirPath + "/" + strings.Replace(file, ".crt", ".key", 1)
 		err = os.Remove(keyPath)
 		if err != nil {
-			log.Printf("Key %s could not be deleted.", keyPath)
+			errorInfo = append(errorInfo, fmt.Sprintf("Key file %s could not be deleted (%s)", keyPath, err.Error()))
 		}
 	}
 
+	if len(errorInfo) > 0 {
+
+		if len(expiredCerts)*2 == len(errorInfo) {
+			// all deletions failed (2 files per certificate)
+			return microerror.Maskf(garbageCollectionFailedError, "%d files not deleted", len(errorInfo))
+		}
+
+		// some deletions failed
+		annotation := strings.Join(errorInfo, ", ")
+		return microerror.Maskf(garbageCollectionPartiallyFailedError, annotation)
+	}
+
+	// success
 	return nil
 }
 
+// isCertExpired returns true if the given PEM content represents
+// an expired certificate
 func isCertExpired(pemContent []byte) (bool, error) {
 	expired := false
 

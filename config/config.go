@@ -282,7 +282,17 @@ func Initialize(configDirPath string) error {
 	randSource := rand.NewSource(time.Now().UnixNano())
 	randGenerator := rand.New(randSource)
 	if randGenerator.Float32() < garbageCollectionLikelihood {
-		GarbageCollectKeyPairs()
+		err := GarbageCollectKeyPairs()
+		if err != nil {
+			// print error message, but don't interrupt the user
+			if IsGarbageCollectionFailedError(err) {
+				fmt.Printf("Error in key pair garbage collection - no files deleted: %s\n", err.Error())
+			} else if IsGarbageCollectionPartiallyFailedError(err) {
+				fmt.Printf("Error in key pair garbage collection - some files not deleted: %s\n", err.Error())
+			} else {
+				fmt.Printf("Error in key pair garbage collection: %s\n", err.Error())
+			}
+		}
 	}
 
 	return nil
