@@ -108,6 +108,9 @@ type endpointConfig struct {
 
 	// Token is the session token of the authenticated user.
 	Token string `yaml:"token"`
+
+	// Alias is a friendly shortcut for the endpoint
+	Alias string `yaml:"alias,omitempty"`
 }
 
 // StoreEndpointAuth adds an endpoint to the configStruct.Endpoints field

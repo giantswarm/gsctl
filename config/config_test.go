@@ -238,3 +238,26 @@ func Test_NormalizeEndpoint(t *testing.T) {
 		}
 	}
 }
+
+// TestEndpointAlias tests if endpoints can have aliases.
+func TestEndpointAlias(t *testing.T) {
+	// our test config YAML
+	yamlText := `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  https://myapi.domain.tld:
+    email: email@example.com
+    token: some-token
+    alias: myalias
+selected_endpoint: https://myapi.domain.tld`
+
+	dir, err := tempConfig(yamlText)
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.RemoveAll(dir)
+
+	if Config.Endpoints[Config.SelectedEndpoint].Alias != "myalias" {
+		t.Errorf("Expected alias 'myalias', got '%s'", Config.Endpoints[Config.SelectedEndpoint].Alias)
+	}
+}
