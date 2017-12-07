@@ -17,3 +17,17 @@ var credentialsRequiredError = errgo.New("email and password must not be empty")
 func IsCredentialsRequiredError(err error) bool {
 	return errgo.Cause(err) == credentialsRequiredError
 }
+
+var garbageCollectionFailedError = errgo.New("garbage collection failed")
+
+// IsGarbageCollectionFailedError asserts garbageCollectionFailedError.
+func IsGarbageCollectionFailedError(err error) bool {
+	return errgo.Cause(err) == garbageCollectionFailedError
+}
+
+var garbageCollectionPartiallyFailedError = errgo.New("garbage collection partially failed")
+
+// IsGarbageCollectionPartiallyFailedError asserts garbageCollectionPartiallyFailedError.
+func IsGarbageCollectionPartiallyFailedError(err error) bool {
+	return errgo.Cause(err) == garbageCollectionPartiallyFailedError
+}

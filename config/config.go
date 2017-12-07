@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/url"
 	"os"
 	"os/user"
@@ -35,6 +36,10 @@ const (
 
 	// VersionCheckInterval is the minimum time to wait between two version checks
 	VersionCheckInterval = time.Hour * 24
+
+	// garbageCollectionLikelihood is a number between 0 and 1 that sets the
+	// likelihood that we will execute garbage collection functions.
+	garbageCollectionLikelihood = .2
 )
 
 var (
@@ -272,6 +277,23 @@ func Initialize(configDirPath string) error {
 	os.MkdirAll(CertsDirPath, 0700)
 
 	KubeConfigPaths = getKubeconfigPaths(HomeDirPath)
+
+	// apply garbage collection
+	randSource := rand.NewSource(time.Now().UnixNano())
+	randGenerator := rand.New(randSource)
+	if randGenerator.Float32() < garbageCollectionLikelihood {
+		err := GarbageCollectKeyPairs()
+		if err != nil {
+			// print error message, but don't interrupt the user
+			if IsGarbageCollectionFailedError(err) {
+				fmt.Printf("Error in key pair garbage collection - no files deleted: %s\n", err.Error())
+			} else if IsGarbageCollectionPartiallyFailedError(err) {
+				fmt.Printf("Error in key pair garbage collection - some files not deleted: %s\n", err.Error())
+			} else {
+				fmt.Printf("Error in key pair garbage collection: %s\n", err.Error())
+			}
+		}
+	}
 
 	return nil
 }
