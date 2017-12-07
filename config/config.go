@@ -138,6 +138,9 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, email string, token
 
 // SelectEndpoint makes the given endpoint URL the selected one
 func (c *configStruct) SelectEndpoint(endpointURL string) error {
+	// TODO: first check if the endpointURL matches an alias.
+	// Only if it doesn, we should proceed to normalize and treat it as an URL.
+
 	ep := normalizeEndpoint(endpointURL)
 	if _, ok := c.Endpoints[ep]; !ok {
 		return microerror.Mask(endpointNotDefinedError)
