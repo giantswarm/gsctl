@@ -331,13 +331,13 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println(result.clientCertPath)
 		fmt.Println(result.clientKeyPath)
 
-		fmt.Printf("Switched to kubectl context 'giantswarm-%s'\n\n", args.clusterID)
+		fmt.Printf("Switched to kubectl context '%s'\n\n", result.contextName)
 
 		// final success message
 		fmt.Println(color.GreenString("kubectl is set up. Check it using this command:\n"))
 		fmt.Println(color.YellowString("    kubectl cluster-info\n"))
 		fmt.Println(color.GreenString("Whenever you want to switch to using this context:\n"))
-		fmt.Println(color.YellowString("    kubectl config use-context giantswarm-%s\n", args.clusterID))
+		fmt.Println(color.YellowString("    kubectl config use-context %s\n", result.contextName))
 	}
 }
 
