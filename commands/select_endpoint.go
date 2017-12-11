@@ -14,8 +14,9 @@ import (
 var (
 	// SelectEndpointCommand performs the "select endpoint" function
 	SelectEndpointCommand = &cobra.Command{
-		Use:   "endpoint <endpoint>",
-		Short: "Select endpoint to use",
+		Use:     "endpoint <endpoint>",
+		Aliases: []string{"endpoints"},
+		Short:   "Select endpoint to use",
 		Long: `Select the API endpoint to use in subsequent commands.
 
 To add an endpoint for the first time, or to re-login, use the 'gsctl login'
