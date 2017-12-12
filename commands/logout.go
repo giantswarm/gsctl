@@ -112,7 +112,7 @@ func logout(args logoutArguments) error {
 	if err != nil {
 		// special treatment for HTTP 401 (unauthorized) error,
 		// in which case no JSON body is returned.
-		if apiResponse.Response.StatusCode == http.StatusUnauthorized {
+		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusUnauthorized {
 			return microerror.Mask(notAuthorizedError)
 		}
 
