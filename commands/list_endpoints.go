@@ -35,7 +35,7 @@ func init() {
 }
 
 // defaultListEndpointArgs returns listEndpointsArguments
-// with settings laoded from flags etc.
+// with settings loaded from flags etc.
 func defaultListEndpointArguments() listEndpointsArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
@@ -68,10 +68,10 @@ func endpointsTable(args listEndpointsArguments) string {
 	}
 
 	// detect if we want to show the alias column
-	haveAlias := false
+	hasAlias := false
 	for _, endpoint := range endpointURLs {
 		if config.Config.Endpoints[endpoint].Alias != "" {
-			haveAlias = true
+			hasAlias = true
 		}
 	}
 
@@ -96,7 +96,7 @@ func endpointsTable(args listEndpointsArguments) string {
 	output := []string{}
 	headers := []string{}
 
-	if haveAlias {
+	if hasAlias {
 		headers = append(headers, color.CyanString("ALIAS"))
 	}
 	headers = append(headers, color.CyanString("ENDPOINT URL"))
@@ -130,7 +130,7 @@ func endpointsTable(args listEndpointsArguments) string {
 		columns := []string{}
 		if endpoint == args.apiEndpoint {
 			// highlight if selected
-			if haveAlias {
+			if hasAlias {
 				columns = append(columns, color.YellowString(alias))
 			}
 			columns = append(columns, color.YellowString(endpoint))
@@ -138,7 +138,7 @@ func endpointsTable(args listEndpointsArguments) string {
 			columns = append(columns, color.YellowString(selected))
 			columns = append(columns, color.YellowString(loggedIn))
 		} else {
-			if haveAlias {
+			if hasAlias {
 				columns = append(columns, alias)
 			}
 			columns = append(columns, endpoint)
