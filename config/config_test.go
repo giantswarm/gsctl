@@ -277,9 +277,15 @@ selected_endpoint: https://other.endpoint`
 		t.Errorf("Expected endpoint 'https://myapi.domain.tld', got '%s'", ep)
 	}
 
-	// finally, selected endpoint must have alias
+	// after selection, selected endpoint must have alias
 	if Config.Endpoints[ep].Alias != "myalias" {
 		t.Errorf("Expected alias 'myalias', got '%s'", Config.Endpoints[Config.SelectedEndpoint].Alias)
+	}
+
+	// try selecting using a non-existing alias/URL
+	err = Config.SelectEndpoint("non-existing-alias")
+	if !IsEndpointNotDefinedError(err) {
+		t.Errorf("Expected endpointNotDefinedError, got '%s'", err)
 	}
 
 }
