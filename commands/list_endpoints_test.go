@@ -17,6 +17,7 @@ endpoints:
   https://my.first.endpoint:
     email: email@example.com
     token: some-token
+    alias: first
   https://my.second.endpoint:
     email: email@example.com
     token: some-other-token
@@ -38,8 +39,9 @@ selected_endpoint: https://my.second.endpoint
 		t.Error("Got no output where I expected a table")
 	}
 
-	testString := "https://my.second.endpoint  email@example.com  yes       yes"
+	testString := "n/a    https://my.second.endpoint  email@example.com  yes       yes"
 	if !strings.Contains(table, testString) {
+		t.Log(table)
 		t.Errorf("Table does not contain expected row '%s'", testString)
 	}
 }

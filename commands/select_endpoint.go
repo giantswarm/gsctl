@@ -25,8 +25,8 @@ command with that endpoint.
 To find out which endpoints are selectable, use the 'gsctl list endpoints'
 command.
 `,
-		PreRun: selectEndpointPreRun,
-		Run:    selectEndpoint,
+		PreRun: selectEndpointPreRunOutput,
+		Run:    selectEndpointRunOutput,
 	}
 )
 
@@ -34,7 +34,9 @@ func init() {
 	SelectCommand.AddCommand(SelectEndpointCommand)
 }
 
-func selectEndpointPreRun(cmd *cobra.Command, cmdLineArgs []string) {
+// selectEndpointPreRunOutput does some pre-checks and, if necessary,
+// shows output and exits.
+func selectEndpointPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	err := verifySelectEndpointPreconditions(cmdLineArgs)
 	if err != nil {
 		headline := ""
@@ -66,8 +68,9 @@ func verifySelectEndpointPreconditions(cmdLineArgs []string) error {
 	return nil
 }
 
-// selectEndpoint ...
-func selectEndpoint(cmd *cobra.Command, cmdLineArgs []string) {
+// selectEndpointRunOutput calls the actual function and
+// shows the result of the command execution
+func selectEndpointRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	err := config.Config.SelectEndpoint(cmdLineArgs[0])
 	if err != nil {
 		if config.IsEndpointNotDefinedError(err) {

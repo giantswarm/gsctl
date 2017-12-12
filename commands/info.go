@@ -40,13 +40,14 @@ func defaultInfoArguments() infoArguments {
 
 // infoResult is the struct used to return all the info we might want to print
 type infoResult struct {
-	apiEndpoint     string
-	email           string
-	token           string
-	version         string
-	buildDate       string
-	configFilePath  string
-	kubeConfigPaths []string
+	apiEndpoint      string
+	apiEndpointAlias string
+	email            string
+	token            string
+	version          string
+	buildDate        string
+	configFilePath   string
+	kubeConfigPaths  []string
 }
 
 func init() {
@@ -65,6 +66,10 @@ func printInfo(cmd *cobra.Command, args []string) {
 		output = append(output, color.YellowString("API endpoint:")+"|n/a")
 	} else {
 		output = append(output, color.YellowString("API endpoint:")+"|"+color.CyanString(result.apiEndpoint))
+	}
+
+	if result.apiEndpointAlias != "" {
+		output = append(output, color.YellowString("API endpoint alias:")+"|"+color.CyanString(result.apiEndpointAlias))
 	}
 
 	if result.email == "" {
@@ -110,6 +115,10 @@ func info(args infoArguments) infoResult {
 	result.token = config.Config.ChooseToken(result.apiEndpoint, args.token)
 	result.version = config.Version
 	result.buildDate = config.BuildDate
+
+	if config.Config.Endpoints[result.apiEndpoint] != nil {
+		result.apiEndpointAlias = config.Config.Endpoints[result.apiEndpoint].Alias
+	}
 
 	result.configFilePath = config.ConfigFilePath
 

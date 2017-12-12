@@ -113,6 +113,9 @@ type endpointConfig struct {
 
 	// Token is the session token of the authenticated user.
 	Token string `yaml:"token"`
+
+	// Alias is a friendly shortcut for the endpoint
+	Alias string `yaml:"alias,omitempty"`
 }
 
 // StoreEndpointAuth adds an endpoint to the configStruct.Endpoints field
@@ -138,11 +141,31 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, email string, token
 	return nil
 }
 
-// SelectEndpoint makes the given endpoint URL the selected one
-func (c *configStruct) SelectEndpoint(endpointURL string) error {
-	ep := normalizeEndpoint(endpointURL)
-	if _, ok := c.Endpoints[ep]; !ok {
+// SelectEndpoint makes the given endpoint the selected one. The argument
+// can either be an alias (that will be used as is) or
+// a URL which will undergo normalization.s
+func (c *configStruct) SelectEndpoint(endpointAliasOrURL string) error {
+
+	if endpointAliasOrURL == "" {
 		return microerror.Mask(endpointNotDefinedError)
+	}
+
+	ep := ""
+
+	// first check if the endpointURL matches an alias.
+	argumentIsAlias := false
+	for key := range c.Endpoints {
+		if endpointAliasOrURL == c.Endpoints[key].Alias {
+			argumentIsAlias = true
+			ep = key
+		}
+	}
+
+	if !argumentIsAlias {
+		ep = normalizeEndpoint(endpointAliasOrURL)
+		if _, ok := c.Endpoints[ep]; !ok {
+			return microerror.Mask(endpointNotDefinedError)
+		}
 	}
 
 	c.SelectedEndpoint = ep
@@ -154,7 +177,7 @@ func (c *configStruct) SelectEndpoint(endpointURL string) error {
 	return nil
 }
 
-// SelectedEndpoint returns the selected endpoint URL.
+// ChooseEndpoint makes a choice which should be the endpoint to use.
 // If the argument overridingEndpointURL is not empty, this will
 // be used as the returned endpoint URL.
 // Errors are only printed to inform users, but not returned, to simplify
