@@ -68,7 +68,6 @@ build/bin/$(BIN)-windows-amd64: $(SOURCE)
 		golang:$(GOVERSION)-alpine go build -a -installsuffix cgo -o build/bin/$(BIN)-windows-amd64 \
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
 
-# run unittests
 gotest:
 	go test -cover ./...
 

@@ -5,7 +5,7 @@ Please read this if you intend to develop on gsctl.
 ## Required Tools, Prerequisites
 
 - Go environment (`brew install go`)
-- [`glide`](https://github.com/Masterminds/glide) (`brew install glide`)
+- [`dep`](https://github.com/golang/dep)
 - GNU Make
 - `git`
 - Docker
@@ -32,9 +32,7 @@ So the repo content will end up in `$GOPATH/src/github.com/giantswarm/gsctl`.
 
 ## Dependencies
 
-Dependencies are managed using [`glide`](https://github.com/Masterminds/glide).
-
-**CAUTION:** The `vendor` directory is _flattened_. Make sure to use glide with the `-v` (or `--strip-vendor`) flag.
+Dependencies are managed using [`go dep`](https://github.com/golang/dep).
 
 ## Executing gsctl during development
 
