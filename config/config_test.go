@@ -239,7 +239,8 @@ func Test_NormalizeEndpoint(t *testing.T) {
 	}
 }
 
-// TestEndpointAlias tests if endpoints can have aliases.
+// TestEndpointAlias tests if endpoints can have aliases
+// and if they can be used for selecting endpoints
 func TestEndpointAlias(t *testing.T) {
 	// our test config YAML
 	yamlText := `last_version_check: 0001-01-01T00:00:00Z
@@ -249,7 +250,11 @@ endpoints:
     email: email@example.com
     token: some-token
     alias: myalias
-selected_endpoint: https://myapi.domain.tld`
+  https://other.endpoint:
+    email: email@example.com
+    token: some-other-token
+    alias:
+selected_endpoint: https://other.endpoint`
 
 	dir, err := tempConfig(yamlText)
 	if err != nil {
@@ -257,7 +262,24 @@ selected_endpoint: https://myapi.domain.tld`
 	}
 	defer os.RemoveAll(dir)
 
-	if Config.Endpoints[Config.SelectedEndpoint].Alias != "myalias" {
+	// first, selected endpoint must have empty alias
+	if Config.Endpoints[Config.SelectedEndpoint].Alias != "" {
+		t.Errorf("Expected alias '', got '%s'", Config.Endpoints[Config.SelectedEndpoint].Alias)
+	}
+
+	err = Config.SelectEndpoint("myalias")
+	if err != nil {
+		t.Error(err)
+	}
+
+	ep := Config.SelectedEndpoint
+	if ep != "https://myapi.domain.tld" {
+		t.Errorf("Expected endpoint 'https://myapi.domain.tld', got '%s'", ep)
+	}
+
+	// finally, selected endpoint must have alias
+	if Config.Endpoints[ep].Alias != "myalias" {
 		t.Errorf("Expected alias 'myalias', got '%s'", Config.Endpoints[Config.SelectedEndpoint].Alias)
 	}
+
 }
