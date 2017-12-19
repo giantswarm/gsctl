@@ -316,28 +316,6 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 		}
 	}
 
-	if args.releaseVersion != "" {
-		// check release validity
-		releaseValid := false
-		listReleasesArgs := defaultListReleasesArguments()
-		listReleasesArgs.apiEndpoint = args.apiEndpoint
-		listReleasesArgs.token = args.token
-		listReleasesResult, err := listReleases(listReleasesArgs)
-		if err != nil {
-			return microerror.Mask(err)
-		}
-
-		for _, release := range listReleasesResult.releases {
-			if release.Version == args.releaseVersion && release.Active {
-				releaseValid = true
-			}
-		}
-
-		if !releaseValid {
-			return microerror.Mask(invalidReleaseError)
-		}
-	}
-
 	return nil
 }
 
