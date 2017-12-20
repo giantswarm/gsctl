@@ -120,7 +120,7 @@ type endpointConfig struct {
 
 // StoreEndpointAuth adds an endpoint to the configStruct.Endpoints field
 // (if not yet there). This should only be done after successful authentication.
-func (c *configStruct) StoreEndpointAuth(endpointURL string, email string, token string) error {
+func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email string, token string) error {
 	ep := normalizeEndpoint(endpointURL)
 
 	if email == "" || token == "" {
@@ -132,6 +132,7 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, email string, token
 	}
 
 	c.Endpoints[ep] = &endpointConfig{
+		Alias: alias,
 		Email: email,
 		Token: token,
 	}

@@ -61,10 +61,11 @@ func Test_Initialize_Empty(t *testing.T) {
 	testEndpointURL := "https://myapi.domain.tld"
 	testEmail := "user@domain.tld"
 	testToken := "some-token"
+	testAlias := "testalias"
 
 	// directly set some configuration
 	Config.LastVersionCheck = time.Time{}
-	err = Config.StoreEndpointAuth(testEndpointURL, testEmail, testToken)
+	err = Config.StoreEndpointAuth(testEndpointURL, testAlias, testEmail, testToken)
 	if err != nil {
 		t.Error(err)
 	}
@@ -111,7 +112,11 @@ func Test_Initialize_Empty(t *testing.T) {
 		t.Log(yamlText)
 		t.Errorf("Written YAML doesn't contain the expected string 'selected_endpoint: %s'", testEndpointURL)
 	}
-	t.Log(yamlText)
+
+	if !strings.Contains(yamlText, "alias: "+testAlias) {
+		t.Log(yamlText)
+		t.Errorf("Written YAML doesn't contain the expected string 'alias: %s'", testAlias)
+	}
 }
 
 // Test_Initialize_NonEmpty tests initializing with a dummy config file.
