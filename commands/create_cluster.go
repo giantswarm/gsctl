@@ -186,9 +186,6 @@ func createClusterValidationOutput(cmd *cobra.Command, args []string) {
 		case IsNotEnoughStoragePerWorkerError(err):
 			headline = "Not enough Storage per worker specified"
 			subtext = fmt.Sprintf("You'll need at least %.1f GB per worker node.", minimumWorkerStorageSizeGB)
-		case IsInvalidReleaseError(err):
-			headline = "Invalid release"
-			subtext = fmt.Sprintf("The selected release version '%s' either does not exist, or is not active.", aca.releaseVersion)
 		default:
 			headline = err.Error()
 		}
