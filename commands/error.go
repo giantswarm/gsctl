@@ -265,15 +265,6 @@ func IsKubectlMissingError(err error) bool {
 	return errgo.Cause(err) == kubectlMissingError
 }
 
-// invalidReleaseError should be issued if the user selects a release that is
-// either not active or does not exist
-var invalidReleaseError = errgo.New("invalid release")
-
-// IsInvalidReleaseError asserts invalidReleaseError
-func IsInvalidReleaseError(err error) bool {
-	return errgo.Cause(err) == invalidReleaseError
-}
-
 // couldNotWriteFileError is used when an attempt to write some file fails
 var couldNotWriteFileError = errgo.New("could not write file")
 
