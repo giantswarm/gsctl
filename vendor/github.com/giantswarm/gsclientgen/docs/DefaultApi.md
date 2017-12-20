@@ -180,7 +180,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **GetInfo**
-> V4InfoResponse GetInfo()
+> V4InfoResponse GetInfo($xRequestID, $xGiantSwarmActivity, $xGiantSwarmCmdLine)
 
 Get information on the installation
 
@@ -188,7 +188,12 @@ See https://docs.giantswarm.io/api/#operation/getInfo
 
 
 ### Parameters
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm  | [optional] 
+ **xGiantSwarmActivity** | **string**| Name of an activity to track, like \&quot;list-clusters\&quot; | [optional] 
+ **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line  | [optional] 
 
 ### Return type
 

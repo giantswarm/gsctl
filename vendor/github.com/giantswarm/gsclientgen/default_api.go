@@ -406,9 +406,12 @@ func (a DefaultApi) GetClusters(authorization string, xRequestID string, xGiantS
  * Get information on the installation
  * See https://docs.giantswarm.io/api/#operation/getInfo
  *
+ * @param xRequestID A randomly generated key that can be used to track a request throughout services of Giant Swarm
+ * @param xGiantSwarmActivity Name of an activity to track, like \&quot;list-clusters\&quot;
+ * @param xGiantSwarmCmdLine If activity has been issued by a CLI, this header can contain the command line
  * @return *V4InfoResponse
  */
-func (a DefaultApi) GetInfo() (*V4InfoResponse, *APIResponse, error) {
+func (a DefaultApi) GetInfo(xRequestID string, xGiantSwarmActivity string, xGiantSwarmCmdLine string) (*V4InfoResponse, *APIResponse, error) {
 
 	var localVarHttpMethod = strings.ToUpper("Get")
 	// create path and map variables
@@ -443,6 +446,12 @@ func (a DefaultApi) GetInfo() (*V4InfoResponse, *APIResponse, error) {
 	if localVarHttpHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHttpHeaderAccept
 	}
+	// header params "X-Request-ID"
+	localVarHeaderParams["X-Request-ID"] = a.Configuration.APIClient.ParameterToString(xRequestID, "")
+	// header params "X-Giant-Swarm-Activity"
+	localVarHeaderParams["X-Giant-Swarm-Activity"] = a.Configuration.APIClient.ParameterToString(xGiantSwarmActivity, "")
+	// header params "X-Giant-Swarm-CmdLine"
+	localVarHeaderParams["X-Giant-Swarm-CmdLine"] = a.Configuration.APIClient.ParameterToString(xGiantSwarmCmdLine, "")
 	var successPayload = new(V4InfoResponse)
 	localVarHttpResponse, err := a.Configuration.APIClient.CallAPI(localVarPath, localVarHttpMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFileName, localVarFileBytes)
 

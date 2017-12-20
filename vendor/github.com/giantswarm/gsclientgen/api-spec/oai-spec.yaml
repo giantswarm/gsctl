@@ -379,6 +379,10 @@ paths:
       operationId: getInfo
       summary: Get information on the installation
       description: See https://docs.giantswarm.io/api/#operation/getInfo
+      parameters:
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
       responses:
         "200":
           description: Information
