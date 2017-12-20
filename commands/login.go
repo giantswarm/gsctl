@@ -48,6 +48,8 @@ The -e or --endpoint argument can be omitted if an endpoint is already selected.
 type loginResult struct {
 	// apiEndpoint is the API endpoint the user has been logged in to
 	apiEndpoint string
+	// alias is the alternative, user friendly name for an endpoint
+	alias string
 	// loggedOutBefore is true if the user has been logged out from a previous session
 	loggedOutBefore bool
 	// endpointSwitched is true when the endpoint has been changed during login
@@ -238,14 +240,21 @@ func login(args loginArguments) (loginResult, error) {
 		result.token = loginResponse.Data.Id
 		result.email = args.email
 
-		if err := config.Config.StoreEndpointAuth(args.apiEndpoint, args.email, result.token); err != nil {
+		// fetch installation name as alias
+		infoResponse, _, infoErr := apiClient.GetInfo(requestIDHeader, loginActivityName, cmdLine)
+		if infoErr != nil {
+			return result, microerror.Mask(infoErr)
+		}
+
+		result.alias = infoResponse.General.InstallationName
+
+		if err := config.Config.StoreEndpointAuth(args.apiEndpoint, result.alias, args.email, result.token); err != nil {
 			return result, microerror.Mask(err)
 		}
 		if err := config.Config.SelectEndpoint(args.apiEndpoint); err != nil {
 			return result, microerror.Mask(err)
 		}
 
-		return result, nil
 	case apischema.STATUS_CODE_RESOURCE_INVALID_CREDENTIALS:
 		// bad credentials
 		return result, microerror.Mask(invalidCredentialsError)
@@ -258,4 +267,6 @@ func login(args loginArguments) (loginResult, error) {
 	default:
 		return result, fmt.Errorf("Unhandled response code: %v", loginResponse.StatusCode)
 	}
+
+	return result, nil
 }

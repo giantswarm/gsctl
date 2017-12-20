@@ -22,13 +22,21 @@ func Test_LoginValidPassword(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{
-      "status_code": 10000,
-      "status_text": "Success",
-      "data": {
-        "Id": "some-test-session-token"
-      }
-    }`))
+		if r.URL.String() == "/v4/info/" {
+			w.Write([]byte(`{
+	      "general": {
+					"installation_name": "codename"
+	      }
+	    }`))
+		} else {
+			w.Write([]byte(`{
+	      "status_code": 10000,
+	      "status_text": "Success",
+	      "data": {
+	        "Id": "some-test-session-token"
+	      }
+	    }`))
+		}
 	}))
 	defer mockServer.Close()
 
@@ -46,6 +54,9 @@ func Test_LoginValidPassword(t *testing.T) {
 	}
 	if result.token != "some-test-session-token" {
 		t.Errorf("Expected 'some-test-session-token', got '%s'", result.token)
+	}
+	if result.alias != "codename" {
+		t.Errorf("Expected alias 'codename', got '%s'", result.alias)
 	}
 	if result.loggedOutBefore == true {
 		t.Error("result.loggedOutBefore was true, expected false")
