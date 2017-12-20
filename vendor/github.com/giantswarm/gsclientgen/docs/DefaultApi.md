@@ -9,6 +9,7 @@ Method | HTTP request | Description
 [**DeleteCluster**](DefaultApi.md#DeleteCluster) | **Delete** /v4/clusters/{cluster_id}/ | Delete cluster
 [**GetCluster**](DefaultApi.md#GetCluster) | **Get** /v4/clusters/{cluster_id}/ | Get cluster details
 [**GetClusters**](DefaultApi.md#GetClusters) | **Get** /v4/clusters/ | Get clusters
+[**GetInfo**](DefaultApi.md#GetInfo) | **Get** /v4/info/ | Get information on the installation
 [**GetKeyPairs**](DefaultApi.md#GetKeyPairs) | **Get** /v4/clusters/{cluster_id}/key-pairs/ | Get key-pairs for cluster
 [**GetReleases**](DefaultApi.md#GetReleases) | **Get** /v4/releases/ | Get releases
 [**GetUserOrganizations**](DefaultApi.md#GetUserOrganizations) | **Get** /v4/organizations/ | Get organizations for user
@@ -166,6 +167,32 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**[]V4ClusterListItem**](V4ClusterListItem.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **GetInfo**
+> V4InfoResponse GetInfo()
+
+Get information on the installation
+
+See https://docs.giantswarm.io/api/#operation/getInfo
+
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+[**V4InfoResponse**](V4InfoResponse.md)
 
 ### Authorization
 

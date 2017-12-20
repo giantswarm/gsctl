@@ -38,10 +38,10 @@
   version = "v2.0.2"
 
 [[projects]]
-  branch = "master"
+  branch = "get-info"
   name = "github.com/giantswarm/gsclientgen"
   packages = ["."]
-  revision = "b387bd08a00d326558509ab4f830a054819e3b20"
+  revision = "cb679d26c9020cfb4be61b12b40fb1bc411d1dd6"
 
 [[projects]]
   branch = "master"
@@ -144,6 +144,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "476d48e59d778b073a7c79c5d5888f0e8e3580ef9a25cb313036851601194916"
+  inputs-digest = "56855582090b7569e48b35c7852588f27ba62c8c9d83305bedd5ace7542bacab"
   solver-name = "gps-cdcl"
   solver-version = 1
