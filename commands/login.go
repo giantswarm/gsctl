@@ -58,6 +58,10 @@ type loginResult struct {
 	email string
 	// token is the new session token received
 	token string
+	// numEndpointsBefore is the number of endpoints before login
+	numEndpointsBefore int
+	// numEndpointsAfter is the number of endpoints after login
+	numEndpointsAfter int
 }
 
 type loginArguments struct {
@@ -184,21 +188,32 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 	}
 
 	if result.endpointSwitched {
-		fmt.Printf("Endpoint selected: %s\n", result.apiEndpoint)
+		if result.alias != "" {
+			fmt.Printf("Endpoint selected: %s (%s)\n", result.apiEndpoint, result.alias)
+		} else {
+			fmt.Printf("Endpoint selected: %s\n", result.apiEndpoint)
+		}
 	}
 
 	fmt.Println(color.GreenString("You are logged in as %s at %s.",
 		result.email, result.apiEndpoint))
+
+	if result.numEndpointsAfter > result.numEndpointsBefore && result.alias != "" {
+		fmt.Println()
+		fmt.Println(color.GreenString("To switch back to this endpoint, you can use this command:\n"))
+		fmt.Println(color.YellowString("    gsctl select endpoint %s\n", result.alias))
+	}
 }
 
 // login executes the authentication logic.
 // If the user was logged in before, a logout is performed first.
 func login(args loginArguments) (loginResult, error) {
 	result := loginResult{
-		apiEndpoint:      args.apiEndpoint,
-		email:            args.email,
-		loggedOutBefore:  false,
-		endpointSwitched: false,
+		apiEndpoint:        args.apiEndpoint,
+		email:              args.email,
+		loggedOutBefore:    false,
+		endpointSwitched:   false,
+		numEndpointsBefore: config.Config.NumEndpoints(),
 	}
 
 	endpointBefore := config.Config.SelectedEndpoint
@@ -255,6 +270,9 @@ func login(args loginArguments) (loginResult, error) {
 		if err := config.Config.SelectEndpoint(args.apiEndpoint); err != nil {
 			return result, microerror.Mask(err)
 		}
+
+		// after storing endpoint, get new endpoint count
+		result.numEndpointsAfter = config.Config.NumEndpoints()
 
 		return result, nil
 

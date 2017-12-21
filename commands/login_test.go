@@ -12,6 +12,7 @@ import (
 
 // Test_LoginValidPassword simulates a login with a valid email/password combination
 func Test_LoginValidPassword(t *testing.T) {
+	// we start with an empty config
 	dir, err := tempConfig("")
 	if err != nil {
 		t.Error(err)
@@ -71,6 +72,12 @@ func Test_LoginValidPassword(t *testing.T) {
 	}
 	if result.loggedOutBefore == true {
 		t.Error("result.loggedOutBefore was true, expected false")
+	}
+	if result.numEndpointsBefore != 0 {
+		t.Error("Expected result.numEndpointsBefore to be 0, got", result.numEndpointsBefore)
+	}
+	if result.numEndpointsAfter != 1 {
+		t.Error("Expected result.numEndpointsAfter to be 1, got", result.numEndpointsAfter)
 	}
 }
 
