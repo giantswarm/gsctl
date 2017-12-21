@@ -131,6 +131,20 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email
 		c.Endpoints = map[string]*endpointConfig{}
 	}
 
+	// Ensure alias uniqueness.
+	// If the alias is already in use, it has to point to the
+	// same endpoint URL.
+	if alias != "" && c.HasEndpointAlias(alias) {
+		aliasedURL, err := c.EndpointByAlias(alias)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		if aliasedURL != ep {
+			return microerror.Mask(aliasMustBeUniqueError)
+		}
+	}
+
 	// keep current Alias, if there
 	aliasBefore := ""
 	if _, ok := c.Endpoints[ep]; ok {
@@ -163,12 +177,15 @@ func (c *configStruct) SelectEndpoint(endpointAliasOrURL string) error {
 
 	ep := ""
 
-	// first check if the endpointURL matches an alias.
 	argumentIsAlias := false
-	for key := range c.Endpoints {
-		if endpointAliasOrURL == c.Endpoints[key].Alias {
-			argumentIsAlias = true
-			ep = key
+
+	// first check if the endpointURL matches an alias.
+	if c.HasEndpointAlias(endpointAliasOrURL) {
+		argumentIsAlias = true
+		var epErr error
+		ep, epErr = c.EndpointByAlias(endpointAliasOrURL)
+		if epErr != nil {
+			return microerror.Mask(epErr)
 		}
 	}
 
@@ -227,6 +244,27 @@ func (c *configStruct) ChooseToken(endpoint, overridingToken string) string {
 	}
 
 	return ""
+}
+
+// HasEndpointAlias returns whether the given alias is used for an endpoint
+func (c *configStruct) HasEndpointAlias(alias string) bool {
+	for key := range c.Endpoints {
+		if c.Endpoints[key].Alias == alias {
+			return true
+		}
+	}
+	return false
+}
+
+// GetByAlias performs a lookup by alias and returns the according endpoint URL
+// (if the alias is assigned) or an error (if not found)
+func (c *configStruct) EndpointByAlias(alias string) (string, error) {
+	for url := range c.Endpoints {
+		if c.Endpoints[url].Alias == alias {
+			return url, nil
+		}
+	}
+	return "", microerror.Maskf(endpointNotDefinedError, "no endpoint for this alias")
 }
 
 // NumEndpoints returns the number of endpoints stored in the configuration

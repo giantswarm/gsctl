@@ -10,6 +10,15 @@ func IsEndpointNotDefinedError(err error) bool {
 	return errgo.Cause(err) == endpointNotDefinedError
 }
 
+// aliasMustBeUniqueError should be used if the user tries to add an alias to
+// an endpoint, but the alias is already in use
+var aliasMustBeUniqueError = errgo.New("alias must be unique")
+
+// IsAliasMustBeUniqueError asserts aliasMustBeUniqueError.
+func IsAliasMustBeUniqueError(err error) bool {
+	return errgo.Cause(err) == aliasMustBeUniqueError
+}
+
 // credentialsRequiredError means an attempt to store incomplete credentials in the config
 var credentialsRequiredError = errgo.New("email and password must not be empty")
 

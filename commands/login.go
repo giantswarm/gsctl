@@ -172,6 +172,10 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 			headline = "Bad password or email address."
 			subtext = fmt.Sprintf("Could not log you in to %s.", color.CyanString(loginArgs.apiEndpoint))
 			subtext += " The email or the password provided (or both) was incorrect."
+		case config.IsAliasMustBeUniqueError(err):
+			headline = "Alias is already in use for a different endpoint"
+			subtext = fmt.Sprintf("The alias '%s' is already used for an endpoint in your configuration.\n", result.alias)
+			subtext += "Please edit your configuration file manually to delete the alias or endpoint."
 		default:
 			headline = err.Error()
 		}

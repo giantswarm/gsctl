@@ -84,6 +84,18 @@ func Test_Initialize_Empty(t *testing.T) {
 		t.Error("Expected 1 endpoint, got", Config.NumEndpoints())
 	}
 
+	if !Config.HasEndpointAlias(testAlias) {
+		t.Errorf("Expected to have alias '%s', but haven't", testAlias)
+	}
+
+	u, err := Config.EndpointByAlias(testAlias)
+	if err != nil {
+		t.Error(err)
+	}
+	if u != testEndpointURL {
+		t.Errorf("Expected to get URL '%s', but got '%s'", testEndpointURL, u)
+	}
+
 	err = WriteToFile()
 	if err != nil {
 		t.Error(err)
