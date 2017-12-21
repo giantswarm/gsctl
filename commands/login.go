@@ -241,7 +241,8 @@ func login(args loginArguments) (loginResult, error) {
 		result.email = args.email
 
 		// fetch installation name as alias
-		infoResponse, _, infoErr := apiClient.GetInfo(requestIDHeader, loginActivityName, cmdLine)
+		authHeader := "giantswarm " + result.token
+		infoResponse, _, infoErr := apiClient.GetInfo(authHeader, requestIDHeader, loginActivityName, cmdLine)
 		if infoErr != nil {
 			return result, microerror.Mask(infoErr)
 		}
@@ -255,6 +256,8 @@ func login(args loginArguments) (loginResult, error) {
 			return result, microerror.Mask(err)
 		}
 
+		return result, nil
+
 	case apischema.STATUS_CODE_RESOURCE_INVALID_CREDENTIALS:
 		// bad credentials
 		return result, microerror.Mask(invalidCredentialsError)
@@ -267,6 +270,4 @@ func login(args loginArguments) (loginResult, error) {
 	default:
 		return result, fmt.Errorf("Unhandled response code: %v", loginResponse.StatusCode)
 	}
-
-	return result, nil
 }
