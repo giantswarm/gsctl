@@ -24,10 +24,21 @@ func Test_LoginValidPassword(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		if r.URL.String() == "/v4/info/" {
 			w.Write([]byte(`{
-	      "general": {
-					"installation_name": "codename"
-	      }
-	    }`))
+			  "general": {
+			    "installation_name": "codename",
+			    "provider": "aws"
+			  },
+			  "workers": {
+			    "count_per_cluster": {
+			      "max": 20,
+			      "default": 3
+			    },
+			    "instance_type": {
+			      "options": ["m3.large", "m4.xlarge"],
+			      "default": "m3.large"
+			    }
+			  }
+			}`))
 		} else {
 			w.Write([]byte(`{
 	      "status_code": 10000,
