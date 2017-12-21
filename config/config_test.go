@@ -63,6 +63,11 @@ func Test_Initialize_Empty(t *testing.T) {
 	testToken := "some-token"
 	testAlias := "testalias"
 
+	// check initial enpoint count
+	if Config.NumEndpoints() != 0 {
+		t.Error("Expected zero endpoints, got", Config.NumEndpoints())
+	}
+
 	// directly set some configuration
 	Config.LastVersionCheck = time.Time{}
 	err = Config.StoreEndpointAuth(testEndpointURL, testAlias, testEmail, testToken)
@@ -73,6 +78,10 @@ func Test_Initialize_Empty(t *testing.T) {
 	err = Config.SelectEndpoint(testEndpointURL)
 	if err != nil {
 		t.Error(err)
+	}
+
+	if Config.NumEndpoints() != 1 {
+		t.Error("Expected 1 endpoint, got", Config.NumEndpoints())
 	}
 
 	err = WriteToFile()

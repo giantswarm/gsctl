@@ -229,6 +229,11 @@ func (c *configStruct) ChooseToken(endpoint, overridingToken string) string {
 	return ""
 }
 
+// NumEndpoints returns the number of endpoints stored in the configuration
+func (c *configStruct) NumEndpoints() int {
+	return len(c.Endpoints)
+}
+
 // Logout removes the token value from the selected endpoint.
 func (c *configStruct) Logout(endpointURL string) {
 	ep := normalizeEndpoint(endpointURL)
