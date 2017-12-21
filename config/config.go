@@ -136,13 +136,14 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email
 	if _, ok := c.Endpoints[ep]; ok {
 		aliasBefore = c.Endpoints[ep].Alias
 	}
+
 	c.Endpoints[ep] = &endpointConfig{
 		Alias: aliasBefore,
 		Email: email,
 		Token: token,
 	}
 
-	if aliasBefore != "" {
+	if alias != "" && aliasBefore == "" {
 		c.Endpoints[ep].Alias = alias
 	}
 

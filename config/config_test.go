@@ -85,14 +85,22 @@ func Test_Initialize_Empty(t *testing.T) {
 	}
 	yamlText := string(content)
 
+	// check if the last updated date has been added
 	if !strings.Contains(yamlText, "updated:") {
 		t.Log(yamlText)
 		t.Error("Written YAML doesn't contain the expected string 'updated:'")
 	}
 
+	// check if the selected endpoint is set as expected
 	if !strings.Contains(yamlText, "selected_endpoint: "+testEndpointURL) {
 		t.Log(yamlText)
 		t.Errorf("Written YAML doesn't contain the expected string 'selected_endpoint: %s'", testEndpointURL)
+	}
+
+	// check if the alias has been set
+	if !strings.Contains(yamlText, "alias: "+testAlias) {
+		t.Log(yamlText)
+		t.Errorf("Written YAML doesn't contain the expected string 'alias: %s'", testAlias)
 	}
 
 	// test what happens after logout
@@ -111,11 +119,6 @@ func Test_Initialize_Empty(t *testing.T) {
 	if !strings.Contains(yamlText, "selected_endpoint: "+testEndpointURL) {
 		t.Log(yamlText)
 		t.Errorf("Written YAML doesn't contain the expected string 'selected_endpoint: %s'", testEndpointURL)
-	}
-
-	if !strings.Contains(yamlText, "alias: "+testAlias) {
-		t.Log(yamlText)
-		t.Errorf("Written YAML doesn't contain the expected string 'alias: %s'", testAlias)
 	}
 }
 
