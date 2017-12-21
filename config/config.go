@@ -131,10 +131,19 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email
 		c.Endpoints = map[string]*endpointConfig{}
 	}
 
+	// keep current Alias, if there
+	aliasBefore := ""
+	if _, ok := c.Endpoints[ep]; ok {
+		aliasBefore = c.Endpoints[ep].Alias
+	}
 	c.Endpoints[ep] = &endpointConfig{
-		Alias: alias,
+		Alias: aliasBefore,
 		Email: email,
 		Token: token,
+	}
+
+	if aliasBefore != "" {
+		c.Endpoints[ep].Alias = alias
 	}
 
 	WriteToFile()
