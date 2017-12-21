@@ -40,8 +40,8 @@ The password has to be entered interactively or given as -p / --password flag.
 
 The -e or --endpoint argument can be omitted if an endpoint is already selected.`,
 		Example: "  gsctl login user@example.com --endpoint api.example.com",
-		PreRun:  loginValidationOutput,
-		Run:     loginOutput,
+		PreRun:  loginPreRunOutput,
+		Run:     loginRunOutput,
 	}
 )
 
@@ -81,10 +81,10 @@ func init() {
 	RootCommand.AddCommand(LoginCommand)
 }
 
-// loginValidationOutput runs our pre-checks.
+// loginPreRunOutput runs our pre-checks.
 // If an error occurred, it prints the error info and exits with non-zero code.
-func loginValidationOutput(cmd *cobra.Command, positionalArgs []string) {
-	err := loginValidation(positionalArgs)
+func loginPreRunOutput(cmd *cobra.Command, positionalArgs []string) {
+	err := verifyLoginPreconditions(positionalArgs)
 
 	if err != nil {
 		var headline = ""
@@ -112,8 +112,8 @@ func loginValidationOutput(cmd *cobra.Command, positionalArgs []string) {
 	}
 }
 
-// loginValidation does the pre-checks and returns an error in case something's wrong.
-func loginValidation(positionalArgs []string) error {
+// verifyLoginPreconditions does the pre-checks and returns an error in case something's wrong.
+func verifyLoginPreconditions(positionalArgs []string) error {
 	if len(positionalArgs) >= 1 {
 		// set cmdEmail for later use, as cobra doesn't do that for us
 		cmdEmail = positionalArgs[0]
@@ -145,9 +145,9 @@ func loginValidation(positionalArgs []string) error {
 	return nil
 }
 
-// loginOutput executes the login logic and
+// loginRunOutput executes the login logic and
 // prints output and sets the exit code.
-func loginOutput(cmd *cobra.Command, args []string) {
+func loginRunOutput(cmd *cobra.Command, args []string) {
 	loginArgs := defaultLoginArguments()
 
 	result, err := login(loginArgs)
