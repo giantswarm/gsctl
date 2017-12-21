@@ -406,12 +406,13 @@ func (a DefaultApi) GetClusters(authorization string, xRequestID string, xGiantS
  * Get information on the installation
  * See https://docs.giantswarm.io/api/#operation/getInfo
  *
+ * @param authorization Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.
  * @param xRequestID A randomly generated key that can be used to track a request throughout services of Giant Swarm
  * @param xGiantSwarmActivity Name of an activity to track, like \&quot;list-clusters\&quot;
  * @param xGiantSwarmCmdLine If activity has been issued by a CLI, this header can contain the command line
  * @return *V4InfoResponse
  */
-func (a DefaultApi) GetInfo(xRequestID string, xGiantSwarmActivity string, xGiantSwarmCmdLine string) (*V4InfoResponse, *APIResponse, error) {
+func (a DefaultApi) GetInfo(authorization string, xRequestID string, xGiantSwarmActivity string, xGiantSwarmCmdLine string) (*V4InfoResponse, *APIResponse, error) {
 
 	var localVarHttpMethod = strings.ToUpper("Get")
 	// create path and map variables
@@ -446,6 +447,8 @@ func (a DefaultApi) GetInfo(xRequestID string, xGiantSwarmActivity string, xGian
 	if localVarHttpHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHttpHeaderAccept
 	}
+	// header params "Authorization"
+	localVarHeaderParams["Authorization"] = a.Configuration.APIClient.ParameterToString(authorization, "")
 	// header params "X-Request-ID"
 	localVarHeaderParams["X-Request-ID"] = a.Configuration.APIClient.ParameterToString(xRequestID, "")
 	// header params "X-Giant-Swarm-Activity"

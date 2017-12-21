@@ -380,6 +380,7 @@ paths:
       summary: Get information on the installation
       description: See https://docs.giantswarm.io/api/#operation/getInfo
       parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
         - $ref: '#/parameters/XRequestIDHeader'
         - $ref: '#/parameters/XGiantSwarmActivityHeader'
         - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
