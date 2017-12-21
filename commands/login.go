@@ -198,7 +198,11 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 	fmt.Println(color.GreenString("You are logged in as %s at %s.",
 		result.email, result.apiEndpoint))
 
-	if result.numEndpointsAfter > result.numEndpointsBefore && result.alias != "" {
+	// we only want this extra hin on endpoint switching if
+	// - at least two endpoints in total
+	// - an endpoint has been just added
+	// - the new endpoint has an alias
+	if result.numEndpointsAfter > result.numEndpointsBefore && result.numEndpointsAfter > 1 && result.alias != "" {
 		fmt.Println()
 		fmt.Println(color.GreenString("To switch back to this endpoint, you can use this command:\n"))
 		fmt.Println(color.YellowString("    gsctl select endpoint %s\n", result.alias))
