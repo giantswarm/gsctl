@@ -223,9 +223,15 @@ func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 	// sort changelog and components by component name
 	for n := range releasesResponse {
 		slice.Sort(releasesResponse[n].Components[:], func(i, j int) bool {
+			if releasesResponse[n].Components[i].Name == "kubernetes" {
+				return true
+			}
 			return releasesResponse[n].Components[i].Name < releasesResponse[n].Components[j].Name
 		})
 		slice.Sort(releasesResponse[n].Changelog[:], func(i, j int) bool {
+			if releasesResponse[n].Changelog[i].Component == "kubernetes" {
+				return true
+			}
 			return releasesResponse[n].Changelog[i].Component < releasesResponse[n].Changelog[j].Component
 		})
 	}
