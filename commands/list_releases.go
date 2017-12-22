@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/bradfitz/slice"
@@ -99,21 +98,6 @@ func listReleasesValidate(args *listReleasesArguments) error {
 	}
 
 	return nil
-}
-
-// componentsString concatenates components and their version to a string.
-func componentsString(components []gsclientgen.V4ReleaseComponent) string {
-	items := []string{}
-
-	slice.Sort(components[:], func(i, j int) bool {
-		return components[i].Name < components[j].Name
-	})
-
-	for _, component := range components {
-		items = append(items, component.Name+":"+component.Version)
-	}
-
-	return strings.Join(items, " ")
 }
 
 // listReleasesOutput is the function called to list releases and display
