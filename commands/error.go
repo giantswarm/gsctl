@@ -82,6 +82,14 @@ func IsInternalServerError(err error) bool {
 	return errgo.Cause(err) == internalServerError
 }
 
+// server side has not returned a response
+var noResponseError = errgo.New("no response returned")
+
+// IsNoResponseError asserts noResponseError.
+func IsNoResponseError(err error) bool {
+	return errgo.Cause(err) == noResponseError
+}
+
 // notAuthorizedError means that an API action could not be performed due to
 // an authorization problem (usually a HTTP 401 error)
 var notAuthorizedError = errgo.New("not authorized")

@@ -138,6 +138,9 @@ func listReleasesOutput(cmd *cobra.Command, extraArgs []string) {
 		case IsInternalServerError(err):
 			headline = "An internal error occurred."
 			subtext = "Please notify the Giant Swarm support team, or try listing releases again in a few moments."
+		case IsNoResponseError(err):
+			headline = "The API didn't send a response."
+			subtext = "Please notify the Giant Swarm support team, or try listing releases again in a few moments."
 		case IsUnknownError(err):
 			headline = "An error occurred."
 			subtext = "Please notify the Giant Swarm support team, or try listing releases again in a few moments."
@@ -207,7 +210,9 @@ func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 		requestIDHeader, listReleasesActivityName, cmdLine)
 
 	if err != nil {
-
+		if apiResponse == nil || apiResponse.Response == nil {
+			return result, microerror.Mask(noResponseError)
+		}
 		if apiResponse.StatusCode >= 500 {
 			return result, microerror.Maskf(internalServerError, err.Error())
 		} else if apiResponse.StatusCode == http.StatusNotFound {
