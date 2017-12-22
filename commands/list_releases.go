@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/bradfitz/slice"
+	"github.com/coreos/go-semver/semver"
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/microerror"
@@ -221,10 +222,12 @@ func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 		return result, microerror.Mask(unknownError)
 	}
 
-	// sort releases by date
+	// sort releases by version (descending)
 	if len(releasesResponse) > 1 {
 		slice.Sort(releasesResponse[:], func(i, j int) bool {
-			return releasesResponse[i].Timestamp > releasesResponse[j].Timestamp
+			vi := semver.New(releasesResponse[i].Version)
+			vj := semver.New(releasesResponse[j].Version)
+			return vj.LessThan(*vi)
 		})
 	}
 
