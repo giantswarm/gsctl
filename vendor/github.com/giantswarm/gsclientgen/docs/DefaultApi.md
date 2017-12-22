@@ -9,6 +9,7 @@ Method | HTTP request | Description
 [**DeleteCluster**](DefaultApi.md#DeleteCluster) | **Delete** /v4/clusters/{cluster_id}/ | Delete cluster
 [**GetCluster**](DefaultApi.md#GetCluster) | **Get** /v4/clusters/{cluster_id}/ | Get cluster details
 [**GetClusters**](DefaultApi.md#GetClusters) | **Get** /v4/clusters/ | Get clusters
+[**GetInfo**](DefaultApi.md#GetInfo) | **Get** /v4/info/ | Get information on the installation
 [**GetKeyPairs**](DefaultApi.md#GetKeyPairs) | **Get** /v4/clusters/{cluster_id}/key-pairs/ | Get key-pairs for cluster
 [**GetReleases**](DefaultApi.md#GetReleases) | **Get** /v4/releases/ | Get releases
 [**GetUserOrganizations**](DefaultApi.md#GetUserOrganizations) | **Get** /v4/organizations/ | Get organizations for user
@@ -166,6 +167,38 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**[]V4ClusterListItem**](V4ClusterListItem.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **GetInfo**
+> V4InfoResponse GetInfo($authorization, $xRequestID, $xGiantSwarmActivity, $xGiantSwarmCmdLine)
+
+Get information on the installation
+
+See https://docs.giantswarm.io/api/#operation/getInfo
+
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **authorization** | **string**| Header to pass an authorization token. The value has to be in the form &#x60;giantswarm &lt;token&gt;&#x60;.  | 
+ **xRequestID** | **string**| A randomly generated key that can be used to track a request throughout services of Giant Swarm  | [optional] 
+ **xGiantSwarmActivity** | **string**| Name of an activity to track, like \&quot;list-clusters\&quot; | [optional] 
+ **xGiantSwarmCmdLine** | **string**| If activity has been issued by a CLI, this header can contain the command line  | [optional] 
+
+### Return type
+
+[**V4InfoResponse**](V4InfoResponse.md)
 
 ### Authorization
 

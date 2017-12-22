@@ -374,6 +374,26 @@ paths:
           schema:
             $ref: '#/definitions/V4GenericResponse'
 
+  /v4/info/:
+    get:
+      operationId: getInfo
+      summary: Get information on the installation
+      description: See https://docs.giantswarm.io/api/#operation/getInfo
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+      responses:
+        "200":
+          description: Information
+          schema:
+            $ref: "#/definitions/V4InfoResponse"
+        default:
+          description: Error
+          schema:
+            $ref: "#/definitions/V4GenericResponse"
+
 definitions:
 
   GenericResponseModel:
@@ -694,6 +714,63 @@ definitions:
         items:
           $ref: '#/definitions/V4ReleaseComponent'
 
+  # Info resposne
+  V4InfoResponse:
+    type: object
+    properties:
+      general:
+        type: object
+        properties:
+          installation_name:
+            type: string
+          provider:
+            type: string
+          datacenter:
+            type: string
+      workers:
+        type: object
+        properties:
+          count_per_cluster:
+            type: object
+            properties:
+              max:
+                type: number
+              default:
+                type: number
+          instance_type:
+            type: object
+            properties:
+              options:
+                type: array
+                items:
+                  type: string
+              default:
+                type: string
+          cpu_cores:
+            type: object
+            properties:
+              min:
+                type: number
+              max:
+                type: number
+              default:
+                type: number
+          ram_size_gb:
+            type: object
+            properties:
+              min:
+                type: number
+              max:
+                type: number
+              default:
+                type: number
+          storage_size_gb:
+            type: object
+            properties:
+              max:
+                type: number
+              default:
+                type: number
 
 parameters:
   RequiredAuthorizationHeader:

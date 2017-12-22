@@ -12,6 +12,7 @@ import (
 
 // Test_LoginValidPassword simulates a login with a valid email/password combination
 func Test_LoginValidPassword(t *testing.T) {
+	// we start with an empty config
 	dir, err := tempConfig("")
 	if err != nil {
 		t.Error(err)
@@ -22,13 +23,32 @@ func Test_LoginValidPassword(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{
-      "status_code": 10000,
-      "status_text": "Success",
-      "data": {
-        "Id": "some-test-session-token"
-      }
-    }`))
+		if r.URL.String() == "/v4/info/" {
+			w.Write([]byte(`{
+			  "general": {
+			    "installation_name": "codename",
+			    "provider": "aws"
+			  },
+			  "workers": {
+			    "count_per_cluster": {
+			      "max": 20,
+			      "default": 3
+			    },
+			    "instance_type": {
+			      "options": ["m3.large", "m4.xlarge"],
+			      "default": "m3.large"
+			    }
+			  }
+			}`))
+		} else {
+			w.Write([]byte(`{
+	      "status_code": 10000,
+	      "status_text": "Success",
+	      "data": {
+	        "Id": "some-test-session-token"
+	      }
+	    }`))
+		}
 	}))
 	defer mockServer.Close()
 
@@ -47,8 +67,17 @@ func Test_LoginValidPassword(t *testing.T) {
 	if result.token != "some-test-session-token" {
 		t.Errorf("Expected 'some-test-session-token', got '%s'", result.token)
 	}
+	if result.alias != "codename" {
+		t.Errorf("Expected alias 'codename', got '%s'", result.alias)
+	}
 	if result.loggedOutBefore == true {
 		t.Error("result.loggedOutBefore was true, expected false")
+	}
+	if result.numEndpointsBefore != 0 {
+		t.Error("Expected result.numEndpointsBefore to be 0, got", result.numEndpointsBefore)
+	}
+	if result.numEndpointsAfter != 1 {
+		t.Error("Expected result.numEndpointsAfter to be 1, got", result.numEndpointsAfter)
 	}
 }
 

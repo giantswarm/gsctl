@@ -61,10 +61,16 @@ func Test_Initialize_Empty(t *testing.T) {
 	testEndpointURL := "https://myapi.domain.tld"
 	testEmail := "user@domain.tld"
 	testToken := "some-token"
+	testAlias := "testalias"
+
+	// check initial enpoint count
+	if Config.NumEndpoints() != 0 {
+		t.Error("Expected zero endpoints, got", Config.NumEndpoints())
+	}
 
 	// directly set some configuration
 	Config.LastVersionCheck = time.Time{}
-	err = Config.StoreEndpointAuth(testEndpointURL, testEmail, testToken)
+	err = Config.StoreEndpointAuth(testEndpointURL, testAlias, testEmail, testToken)
 	if err != nil {
 		t.Error(err)
 	}
@@ -72,6 +78,22 @@ func Test_Initialize_Empty(t *testing.T) {
 	err = Config.SelectEndpoint(testEndpointURL)
 	if err != nil {
 		t.Error(err)
+	}
+
+	if Config.NumEndpoints() != 1 {
+		t.Error("Expected 1 endpoint, got", Config.NumEndpoints())
+	}
+
+	if !Config.HasEndpointAlias(testAlias) {
+		t.Errorf("Expected to have alias '%s', but haven't", testAlias)
+	}
+
+	u, err := Config.EndpointByAlias(testAlias)
+	if err != nil {
+		t.Error(err)
+	}
+	if u != testEndpointURL {
+		t.Errorf("Expected to get URL '%s', but got '%s'", testEndpointURL, u)
 	}
 
 	err = WriteToFile()
@@ -84,14 +106,22 @@ func Test_Initialize_Empty(t *testing.T) {
 	}
 	yamlText := string(content)
 
+	// check if the last updated date has been added
 	if !strings.Contains(yamlText, "updated:") {
 		t.Log(yamlText)
 		t.Error("Written YAML doesn't contain the expected string 'updated:'")
 	}
 
+	// check if the selected endpoint is set as expected
 	if !strings.Contains(yamlText, "selected_endpoint: "+testEndpointURL) {
 		t.Log(yamlText)
 		t.Errorf("Written YAML doesn't contain the expected string 'selected_endpoint: %s'", testEndpointURL)
+	}
+
+	// check if the alias has been set
+	if !strings.Contains(yamlText, "alias: "+testAlias) {
+		t.Log(yamlText)
+		t.Errorf("Written YAML doesn't contain the expected string 'alias: %s'", testAlias)
 	}
 
 	// test what happens after logout
@@ -111,7 +141,6 @@ func Test_Initialize_Empty(t *testing.T) {
 		t.Log(yamlText)
 		t.Errorf("Written YAML doesn't contain the expected string 'selected_endpoint: %s'", testEndpointURL)
 	}
-	t.Log(yamlText)
 }
 
 // Test_Initialize_NonEmpty tests initializing with a dummy config file.

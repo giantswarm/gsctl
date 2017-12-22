@@ -40,14 +40,16 @@ The password has to be entered interactively or given as -p / --password flag.
 
 The -e or --endpoint argument can be omitted if an endpoint is already selected.`,
 		Example: "  gsctl login user@example.com --endpoint api.example.com",
-		PreRun:  loginValidationOutput,
-		Run:     loginOutput,
+		PreRun:  loginPreRunOutput,
+		Run:     loginRunOutput,
 	}
 )
 
 type loginResult struct {
 	// apiEndpoint is the API endpoint the user has been logged in to
 	apiEndpoint string
+	// alias is the alternative, user friendly name for an endpoint
+	alias string
 	// loggedOutBefore is true if the user has been logged out from a previous session
 	loggedOutBefore bool
 	// endpointSwitched is true when the endpoint has been changed during login
@@ -56,6 +58,10 @@ type loginResult struct {
 	email string
 	// token is the new session token received
 	token string
+	// numEndpointsBefore is the number of endpoints before login
+	numEndpointsBefore int
+	// numEndpointsAfter is the number of endpoints after login
+	numEndpointsAfter int
 }
 
 type loginArguments struct {
@@ -79,10 +85,10 @@ func init() {
 	RootCommand.AddCommand(LoginCommand)
 }
 
-// loginValidationOutput runs our pre-checks.
+// loginPreRunOutput runs our pre-checks.
 // If an error occurred, it prints the error info and exits with non-zero code.
-func loginValidationOutput(cmd *cobra.Command, positionalArgs []string) {
-	err := loginValidation(positionalArgs)
+func loginPreRunOutput(cmd *cobra.Command, positionalArgs []string) {
+	err := verifyLoginPreconditions(positionalArgs)
 
 	if err != nil {
 		var headline = ""
@@ -110,8 +116,8 @@ func loginValidationOutput(cmd *cobra.Command, positionalArgs []string) {
 	}
 }
 
-// loginValidation does the pre-checks and returns an error in case something's wrong.
-func loginValidation(positionalArgs []string) error {
+// verifyLoginPreconditions does the pre-checks and returns an error in case something's wrong.
+func verifyLoginPreconditions(positionalArgs []string) error {
 	if len(positionalArgs) >= 1 {
 		// set cmdEmail for later use, as cobra doesn't do that for us
 		cmdEmail = positionalArgs[0]
@@ -143,9 +149,9 @@ func loginValidation(positionalArgs []string) error {
 	return nil
 }
 
-// loginOutput executes the login logic and
+// loginRunOutput executes the login logic and
 // prints output and sets the exit code.
-func loginOutput(cmd *cobra.Command, args []string) {
+func loginRunOutput(cmd *cobra.Command, args []string) {
 	loginArgs := defaultLoginArguments()
 
 	result, err := login(loginArgs)
@@ -166,6 +172,10 @@ func loginOutput(cmd *cobra.Command, args []string) {
 			headline = "Bad password or email address."
 			subtext = fmt.Sprintf("Could not log you in to %s.", color.CyanString(loginArgs.apiEndpoint))
 			subtext += " The email or the password provided (or both) was incorrect."
+		case config.IsAliasMustBeUniqueError(err):
+			headline = "Alias is already in use for a different endpoint"
+			subtext = fmt.Sprintf("The alias '%s' is already used for an endpoint in your configuration.\n", result.alias)
+			subtext += "Please edit your configuration file manually to delete the alias or endpoint."
 		default:
 			headline = err.Error()
 		}
@@ -182,21 +192,36 @@ func loginOutput(cmd *cobra.Command, args []string) {
 	}
 
 	if result.endpointSwitched {
-		fmt.Printf("Endpoint selected: %s\n", result.apiEndpoint)
+		if result.alias != "" {
+			fmt.Printf("Endpoint selected: %s (%s)\n", result.apiEndpoint, result.alias)
+		} else {
+			fmt.Printf("Endpoint selected: %s\n", result.apiEndpoint)
+		}
 	}
 
 	fmt.Println(color.GreenString("You are logged in as %s at %s.",
 		result.email, result.apiEndpoint))
+
+	// we only want this extra hin on endpoint switching if
+	// - at least two endpoints in total
+	// - an endpoint has been just added
+	// - the new endpoint has an alias
+	if result.numEndpointsAfter > result.numEndpointsBefore && result.numEndpointsAfter > 1 && result.alias != "" {
+		fmt.Println()
+		fmt.Println(color.GreenString("To switch back to this endpoint, you can use this command:\n"))
+		fmt.Println(color.YellowString("    gsctl select endpoint %s\n", result.alias))
+	}
 }
 
 // login executes the authentication logic.
 // If the user was logged in before, a logout is performed first.
 func login(args loginArguments) (loginResult, error) {
 	result := loginResult{
-		apiEndpoint:      args.apiEndpoint,
-		email:            args.email,
-		loggedOutBefore:  false,
-		endpointSwitched: false,
+		apiEndpoint:        args.apiEndpoint,
+		email:              args.email,
+		loggedOutBefore:    false,
+		endpointSwitched:   false,
+		numEndpointsBefore: config.Config.NumEndpoints(),
 	}
 
 	endpointBefore := config.Config.SelectedEndpoint
@@ -238,14 +263,27 @@ func login(args loginArguments) (loginResult, error) {
 		result.token = loginResponse.Data.Id
 		result.email = args.email
 
-		if err := config.Config.StoreEndpointAuth(args.apiEndpoint, args.email, result.token); err != nil {
+		// fetch installation name as alias
+		authHeader := "giantswarm " + result.token
+		infoResponse, _, infoErr := apiClient.GetInfo(authHeader, requestIDHeader, loginActivityName, cmdLine)
+		if infoErr != nil {
+			return result, microerror.Mask(infoErr)
+		}
+
+		result.alias = infoResponse.General.InstallationName
+
+		if err := config.Config.StoreEndpointAuth(args.apiEndpoint, result.alias, args.email, result.token); err != nil {
 			return result, microerror.Mask(err)
 		}
 		if err := config.Config.SelectEndpoint(args.apiEndpoint); err != nil {
 			return result, microerror.Mask(err)
 		}
 
+		// after storing endpoint, get new endpoint count
+		result.numEndpointsAfter = config.Config.NumEndpoints()
+
 		return result, nil
+
 	case apischema.STATUS_CODE_RESOURCE_INVALID_CREDENTIALS:
 		// bad credentials
 		return result, microerror.Mask(invalidCredentialsError)
