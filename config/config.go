@@ -256,7 +256,7 @@ func (c *configStruct) HasEndpointAlias(alias string) bool {
 	return false
 }
 
-// GetByAlias performs a lookup by alias and returns the according endpoint URL
+// EndpointByAlias performs a lookup by alias and returns the according endpoint URL
 // (if the alias is assigned) or an error (if not found)
 func (c *configStruct) EndpointByAlias(alias string) (string, error) {
 	for url := range c.Endpoints {
