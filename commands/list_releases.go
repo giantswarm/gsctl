@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/bradfitz/slice"
+	"github.com/coreos/go-semver/semver"
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/microerror"
@@ -100,21 +100,6 @@ func listReleasesValidate(args *listReleasesArguments) error {
 	return nil
 }
 
-// componentsString concatenates components and their version to a string.
-func componentsString(components []gsclientgen.V4ReleaseComponent) string {
-	items := []string{}
-
-	slice.Sort(components[:], func(i, j int) bool {
-		return components[i].Name < components[j].Name
-	})
-
-	for _, component := range components {
-		items = append(items, component.Name+":"+component.Version)
-	}
-
-	return strings.Join(items, " ")
-}
-
 // listReleasesOutput is the function called to list releases and display
 // errors in case they happen
 func listReleasesOutput(cmd *cobra.Command, extraArgs []string) {
@@ -136,6 +121,9 @@ func listReleasesOutput(cmd *cobra.Command, extraArgs []string) {
 			subtext = "You have no permission to access releases for this cluster. Please check your credentials."
 		case IsInternalServerError(err):
 			headline = "An internal error occurred."
+			subtext = "Please notify the Giant Swarm support team, or try listing releases again in a few moments."
+		case IsNoResponseError(err):
+			headline = "The API didn't send a response."
 			subtext = "Please notify the Giant Swarm support team, or try listing releases again in a few moments."
 		case IsUnknownError(err):
 			headline = "An error occurred."
@@ -206,7 +194,9 @@ func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 		requestIDHeader, listReleasesActivityName, cmdLine)
 
 	if err != nil {
-
+		if apiResponse == nil || apiResponse.Response == nil {
+			return result, microerror.Mask(noResponseError)
+		}
 		if apiResponse.StatusCode >= 500 {
 			return result, microerror.Maskf(internalServerError, err.Error())
 		} else if apiResponse.StatusCode == http.StatusNotFound {
@@ -221,19 +211,27 @@ func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 		return result, microerror.Mask(unknownError)
 	}
 
-	// sort releases by date
+	// sort releases by version (descending)
 	if len(releasesResponse) > 1 {
 		slice.Sort(releasesResponse[:], func(i, j int) bool {
-			return releasesResponse[i].Timestamp > releasesResponse[j].Timestamp
+			vi := semver.New(releasesResponse[i].Version)
+			vj := semver.New(releasesResponse[j].Version)
+			return vj.LessThan(*vi)
 		})
 	}
 
 	// sort changelog and components by component name
 	for n := range releasesResponse {
 		slice.Sort(releasesResponse[n].Components[:], func(i, j int) bool {
+			if releasesResponse[n].Components[i].Name == "kubernetes" {
+				return true
+			}
 			return releasesResponse[n].Components[i].Name < releasesResponse[n].Components[j].Name
 		})
 		slice.Sort(releasesResponse[n].Changelog[:], func(i, j int) bool {
+			if releasesResponse[n].Changelog[i].Component == "kubernetes" {
+				return true
+			}
 			return releasesResponse[n].Changelog[i].Component < releasesResponse[n].Changelog[j].Component
 		})
 	}

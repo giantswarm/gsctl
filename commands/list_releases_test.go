@@ -93,7 +93,7 @@ func Test_ListReleases_Nonempty(t *testing.T) {
 		w.Write([]byte(`[
 		  {
 				"timestamp": "2017-10-15T12:00:00Z",
-		    "version": "0.2.0",
+		    "version": "0.1.0",
 		    "active": true,
 		    "changelog": [
 		      {
@@ -142,7 +142,7 @@ func Test_ListReleases_Nonempty(t *testing.T) {
 		  },
 			{
 				"timestamp": "2017-10-27T16:21:00Z",
-		    "version": "0.3.0",
+		    "version": "0.10.0",
 		    "active": true,
 		    "changelog": [
 		      {
@@ -230,10 +230,12 @@ func Test_ListReleases_Nonempty(t *testing.T) {
 	if listErr != nil {
 		t.Error(listErr)
 	}
+
 	if len(result.releases) != 2 {
 		t.Errorf("We expected 2 releases, got %d", len(result.releases))
 	}
-	if result.releases[1].Version != "0.2.0" {
+
+	if result.releases[0].Version != "0.10.0" || result.releases[1].Version != "0.1.0" {
 		t.Error("Releases returned were not in the expected order.")
 	}
 }
