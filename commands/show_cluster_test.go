@@ -60,6 +60,129 @@ func TestShowAWSCluster(t *testing.T) {
 
 }
 
+// TestShowClusterNotAuthorized tests HTTP 401 error handling
+func TestShowClusterNotAuthorized(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		if r.Method == "GET" {
+			w.Write([]byte(`{
+				"code":"INVALID_CREDENTIALS",
+				"message":"The requested resource cannot be accessed using the provided credentials. (token not found: unauthenticated)"
+			}`))
+		}
+	}))
+	defer mockServer.Close()
+
+	// temp config
+	configDir, _ := ioutil.TempDir("", config.ProgramName)
+	config.Initialize(configDir)
+
+	testArgs := showClusterArguments{
+		apiEndpoint: mockServer.URL,
+		clusterID:   "cluster-id",
+		authToken:   "my-wrong-token",
+	}
+
+	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = getClusterDetails(testArgs.clusterID,
+		testArgs.authToken, testArgs.apiEndpoint)
+
+	if err == nil {
+		t.Fatal("Expected notAuthorizedError, got nil")
+	}
+
+	if !IsNotAuthorizedError(err) {
+		t.Errorf("Expected notAuthorizedError, got '%s'", err.Error())
+	}
+}
+
+// TestShowClusterNotFound tests HTTP 404 error handling
+func TestShowClusterNotFound(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		if r.Method == "GET" {
+			w.Write([]byte(`{
+				"code":"RESOURCE_NOT_FOUND",
+				"message":"The cluster could not be found."
+		}`))
+		}
+	}))
+	defer mockServer.Close()
+
+	// temp config
+	configDir, _ := ioutil.TempDir("", config.ProgramName)
+	config.Initialize(configDir)
+
+	testArgs := showClusterArguments{
+		apiEndpoint: mockServer.URL,
+		clusterID:   "non-existing-cluster-id",
+		authToken:   "my-token",
+	}
+
+	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = getClusterDetails(testArgs.clusterID,
+		testArgs.authToken, testArgs.apiEndpoint)
+
+	if err == nil {
+		t.Fatal("Expected clusterNotFoundError, got nil")
+	}
+
+	if !IsClusterNotFoundError(err) {
+		t.Errorf("Expected clusterNotFoundError, got '%s'", err.Error())
+	}
+}
+
+// TestShowClusterInternalServerError tests HTTP 500 error handling
+func TestShowClusterInternalServerError(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		if r.Method == "GET" {
+			w.Write([]byte(`{
+				"code":"INTERNAL_ERROR",
+				"message":"An unexpected error occurred. Sorry for the inconvenience."
+		}`))
+		}
+	}))
+	defer mockServer.Close()
+
+	// temp config
+	configDir, _ := ioutil.TempDir("", config.ProgramName)
+	config.Initialize(configDir)
+
+	testArgs := showClusterArguments{
+		apiEndpoint: mockServer.URL,
+		clusterID:   "non-existing-cluster-id",
+		authToken:   "my-token",
+	}
+
+	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = getClusterDetails(testArgs.clusterID,
+		testArgs.authToken, testArgs.apiEndpoint)
+
+	if err == nil {
+		t.Fatal("Expected internalServerError, got nil")
+	}
+
+	if !IsInternalServerError(err) {
+		t.Errorf("Expected internalServerError, got '%s'", err.Error())
+	}
+}
+
 // TestShowClusterNotLoggedIn tests the case where the client is not logged in
 func TestShowClusterNotLoggedIn(t *testing.T) {
 	// temp config

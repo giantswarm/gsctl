@@ -118,10 +118,20 @@ func getClusterDetails(clusterID, token, endpoint string) (gsclientgen.V4Cluster
 		return result, microerror.Mask(couldNotCreateClientError)
 	}
 
-	clusterDetails, _, err := apiClient.GetCluster(authHeader, clusterID,
+	clusterDetails, apiResp, err := apiClient.GetCluster(authHeader, clusterID,
 		requestIDHeader, scaleClusterActivityName, cmdLine)
+
 	if err != nil {
 		return result, microerror.Mask(err)
+	}
+
+	switch apiResp.StatusCode {
+	case 401:
+		return result, microerror.Mask(notAuthorizedError)
+	case 404:
+		return result, microerror.Mask(clusterNotFoundError)
+	case 500:
+		return result, microerror.Mask(internalServerError)
 	}
 
 	return *clusterDetails, nil
@@ -208,7 +218,7 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	output = append(output, color.YellowString("Workers:")+"|"+fmt.Sprintf("%d", len(clusterDetails.Workers)))
 
 	// This assumes all nodes use the same instance type.
-	if clusterDetails.Workers[0].Aws.InstanceType != "" {
+	if len(clusterDetails.Workers) > 0 && clusterDetails.Workers[0].Aws.InstanceType != "" {
 		output = append(output, color.YellowString("Worker instance type:")+"|"+clusterDetails.Workers[0].Aws.InstanceType)
 	}
 
