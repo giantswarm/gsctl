@@ -121,8 +121,6 @@ Examples:
 	cmdNumWorkers int
 	// AWS EC2 instance type to use, provided as a command line flag
 	cmdWorkerAwsEc2InstanceType string
-	// cmdRelease sets a release to use, provided as a command line flag
-	cmdRelease string
 	// dry run command line flag
 	cmdDryRun bool
 )

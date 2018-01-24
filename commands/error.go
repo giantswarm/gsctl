@@ -289,3 +289,19 @@ var unspecifiedAPIError = errgo.New("unspecified API error")
 func IsUnspecifiedAPIError(err error) bool {
 	return errgo.Cause(err) == unspecifiedAPIError
 }
+
+// noUpgradeAvailableError means that the user wanted to start an upgrade, but
+// there is no newer version available for the given cluster
+var noUpgradeAvailableError = errgo.New("no upgrade available")
+
+// IsNoUpgradeAvailableError asserts noUpgradeAvailableError
+func IsNoUpgradeAvailableError(err error) bool {
+	return errgo.Cause(err) == noUpgradeAvailableError
+}
+
+var couldNotUpgradeClusterError = errgo.New("could not upgrade cluster")
+
+// IsCouldNotUpgradeClusterError asserts couldNotUpgradeClusterError
+func IsCouldNotUpgradeClusterError(err error) bool {
+	return errgo.Cause(err) == couldNotUpgradeClusterError
+}

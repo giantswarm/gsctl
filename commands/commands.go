@@ -57,6 +57,9 @@ var (
 	// Local storage per worker node in GB per worker as required via flag on execution
 	cmdWorkerStorageSizeGB float32
 
+	// cmdRelease sets a release to use, provided as a command line flag
+	cmdRelease string
+
 	randomStringCharset = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 	requestIDHeader string

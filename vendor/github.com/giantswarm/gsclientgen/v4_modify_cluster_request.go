@@ -16,4 +16,6 @@ type V4ModifyClusterRequest struct {
 	Owner string `json:"owner,omitempty"`
 
 	Name string `json:"name,omitempty"`
+
+	ReleaseVersion string `json:"release_version,omitempty"`
 }
