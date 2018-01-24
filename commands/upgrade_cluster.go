@@ -202,9 +202,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	}
 	releaseVersions := []string{}
 	for _, r := range releasesResult.releases {
-		if r.Active {
-			releaseVersions = append(releaseVersions, r.Version)
-		}
+		releaseVersions = append(releaseVersions, r.Version)
 	}
 
 	newVersion := successorReleaseVersion(details.ReleaseVersion, releaseVersions)
