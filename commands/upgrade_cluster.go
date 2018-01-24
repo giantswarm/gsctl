@@ -113,6 +113,9 @@ func upgradeClusterPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	case IsNotLoggedInError(err):
 		headline = "You are not logged in."
 		subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
+	case IsClusterIDMissingError(err):
+		headline = "No cluster ID specified."
+		subtext = "Please specify which cluster to upgrade by using the cluster ID as an argument."
 	default:
 		headline = err.Error()
 	}
@@ -131,6 +134,11 @@ func verifyUpgradeClusterPreconditions(args upgradeClusterArguments, cmdLineArgs
 	// authentication
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(notLoggedInError)
+	}
+
+	// cluster ID is present
+	if args.clusterID == "" {
+		return microerror.Mask(clusterIDMissingError)
 	}
 
 	return nil
@@ -155,6 +163,9 @@ func upgradeClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		case IsNoUpgradeAvailableError(err):
 			headline = "There is no newer release available."
 			subtext = "Please check the available releases using 'gsctl list releases'."
+		case IsClusterNotFoundError(err):
+			headline = "The cluster does not exist."
+			subtext = fmt.Sprintf("We couldn't find a cluster with the ID '%s' via API endpoint %s.", args.clusterID, args.apiEndpoint)
 		default:
 			headline = err.Error()
 		}
