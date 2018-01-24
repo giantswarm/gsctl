@@ -166,6 +166,8 @@ func upgradeClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		case IsClusterNotFoundError(err):
 			headline = "The cluster does not exist."
 			subtext = fmt.Sprintf("We couldn't find a cluster with the ID '%s' via API endpoint %s.", args.clusterID, args.apiEndpoint)
+		case IsCommandAbortedError(err):
+			headline = "Not upgrading."
 		default:
 			headline = err.Error()
 		}
@@ -215,7 +217,25 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 		// Show information before confirmation
 		fmt.Printf("Cluster '%s' will be upgraded from version %s to %s.\n", args.clusterID, details.ReleaseVersion, newVersion)
 
-		// TODO: show more
+		fmt.Println("")
+		fmt.Println("Changelog:")
+		fmt.Println("")
+
+		for _, release := range releasesResult.releases {
+			if release.Version == newVersion {
+				for _, change := range release.Changelog {
+					fmt.Printf("    - %s: %s\n", change.Component, change.Description)
+				}
+			}
+		}
+
+		fmt.Println("")
+		fmt.Println("NOTE: Upgrading may impact your running workloads and will make the cluster's")
+		fmt.Println("Kubernetes API unavailable temporarily. Before upgrading, please acknowledge the")
+		fmt.Println("details described in")
+		fmt.Println("")
+		fmt.Println("    https://docs.giantswarm.io/reference/cluster-upgrades/")
+		fmt.Println("")
 
 		confirmed := askForConfirmation("Do you want to start the upgrade now?")
 		if !confirmed {
