@@ -16,12 +16,19 @@ import (
 	"github.com/giantswarm/microerror"
 )
 
+const (
+	// upgradeClusterActivityName assigns API requests to named activities
+	upgradeClusterActivityName = "upgrade-cluster"
+
+	upgradeDocsURL = "https://docs.giantswarm.io/reference/cluster-upgrades/"
+)
+
 var (
 	// UpgradeClusterCommand performs the "upgrade cluster" function
 	UpgradeClusterCommand = &cobra.Command{
 		Use:   "cluster",
 		Short: "Upgrades a cluster to a newer release version",
-		Long: `Upgrades a cluster to a newer release version.
+		Long: fmt.Sprintf(`Upgrades a cluster to a newer release version.
 
 Upgrades mean the stepwise replacement of the workers, the master and other
 building blocks of a cluster with newer versions.
@@ -35,9 +42,12 @@ To find out what is the subsequent version, list all available versions using
 
     gsctl list releases
 
-TODO:
-- Explain more
-- Link to in-depth docs article`,
+Make sure to know our in-depth article on cluster upgrades before you perform
+a first upgrade.
+
+    %s
+
+`, upgradeDocsURL),
 
 		// We use PreRun for general input validation, authentication etc.
 		// If something is bad/missing, that function has to exit with a
@@ -47,11 +57,6 @@ TODO:
 		// Run is the function that actually executes what we want to do.
 		Run: upgradeClusterRunOutput,
 	}
-)
-
-const (
-	// upgradeClusterActivityName assigns API requests to named activities
-	upgradeClusterActivityName = "upgrade-cluster"
 )
 
 // argument struct to pass to our business function and
@@ -207,26 +212,36 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 		releaseVersions = append(releaseVersions, r.Version)
 	}
 
-	newVersion := successorReleaseVersion(details.ReleaseVersion, releaseVersions)
-	if newVersion == "" {
+	// define the target version to upgrade to
+	targetVersion := successorReleaseVersion(details.ReleaseVersion, releaseVersions)
+	if targetVersion == "" {
 		return result, microerror.Mask(noUpgradeAvailableError)
 	}
 
-	// confirmation
+	var targetRelease gsclientgen.V4ReleaseListItem
+	for _, rel := range releasesResult.releases {
+		if rel.Version == targetVersion {
+			targetRelease = rel
+		}
+	}
+
+	// Show some details independent of confirmation
+	if !targetRelease.Active {
+		fmt.Printf("Cluster '%s' will be upgraded from version %s to %s, which is not an active release.\n", args.clusterID, details.ReleaseVersion, targetVersion)
+		fmt.Printf("This might fail depending on your permissions.")
+	} else {
+		fmt.Printf("Cluster '%s' will be upgraded from version %s to %s.\n", args.clusterID, details.ReleaseVersion, targetVersion)
+	}
+
+	// Details output and confirmation
 	if !args.force {
-		// Show information before confirmation
-		fmt.Printf("Cluster '%s' will be upgraded from version %s to %s.\n", args.clusterID, details.ReleaseVersion, newVersion)
 
 		fmt.Println("")
 		fmt.Println("Changelog:")
 		fmt.Println("")
 
-		for _, release := range releasesResult.releases {
-			if release.Version == newVersion {
-				for _, change := range release.Changelog {
-					fmt.Printf("    - %s: %s\n", change.Component, change.Description)
-				}
-			}
+		for _, change := range targetRelease.Changelog {
+			fmt.Printf("    - %s: %s\n", change.Component, change.Description)
 		}
 
 		fmt.Println("")
@@ -234,7 +249,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 		fmt.Println("Kubernetes API unavailable temporarily. Before upgrading, please acknowledge the")
 		fmt.Println("details described in")
 		fmt.Println("")
-		fmt.Println("    https://docs.giantswarm.io/reference/cluster-upgrades/")
+		fmt.Printf("    %s\n", upgradeDocsURL)
 		fmt.Println("")
 
 		confirmed := askForConfirmation("Do you want to start the upgrade now?")
@@ -263,7 +278,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 
 	// request body
 	reqBody := gsclientgen.V4ModifyClusterRequest{
-		ReleaseVersion: newVersion,
+		ReleaseVersion: targetVersion,
 	}
 
 	// perform API call
@@ -292,7 +307,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 		return result, microerror.Mask(couldNotScaleClusterError)
 	}
 
-	result.versionAfter = newVersion
+	result.versionAfter = targetVersion
 
 	return result, nil
 }
