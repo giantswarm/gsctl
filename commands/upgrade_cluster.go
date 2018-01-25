@@ -185,7 +185,9 @@ func upgradeClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Starting to upgrade cluster %s to release version %s", result.clusterID, result.versionAfter)
+	fmt.Println(color.GreenString("Starting to upgrade cluster '%s' to release version %s",
+		color.CyanString(result.clusterID),
+		color.CyanString(result.versionAfter)))
 }
 
 // upgradeCluster performs our actual function. It usually creates an API client,
@@ -227,10 +229,16 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 
 	// Show some details independent of confirmation
 	if !targetRelease.Active {
-		fmt.Printf("Cluster '%s' will be upgraded from version %s to %s, which is not an active release.\n", args.clusterID, details.ReleaseVersion, targetVersion)
-		fmt.Printf("This might fail depending on your permissions.")
+		fmt.Printf("Cluster '%s' will be upgraded from version %s to %s, which is not an active release.\n",
+			color.CyanString(args.clusterID),
+			color.CyanString(details.ReleaseVersion),
+			color.CyanString(targetVersion))
+		fmt.Printf("This might fail depending on your permissions.\n")
 	} else {
-		fmt.Printf("Cluster '%s' will be upgraded from version %s to %s.\n", args.clusterID, details.ReleaseVersion, targetVersion)
+		fmt.Printf("Cluster '%s' will be upgraded from version %s to %s.\n",
+			color.CyanString(args.clusterID),
+			color.CyanString(details.ReleaseVersion),
+			color.CyanString(targetVersion))
 	}
 
 	// Details output and confirmation
