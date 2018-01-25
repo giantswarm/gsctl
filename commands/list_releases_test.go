@@ -235,7 +235,7 @@ func Test_ListReleases_Nonempty(t *testing.T) {
 		t.Errorf("We expected 2 releases, got %d", len(result.releases))
 	}
 
-	if result.releases[0].Version != "0.10.0" || result.releases[1].Version != "0.1.0" {
+	if result.releases[0].Version != "0.1.0" || result.releases[1].Version != "0.10.0" {
 		t.Error("Releases returned were not in the expected order.")
 	}
 }

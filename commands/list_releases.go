@@ -216,7 +216,7 @@ func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 		slice.Sort(releasesResponse[:], func(i, j int) bool {
 			vi := semver.New(releasesResponse[i].Version)
 			vj := semver.New(releasesResponse[j].Version)
-			return vj.LessThan(*vi)
+			return vi.LessThan(*vj)
 		})
 	}
 
