@@ -312,7 +312,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 				rawResponse.Response.StatusCode,
 				string(rawResponse.Payload))
 		}
-		return result, microerror.Mask(couldNotScaleClusterError)
+		return result, microerror.Mask(couldNotUpgradeClusterError)
 	}
 
 	result.versionAfter = targetVersion
@@ -322,6 +322,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 
 // successorReleaseVersion returns the lowest version number from a slice
 // that is still higher than the comparison version.
+// If no successor is found, returns an empty string.
 func successorReleaseVersion(version string, versions []string) string {
 	// sort versions by semver number
 	sort.Slice(versions, func(i, j int) bool {
