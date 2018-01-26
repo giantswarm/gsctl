@@ -2,7 +2,6 @@ package commands
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -169,11 +168,11 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 	for i, testCase := range testCases {
 		validateErr = validateCreateClusterPreConditions(testCase)
 		if validateErr != nil {
-			t.Error(fmt.Sprintf("Validation error in testCase %v: %s", i, validateErr.Error()))
+			t.Errorf("Validation error in testCase %v: %s", i, validateErr.Error())
 		}
 		_, executeErr = addCluster(testCase)
 		if executeErr != nil {
-			t.Error(fmt.Sprintf("Execution error in testCase %v: %s", i, executeErr.Error()))
+			t.Errorf("Execution error in testCase %v: %s", i, executeErr.Error())
 		}
 	}
 }
@@ -224,7 +223,7 @@ func Test_CreateClusterFailures(t *testing.T) {
 		if validateErr == nil {
 			_, execErr := addCluster(testCase)
 			if execErr == nil {
-				t.Error(fmt.Sprintf("Expected errors didn't occur in testCase %v", i))
+				t.Errorf("Expected errors didn't occur in testCase %v", i)
 			}
 		}
 	}
