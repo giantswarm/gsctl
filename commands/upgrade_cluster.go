@@ -241,25 +241,25 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 			color.CyanString(targetVersion))
 	}
 
-	// Details output and confirmation
+	// Details output
+	fmt.Println("")
+	fmt.Println("Changelog:")
+	fmt.Println("")
+
+	for _, change := range targetRelease.Changelog {
+		fmt.Printf("    - %s: %s\n", change.Component, change.Description)
+	}
+
+	fmt.Println("")
+	fmt.Println("NOTE: Upgrading may impact your running workloads and will make the cluster's")
+	fmt.Println("Kubernetes API unavailable temporarily. Before upgrading, please acknowledge the")
+	fmt.Println("details described in")
+	fmt.Println("")
+	fmt.Printf("    %s\n", upgradeDocsURL)
+	fmt.Println("")
+
+	// Confirmation
 	if !args.force {
-
-		fmt.Println("")
-		fmt.Println("Changelog:")
-		fmt.Println("")
-
-		for _, change := range targetRelease.Changelog {
-			fmt.Printf("    - %s: %s\n", change.Component, change.Description)
-		}
-
-		fmt.Println("")
-		fmt.Println("NOTE: Upgrading may impact your running workloads and will make the cluster's")
-		fmt.Println("Kubernetes API unavailable temporarily. Before upgrading, please acknowledge the")
-		fmt.Println("details described in")
-		fmt.Println("")
-		fmt.Printf("    %s\n", upgradeDocsURL)
-		fmt.Println("")
-
 		confirmed := askForConfirmation("Do you want to start the upgrade now?")
 		if !confirmed {
 			return result, microerror.Mask(commandAbortedError)
