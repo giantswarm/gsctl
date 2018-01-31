@@ -364,7 +364,13 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 		createKubeconfigActivityName,
 		cmdLine)
 	if err != nil {
-		return result, microerror.Maskf(err, fmt.Sprintf("HTTP status: %d", apiResponse.StatusCode))
+		var errorMessage string
+		if apiResponse != nil {
+			errorMessage = fmt.Sprintf("HTTP status: %d", apiResponse.StatusCode)
+		} else {
+			errorMessage = "No response received from the API"
+		}
+		return result, microerror.Maskf(err, errorMessage)
 	}
 
 	result.apiEndpoint = clusterDetailsResponse.ApiEndpoint
