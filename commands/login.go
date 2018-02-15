@@ -3,6 +3,7 @@ package commands
 import (
 	"encoding/base64"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -168,6 +169,11 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 			headline = "Empty password submitted"
 			subtext = "The API server complains about the password provided."
 			subtext += " Please make sure to provide a string with more than white space characters."
+		case IsAccessForbiddenError(err):
+			headline = "Access Forbidden"
+			subtext = "The client has been denied access to the API endpoint with an HTTP status of 403.\n"
+			subtext += "Please make sure that you are in the right network or VPN. Once that is verified,\n"
+			subtext += "check back with Giant Swarm support that your network is permitted access."
 		case IsInvalidCredentialsError(err):
 			headline = "Bad password or email address."
 			subtext = fmt.Sprintf("Could not log you in to %s.", color.CyanString(loginArgs.apiEndpoint))
@@ -252,9 +258,12 @@ func login(args loginArguments) (loginResult, error) {
 	}
 
 	requestBody := gsclientgen.LoginBodyModel{Password: string(encodedPassword)}
-	loginResponse, _, err := apiClient.UserLogin(args.email, requestBody, requestIDHeader, loginActivityName, cmdLine)
+	loginResponse, rawResponse, err := apiClient.UserLogin(args.email, requestBody, requestIDHeader, loginActivityName, cmdLine)
 	if err != nil {
-		return result, err
+		if rawResponse.Response.StatusCode == http.StatusForbidden {
+			return result, microerror.Mask(accessForbiddenError)
+		}
+		return result, microerror.Mask(err)
 	}
 
 	switch loginResponse.StatusCode {
