@@ -85,15 +85,20 @@ func verbNounPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
     return
   }
 
+  // Handles many errors that can occur in validation and execution,
+  // e. g. user not logged in.
+  handleCommonErrors(err)
+
+  // From here on we handle errors that can only occur in this command
 	headline := ""
 	subtext := ""
 
 	switch {
 	case err.Error() == "":
 		return
-	case IsNotLoggedInError(err):
-		headline = "You are not logged in."
-		subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
+	case IsVerySpecificError(err):
+		headline = "Some very specific error occurred."
+		subtext = "Something happened that can only happen in this command."
 	default:
 		headline = err.Error()
 	}
@@ -122,15 +127,17 @@ func verbNounRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	result, err := verbNoun()
 
 	if err != nil {
+    handleCommonErrors(err)
+
 		var headline = ""
 		var subtext = ""
 
 		switch {
 		case err.Error() == "":
 			return
-		case IsCouldNotCreateClientError(err):
-			headline = "Failed to create API client."
-			subtext = "Details: " + err.Error()
+		case IsVerySpecificError(err):
+      headline = "Some very specific error occurred."
+  		subtext = "Something happened that can only happen in this command."
 		default:
 			headline = err.Error()
 		}
