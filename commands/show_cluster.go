@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/fatih/color"
@@ -67,27 +68,10 @@ func showClusterPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultShowClusterArguments()
 	err := verifyShowClusterPreconditions(args, cmdLineArgs)
 	if err != nil {
-		var headline = ""
-		var subtext = ""
+		handleCommonErrors(err)
 
-		switch {
-		case err.Error() == "":
-			return
-		case IsNotLoggedInError(err):
-			headline = "You are not logged in."
-			subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
-		case IsClusterIDMissingError(err):
-			headline = "No cluster ID specified."
-			subtext = "Please specify which cluster to show. Use --help for details."
-		default:
-			headline = err.Error()
-		}
-
-		// print output
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
+		// handle non-common errors
+		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
 	}
 }
@@ -122,15 +106,23 @@ func getClusterDetails(clusterID, token, endpoint string) (gsclientgen.V4Cluster
 		requestIDHeader, scaleClusterActivityName, cmdLine)
 
 	if err != nil {
+		if apiResp == nil || apiResp.Response == nil {
+			return result, microerror.Mask(noResponseError)
+		}
+
+		if apiResp.StatusCode == http.StatusForbidden {
+			return result, microerror.Mask(accessForbiddenError)
+		}
+
 		return result, microerror.Mask(err)
 	}
 
 	switch apiResp.StatusCode {
-	case 401:
+	case http.StatusUnauthorized:
 		return result, microerror.Mask(notAuthorizedError)
-	case 404:
+	case http.StatusNotFound:
 		return result, microerror.Mask(clusterNotFoundError)
-	case 500:
+	case http.StatusInternalServerError:
 		return result, microerror.Mask(internalServerError)
 	}
 
@@ -178,9 +170,6 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		switch {
 		case err.Error() == "":
 			return
-		case IsCouldNotCreateClientError(err):
-			headline = "Failed to create API client."
-			subtext = "Details: " + err.Error()
 		default:
 			headline = err.Error()
 		}
