@@ -196,6 +196,9 @@ func createKeypair(args createKeypairArguments) (createKeypairResult, error) {
 		addKeyPairActivityName, cmdLine)
 
 	if err != nil {
+		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
+			return result, microerror.Mask(accessForbiddenError)
+		}
 		return result, microerror.Mask(err)
 	}
 
