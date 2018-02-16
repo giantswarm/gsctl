@@ -39,8 +39,8 @@ func init() {
 func selectEndpointPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	err := verifySelectEndpointPreconditions(cmdLineArgs)
 	if err != nil {
-		headline := ""
-		subtext := ""
+		var headline string
+		var subtext string
 
 		switch {
 		case err.Error() == "":
