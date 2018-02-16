@@ -390,6 +390,9 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 		createKubeconfigActivityName, cmdLine)
 
 	if err != nil {
+		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
+			return result, microerror.Mask(accessForbiddenError)
+		}
 		return result, microerror.Mask(err)
 	}
 
