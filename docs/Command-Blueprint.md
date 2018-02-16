@@ -14,6 +14,7 @@ import (
 
   "github.com/fatih/color"
 	"github.com/spf13/cobra"
+  "github.com/giantswarm/microerror"
 
   "github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
@@ -66,6 +67,12 @@ func defaultVerbNounArguments() verbNounArguments {
 		authToken:         token,
 		anotherArgument:   "",
 	}
+}
+
+// verbNounResult is used to return a structured result
+// from our business function
+type verbNounResult struct {
+  someAttribute string
 }
 
 // Here we populate our cobra command
@@ -156,6 +163,49 @@ func verbNounRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 // verbNoun performs our actual function. It usually creates an API client,
 // configures it, configures an API request and performs it.
 func verbNoun(args verbNoundArguments) (verbNounResult, error) {
+  result := verbNounResult{}
 
+  // prepare client
+  clientConfig := client.Configuration{
+		Endpoint:  args.apiEndpoint,
+		Timeout:   10 * time.Second,
+		UserAgent: config.UserAgent(),
+	}
+  apiClient, clientErr := client.NewClient(clientConfig)
+	if clientErr != nil {
+		return result, microerror.Mask(couldNotCreateClientError)
+	}
+
+  authHeader := "giantswarm " + args.token
+	someResponse, rawResponse, err := apiClient.DoSomething(authHeader,
+		requestIDHeader, verbNounActivityName, cmdLine)
+
+  if rawResponse == nil || rawResponse.Response == nil {
+    return result, microerror.Mask(noResponseError)
+  }
+
+  // handle request errors
+  if err != nil {
+
+    switch rawResponse.StatusCode {
+    case http.StatusNotFound:
+      return result, microerror.Mask(clusterNotFoundError)
+    case http.StatusUnauthorized:
+      return result, microerror.Mask(notAuthorizedError)
+    case http.StatusForbidden:
+      return result, microerror.Mask(accessForbiddenError)
+    }
+
+		if rawResponse.StatusCode >= 500 {
+			return result, microerror.Maskf(internalServerError, err.Error())
+		}
+
+		return result, microerror.Mask(err)
+	}
+
+  // populate result base on some response information etc.
+  result.someAttribute = someResponse.someValue
+
+  return result, nil
 }
 ```
