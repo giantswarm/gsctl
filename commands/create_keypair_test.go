@@ -32,8 +32,19 @@ func Test_CreateKeypair(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 
-	cmdAPIEndpoint = mockServer.URL
-	cmdClusterID = "test-cluster-id"
-	checkAddKeypair(CreateKeypairCommand, []string{})
-	addKeypair(CreateKeypairCommand, []string{})
+	args := createKeypairArguments{
+		apiEndpoint: mockServer.URL,
+		clusterID:   "test-cluster-id",
+		authToken:   "test-token",
+	}
+
+	err = verifyCreateKeypairPreconditions(args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = createKeypair(args)
+	if err != nil {
+		t.Error(err)
+	}
 }
