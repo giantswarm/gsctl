@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/giantswarm/microerror"
@@ -77,18 +78,14 @@ func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
 
 	err := validateDeleteClusterPreConditions(dca)
 	if err != nil {
+		handleCommonErrors(err)
+
 		var headline = ""
 		var subtext = ""
 
 		switch {
 		case err.Error() == "":
 			return
-		case IsNotLoggedInError(err):
-			headline = "You are not logged in."
-			subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
-		case IsClusterIDMissingError(err):
-			headline = "No cluster ID specified."
-			subtext = "Please specify which cluster to delete using '-c' or '--cluster'."
 		case IsCouldNotDeleteClusterError(err):
 			headline = "The cluster could not be deleted."
 			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
@@ -122,6 +119,8 @@ func deleteClusterExecutionOutput(cmd *cobra.Command, args []string) {
 	dca := defaultDeleteClusterArguments()
 	deleted, err := deleteCluster(dca)
 	if err != nil {
+		handleCommonErrors(err)
+
 		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
 	}
@@ -151,7 +150,7 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		}
 	}
 
-	// perform API call
+	// prepare API client
 	authHeader := "giantswarm " + args.token
 	clientConfig := client.Configuration{
 		Endpoint:  args.apiEndpoint,
@@ -161,8 +160,14 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 	if clientErr != nil {
 		return false, microerror.Mask(couldNotCreateClientError)
 	}
-	responseBody, _, err := apiClient.DeleteCluster(authHeader, args.clusterID, requestIDHeader, createClusterActivityName, cmdLine)
+
+	// perform API call
+	responseBody, rawResponse, err := apiClient.DeleteCluster(authHeader,
+		args.clusterID, requestIDHeader, createClusterActivityName, cmdLine)
 	if err != nil {
+		if rawResponse.Response != nil && rawResponse.Response.StatusCode == http.StatusForbidden {
+			return false, microerror.Mask(accessForbiddenError)
+		}
 		return false, microerror.Mask(err)
 	}
 
