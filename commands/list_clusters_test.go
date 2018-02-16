@@ -99,6 +99,6 @@ func Test_ListClustersEmpty(t *testing.T) {
 	}
 
 	if table != "" {
-		t.Error("Expected '', got '%s'", table)
+		t.Errorf("Expected '', got '%s'", table)
 	}
 }
