@@ -195,7 +195,7 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultCreateKubeconfigArguments()
 	err := verifyCreateKubeconfigPreconditions(args, cmdLineArgs)
 
-	if err != nil {
+	if err == nil {
 		return
 	}
 
