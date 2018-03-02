@@ -20,4 +20,6 @@ type V4NodeDefinition struct {
 	Labels interface{} `json:"labels,omitempty"`
 
 	Aws V4NodeDefinitionAws `json:"aws,omitempty"`
+
+	Azure V4NodeDefinitionAzure `json:"azure,omitempty"`
 }

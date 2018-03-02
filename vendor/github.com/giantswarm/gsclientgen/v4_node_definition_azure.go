@@ -10,12 +10,6 @@
 
 package gsclientgen
 
-type V4ModifyClusterRequest struct {
-	Workers []V4NodeDefinition `json:"workers,omitempty"`
-
-	Owner string `json:"owner,omitempty"`
-
-	Name string `json:"name,omitempty"`
-
-	ReleaseVersion string `json:"release_version,omitempty"`
+type V4NodeDefinitionAzure struct {
+	VmSize string `json:"vm_size,omitempty"`
 }
