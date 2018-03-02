@@ -218,8 +218,14 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	output = append(output, color.YellowString("Workers:")+"|"+fmt.Sprintf("%d", len(clusterDetails.Workers)))
 
 	// This assumes all nodes use the same instance type.
-	if len(clusterDetails.Workers) > 0 && clusterDetails.Workers[0].Aws.InstanceType != "" {
-		output = append(output, color.YellowString("Worker instance type:")+"|"+clusterDetails.Workers[0].Aws.InstanceType)
+	if len(clusterDetails.Workers) > 0 {
+		if clusterDetails.Workers[0].Aws.InstanceType != "" {
+			output = append(output, color.YellowString("Worker instance type:")+"|"+clusterDetails.Workers[0].Aws.InstanceType)
+		}
+
+		if clusterDetails.Workers[0].Azure.VmSize != "" {
+			output = append(output, color.YellowString("Worker VM size:")+"|"+clusterDetails.Workers[0].Azure.VmSize)
+		}
 	}
 
 	output = append(output, color.YellowString("CPU cores in workers:")+"|"+fmt.Sprintf("%d", sumWorkerCPUs(clusterDetails.Workers)))

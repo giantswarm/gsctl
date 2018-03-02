@@ -8,6 +8,7 @@ Name | Type | Description | Notes
 **Cpu** | [**V4NodeDefinitionCpu**](V4NodeDefinition_cpu.md) |  | [optional] [default to null]
 **Labels** | [**interface{}**](interface{}.md) |  | [optional] [default to null]
 **Aws** | [**V4NodeDefinitionAws**](V4NodeDefinition_aws.md) |  | [optional] [default to null]
+**Azure** | [**V4NodeDefinitionAzure**](V4NodeDefinition_azure.md) |  | [optional] [default to null]
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 
