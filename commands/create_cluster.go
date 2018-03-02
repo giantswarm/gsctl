@@ -30,6 +30,7 @@ type addClusterArguments struct {
 	owner                   string
 	token                   string
 	wokerAwsEc2InstanceType string
+	wokerAzureVmSize        string
 	workerNumCPUs           int
 	workerMemorySizeGB      float32
 	workerStorageSizeGB     float32
@@ -50,6 +51,7 @@ func defaultAddClusterArguments() addClusterArguments {
 		token:                   token,
 		releaseVersion:          cmdRelease,
 		wokerAwsEc2InstanceType: cmdWorkerAwsEc2InstanceType,
+		wokerAzureVmSize:        cmdWorkerAzureVmSize,
 		workerNumCPUs:           cmdWorkerNumCPUs,
 		workerMemorySizeGB:      cmdWorkerMemorySizeGB,
 		workerStorageSizeGB:     cmdWorkerStorageSizeGB,
@@ -104,6 +106,8 @@ Examples:
 
 	gsctl create cluster --owner myorg --name "My AWS Cluster" --num-workers 2 --aws-instance-type m3.medium
 
+	gsctl create cluster --owner myorg --name "My Azure Cluster" --num-workers 2 --azure-vm-size Standard_D2s_v3
+
 	gsctl create cluster --owner myorg --num-workers 3 --dry-run --verbose`,
 		PreRun: createClusterValidationOutput,
 		Run:    createClusterExecutionOutput,
@@ -121,6 +125,8 @@ Examples:
 	cmdNumWorkers int
 	// AWS EC2 instance type to use, provided as a command line flag
 	cmdWorkerAwsEc2InstanceType string
+	// Azure VmSize to use, provided as a command line flag
+	cmdWorkerAzureVmSize string
 	// cmdRelease sets a release to use, provided as a command line flag
 	cmdRelease string
 	// dry run command line flag
@@ -135,6 +141,7 @@ func init() {
 	CreateClusterCommand.Flags().StringVarP(&cmdRelease, "release", "r", "", "Release version to use, e. g. '0.3.0'. Defaults to the latest. See 'gsctl list releases -h' for details.")
 	CreateClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "", 0, "Number of worker nodes. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
+	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAzureVmSize, "azure-vm-size", "", "", "VmSize to use for workers (Azure only), e. g. 'Standard_D2s_v3'")
 	CreateClusterCommand.Flags().IntVarP(&cmdWorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
@@ -277,11 +284,11 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 
 	// false flag combination?
 	if args.inputYAMLFile != "" {
-		if args.numWorkers != 0 || args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" {
+		if args.numWorkers != 0 || args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" || args.wokerAzureVmSize != "" {
 			return microerror.Mask(conflictingFlagsError)
 		}
 	} else {
-		if args.numWorkers == 0 && (args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "") {
+		if args.numWorkers == 0 && (args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" || args.wokerAzureVmSize != "") {
 			return microerror.Mask(numWorkerNodesMissingError)
 		}
 	}
@@ -306,7 +313,7 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 		return microerror.Mask(notEnoughStoragePerWorkerError)
 	}
 
-	if args.wokerAwsEc2InstanceType != "" {
+	if args.wokerAwsEc2InstanceType != "" || args.wokerAzureVmSize != "" {
 		// check for incompatibilities
 		if args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 {
 			return microerror.Mask(incompatibleSettingsError)
@@ -390,6 +397,11 @@ func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 				worker.AWS.InstanceType = args.wokerAwsEc2InstanceType
 			}
 
+			// Azure
+			if args.wokerAzureVmSize != "" {
+				worker.Azure.VmSize = args.wokerAzureVmSize
+			}
+
 			workers = append(workers, worker)
 		}
 		def.Workers = workers
@@ -411,6 +423,7 @@ func createAddClusterBody(d clusterDefinition) gsclientgen.V4AddClusterRequest {
 		ndmWorker.Storage = gsclientgen.V4NodeDefinitionStorage{SizeGb: dWorker.Storage.SizeGB}
 		ndmWorker.Labels = dWorker.Labels
 		ndmWorker.Aws = gsclientgen.V4NodeDefinitionAws{InstanceType: dWorker.AWS.InstanceType}
+		ndmWorker.Azure = gsclientgen.V4NodeDefinitionAzure{VmSize: dWorker.Azure.VmSize}
 		a.Workers = append(a.Workers, ndmWorker)
 	}
 
