@@ -224,7 +224,7 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		}
 
 		if clusterDetails.Workers[0].Azure.VmSize != "" {
-			output = append(output, color.YellowString("Worker vm size:")+"|"+clusterDetails.Workers[0].Azure.VmSize)
+			output = append(output, color.YellowString("Worker VM size:")+"|"+clusterDetails.Workers[0].Azure.VmSize)
 		}
 	}
 
