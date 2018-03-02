@@ -44,7 +44,7 @@
   version = "=2.0.2"
 
 [[constraint]]
-  branch = "azure-vm_size"
+  branch = "master"
   name = "github.com/giantswarm/gsclientgen"
 
 [[constraint]]
