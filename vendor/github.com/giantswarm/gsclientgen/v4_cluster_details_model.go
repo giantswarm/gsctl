@@ -26,4 +26,6 @@ type V4ClusterDetailsModel struct {
 	ReleaseVersion string `json:"release_version,omitempty"`
 
 	Workers []V4NodeDefinitionResponse `json:"workers,omitempty"`
+
+	Kvm V4ClusterDetailsModelKvm `json:"kvm,omitempty"`
 }

@@ -44,7 +44,7 @@
   version = "=2.0.2"
 
 [[constraint]]
-  branch = "master"
+  branch = "add-kvm-port-mappings"
   name = "github.com/giantswarm/gsclientgen"
 
 [[constraint]]
