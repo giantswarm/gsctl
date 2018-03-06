@@ -465,6 +465,18 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/V4NodeDefinitionResponse'
+      kvm:
+        type: object
+        properties:
+          port_mappings:
+            type: array
+            items:
+              type: object
+              properties:
+                port:
+                  type: integer
+                protocol:
+                  type: string
 
   KeyPairModel:
     type: object

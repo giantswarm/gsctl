@@ -41,7 +41,7 @@
   branch = "master"
   name = "github.com/giantswarm/gsclientgen"
   packages = ["."]
-  revision = "ae96c9ff9d7d5f5bae65f81a622f308fc52b36e3"
+  revision = "4ce48ca368d3bc16a0e6e7619bd207a39d0c2902"
 
 [[projects]]
   branch = "master"

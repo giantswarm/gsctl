@@ -11,6 +11,7 @@ Name | Type | Description | Notes
 **KubernetesVersion** | **string** |  | [optional] [default to null]
 **ReleaseVersion** | **string** |  | [optional] [default to null]
 **Workers** | [**[]V4NodeDefinitionResponse**](V4NodeDefinitionResponse.md) |  | [optional] [default to null]
+**Kvm** | [**V4ClusterDetailsModelKvm**](V4ClusterDetailsModel_kvm.md) |  | [optional] [default to null]
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

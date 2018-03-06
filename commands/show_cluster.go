@@ -224,5 +224,11 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	output = append(output, color.YellowString("RAM in worker nodes (GB):")+"|"+fmt.Sprintf("%v", sumWorkerMemory(clusterDetails.Workers)))
 	output = append(output, color.YellowString("Storage in worker nodes (GB):")+"|"+fmt.Sprintf("%v", sumWorkerStorage(clusterDetails.Workers)))
 
+	if len(clusterDetails.Kvm.PortMappings) > 0 {
+		for _, portMapping := range clusterDetails.Kvm.PortMappings {
+			output = append(output, color.YellowString(fmt.Sprintf("Ingress port for %s:", portMapping.Protocol))+"|"+fmt.Sprintf("%d", portMapping.Port))
+		}
+	}
+
 	fmt.Println(columnize.SimpleFormat(output))
 }
