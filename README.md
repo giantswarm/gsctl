@@ -81,3 +81,4 @@ We welcome contributions! Please read our additional information on [how to cont
 ## Publishing a Release
 
 See [docs/Release.md](https://github.com/giantswarm/gsctl/blob/master/docs/Release.md)
+
