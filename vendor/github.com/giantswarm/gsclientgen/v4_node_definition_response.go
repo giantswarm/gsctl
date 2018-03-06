@@ -13,6 +13,8 @@ package gsclientgen
 type V4NodeDefinitionResponse struct {
 	Aws V4NodeDefinitionAws `json:"aws,omitempty"`
 
+	Azure V4NodeDefinitionAzure `json:"azure,omitempty"`
+
 	Memory V4NodeDefinitionMemory `json:"memory,omitempty"`
 
 	Storage V4NodeDefinitionStorage `json:"storage,omitempty"`

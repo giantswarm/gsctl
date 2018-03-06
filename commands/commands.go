@@ -88,12 +88,17 @@ type awsSpecificDefinition struct {
 	InstanceType string `yaml:"instance_type,omitempty"`
 }
 
+type azureSpecificDefinition struct {
+	VmSize string `yaml:"vm_size,omitempty"`
+}
+
 type nodeDefinition struct {
-	Memory  memoryDefinition      `yaml:"memory,omitempty"`
-	CPU     cpuDefinition         `yaml:"cpu,omitempty"`
-	Storage storageDefinition     `yaml:"storage,omitempty"`
-	Labels  map[string]string     `yaml:"labels,omitempty"`
-	AWS     awsSpecificDefinition `yaml:"aws,omitempty"`
+	Memory  memoryDefinition        `yaml:"memory,omitempty"`
+	CPU     cpuDefinition           `yaml:"cpu,omitempty"`
+	Storage storageDefinition       `yaml:"storage,omitempty"`
+	Labels  map[string]string       `yaml:"labels,omitempty"`
+	AWS     awsSpecificDefinition   `yaml:"aws,omitempty"`
+	Azure   azureSpecificDefinition `yaml:"azure,omitempty"`
 }
 
 type clusterDefinition struct {
