@@ -233,13 +233,8 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	output = append(output, color.YellowString("Storage in worker nodes (GB):")+"|"+fmt.Sprintf("%v", sumWorkerStorage(clusterDetails.Workers)))
 
 	if len(clusterDetails.Kvm.PortMappings) > 0 {
-		for i, portMapping := range clusterDetails.Kvm.PortMappings {
-			portAndProtocol := fmt.Sprintf("%-7s%d", portMapping.Protocol+":", portMapping.Port)
-			if i == 0 {
-				output = append(output, color.YellowString("Ingress Ports:")+"|"+portAndProtocol)
-			} else {
-				output = append(output, ""+"|"+portAndProtocol)
-			}
+		for _, portMapping := range clusterDetails.Kvm.PortMappings {
+			output = append(output, color.YellowString(fmt.Sprintf("Ingress port for %s:", portMapping.Protocol))+"|"+fmt.Sprintf("%d", portMapping.Port))
 		}
 	}
 
