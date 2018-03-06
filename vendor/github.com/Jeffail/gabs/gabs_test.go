@@ -43,7 +43,7 @@ func TestBasic(t *testing.T) {
 }
 
 func TestExists(t *testing.T) {
-	sample := []byte(`{"test":{"value":10},"test2":20}`)
+	sample := []byte(`{"test":{"value":10,"nullvalue":null},"test2":20,"testnull":null}`)
 
 	val, err := ParseJSON(sample)
 	if err != nil {
@@ -58,7 +58,9 @@ func TestExists(t *testing.T) {
 		{[]string{"one", "two", "three"}, false},
 		{[]string{"test"}, true},
 		{[]string{"test", "value"}, true},
+		{[]string{"test", "nullvalue"}, true},
 		{[]string{"test2"}, true},
+		{[]string{"testnull"}, true},
 		{[]string{"test2", "value"}, false},
 		{[]string{"test", "value2"}, false},
 		{[]string{"test", "VALUE"}, false},
@@ -247,6 +249,11 @@ func TestDeletes(t *testing.T) {
 				"value1":20,
 				"value2":42,
 				"value3":92
+			},
+			"another":{
+				"value1":null,
+				"value2":null,
+				"value3":null
 			}
 		}
 	}`))
@@ -254,11 +261,29 @@ func TestDeletes(t *testing.T) {
 	if err := jsonParsed.Delete("outter", "inner", "value2"); err != nil {
 		t.Error(err)
 	}
+	if err := jsonParsed.Delete("outter", "inner", "value4"); err == nil {
+		t.Error(fmt.Errorf("value4 should not have been found in outter.inner"))
+	}
+	if err := jsonParsed.Delete("outter", "another", "value1"); err != nil {
+		t.Error(err)
+	}
+	if err := jsonParsed.Delete("outter", "another", "value4"); err == nil {
+		t.Error(fmt.Errorf("value4 should not have been found in outter.another"))
+	}
 	if err := jsonParsed.DeleteP("outter.alsoInner.value1"); err != nil {
 		t.Error(err)
 	}
+	if err := jsonParsed.DeleteP("outter.alsoInner.value4"); err == nil {
+		t.Error(fmt.Errorf("value4 should not have been found in outter.alsoInner"))
+	}
+	if err := jsonParsed.DeleteP("outter.another.value2"); err != nil {
+		t.Error(err)
+	}
+	if err := jsonParsed.Delete("outter.another.value4"); err == nil {
+		t.Error(fmt.Errorf("value4 should not have been found in outter.another"))
+	}
 
-	expected := `{"outter":{"alsoInner":{"value2":42,"value3":92},"inner":{"value1":10,"value3":32}}}`
+	expected := `{"outter":{"alsoInner":{"value2":42,"value3":92},"another":{"value3":null},"inner":{"value1":10,"value3":32}}}`
 	if actual := jsonParsed.String(); actual != expected {
 		t.Errorf("Unexpected result from deletes: %v != %v", actual, expected)
 	}
@@ -1052,5 +1077,135 @@ func TestNilSet(t *testing.T) {
 	}
 	if _, err := obj.SetIndex("new", 0); err != ErrNotArray {
 		t.Errorf("Expected ErrNotArray: %v, %s", err, obj.Data())
+	}
+}
+
+func TestLargeSampleWithHtmlEscape(t *testing.T) {
+	sample := []byte(`{
+	"test": {
+		"innerTest": {
+			"value": 10,
+			"value2": "<title>Title</title>",
+			"value3": {
+				"moreValue": 45
+			}
+		}
+	},
+	"test2": 20
+}`)
+
+	sampleWithHTMLEscape := []byte(`{
+	"test": {
+		"innerTest": {
+			"value": 10,
+			"value2": "\u003ctitle\u003eTitle\u003c/title\u003e",
+			"value3": {
+				"moreValue": 45
+			}
+		}
+	},
+	"test2": 20
+}`)
+
+	val, err := ParseJSON(sample)
+	if err != nil {
+		t.Errorf("Failed to parse: %v", err)
+		return
+	}
+
+	exp := string(sample)
+	res := string(val.EncodeJSON(EncodeOptIndent("", "\t")))
+	if exp != res {
+		t.Errorf("Wrong conversion without html escaping: %s != %s", res, exp)
+	}
+
+	exp = string(sampleWithHTMLEscape)
+	res = string(val.EncodeJSON(EncodeOptHTMLEscape(true), EncodeOptIndent("", "\t")))
+	if exp != res {
+		t.Errorf("Wrong conversion with html escaping: %s != %s", exp, res)
+	}
+}
+
+func TestMergeCases(t *testing.T) {
+	type testCase struct {
+		first    string
+		second   string
+		expected string
+	}
+
+	testCases := []testCase{
+		{
+			first:    `{"outter":{"value1":"one"}}`,
+			second:   `{"outter":{"inner":{"value3": "threre"}},"outter2":{"value2": "two"}}`,
+			expected: `{"outter":{"inner":{"value3":"threre"},"value1":"one"},"outter2":{"value2":"two"}}`,
+		},
+		{
+			first:    `{"outter":["first"]}`,
+			second:   `{"outter":["second"]}`,
+			expected: `{"outter":["first","second"]}`,
+		},
+		{
+			first:    `{"outter":["first",{"inner":"second"}]}`,
+			second:   `{"outter":["third"]}`,
+			expected: `{"outter":["first",{"inner":"second"},"third"]}`,
+		},
+		{
+			first:    `{"outter":["first",{"inner":"second"}]}`,
+			second:   `{"outter":"third"}`,
+			expected: `{"outter":["first",{"inner":"second"},"third"]}`,
+		},
+		{
+			first:    `{"outter":"first"}`,
+			second:   `{"outter":"second"}`,
+			expected: `{"outter":["first","second"]}`,
+		},
+		{
+			first:    `{"outter":{"inner":"first"}}`,
+			second:   `{"outter":{"inner":"second"}}`,
+			expected: `{"outter":{"inner":["first","second"]}}`,
+		},
+		{
+			first:    `{"outter":{"inner":"first"}}`,
+			second:   `{"outter":"second"}`,
+			expected: `{"outter":[{"inner":"first"},"second"]}`,
+		},
+		{
+			first:    `{"outter":{"inner":"second"}}`,
+			second:   `{"outter":{"inner":{"inner2":"first"}}}`,
+			expected: `{"outter":{"inner":["second",{"inner2":"first"}]}}`,
+		},
+		{
+			first:    `{"outter":{"inner":["second"]}}`,
+			second:   `{"outter":{"inner":{"inner2":"first"}}}`,
+			expected: `{"outter":{"inner":["second",{"inner2":"first"}]}}`,
+		},
+		{
+			first:    `{"outter":"second"}`,
+			second:   `{"outter":{"inner":"first"}}`,
+			expected: `{"outter":["second",{"inner":"first"}]}`,
+		},
+	}
+
+	for i, test := range testCases {
+		var firstContainer, secondContainer *Container
+		var err error
+
+		firstContainer, err = ParseJSON([]byte(test.first))
+		if err != nil {
+			t.Errorf("[%d] Failed to parse '%v': %v", i, test.first, err)
+		}
+
+		secondContainer, err = ParseJSON([]byte(test.second))
+		if err != nil {
+			t.Errorf("[%d] Failed to parse '%v': %v", i, test.second, err)
+		}
+
+		if err = firstContainer.Merge(secondContainer); err != nil {
+			t.Errorf("[%d] Failed to merge: '%v': %v", i, test.first, err)
+		}
+
+		if exp, act := test.expected, firstContainer.String(); exp != act {
+			t.Errorf("[%d] Wrong result: %v != %v", i, act, exp)
+		}
 	}
 }
