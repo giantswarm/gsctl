@@ -163,7 +163,6 @@ func createClusterValidationOutput(cmd *cobra.Command, args []string) {
 
 	err := validateCreateClusterPreConditions(aca)
 	if err != nil {
-
 		handleCommonErrors(err)
 
 		switch {
