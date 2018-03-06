@@ -67,13 +67,16 @@ func init() {
 func showClusterPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultShowClusterArguments()
 	err := verifyShowClusterPreconditions(args, cmdLineArgs)
-	if err != nil {
-		handleCommonErrors(err)
 
-		// handle non-common errors
-		fmt.Println(color.RedString(err.Error()))
-		os.Exit(1)
+	if err == nil {
+		return
 	}
+
+	handleCommonErrors(err)
+
+	// handle non-common errors
+	fmt.Println(color.RedString(err.Error()))
+	os.Exit(1)
 }
 
 func verifyShowClusterPreconditions(args showClusterArguments, cmdLineArgs []string) error {

@@ -91,30 +91,33 @@ func init() {
 func loginPreRunOutput(cmd *cobra.Command, positionalArgs []string) {
 	err := verifyLoginPreconditions(positionalArgs)
 
-	if err != nil {
-		var headline = ""
-		var subtext = ""
-		switch {
-		case err.Error() == "":
-			return
-		case IsNoEmailArgumentGivenError(err):
-			headline = "The email argument is required."
-			subtext = "Please execute the command as 'gsctl login <email>'. See 'gsctl login --help' for details."
-		case IsTokenArgumentNotApplicableError(err):
-			headline = "The '--auth-token' flag cannot be used with the 'gsctl login' command."
-		case IsEmptyPasswordError(err):
-			headline = "The password cannot be empty."
-			subtext = "Please call the command again and enter a non-empty password. See 'gsctl login --help' for details."
-		default:
-			headline = err.Error()
-		}
-
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
-		os.Exit(1)
+	if err == nil {
+		return
 	}
+
+	var headline = ""
+	var subtext = ""
+
+	switch {
+	case err.Error() == "":
+		return
+	case IsNoEmailArgumentGivenError(err):
+		headline = "The email argument is required."
+		subtext = "Please execute the command as 'gsctl login <email>'. See 'gsctl login --help' for details."
+	case IsTokenArgumentNotApplicableError(err):
+		headline = "The '--auth-token' flag cannot be used with the 'gsctl login' command."
+	case IsEmptyPasswordError(err):
+		headline = "The password cannot be empty."
+		subtext = "Please call the command again and enter a non-empty password. See 'gsctl login --help' for details."
+	default:
+		headline = err.Error()
+	}
+
+	fmt.Println(color.RedString(headline))
+	if subtext != "" {
+		fmt.Println(subtext)
+	}
+	os.Exit(1)
 }
 
 // verifyLoginPreconditions does the pre-checks and returns an error in case something's wrong.

@@ -38,27 +38,30 @@ func init() {
 // shows output and exits.
 func selectEndpointPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	err := verifySelectEndpointPreconditions(cmdLineArgs)
-	if err != nil {
-		var headline string
-		var subtext string
 
-		switch {
-		case err.Error() == "":
-			headline = "Unknown error."
-		case IsEndpointMissingError(err):
-			headline = "No endpoint specified."
-			subtext = "Please give an endpoint URL to use. Use --help for details."
-		default:
-			headline = err.Error()
-		}
-
-		// print output
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
-		os.Exit(1)
+	if err == nil {
+		return
 	}
+
+	var headline string
+	var subtext string
+
+	switch {
+	case err.Error() == "":
+		headline = "Unknown error."
+	case IsEndpointMissingError(err):
+		headline = "No endpoint specified."
+		subtext = "Please give an endpoint URL to use. Use --help for details."
+	default:
+		headline = err.Error()
+	}
+
+	// print output
+	fmt.Println(color.RedString(headline))
+	if subtext != "" {
+		fmt.Println(subtext)
+	}
+	os.Exit(1)
 }
 
 func verifySelectEndpointPreconditions(cmdLineArgs []string) error {

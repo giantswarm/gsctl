@@ -103,14 +103,16 @@ func init() {
 func scaleClusterPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultScaleClusterArguments()
 	err := verifyScaleClusterPreconditions(args, cmdLineArgs)
-	if err != nil {
 
-		handleCommonErrors(err)
-
-		// print non-common error
-		fmt.Println(color.RedString(err.Error()))
-		os.Exit(1)
+	if err == nil {
+		return
 	}
+
+	handleCommonErrors(err)
+
+	// print non-common error
+	fmt.Println(color.RedString(err.Error()))
+	os.Exit(1)
 }
 
 // verifyScaleClusterPreconditions does a few general checks and returns an error in case something is missing.
