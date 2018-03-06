@@ -56,16 +56,22 @@ func Test_ListClusters(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	cmdAPIEndpoint = mockServer.URL
-	checkListClusters(ListClustersCommand, []string{})
+	args := listClustersArguments{
+		apiEndpoint: mockServer.URL,
+		authToken:   "testtoken",
+	}
 
-	table, err := clustersTable()
+	err := verifyListClusterPreconditions(args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	table, err := clustersTable(args)
 	if err != nil {
 		t.Error(err)
 	}
 
 	t.Log(table)
-	listClusters(ListClustersCommand, []string{})
 }
 
 // Test_ListClustersEmpty tests listing an empty cluster table
@@ -77,14 +83,22 @@ func Test_ListClustersEmpty(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	cmdAPIEndpoint = mockServer.URL
-	checkListClusters(ListClustersCommand, []string{})
+	args := listClustersArguments{
+		apiEndpoint: mockServer.URL,
+		authToken:   "testtoken",
+	}
 
-	table, err := clustersTable()
+	err := verifyListClusterPreconditions(args)
 	if err != nil {
 		t.Error(err)
 	}
 
-	t.Log(table)
-	listClusters(ListClustersCommand, []string{})
+	table, err := clustersTable(args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if table != "" {
+		t.Errorf("Expected '', got '%s'", table)
+	}
 }

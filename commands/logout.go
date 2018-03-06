@@ -67,23 +67,18 @@ func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 	err := logout(logoutArgs)
 
 	if err != nil {
-		headline := ""
-		subtext := ""
 
-		switch {
-		case IsNotAuthorizedError(err):
+		// Special treatment: We ignore the fact that the user was not logged in
+		// and act as if she just logged out.
+		if IsNotAuthorizedError(err) {
 			fmt.Printf("You have logged out from endpoint %s.\n", color.CyanString(logoutArgs.apiEndpoint))
 			os.Exit(0)
-		case err.Error() == "":
-			return
-		default:
-			headline = err.Error()
 		}
 
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
+		handleCommonErrors(err)
+
+		// handle non-common errors
+		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
 	}
 
@@ -110,9 +105,18 @@ func logout(args logoutArguments) error {
 	authHeader := "giantswarm " + args.token
 	logoutResponse, apiResponse, err := apiClient.UserLogout(authHeader, requestIDHeader, logoutActivityName, cmdLine)
 	if err != nil {
+
+		if apiResponse == nil || apiResponse.Response == nil {
+			return microerror.Mask(noResponseError)
+		}
+
+		if apiResponse.StatusCode == http.StatusForbidden {
+			return microerror.Mask(accessForbiddenError)
+		}
+
 		// special treatment for HTTP 401 (unauthorized) error,
 		// in which case no JSON body is returned.
-		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusUnauthorized {
+		if apiResponse.StatusCode == http.StatusUnauthorized {
 			return microerror.Mask(notAuthorizedError)
 		}
 

@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"runtime"
 	"time"
@@ -198,17 +199,16 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		return
 	}
 
-	headline := ""
-	subtext := ""
+	handleCommonErrors(err)
+
+	var headline string
+	var subtext string
 
 	switch {
 	case err.Error() == "":
 		return
 	case IsCommandAbortedError(err):
 		headline = "File not overwritten, no kubeconfig created."
-	case IsNotLoggedInError(err):
-		headline = "You are not logged in."
-		subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
 	case IsKubectlMissingError(err):
 		headline = "kubectl is not installed"
 		if runtime.GOOS == "darwin" {
@@ -219,9 +219,6 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		} else if runtime.GOOS == "windows" {
 			subtext = fmt.Sprintf("Please visit %s to download a recent kubectl binary.", kubectlWindowsInstallURL)
 		}
-	case IsClusterIDMissingError(err):
-		headline = "No cluster specified"
-		subtext = "Please use the --cluster or -c flag to indicate a cluster ID. Use --help for details."
 	default:
 		headline = err.Error()
 	}
@@ -272,14 +269,12 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	result, err := createKubeconfig(args)
 
 	if err != nil {
+		handleCommonErrors(err)
 
-		headline := ""
-		subtext := ""
+		var headline string
+		var subtext string
 
 		switch {
-		case IsCouldNotCreateClientError(err):
-			headline = "Failed to create API client."
-			subtext = "Details: " + err.Error()
 		case util.IsCouldNotSetKubectlClusterError(err):
 			headline = "Error: " + err.Error()
 			subtext = "API endpoint would be: " + result.apiEndpoint
@@ -341,6 +336,8 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 }
 
+// createKubeconfig is our business function talking to the API to create a keypair
+// and creating a new kubectl context
 func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, error) {
 	result := createKubeconfigResult{}
 
@@ -393,13 +390,18 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 		createKubeconfigActivityName, cmdLine)
 
 	if err != nil {
+		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
+			return result, microerror.Mask(accessForbiddenError)
+		}
 		return result, microerror.Mask(err)
 	}
 
-	if apiResponse.StatusCode == 404 {
+	if apiResponse.StatusCode == http.StatusNotFound {
 		// cluster not found
 		return result, microerror.Mask(clusterNotFoundError)
-	} else if apiResponse.StatusCode != 200 && apiResponse.StatusCode != 201 {
+	} else if apiResponse.StatusCode == http.StatusForbidden {
+		return result, microerror.Mask(accessForbiddenError)
+	} else if apiResponse.StatusCode != http.StatusOK && apiResponse.StatusCode != 201 {
 		return result, microerror.Maskf(unknownError,
 			fmt.Sprintf("Unhandled response code: %v", apiResponse.StatusCode))
 	}

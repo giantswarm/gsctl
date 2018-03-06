@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,11 +29,11 @@ func TestDeleteClusterSuccess(t *testing.T) {
 	for i, testCase := range testCases {
 		validateErr := validateDeleteClusterPreConditions(testCase)
 		if validateErr != nil {
-			t.Error(fmt.Sprintf("Validation error in testCase %v: %s", i, validateErr.Error()))
+			t.Errorf("Validation error in testCase %v: %s", i, validateErr.Error())
 		} else {
 			_, execErr := deleteCluster(testCase)
 			if execErr != nil {
-				t.Error(fmt.Sprintf("Execution error in testCase %v: %s", i, execErr.Error()))
+				t.Errorf("Execution error in testCase %v: %s", i, execErr.Error())
 			}
 		}
 	}

@@ -74,25 +74,9 @@ func listKeypairsValidationOutput(cmd *cobra.Command, extraArgs []string) {
 	args := defaultListKeypairsArguments()
 	err := listKeypairsValidate(&args)
 	if err != nil {
-		var headline string
-		var subtext string
+		handleCommonErrors(err)
 
-		switch {
-		case IsNotLoggedInError(err):
-			headline = "You are not logged in."
-			subtext = "Please log in using 'gsctl login <email>' or set an auth token as a command line argument."
-			subtext += " See `gsctl list keypairs --help` for details."
-		case IsClusterIDMissingError(err):
-			headline = "No cluster ID specified."
-			subtext = "Please specify which cluster to list key pairs for, by using the '-c' or '--cluster' argument."
-		default:
-			headline = err.Error()
-		}
-
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
+		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
 	}
 }
@@ -127,29 +111,15 @@ func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
 
 	// error output
 	if err != nil {
+		handleCommonErrors(err)
+
 		var headline string
 		var subtext string
 
 		switch {
-		case IsNotLoggedInError(err):
-			headline = "You are not logged in."
-			subtext = "Please log in using 'gsctl login <email>' or set an auth token as a command line argument."
-			subtext += " See `gsctl list keypairs --help` for details."
-		case IsClusterIDMissingError(err):
-			headline = "No cluster ID specified."
-			subtext = "Please specify which cluster to list key pairs for, by using the '-c' or '--cluster' argument."
-		case IsNotAuthorizedError(err):
-			headline = "You are not authorized for this cluster."
-			subtext = "You have no permission to access key pairs for this cluster. Please check your credentials."
 		case IsClusterNotFoundError(err):
 			headline = "The cluster does not exist."
 			subtext = fmt.Sprintf("We couldn't find a cluster with the ID '%s' via API endpoint %s.", args.clusterID, args.apiEndpoint)
-		case IsInternalServerError(err):
-			headline = "An internal error occurred."
-			subtext = "Please notify the Giant Swarm support team, or try listing key pairs again in a few moments."
-		case IsUnknownError(err):
-			headline = "An error occurred."
-			subtext = "Please notify the Giant Swarm support team, or try listing key pairs again in a few moments."
 		default:
 			headline = err.Error()
 		}
