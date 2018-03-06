@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
@@ -169,12 +170,11 @@ func createClusterValidationOutput(cmd *cobra.Command, args []string) {
 
 	err := validateCreateClusterPreConditions(aca)
 	if err != nil {
+		handleCommonErrors(err)
+
 		switch {
 		case err.Error() == "":
 			return
-		case IsNotLoggedInError(err):
-			headline = "You are not logged in."
-			subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
 		case IsConflictingFlagsError(err):
 			headline = "Conflicting flags used"
 			subtext = "When specifying a definition via a YAML file, certain flags must not be used."
@@ -213,6 +213,8 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 
 	result, err := addCluster(aca)
 	if err != nil {
+		handleCommonErrors(err)
+
 		var headline string
 		var subtext string
 		richError, richErrorOK := err.(*errgo.Err)
@@ -495,6 +497,9 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		}
 		responseBody, apiResponse, err := apiClient.AddCluster(authHeader, addClusterBody, requestIDHeader, createClusterActivityName, cmdLine)
 		if err != nil {
+			if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
+				return result, microerror.Mask(accessForbiddenError)
+			}
 			// lower level connection problem
 			return result, microerror.Mask(err)
 		}

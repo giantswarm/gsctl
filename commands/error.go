@@ -256,6 +256,15 @@ func IsNoEmailArgumentGivenError(err error) bool {
 	return errgo.Cause(err) == noEmailArgumentGivenError
 }
 
+// accessForbiddenError means the client has been denied access to the API endpoint
+// with a HTTP 403 error
+var accessForbiddenError = errgo.New("access forbidden")
+
+// IsAccessForbiddenError asserts accessForbiddenError
+func IsAccessForbiddenError(err error) bool {
+	return errgo.Cause(err) == accessForbiddenError
+}
+
 // invalidCredentialsError means the user's credentials could not be verified
 // by the API
 var invalidCredentialsError = errgo.New("invalid credentials submitted")

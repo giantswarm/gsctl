@@ -34,12 +34,17 @@ func init() {
 // and prints output in a user-friendly way
 func runPingCommand(cmd *cobra.Command, args []string) {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+
 	duration, err := ping(endpoint)
 	if err != nil {
+
+		handleCommonErrors(err)
+
 		fmt.Println(color.RedString("Could not reach API"))
-		fmt.Println(err)
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
+
 	fmt.Println(color.GreenString("API connection is fine"))
 	fmt.Printf("Ping took %v\n", duration)
 }
@@ -93,8 +98,10 @@ func ping(endpointURL string) (time.Duration, error) {
 
 	duration = time.Since(start)
 	if resp.StatusCode != http.StatusOK {
-		// TODO: return typed error
-		return duration, fmt.Errorf("bad status code %d", resp.StatusCode)
+		if resp.StatusCode == http.StatusForbidden {
+			return duration, microerror.Mask(accessForbiddenError)
+		}
+		return duration, microerror.Mask(fmt.Errorf("bad status code %d", resp.StatusCode))
 	}
 
 	return duration, nil

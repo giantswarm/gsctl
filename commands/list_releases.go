@@ -70,22 +70,9 @@ func listReleasesValidationOutput(cmd *cobra.Command, extraArgs []string) {
 	args := defaultListReleasesArguments()
 	err := listReleasesValidate(&args)
 	if err != nil {
-		var headline string
-		var subtext string
+		handleCommonErrors(err)
 
-		switch {
-		case IsNotLoggedInError(err):
-			headline = "You are not logged in."
-			subtext = "Please log in using 'gsctl login <email>' or set an auth token as a command line argument."
-			subtext += " See `gsctl list releases --help` for details."
-		default:
-			headline = err.Error()
-		}
-
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
+		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
 	}
 }
@@ -108,34 +95,11 @@ func listReleasesOutput(cmd *cobra.Command, extraArgs []string) {
 
 	// error output
 	if err != nil {
-		var headline string
-		var subtext string
+		handleCommonErrors(err)
 
-		switch {
-		case IsNotLoggedInError(err):
-			headline = "You are not logged in."
-			subtext = "Please log in using 'gsctl login <email>' or set an auth token as a command line argument."
-			subtext += " See `gsctl list releases --help` for details."
-		case IsNotAuthorizedError(err):
-			headline = "You are not authorized for this cluster."
-			subtext = "You have no permission to access releases for this cluster. Please check your credentials."
-		case IsInternalServerError(err):
-			headline = "An internal error occurred."
-			subtext = "Please notify the Giant Swarm support team, or try listing releases again in a few moments."
-		case IsNoResponseError(err):
-			headline = "The API didn't send a response."
-			subtext = "Please notify the Giant Swarm support team, or try listing releases again in a few moments."
-		case IsUnknownError(err):
-			headline = "An error occurred."
-			subtext = "Please notify the Giant Swarm support team, or try listing releases again in a few moments."
-		default:
-			headline = err.Error()
-		}
+		var headline = err.Error()
 
 		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
 		os.Exit(1)
 	}
 

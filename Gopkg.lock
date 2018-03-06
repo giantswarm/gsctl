@@ -2,10 +2,10 @@
 
 
 [[projects]]
+  branch = "master"
   name = "github.com/Jeffail/gabs"
   packages = ["."]
-  revision = "2a3aa15961d5fee6047b8151b67ac2f08ba2c48c"
-  version = "1.0"
+  revision = "44cbc27138518b15305cb3eef220d04f2d641b9b"
 
 [[projects]]
   branch = "master"
@@ -38,10 +38,10 @@
   version = "v2.0.2"
 
 [[projects]]
-  branch = "add-kvm-port-mappings"
+  branch = "master"
   name = "github.com/giantswarm/gsclientgen"
   packages = ["."]
-  revision = "8c4d8cee41f8ae8ee5bef5342f3673db2adac68c"
+  revision = "4ce48ca368d3bc16a0e6e7619bd207a39d0c2902"
 
 [[projects]]
   branch = "master"
@@ -92,10 +92,10 @@
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
 
 [[projects]]
+  branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "7b2c5ac9fc04fc5efafb60700713d4fa609b777b"
-  version = "v0.0.1"
+  revision = "c6c44e6fdcc30161c7f4480754da7230d01c06e3"
 
 [[projects]]
   name = "github.com/spf13/pflag"
@@ -169,6 +169,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "00e178f49f3f0d7b5f04f8ed45ff677d5843fb09b95d508397a5e1e96a6bf1a5"
+  inputs-digest = "ea2a0e5b7264c092f18bc4453e21a3252f415d3c01147b929da08487303c685d"
   solver-name = "gps-cdcl"
   solver-version = 1
