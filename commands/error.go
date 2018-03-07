@@ -30,6 +30,14 @@ func IsNotLoggedInError(err error) bool {
 	return errgo.Cause(err) == notLoggedInError
 }
 
+// userAccountInactiveError means that the user account is marked as inative by the API
+var userAccountInactiveError = errgo.New("user account inactive")
+
+// IsUserAccountInactiveError asserts userAccountInactiveError.
+func IsUserAccountInactiveError(err error) bool {
+	return errgo.Cause(err) == userAccountInactiveError
+}
+
 // commandAbortedError means that the user has aborted a command or input
 var commandAbortedError = errgo.New("user has not confirmed or aborted execution")
 

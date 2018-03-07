@@ -174,9 +174,12 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 			subtext = "The API server complains about the password provided."
 			subtext += " Please make sure to provide a string with more than white space characters."
 		case IsInvalidCredentialsError(err):
-			headline = "Bad password or email address."
+			headline = "Bad password or email address"
 			subtext = fmt.Sprintf("Could not log you in to %s.", color.CyanString(loginArgs.apiEndpoint))
 			subtext += " The email or the password provided (or both) was incorrect."
+		case IsUserAccountInactiveError(err):
+			headline = "User account has expired or is deactivated"
+			subtext = "Please contact the Giant Swarm support team."
 		case config.IsAliasMustBeUniqueError(err):
 			headline = "Alias is already in use for a different endpoint"
 			subtext = fmt.Sprintf("The alias '%s' is already used for an endpoint in your configuration.\n", result.alias)
@@ -259,8 +262,8 @@ func login(args loginArguments) (loginResult, error) {
 	requestBody := gsclientgen.LoginBodyModel{Password: string(encodedPassword)}
 	loginResponse, rawResponse, err := apiClient.UserLogin(args.email,
 		requestBody, requestIDHeader, loginActivityName, cmdLine)
-	if err != nil {
 
+	if err != nil {
 		if rawResponse == nil || rawResponse.Response == nil {
 			return result, microerror.Mask(noResponseError)
 		}
@@ -308,6 +311,8 @@ func login(args loginArguments) (loginResult, error) {
 	case apischema.STATUS_CODE_WRONG_INPUT:
 		// empty password
 		return result, microerror.Mask(emptyPasswordError)
+	case apischema.STATUS_CODE_ACCOUNT_INACTIVE:
+		return result, microerror.Mask(userAccountInactiveError)
 	default:
 		return result, fmt.Errorf("Unhandled response code: %v", loginResponse.StatusCode)
 	}
