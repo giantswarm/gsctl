@@ -52,10 +52,11 @@ func Test_LoginValidPassword(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	args := loginArguments{}
-	args.apiEndpoint = mockServer.URL
-	args.email = "email@example.com"
-	args.password = "test password"
+	args := loginArguments{
+		apiEndpoint: mockServer.URL,
+		email:       "email@example.com",
+		password:    "test password",
+	}
 
 	result, err := login(args)
 	if err != nil {
@@ -100,10 +101,11 @@ func Test_LoginInvalidPassword(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	args := loginArguments{}
-	args.apiEndpoint = mockServer.URL
-	args.email = "email@example.com"
-	args.password = "bad password"
+	args := loginArguments{
+		apiEndpoint: mockServer.URL,
+		email:       "email@example.com",
+		password:    "bad password",
+	}
 
 	_, err = login(args)
 	if !IsInvalidCredentialsError(err) {
@@ -142,10 +144,11 @@ selected_endpoint: "` + mockServer.URL + `"
 	}
 	defer os.RemoveAll(dir)
 
-	args := loginArguments{}
-	args.apiEndpoint = mockServer.URL
-	args.email = "email@example.com"
-	args.password = "test password"
+	args := loginArguments{
+		apiEndpoint: mockServer.URL,
+		email:       "email@example.com",
+		password:    "test password",
+	}
 
 	result, loginErr := login(args)
 	if loginErr != nil {
@@ -186,10 +189,11 @@ func Test_LoginInactiveAccount(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	args := loginArguments{}
-	args.apiEndpoint = mockServer.URL
-	args.email = "developer@giantswarm.io"
-	args.password = "test password"
+	args := loginArguments{
+		apiEndpoint: mockServer.URL,
+		email:       "developer@giantswarm.io",
+		password:    "test password",
+	}
 
 	_, err = login(args)
 	if err == nil {
