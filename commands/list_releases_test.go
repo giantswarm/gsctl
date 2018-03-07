@@ -29,7 +29,7 @@ func Test_ListReleases_Empty(t *testing.T) {
 	args.apiEndpoint = releasesMockServer.URL
 	args.token = "my-token"
 
-	err = listReleasesValidate(&args)
+	err = listReleasesPreconditions(&args)
 	if err != nil {
 		t.Error(err)
 	}
@@ -63,7 +63,7 @@ func Test_ListReleases_NotFound(t *testing.T) {
 	args.apiEndpoint = releasesMockServer.URL
 	args.token = "my-token"
 
-	err = listReleasesValidate(&args)
+	err = listReleasesPreconditions(&args)
 	if err != nil {
 		t.Error(err)
 	}
@@ -221,7 +221,7 @@ func Test_ListReleases_Nonempty(t *testing.T) {
 	args.apiEndpoint = releasesMockServer.URL
 	args.token = "my-token"
 
-	err = listReleasesValidate(&args)
+	err = listReleasesPreconditions(&args)
 	if err != nil {
 		t.Error(err)
 	}
