@@ -179,10 +179,7 @@ func Test_LoginInactiveAccount(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.URL.String() == "/v1/user/developer@giantswarm.io/login" {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(`{
-			  "status_code": 10017,
-			  "status_text": "user account in-active"
-			}`))
+			w.Write([]byte(`{"status_code":10017,"status_text":"user account in-active"}`))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
