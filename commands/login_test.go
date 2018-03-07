@@ -177,7 +177,7 @@ func Test_LoginInactiveAccount(t *testing.T) {
 	// mock server responding with a 400 Bad request
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.URL.String() == "/v1/developer@giantswarm.io/login" {
+		if r.URL.String() == "/v1/user/developer@giantswarm.io/login" {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(`{
 			  "status_code": 10017,
