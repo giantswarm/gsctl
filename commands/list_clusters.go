@@ -124,6 +124,7 @@ func clustersTable(args listClustersArguments) (string, error) {
 		color.CyanString("ID"),
 		color.CyanString("ORGANIZATION"),
 		color.CyanString("NAME"),
+		color.CyanString("RELEASE"),
 		color.CyanString("CREATED"),
 	}, "|")}
 
@@ -138,6 +139,7 @@ func clustersTable(args listClustersArguments) (string, error) {
 			cluster.Id,
 			cluster.Owner,
 			cluster.Name,
+			cluster.ReleaseVersion,
 			created,
 		}, "|"))
 	}
