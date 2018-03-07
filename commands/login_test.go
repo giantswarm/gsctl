@@ -164,3 +164,41 @@ selected_endpoint: "` + mockServer.URL + `"
 		t.Error("result.loggedOutBefore was false, expected true")
 	}
 }
+
+// Test_LoginInactiveAccount simulates a login with an inactive/expired account
+func Test_LoginInactiveAccount(t *testing.T) {
+	// we start with an empty config
+	dir, err := tempConfig("")
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// mock server responding with a 400 Bad request
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.String() == "/v1/developer@giantswarm.io/login" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(`{
+			  "status_code": 10017,
+			  "status_text": "user account in-active"
+			}`))
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer mockServer.Close()
+
+	args := loginArguments{}
+	args.apiEndpoint = mockServer.URL
+	args.email = "developer@giantswarm.io"
+	args.password = "test password"
+
+	_, err = login(args)
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	if !IsUserAccountInactiveError(err) {
+		t.Errorf("Expected userAccountInactiveError, got '%s'", err.Error())
+	}
+}
