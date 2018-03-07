@@ -63,13 +63,13 @@ func Test_LoginValidPassword(t *testing.T) {
 		t.Error(err)
 	}
 	if result.email != args.email {
-		t.Errorf("Expected '%s', got '%s'", args.email, result.email)
+		t.Errorf("Expected %q, got %q", args.email, result.email)
 	}
 	if result.token != "some-test-session-token" {
-		t.Errorf("Expected 'some-test-session-token', got '%s'", result.token)
+		t.Errorf("Expected 'some-test-session-token', got %q", result.token)
 	}
 	if result.alias != "codename" {
-		t.Errorf("Expected alias 'codename', got '%s'", result.alias)
+		t.Errorf("Expected alias 'codename', got %q", result.alias)
 	}
 	if result.loggedOutBefore == true {
 		t.Error("result.loggedOutBefore was true, expected false")
@@ -109,7 +109,7 @@ func Test_LoginInvalidPassword(t *testing.T) {
 
 	_, err = login(args)
 	if !IsInvalidCredentialsError(err) {
-		t.Errorf("Expected error '%s', got %v", invalidCredentialsError, err)
+		t.Errorf("Expected error %q, got %v", invalidCredentialsError, err)
 	}
 }
 
@@ -155,13 +155,13 @@ selected_endpoint: "` + mockServer.URL + `"
 		t.Error(err)
 	}
 	if result.email != args.email {
-		t.Errorf("Expected '%s', got '%s'", args.email, result.email)
+		t.Errorf("Expected %q, got %q", args.email, result.email)
 	}
 	if config.Config.Email != args.email {
-		t.Errorf("Expected config email to be '%s', got '%s'", args.email, config.Config.Email)
+		t.Errorf("Expected config email to be %q, got %q", args.email, config.Config.Email)
 	}
 	if result.token != "another-test-session-token" {
-		t.Errorf("Expected 'another-test-session-token', got '%s'", result.token)
+		t.Errorf("Expected 'another-test-session-token', got %q", result.token)
 	}
 	if !result.loggedOutBefore {
 		t.Error("result.loggedOutBefore was false, expected true")
@@ -200,6 +200,6 @@ func Test_LoginInactiveAccount(t *testing.T) {
 		t.Error("Expected error, got nil")
 	}
 	if !IsUserAccountInactiveError(err) {
-		t.Errorf("Expected userAccountInactiveError, got '%s'", err.Error())
+		t.Errorf("Expected userAccountInactiveError, got %q", err.Error())
 	}
 }
