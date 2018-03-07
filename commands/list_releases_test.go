@@ -43,6 +43,31 @@ func Test_ListReleases_Empty(t *testing.T) {
 	}
 }
 
+// Test_ListReleases_Connection_Unavailable simulates the situation where we
+// cannot reach the endpoint
+func Test_ListReleases_Connection_Unavailable(t *testing.T) {
+	dir, err := tempConfig("")
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// needed to prevent search for the default cluster
+	args := listReleasesArguments{}
+	args.apiEndpoint = "http://localhost:45454"
+	args.token = "my-token"
+
+	err = listReleasesPreconditions(&args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, listErr := listReleases(args)
+	if !IsNoResponseError(listErr) {
+		t.Errorf("Expected noResponseError, got '%s'", listErr)
+	}
+}
+
 // Test_ListReleases_NotFound simulates the situation where the cluster
 // to list releases for is not found
 func Test_ListReleases_NotFound(t *testing.T) {
