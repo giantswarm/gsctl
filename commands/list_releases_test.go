@@ -25,9 +25,10 @@ func Test_ListReleases_Empty(t *testing.T) {
 	defer releasesMockServer.Close()
 
 	// needed to prevent search for the default cluster
-	args := listReleasesArguments{}
-	args.apiEndpoint = releasesMockServer.URL
-	args.token = "my-token"
+	args := listReleasesArguments{
+		apiEndpoint: releasesMockServer.URL,
+		token:       "my-token",
+	}
 
 	err = listReleasesPreconditions(&args)
 	if err != nil {
@@ -53,9 +54,10 @@ func Test_ListReleases_Connection_Unavailable(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	// needed to prevent search for the default cluster
-	args := listReleasesArguments{}
-	args.apiEndpoint = "http://localhost:45454"
-	args.token = "my-token"
+	args := listReleasesArguments{
+		apiEndpoint: "http://localhost:45454",
+		token:       "my-token",
+	}
 
 	err = listReleasesPreconditions(&args)
 	if err != nil {
@@ -84,9 +86,10 @@ func Test_ListReleases_NotFound(t *testing.T) {
 	}))
 	defer releasesMockServer.Close()
 
-	args := listReleasesArguments{}
-	args.apiEndpoint = releasesMockServer.URL
-	args.token = "my-token"
+	args := listReleasesArguments{
+		apiEndpoint: releasesMockServer.URL,
+		token:       "my-token",
+	}
 
 	err = listReleasesPreconditions(&args)
 	if err != nil {
@@ -242,9 +245,10 @@ func Test_ListReleases_Nonempty(t *testing.T) {
 	}))
 	defer releasesMockServer.Close()
 
-	args := listReleasesArguments{}
-	args.apiEndpoint = releasesMockServer.URL
-	args.token = "my-token"
+	args := listReleasesArguments{
+		apiEndpoint: releasesMockServer.URL,
+		token:       "my-token",
+	}
 
 	err = listReleasesPreconditions(&args)
 	if err != nil {
