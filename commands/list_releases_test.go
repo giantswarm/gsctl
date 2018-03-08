@@ -25,11 +25,12 @@ func Test_ListReleases_Empty(t *testing.T) {
 	defer releasesMockServer.Close()
 
 	// needed to prevent search for the default cluster
-	args := listReleasesArguments{}
-	args.apiEndpoint = releasesMockServer.URL
-	args.token = "my-token"
+	args := listReleasesArguments{
+		apiEndpoint: releasesMockServer.URL,
+		token:       "my-token",
+	}
 
-	err = listReleasesValidate(&args)
+	err = listReleasesPreconditions(&args)
 	if err != nil {
 		t.Error(err)
 	}
@@ -40,6 +41,32 @@ func Test_ListReleases_Empty(t *testing.T) {
 	}
 	if len(result.releases) > 0 {
 		t.Error("Got releases where we expected none.")
+	}
+}
+
+// Test_ListReleases_Connection_Unavailable simulates the situation where we
+// cannot reach the endpoint
+func Test_ListReleases_Connection_Unavailable(t *testing.T) {
+	dir, err := tempConfig("")
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// needed to prevent search for the default cluster
+	args := listReleasesArguments{
+		apiEndpoint: "http://localhost:45454",
+		token:       "my-token",
+	}
+
+	err = listReleasesPreconditions(&args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, listErr := listReleases(args)
+	if !IsNoResponseError(listErr) {
+		t.Errorf("Expected noResponseError, got '%s'", listErr)
 	}
 }
 
@@ -59,11 +86,12 @@ func Test_ListReleases_NotFound(t *testing.T) {
 	}))
 	defer releasesMockServer.Close()
 
-	args := listReleasesArguments{}
-	args.apiEndpoint = releasesMockServer.URL
-	args.token = "my-token"
+	args := listReleasesArguments{
+		apiEndpoint: releasesMockServer.URL,
+		token:       "my-token",
+	}
 
-	err = listReleasesValidate(&args)
+	err = listReleasesPreconditions(&args)
 	if err != nil {
 		t.Error(err)
 	}
@@ -217,11 +245,12 @@ func Test_ListReleases_Nonempty(t *testing.T) {
 	}))
 	defer releasesMockServer.Close()
 
-	args := listReleasesArguments{}
-	args.apiEndpoint = releasesMockServer.URL
-	args.token = "my-token"
+	args := listReleasesArguments{
+		apiEndpoint: releasesMockServer.URL,
+		token:       "my-token",
+	}
 
-	err = listReleasesValidate(&args)
+	err = listReleasesPreconditions(&args)
 	if err != nil {
 		t.Error(err)
 	}
