@@ -135,11 +135,16 @@ func clustersTable(args listClustersArguments) (string, error) {
 
 	for _, cluster := range clusters {
 		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
+		releaseVersion := cluster.ReleaseVersion
+		if releaseVersion == "" {
+			releaseVersion = "n/a"
+		}
+
 		output = append(output, strings.Join([]string{
 			cluster.Id,
 			cluster.Owner,
 			cluster.Name,
-			cluster.ReleaseVersion,
+			releaseVersion,
 			created,
 		}, "|"))
 	}
