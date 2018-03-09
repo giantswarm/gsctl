@@ -31,8 +31,8 @@ var (
 		Long: `Prints detail on all available releases.
 
 A release is a software bundle that constitutes a cluster. It is identified by its semantic version number.`,
-		PreRun: listReleasesValidationOutput,
-		Run:    listReleasesOutput,
+		PreRun: listReleasesPreRunOutput,
+		Run:    listReleasesRunOutput,
 	}
 )
 
@@ -64,22 +64,25 @@ func init() {
 	ListCommand.AddCommand(ListReleasesCommand)
 }
 
-// listReleasesValidationOutput does our pre-checks and shows errors, in case
+// listReleasesPreRunOutput does our pre-checks and shows errors, in case
 // something is missing.
-func listReleasesValidationOutput(cmd *cobra.Command, extraArgs []string) {
+func listReleasesPreRunOutput(cmd *cobra.Command, extraArgs []string) {
 	args := defaultListReleasesArguments()
-	err := listReleasesValidate(&args)
-	if err != nil {
-		handleCommonErrors(err)
+	err := listReleasesPreconditions(&args)
 
-		fmt.Println(color.RedString(err.Error()))
-		os.Exit(1)
+	if err == nil {
+		return
 	}
+
+	handleCommonErrors(err)
+
+	fmt.Println(color.RedString(err.Error()))
+	os.Exit(1)
 }
 
-// listReleasesValidate validates our pre-conditions and returns an error in
+// listReleasesPreconditions validates our pre-conditions and returns an error in
 // case something is missing.
-func listReleasesValidate(args *listReleasesArguments) error {
+func listReleasesPreconditions(args *listReleasesArguments) error {
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(notLoggedInError)
 	}
@@ -87,9 +90,9 @@ func listReleasesValidate(args *listReleasesArguments) error {
 	return nil
 }
 
-// listReleasesOutput is the function called to list releases and display
+// listReleasesRunOutput is the function called to list releases and display
 // errors in case they happen
-func listReleasesOutput(cmd *cobra.Command, extraArgs []string) {
+func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 	args := defaultListReleasesArguments()
 	result, err := listReleases(args)
 
