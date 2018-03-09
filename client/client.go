@@ -35,18 +35,20 @@ type GenericResponse struct {
 
 // NewClient allows to create a new API client
 // with specific configuration
-func NewClient(clientConfig Configuration) (*gsclientgen.DefaultApi, error) {
+func NewClient(clientConfig Configuration) (*gsclientgen.APIClient, error) {
 	configuration := gsclientgen.NewConfiguration()
 
 	if clientConfig.Endpoint == "" {
-		return &gsclientgen.DefaultApi{}, microerror.Mask(endpointNotSpecifiedError)
+		return &gsclientgen.APIClient{}, microerror.Mask(endpointNotSpecifiedError)
 	}
 
+	// pass our own configuration to the generated client's config object
 	configuration.BasePath = clientConfig.Endpoint
 	configuration.UserAgent = clientConfig.UserAgent
-	configuration.Timeout = &DefaultTimeout
+
+	timeout := DefaultTimeout
 	if clientConfig.Timeout != 0 {
-		configuration.Timeout = &clientConfig.Timeout
+		timeout = clientConfig.Timeout
 	}
 
 	// set up client TLS so that custom CAs are accepted.
@@ -58,14 +60,16 @@ func NewClient(clientConfig Configuration) (*gsclientgen.DefaultApi, error) {
 	if rootCertsErr != nil {
 		return nil, microerror.Mask(rootCertsErr)
 	}
-	configuration.Transport = &http.Transport{
-		Proxy:           http.ProxyFromEnvironment,
-		TLSClientConfig: tlsConfig,
+
+	configuration.HTTPClient = &http.Client{
+		Timeout: timeout,
+		Transport: &http.Transport{
+			Proxy:           http.ProxyFromEnvironment,
+			TLSClientConfig: tlsConfig,
+		},
 	}
 
-	return &gsclientgen.DefaultApi{
-		Configuration: configuration,
-	}, nil
+	return gsclientgen.NewAPIClient(configuration), nil
 }
 
 // ParseGenericResponse parses the standard code, message response document into

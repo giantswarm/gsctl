@@ -15,6 +15,7 @@ import (
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/microerror"
 
+	"golang.org/x/net/context"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -508,7 +509,14 @@ func GetDefaultCluster(requestIDHeader, activityName, cmdLine, apiEndpoint strin
 
 	authHeader := "giantswarm " + Config.Token
 
-	clustersResponse, _, err := apiClient.GetClusters(authHeader, requestIDHeader, activityName, cmdLine)
+	clustersResponse, _, err := apiClient.DefaultApi.GetClusters(
+		context.TODO(),
+		authHeader,
+		map[string]interface{}{
+			"xRequestID":          requestIDHeader,
+			"xGiantSwarmActivity": activityName,
+			"xGiantSwarmCmdLine":  cmdLine,
+		})
 	if err != nil {
 		return "", err
 	}
