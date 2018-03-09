@@ -38,16 +38,22 @@
   version = "v2.0.2"
 
 [[projects]]
-  branch = "master"
+  branch = "swagger-codegen-2.3.1"
   name = "github.com/giantswarm/gsclientgen"
   packages = ["."]
-  revision = "39bc522c6c6fdd85654480e260a887117b3771ec"
+  revision = "1a5ad781cc5bb66f9036a4cf923da8debe495912"
 
 [[projects]]
   branch = "master"
   name = "github.com/giantswarm/microerror"
   packages = ["."]
   revision = "325932fa68e70dd4464598f11e2f710ac1aaec46"
+
+[[projects]]
+  name = "github.com/golang/protobuf"
+  packages = ["proto"]
+  revision = "925541529c1fa6821df4e44ce2723319eb2be768"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -119,10 +125,19 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = [
-    "idna",
-    "publicsuffix"
+    "context",
+    "context/ctxhttp"
   ]
   revision = "d25186b37f34ebdbbea8f488ef055638dfab272d"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/oauth2"
+  packages = [
+    ".",
+    "internal"
+  ]
+  revision = "2f32c3ac0fa4fb807a0fcefb0b6f2468a0d99bd0"
 
 [[projects]]
   branch = "master"
@@ -134,31 +149,18 @@
   revision = "dd2ff4accc098aceecb86b36eaa7829b2a17b1c9"
 
 [[projects]]
-  name = "golang.org/x/text"
+  name = "google.golang.org/appengine"
   packages = [
-    "collate",
-    "collate/build",
-    "internal/colltab",
-    "internal/gen",
-    "internal/tag",
-    "internal/triegen",
-    "internal/ucd",
-    "language",
-    "secure/bidirule",
-    "transform",
-    "unicode/bidi",
-    "unicode/cldr",
-    "unicode/norm",
-    "unicode/rangetable"
+    "internal",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/remote_api",
+    "internal/urlfetch",
+    "urlfetch"
   ]
-  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
-  version = "v0.3.0"
-
-[[projects]]
-  name = "gopkg.in/go-resty/resty.v0"
-  packages = ["."]
-  revision = "cf81ed0a604d373be63b4c036c6b05c06520615f"
-  version = "v0.13"
+  revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
+  version = "v1.0.0"
 
 [[projects]]
   name = "gopkg.in/yaml.v2"
@@ -169,6 +171,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ea2a0e5b7264c092f18bc4453e21a3252f415d3c01147b929da08487303c685d"
+  inputs-digest = "2d082588da43e03d7d25c230a98f9a23e674bb4b6f41d63299be31ea0a0fa99f"
   solver-name = "gps-cdcl"
   solver-version = 1

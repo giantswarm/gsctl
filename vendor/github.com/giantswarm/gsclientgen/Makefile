@@ -7,7 +7,7 @@ generate: clean
 	docker run --rm -it \
 		-v ${PWD}:/swagger-api/out \
 		-v ${PWD}/api-spec:/swagger-api/yaml \
-		jimschubert/swagger-codegen-cli:2.2.3 generate \
+		jimschubert/swagger-codegen-cli:2.3.1 generate \
 		--input-spec /swagger-api/yaml/oai-spec.yaml \
 		--lang go \
 		--config /swagger-api/out/swagger-codegen-conf.json \
@@ -25,7 +25,7 @@ validate:
 	    boiyaa/yamllint:1.8.1 ./oai-spec.yaml
 	docker run --rm -it \
 		-v ${PWD}/api-spec:/swagger-api/yaml \
-		jimschubert/swagger-codegen-cli:2.2.3 generate \
+		jimschubert/swagger-codegen-cli:2.3.1 generate \
 		--input-spec /swagger-api/yaml/oai-spec.yaml \
 		--lang swagger \
 		--output /tmp/
