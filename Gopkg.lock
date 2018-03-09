@@ -41,7 +41,7 @@
   branch = "swagger-codegen-2.3.1"
   name = "github.com/giantswarm/gsclientgen"
   packages = ["."]
-  revision = "1a5ad781cc5bb66f9036a4cf923da8debe495912"
+  revision = "d6d4ae1cb3a53bda6419185ac77f48afbf5c86a1"
 
 [[projects]]
   branch = "master"
