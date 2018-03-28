@@ -20,9 +20,7 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
-[prune]
-  go-tests = true
-  unused-packages = true
+
 
 [[constraint]]
   name = "github.com/Jeffail/gabs"
@@ -75,3 +73,9 @@
 [[constraint]]
   name = "gopkg.in/yaml.v2"
   version = ">=2.1.0"
+
+
+
+[prune]
+  go-tests = true
+  unused-packages = true

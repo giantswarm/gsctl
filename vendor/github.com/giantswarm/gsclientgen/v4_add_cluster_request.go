@@ -22,8 +22,5 @@ type V4AddClusterRequest struct {
 	// Release version number
 	ReleaseVersion string `json:"release_version,omitempty"`
 
-	// Kubernetes version number
-	KubernetesVersion string `json:"kubernetes_version,omitempty"`
-
 	Workers []V4NodeDefinition `json:"workers,omitempty"`
 }
