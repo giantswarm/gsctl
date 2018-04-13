@@ -72,7 +72,7 @@ gotest:
 	go test -cover ./...
 
 # run some tests
-test:
+test: $(TESTBIN)
 	@${TESTBIN} >> /dev/null && echo "OK"
 	@${TESTBIN} help >> /dev/null && echo "OK"
 	@${TESTBIN} --help >> /dev/null && echo "OK"
