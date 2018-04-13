@@ -139,7 +139,7 @@ func init() {
 	CreateClusterCommand.Flags().StringVarP(&cmdClusterName, "name", "n", "", "Cluster name")
 	CreateClusterCommand.Flags().StringVarP(&cmdKubernetesVersion, "kubernetes-version", "", "", "Kubernetes version of the cluster")
 	CreateClusterCommand.Flags().StringVarP(&cmdOwner, "owner", "o", "", "Organization to own the cluster")
-	CreateClusterCommand.Flags().StringVarP(&cmdRelease, "release", "r", "", "Release version to use, e. g. '0.3.0'. Defaults to the latest. See 'gsctl list releases -h' for details.")
+	CreateClusterCommand.Flags().StringVarP(&cmdRelease, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
 	CreateClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "", 0, "Number of worker nodes. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
 	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAzureVmSize, "azure-vm-size", "", "", "VmSize to use for workers (Azure only), e. g. 'Standard_D2s_v3'")
@@ -147,9 +147,6 @@ func init() {
 	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().BoolVarP(&cmdDryRun, "dry-run", "", false, "If set, the cluster won't be created. Useful with -v|--verbose.")
-
-	// we mark this hidden until while it is not useful and undocumented
-	CreateClusterCommand.Flags().MarkHidden("release")
 
 	// kubernetes-version never had any effect, and is deprecated now on the API side, too
 	CreateClusterCommand.Flags().MarkDeprecated("kubernetes-version", "please use --release-version to specify a release to use")
