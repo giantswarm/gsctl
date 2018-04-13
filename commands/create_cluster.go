@@ -149,7 +149,7 @@ func init() {
 	CreateClusterCommand.Flags().BoolVarP(&cmdDryRun, "dry-run", "", false, "If set, the cluster won't be created. Useful with -v|--verbose.")
 
 	// kubernetes-version never had any effect, and is deprecated now on the API side, too
-	CreateClusterCommand.Flags().MarkDeprecated("kubernetes-version", "please use --release-version to specify a release to use")
+	CreateClusterCommand.Flags().MarkDeprecated("kubernetes-version", "please use --release to specify a release to use")
 
 	CreateClusterCommand.MarkFlagRequired("owner")
 
