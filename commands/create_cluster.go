@@ -52,7 +52,7 @@ func defaultAddClusterArguments() addClusterArguments {
 		token:                   token,
 		releaseVersion:          cmdRelease,
 		wokerAwsEc2InstanceType: cmdWorkerAwsEc2InstanceType,
-		wokerAzureVmSize:        cmdWorkerAzureVmSize,
+		wokerAzureVmSize:        cmdWorkerAzureVMSize,
 		workerNumCPUs:           cmdWorkerNumCPUs,
 		workerMemorySizeGB:      cmdWorkerMemorySizeGB,
 		workerStorageSizeGB:     cmdWorkerStorageSizeGB,
@@ -127,7 +127,7 @@ Examples:
 	// AWS EC2 instance type to use, provided as a command line flag
 	cmdWorkerAwsEc2InstanceType string
 	// Azure VmSize to use, provided as a command line flag
-	cmdWorkerAzureVmSize string
+	cmdWorkerAzureVMSize string
 	// cmdRelease sets a release to use, provided as a command line flag
 	cmdRelease string
 	// dry run command line flag
@@ -142,7 +142,7 @@ func init() {
 	CreateClusterCommand.Flags().StringVarP(&cmdRelease, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
 	CreateClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "", 0, "Number of worker nodes. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
-	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAzureVmSize, "azure-vm-size", "", "", "VmSize to use for workers (Azure only), e. g. 'Standard_D2s_v3'")
+	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAzureVMSize, "azure-vm-size", "", "", "VmSize to use for workers (Azure only), e. g. 'Standard_D2s_v3'")
 	CreateClusterCommand.Flags().IntVarP(&cmdWorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
