@@ -105,11 +105,15 @@ Examples:
 
 	gsctl create cluster -o myorg -n "My Cluster" --num-workers 5 --num-cpus 2
 
-	gsctl create cluster --owner myorg --name "My AWS Cluster" --num-workers 2 --aws-instance-type m3.medium
+	gsctl create cluster -o myorg -n "My AWS Cluster" --num-workers 2 --aws-instance-type m3.medium
 
-	gsctl create cluster --owner myorg --name "My Azure Cluster" --num-workers 2 --azure-vm-size Standard_D2s_v3
+	gsctl create cluster -o myorg -n "My Azure Cluster" --num-workers 2 --azure-vm-size Standard_D2s_v3
 
-	gsctl create cluster --owner myorg --num-workers 3 --dry-run --verbose`,
+	gsctl create cluster -o myorg -n "Cluster using specifc version" -r 1.2.3
+
+	gsctl create cluster -o myorg --num-workers 3 --dry-run --verbose
+
+	`,
 		PreRun: createClusterValidationOutput,
 		Run:    createClusterExecutionOutput,
 	}
