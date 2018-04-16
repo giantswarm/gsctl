@@ -106,7 +106,7 @@ func getClusterDetails(clusterID, token, endpoint string) (gsclientgen.V4Cluster
 	}
 
 	clusterDetails, apiResp, err := apiClient.GetCluster(authHeader, clusterID,
-		requestIDHeader, scaleClusterActivityName, cmdLine)
+		requestIDHeader, showClusterActivityName, cmdLine)
 
 	if err != nil {
 		if apiResp == nil || apiResp.Response == nil {
