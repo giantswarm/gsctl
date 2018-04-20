@@ -163,6 +163,14 @@ func IsClusterOwnerMissingError(err error) bool {
 	return errgo.Cause(err) == clusterOwnerMissingError
 }
 
+// organizationNotFoundError means that the specified organization could not be found
+var organizationNotFoundError = errgo.New("organization not found")
+
+// IsOrganizationNotFoundError asserts organizationNotFoundError
+func IsOrganizationNotFoundError(err error) bool {
+	return errgo.Cause(err) == organizationNotFoundError
+}
+
 // yamlFileNotReadableError means a YAML file was not readable
 var yamlFileNotReadableError = errgo.New("could not read YAML file")
 

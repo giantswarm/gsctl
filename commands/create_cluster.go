@@ -240,6 +240,9 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 			headline = "Not authorized"
 			subtext = "No cluster has been created, as you are are not authenticated or not authorized to perform this action."
 			subtext += " Please check your credentials or, to make sure, use 'gsctl login' to log in again."
+		case IsOrganizationNotFoundError(err):
+			headline = "Organization not found"
+			subtext = "The organization set to own the cluster does not exist."
 		case IsCouldNotCreateClusterError(err):
 			headline = "The cluster could not be created."
 			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
@@ -507,6 +510,11 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 
 		if apiResponse.StatusCode == 401 {
 			return result, microerror.Mask(notAuthorizedError)
+		} else if apiResponse.StatusCode == 404 {
+			// deal with non-existing org error
+			if strings.Contains(responseBody.Message, "organization") && strings.Contains(responseBody.Message, "not found") {
+				return result, microerror.Mask(organizationNotFoundError)
+			}
 		}
 
 		// handle API result
