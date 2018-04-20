@@ -1,8 +1,11 @@
 package util
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
-var durationTest = []struct {
+var friendlyDurationTest = []struct {
 	in  int
 	out string
 }{
@@ -26,10 +29,32 @@ var durationTest = []struct {
 }
 
 func TestFriendlyDuration(t *testing.T) {
-	for _, tt := range durationTest {
+	for _, tt := range friendlyDurationTest {
 		phrase := DurationPhrase(tt.in)
 		if phrase != tt.out {
 			t.Errorf("Value '%d', got '%s', wanted '%s'", tt.in, phrase, tt.out)
+		}
+	}
+}
+
+var parseDurationTest = []struct {
+	in  string
+	out time.Duration
+}{
+	{"1h", 1 * time.Hour},
+	{"1d", 24 * time.Hour},
+	{"1w", 7 * 24 * time.Hour},
+	{"1m", 30 * 24 * time.Hour},
+	{"1y", 365 * 24 * time.Hour},
+}
+
+func TestParseDuration(t *testing.T) {
+	for _, tt := range parseDurationTest {
+		duration, err := ParseDuration(tt.in)
+		if err != nil {
+			t.Errorf("Value '%s' yielded error: '%s'", tt.in, err)
+		} else if duration != tt.out {
+			t.Errorf("Value '%s', got '%v', wanted '%v'", tt.in, duration, tt.out)
 		}
 	}
 }

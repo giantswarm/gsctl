@@ -2,7 +2,12 @@ package util
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
+	"time"
+
+	"github.com/giantswarm/microerror"
 )
 
 // DurationPhrase creates a human-friendly phrase from a number of hours
@@ -64,4 +69,51 @@ func DurationPhrase(hours int) string {
 	}
 
 	return strings.Join(phraseParts, ", ")
+}
+
+// ParseDuration converts strings like "1d" into a duration. Only
+// one combination of <number> and <unit> is allowed, and the unit
+// must be one of:
+// - "h" - one hour
+// - "d" - day (24 hours)
+// - "w" - 7 days
+// - "m" - 30 days
+// - "y" - 365 days
+//
+// This is necessary because time.ParseDuration does not support units
+// larger than hour.
+func ParseDuration(durationString string) (time.Duration, error) {
+	var duration time.Duration
+
+	pattern := regexp.MustCompile(`^([0-9]+)([hdwmy])$`)
+
+	match := pattern.FindStringSubmatch(durationString)
+
+	if len(match) != 3 {
+		return duration, microerror.Mask(InvalidDurationStringError)
+	}
+
+	numberInt, err := strconv.Atoi(match[1])
+	if err != nil {
+		return duration, microerror.Mask(InvalidDurationStringError)
+	}
+
+	number := int64(numberInt)
+
+	unit := match[2]
+	if unit == "h" {
+		duration = 3600 * time.Duration(number) * time.Second
+	} else if unit == "d" {
+		duration = 24 * 3600 * time.Duration(number) * time.Second
+	} else if unit == "w" {
+		duration = 7 * 24 * 3600 * time.Duration(number) * time.Second
+	} else if unit == "m" {
+		duration = 30 * 24 * 3600 * time.Duration(number) * time.Second
+	} else if unit == "y" {
+		duration = 365 * 24 * 3600 * time.Duration(number) * time.Second
+	} else {
+		return duration, microerror.Mask(InvalidDurationStringError)
+	}
+
+	return duration, nil
 }

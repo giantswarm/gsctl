@@ -44,7 +44,7 @@ var (
 	cmdDescription string
 
 	// TTL (time to live) flag
-	cmdTTLDays int
+	cmdTTL string
 
 	// force flag. if set, no prompt should be displayed.
 	cmdForce bool
@@ -240,7 +240,7 @@ func handleCommonErrors(err error) {
 		subtext += "please try again in a few moments."
 	case IsUnknownError(err):
 		headline = "An error occurred."
-		subtext = "Please notify the Giant Swarm support team, or try listing releases again in a few moments.\n"
+		subtext = "Please notify the Giant Swarm support team, or try the command again in a few moments.\n"
 		subtext += fmt.Sprintf("Details: %s", err.Error())
 	default:
 		return
