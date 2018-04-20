@@ -44,7 +44,7 @@ var (
 	cmdDescription string
 
 	// TTL (time to live) flag
-	cmdTTLDays int
+	cmdTTL string
 
 	// force flag. if set, no prompt should be displayed.
 	cmdForce bool

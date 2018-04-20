@@ -46,7 +46,7 @@ Examples:
 
   gsctl create kubeconfig -c my0c3 --self-contained ./kubeconfig.yaml
 
-  gsctl create kubeconfig -c my0c3 --ttl 1 -d "Short lived key pair"
+  gsctl create kubeconfig -c my0c3 --ttl 3h -d "Key pair living for 3 hours"
 
   gsctl create kubeconfig -c my0c3 --certificate-organizations system:masters
 `,
@@ -83,7 +83,7 @@ type createKubeconfigArguments struct {
 
 // defaultCreateKubeconfigArguments creates arguments based on command line
 // flags and config and applies defaults
-func defaultCreateKubeconfigArguments() createKubeconfigArguments {
+func defaultCreateKubeconfigArguments() (createKubeconfigArguments, error) {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
 
@@ -97,6 +97,11 @@ func defaultCreateKubeconfigArguments() createKubeconfigArguments {
 		contextName = "giantswarm-" + cmdClusterID
 	}
 
+	ttl, err := time.ParseDuration(cmdTTL)
+	if err != nil {
+		return createKubeconfigArguments{}, microerror.Mask(invalidDurationError)
+	}
+
 	return createKubeconfigArguments{
 		apiEndpoint:       endpoint,
 		authToken:         token,
@@ -104,11 +109,11 @@ func defaultCreateKubeconfigArguments() createKubeconfigArguments {
 		description:       description,
 		cnPrefix:          cmdCNPrefix,
 		certOrgs:          cmdCertificateOrganizations,
-		ttlHours:          int32(cmdTTLDays) * 24,
+		ttlHours:          int32(ttl.Seconds() * 60 * 60),
 		selfContainedPath: cmdKubeconfigSelfContained,
 		force:             cmdForce,
 		contextName:       contextName,
-	}
+	}, nil
 }
 
 type createKubeconfigResult struct {
@@ -183,7 +188,7 @@ func init() {
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdKubeconfigContextName, "context", "", "", "Set a custom context name. Defaults to 'giantswarm-<cluster-id>'.")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
 	CreateKubeconfigCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation.")
-	CreateKubeconfigCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key pair in days")
+	CreateKubeconfigCommand.Flags().StringVarP(&cmdTTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Default: 30d (30 days).")
 
 	CreateKubeconfigCommand.MarkFlagRequired("cluster")
 
@@ -192,7 +197,11 @@ func init() {
 
 // createKubeconfigPreRunOutput shows our pre-check results
 func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultCreateKubeconfigArguments()
+	args, argsErr := defaultCreateKubeconfigArguments()
+	if argsErr != nil {
+
+	}
+
 	err := verifyCreateKubeconfigPreconditions(args, cmdLineArgs)
 
 	if err == nil {
@@ -265,7 +274,7 @@ func verifyCreateKubeconfigPreconditions(args createKubeconfigArguments, cmdLine
 
 // createKubeconfig adds configuration for kubectl
 func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultCreateKubeconfigArguments()
+	args, argsErr := defaultCreateKubeconfigArguments()
 	result, err := createKubeconfig(args)
 
 	if err != nil {

@@ -60,7 +60,7 @@ func defaultCreateKeypairArguments() createKeypairArguments {
 		clusterID:                cmdClusterID,
 		commonNamePrefix:         cmdCNPrefix,
 		description:              description,
-		ttlHours:                 int32(cmdTTLDays) * 24,
+		ttlHours:                 int32(cmdTTL) * 24,
 	}
 }
 
@@ -82,7 +82,7 @@ func init() {
 	CreateKeypairCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key pair")
 	CreateKeypairCommand.Flags().StringVarP(&cmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
 	CreateKeypairCommand.Flags().StringVarP(&cmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
-	CreateKeypairCommand.Flags().IntVarP(&cmdTTLDays, "ttl", "", 30, "Duration until expiry of the created key pair in days")
+	CreateKeypairCommand.Flags().StringVarP(&cmdTTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Default: 30d (30 days).")
 
 	CreateKeypairCommand.MarkFlagRequired("cluster")
 
