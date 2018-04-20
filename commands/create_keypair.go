@@ -98,7 +98,8 @@ func createKeyPairPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args, argsErr := defaultCreateKeypairArguments()
 	if argsErr != nil {
 		if IsInvalidDurationError(argsErr) {
-			fmt.Println(color.RedString("The value passed with --ttl could not be parsed"))
+			fmt.Println(color.RedString("The value passed with --ttl is invalid."))
+			fmt.Println("Please provide a number and a unit, e. g. '10h', '1d', '1w'.")
 		} else {
 			fmt.Println(color.RedString(argsErr.Error()))
 		}
