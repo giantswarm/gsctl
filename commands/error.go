@@ -310,7 +310,7 @@ func IsUnspecifiedAPIError(err error) bool {
 // invalidDurationError means that a user-provided duration string could not be parsed
 var invalidDurationError = errgo.New("invalid duration")
 
-// IsInvalidDurationErrorr asserts invalidDurationError
-func IsInvalidDurationErrorr(err error) bool {
+// IsInvalidDurationError asserts invalidDurationError
+func IsInvalidDurationError(err error) bool {
 	return errgo.Cause(err) == invalidDurationError
 }
