@@ -46,7 +46,7 @@ Examples:
 
   gsctl create kubeconfig -c my0c3 --self-contained ./kubeconfig.yaml
 
-  gsctl create kubeconfig -c my0c3 --ttl 3h -d "Key pair living for 3 hours"
+  gsctl create kubeconfig -c my0c3 --ttl 3h -d "Key pair living for only 3 hours"
 
   gsctl create kubeconfig -c my0c3 --certificate-organizations system:masters
 `,
@@ -97,7 +97,7 @@ func defaultCreateKubeconfigArguments() (createKubeconfigArguments, error) {
 		contextName = "giantswarm-" + cmdClusterID
 	}
 
-	ttl, err := time.ParseDuration(cmdTTL)
+	ttl, err := util.ParseDuration(cmdTTL)
 	if err != nil {
 		return createKubeconfigArguments{}, microerror.Mask(invalidDurationError)
 	}
@@ -109,7 +109,7 @@ func defaultCreateKubeconfigArguments() (createKubeconfigArguments, error) {
 		description:       description,
 		cnPrefix:          cmdCNPrefix,
 		certOrgs:          cmdCertificateOrganizations,
-		ttlHours:          int32(ttl.Seconds() * 60 * 60),
+		ttlHours:          int32(ttl.Hours()),
 		selfContainedPath: cmdKubeconfigSelfContained,
 		force:             cmdForce,
 		contextName:       contextName,
@@ -199,7 +199,12 @@ func init() {
 func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args, argsErr := defaultCreateKubeconfigArguments()
 	if argsErr != nil {
-
+		if IsInvalidDurationError(argsErr) {
+			fmt.Println(color.RedString("The value passed with --ttl could not be parsed"))
+		} else {
+			fmt.Println(color.RedString(argsErr.Error()))
+		}
+		os.Exit(1)
 	}
 
 	err := verifyCreateKubeconfigPreconditions(args, cmdLineArgs)
@@ -274,7 +279,7 @@ func verifyCreateKubeconfigPreconditions(args createKubeconfigArguments, cmdLine
 
 // createKubeconfig adds configuration for kubectl
 func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
-	args, argsErr := defaultCreateKubeconfigArguments()
+	args, _ := defaultCreateKubeconfigArguments()
 	result, err := createKubeconfig(args)
 
 	if err != nil {

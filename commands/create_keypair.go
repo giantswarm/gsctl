@@ -44,13 +44,18 @@ type createKeypairArguments struct {
 }
 
 // function to create arguments based on command line flags and config
-func defaultCreateKeypairArguments() createKeypairArguments {
+func defaultCreateKeypairArguments() (createKeypairArguments, error) {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
 
 	description := cmdDescription
 	if description == "" {
 		description = "Added by user " + config.Config.Email + " using 'gsctl create keypair'"
+	}
+
+	ttl, err := util.ParseDuration(cmdTTL)
+	if err != nil {
+		return createKeypairArguments{}, microerror.Mask(invalidDurationError)
 	}
 
 	return createKeypairArguments{
@@ -60,8 +65,8 @@ func defaultCreateKeypairArguments() createKeypairArguments {
 		clusterID:                cmdClusterID,
 		commonNamePrefix:         cmdCNPrefix,
 		description:              description,
-		ttlHours:                 int32(cmdTTL) * 24,
-	}
+		ttlHours:                 int32(ttl.Hours()),
+	}, nil
 }
 
 type createKeypairResult struct {
@@ -90,7 +95,16 @@ func init() {
 }
 
 func createKeyPairPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultCreateKeypairArguments()
+	args, argsErr := defaultCreateKeypairArguments()
+	if argsErr != nil {
+		if IsInvalidDurationError(argsErr) {
+			fmt.Println(color.RedString("The value passed with --ttl could not be parsed"))
+		} else {
+			fmt.Println(color.RedString(argsErr.Error()))
+		}
+		os.Exit(1)
+	}
+
 	err := verifyCreateKeypairPreconditions(args)
 
 	if err == nil {
@@ -132,7 +146,8 @@ func verifyCreateKeypairPreconditions(args createKeypairArguments) error {
 }
 
 func createKeyPairRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultCreateKeypairArguments()
+	args, _ := defaultCreateKeypairArguments()
+
 	result, err := createKeypair(args)
 
 	if err != nil {
