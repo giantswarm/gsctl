@@ -242,7 +242,7 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 			subtext += " Please check your credentials or, to make sure, use 'gsctl login' to log in again."
 		case IsOrganizationNotFoundError(err):
 			headline = "Organization not found"
-			subtext = "The organization to own the cluster does not exist, or you are not a member of it."
+			subtext = "The organization set to own the cluster does not exist."
 		case IsCouldNotCreateClusterError(err):
 			headline = "The cluster could not be created."
 			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
