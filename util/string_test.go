@@ -25,7 +25,7 @@ var keypairIDTests = []KeypairIDTest{
 
 func TestTruncate(t *testing.T) {
 	for i, test := range truncateTests {
-		out := Truncate(test.input, test.length)
+		out := Truncate(test.input, test.length, true)
 		if out != test.output {
 			t.Errorf("#%d: TestTruncate(%s, %d) = '%s'; want '%s'", i, test.input, test.length, out, test.output)
 		}

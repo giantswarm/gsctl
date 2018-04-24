@@ -40,6 +40,7 @@ var (
 type listKeypairsArguments struct {
 	apiEndpoint string
 	clusterID   string
+	full        bool
 	token       string
 }
 
@@ -52,6 +53,7 @@ func defaultListKeypairsArguments() listKeypairsArguments {
 	return listKeypairsArguments{
 		apiEndpoint: endpoint,
 		clusterID:   cmdClusterID,
+		full:        cmdFull,
 		token:       token,
 	}
 }
@@ -63,6 +65,7 @@ type listKeypairsResult struct {
 
 func init() {
 	ListKeypairsCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to list key pairs for")
+	ListKeypairsCommand.Flags().BoolVarP(&cmdFull, "full", "", false, "Enables output of full, untruncated values")
 
 	ListKeypairsCommand.MarkFlagRequired("cluster")
 	ListCommand.AddCommand(ListKeypairsCommand)
@@ -156,9 +159,9 @@ func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
 			row := []string{
 				util.ShortDate(created),
 				util.ShortDate(expires),
-				util.Truncate(util.CleanKeypairID(keypair.Id), 10),
+				util.Truncate(util.CleanKeypairID(keypair.Id), 10, !args.full),
 				keypair.Description,
-				util.Truncate(keypair.CommonName, 24),
+				util.Truncate(keypair.CommonName, 24, !args.full),
 				keypair.CertificateOrganizations,
 			}
 			output = append(output, strings.Join(row, "|"))
