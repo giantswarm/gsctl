@@ -49,6 +49,9 @@ var (
 	// force flag. if set, no prompt should be displayed.
 	cmdForce bool
 
+	// full flag. if set, output must not be truncated.
+	cmdFull bool
+
 	// number of CPUs per worker as required via flag on execution
 	cmdWorkerNumCPUs int
 

@@ -324,7 +324,7 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	// Success output
 
 	msg := fmt.Sprintf("New key pair created with ID %s and expiry of %v",
-		util.Truncate(util.CleanKeypairID(result.keypairResponse.Id), 10),
+		util.Truncate(util.CleanKeypairID(result.keypairResponse.Id), 10, true),
 		util.DurationPhrase(int(result.keypairResponse.TtlHours)))
 	fmt.Println(color.GreenString(msg))
 
