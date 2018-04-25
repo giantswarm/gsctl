@@ -71,7 +71,10 @@ func Test_InfoWithTempDirAndToken(t *testing.T) {
 	args := defaultInfoArguments()
 	args.token = "fake token"
 
-	infoResult := info(args)
+	infoResult, err := info(args)
+	if err != nil {
+		t.Error(err)
+	}
 
 	if !strings.Contains(infoResult.configFilePath, dir) {
 		t.Errorf("Config file path not as expected: Got %s, expected %s",
