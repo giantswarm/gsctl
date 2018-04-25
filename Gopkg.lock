@@ -38,10 +38,10 @@
   version = "v2.0.2"
 
 [[projects]]
-  branch = "info-endpoint-azure"
+  branch = "master"
   name = "github.com/giantswarm/gsclientgen"
   packages = ["."]
-  revision = "af71495506f34bdb0475629efaab1cbded6e95e0"
+  revision = "3b5b840fb616af1517127bdb32d13072b08d3faa"
 
 [[projects]]
   branch = "master"
@@ -169,6 +169,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2da1b656b4d905f6a6298d03ae41cd9bd73077b23ad16436c7474ef88f84c797"
+  inputs-digest = "ea2a0e5b7264c092f18bc4453e21a3252f415d3c01147b929da08487303c685d"
   solver-name = "gps-cdcl"
   solver-version = 1
