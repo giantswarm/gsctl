@@ -124,6 +124,9 @@ func printInfo(cmd *cobra.Command, args []string) {
 			if result.infoResponse.General.Provider == "aws" {
 				output = append(output, color.YellowString("Worker instance type options:")+"|"+color.CyanString(strings.Join(result.infoResponse.Workers.InstanceType.Options, ", ")))
 				output = append(output, color.YellowString("Default worker instance type:")+"|"+color.CyanString(result.infoResponse.Workers.InstanceType.Default_))
+			} else if result.infoResponse.General.Provider == "azure" {
+				output = append(output, color.YellowString("Worker VM size options:")+"|"+color.CyanString(strings.Join(result.infoResponse.Workers.VmSize.Options, ", ")))
+				output = append(output, color.YellowString("Default worker VM size:")+"|"+color.CyanString(result.infoResponse.Workers.VmSize.Default_))
 			}
 
 			if result.infoResponse.Workers.CountPerCluster.Default_ != 0 {
