@@ -10,8 +10,8 @@
 
 package gsclientgen
 
-// Instance types to be used for worker nodes. Only available for AWS clusters.
-type V4InfoResponseWorkersInstanceType struct {
+// Azure Virtual Machine size to be used for worker nodes. Only available for Azure clusters.
+type V4InfoResponseWorkersVmSize struct {
 
 	// List of available instance types
 	Options []string `json:"options,omitempty"`

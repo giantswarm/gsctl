@@ -10,14 +10,11 @@
 
 package gsclientgen
 
+// Information related to worker nodes
 type V4InfoResponseWorkers struct {
 	CountPerCluster V4InfoResponseWorkersCountPerCluster `json:"count_per_cluster,omitempty"`
 
 	InstanceType V4InfoResponseWorkersInstanceType `json:"instance_type,omitempty"`
 
-	CpuCores V4InfoResponseWorkersCpuCores `json:"cpu_cores,omitempty"`
-
-	RamSizeGb V4InfoResponseWorkersCpuCores `json:"ram_size_gb,omitempty"`
-
-	StorageSizeGb V4InfoResponseWorkersCountPerCluster `json:"storage_size_gb,omitempty"`
+	VmSize V4InfoResponseWorkersVmSize `json:"vm_size,omitempty"`
 }

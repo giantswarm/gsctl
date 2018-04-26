@@ -10,8 +10,12 @@
 
 package gsclientgen
 
+// Number of workers per cluster
 type V4InfoResponseWorkersCountPerCluster struct {
+
+	// Maximum number of worker a cluster can have
 	Max float32 `json:"max,omitempty"`
 
+	// Default number of workers in a new cluster will have, if not specifiec otherwise
 	Default_ float32 `json:"default,omitempty"`
 }
