@@ -48,7 +48,6 @@ func GarbageCollectKeyPairs() error {
 	errorInfo := []string{}
 
 	for _, file := range expiredCerts {
-		fmt.Printf("Certificate %s is expired and will be deleted.\n", file)
 		certPath := CertsDirPath + "/" + file
 		err := os.Remove(certPath)
 		if err != nil {
