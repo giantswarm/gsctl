@@ -39,10 +39,6 @@
   version = "1.1.0"
 
 [[constraint]]
-  name = "github.com/giantswarm/api-schema"
-  version = "0.7.1"
-
-[[constraint]]
   name = "github.com/giantswarm/columnize"
   version = "=2.0.2"
 
