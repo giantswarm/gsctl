@@ -43,7 +43,7 @@
   version = "=2.0.2"
 
 [[constraint]]
-  branch = "master"
+  branch = "v4-login"
   name = "github.com/giantswarm/gsclientgen"
 
 [[constraint]]

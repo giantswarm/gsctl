@@ -32,10 +32,10 @@
   version = "v2.0.2"
 
 [[projects]]
-  branch = "master"
+  branch = "v4-login"
   name = "github.com/giantswarm/gsclientgen"
   packages = ["."]
-  revision = "3b5b840fb616af1517127bdb32d13072b08d3faa"
+  revision = "c0359448dad32fb68d1b89119c870d3f4d27e1b9"
 
 [[projects]]
   branch = "master"
