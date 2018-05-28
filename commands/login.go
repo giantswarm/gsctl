@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/microerror"
 	"github.com/howeyc/gopass"
@@ -259,26 +258,31 @@ func login(args loginArguments) (loginResult, error) {
 		return result, microerror.Mask(clientErr)
 	}
 
-	requestBody := gsclientgen.LoginBodyModel{Password: string(encodedPassword)}
-	loginResponse, rawResponse, err := apiClient.UserLogin(args.email,
-		requestBody, requestIDHeader, loginActivityName, cmdLine)
+	requestBody := gsclientgen.V4CreateAuthTokenRequest{
+		Email:          args.email,
+		PasswordBase64: string(encodedPassword),
+	}
+	authResponse, rawResponse, err := apiClient.CreateAuthToken(requestBody)
 
+	// first handle empty response case
+	if rawResponse == nil || rawResponse.Response == nil {
+		return result, microerror.Mask(noResponseError)
+	}
+
+	// now handle HTTP status >= 400
+	if rawResponse.StatusCode == http.StatusForbidden {
+		return result, microerror.Mask(accessForbiddenError)
+	}
+
+	// handle any other cases where err is set
 	if err != nil {
-		if rawResponse == nil || rawResponse.Response == nil {
-			return result, microerror.Mask(noResponseError)
-		}
-
-		if rawResponse.StatusCode == http.StatusForbidden {
-			return result, microerror.Mask(accessForbiddenError)
-		}
-
 		return result, microerror.Mask(err)
 	}
 
-	switch loginResponse.StatusCode {
-	case apischema.STATUS_CODE_DATA:
+	// continue the happy path
+	if rawResponse.Response.StatusCode == 200 && authResponse != nil && authResponse.AuthToken != "" {
 		// successful login
-		result.token = loginResponse.Data.Id
+		result.token = authResponse.AuthToken
 		result.email = args.email
 
 		// fetch installation name as alias
@@ -301,19 +305,7 @@ func login(args loginArguments) (loginResult, error) {
 		result.numEndpointsAfter = config.Config.NumEndpoints()
 
 		return result, nil
-
-	case apischema.STATUS_CODE_RESOURCE_INVALID_CREDENTIALS:
-		// bad credentials
-		return result, microerror.Mask(invalidCredentialsError)
-	case apischema.STATUS_CODE_RESOURCE_NOT_FOUND:
-		// user unknown or user/password mismatch
-		return result, microerror.Mask(invalidCredentialsError)
-	case apischema.STATUS_CODE_WRONG_INPUT:
-		// empty password
-		return result, microerror.Mask(emptyPasswordError)
-	case apischema.STATUS_CODE_ACCOUNT_INACTIVE:
-		return result, microerror.Mask(userAccountInactiveError)
-	default:
-		return result, fmt.Errorf("Unhandled response code: %v", loginResponse.StatusCode)
 	}
+
+	return result, fmt.Errorf("Unhandled response code: %v", rawResponse.Response.StatusCode)
 }
