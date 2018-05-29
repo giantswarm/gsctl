@@ -52,10 +52,10 @@ a first upgrade.
 		// We use PreRun for general input validation, authentication etc.
 		// If something is bad/missing, that function has to exit with a
 		// non-zero exit code.
-		PreRun: upgradeClusterPreRunOutput,
+		PreRun: upgradeClusterValidationOutput,
 
 		// Run is the function that actually executes what we want to do.
-		Run: upgradeClusterRunOutput,
+		Run: upgradeClusterExecutionOutput,
 	}
 )
 
@@ -101,41 +101,42 @@ func init() {
 }
 
 // Prints results of our pre-validation
-func upgradeClusterPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+func upgradeClusterValidationOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultUpgradeClusterArguments(cmdLineArgs)
-	err := verifyUpgradeClusterPreconditions(args, cmdLineArgs)
-
-	if err == nil {
-		return
-	}
 
 	headline := ""
 	subtext := ""
 
-	switch {
-	case err.Error() == "":
-		return
-	case IsNotLoggedInError(err):
-		headline = "You are not logged in."
-		subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
-	case IsClusterIDMissingError(err):
-		headline = "No cluster ID specified."
-		subtext = "Please specify which cluster to upgrade by using the cluster ID as an argument."
-	default:
-		headline = err.Error()
-	}
+	err := validateUpgradeClusterPreconditions(args, cmdLineArgs)
 
-	// print output
-	fmt.Println(color.RedString(headline))
-	if subtext != "" {
-		fmt.Println(subtext)
+	if err != nil {
+		handleCommonErrors(err)
+
+		switch {
+		case err.Error() == "":
+			return
+		case IsNotLoggedInError(err):
+			headline = "You are not logged in."
+			subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
+		case IsClusterIDMissingError(err):
+			headline = "No cluster ID specified."
+			subtext = "Please specify which cluster to upgrade by using the cluster ID as an argument."
+		default:
+			headline = err.Error()
+		}
+
+		// print output
+		fmt.Println(color.RedString(headline))
+		if subtext != "" {
+			fmt.Println(subtext)
+		}
+		os.Exit(1)
 	}
-	os.Exit(1)
 }
 
 // Checks if all preconditions are met, before actually executing
 // our business function
-func verifyUpgradeClusterPreconditions(args upgradeClusterArguments, cmdLineArgs []string) error {
+func validateUpgradeClusterPreconditions(args upgradeClusterArguments, cmdLineArgs []string) error {
 	// authentication
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(notLoggedInError)
@@ -149,9 +150,9 @@ func verifyUpgradeClusterPreconditions(args upgradeClusterArguments, cmdLineArgs
 	return nil
 }
 
-// upgradeClusterRunOutput executes our business function and displays the result,
+// upgradeClusterExecutionOutput executes our business function and displays the result,
 // both in case of success or error
-func upgradeClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+func upgradeClusterExecutionOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultUpgradeClusterArguments(cmdLineArgs)
 	result, err := upgradeCluster(args)
 

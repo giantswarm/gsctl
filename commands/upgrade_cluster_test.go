@@ -126,7 +126,7 @@ func TestUpgradeCluster(t *testing.T) {
 		force:       true,
 	}
 
-	err := verifyUpgradeClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := validateUpgradeClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
 		t.Error(err)
 	}
