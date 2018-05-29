@@ -206,22 +206,30 @@ func (c *configStruct) SelectEndpoint(endpointAliasOrURL string) error {
 }
 
 // ChooseEndpoint makes a choice which should be the endpoint to use.
-// If the argument overridingEndpointURL is not empty, this will
+// If the argument overridingEndpointAliasOrURL is not empty, this will
 // be used as the returned endpoint URL.
 // Errors are only printed to inform users, but not returned, to simplify
 // usage of this function.
-func (c *configStruct) ChooseEndpoint(overridingEndpointURL string) string {
-	if overridingEndpointURL != "" {
-		ep := normalizeEndpoint(overridingEndpointURL)
+func (c *configStruct) ChooseEndpoint(overridingEndpointAliasOrURL string) string {
+	if overridingEndpointAliasOrURL != "" {
+		// check if overridingEndpointAliasOrURL is an alias
+		if c.HasEndpointAlias(overridingEndpointAliasOrURL) {
+			ep, _ := c.EndpointByAlias(overridingEndpointAliasOrURL)
+			return ep
+		}
+
+		ep := normalizeEndpoint(overridingEndpointAliasOrURL)
 		return ep
 	}
 
+	// use environment variable
 	envEndpoint := os.Getenv("GSCTL_ENDPOINT")
 	if envEndpoint != "" {
 		ep := normalizeEndpoint(envEndpoint)
 		return ep
 	}
 
+	// as a last resort, return the currently selected endpoint
 	return c.SelectedEndpoint
 }
 
