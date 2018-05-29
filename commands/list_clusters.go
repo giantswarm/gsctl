@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -21,11 +21,11 @@ import (
 var (
 	// ListClustersCommand performs the "list clusters" function
 	ListClustersCommand = &cobra.Command{
-		Use:     "clusters",
-		Short:   "List clusters",
-		Long:    `Prints a list of all clusters you have access to`,
-		PreRunE: checkListClusters,
-		Run:     listClusters,
+		Use:    "clusters",
+		Short:  "List clusters",
+		Long:   `Prints a list of all clusters you have access to`,
+		PreRun: listClusterPreRunOutput,
+		Run:    listClusterRunOutput,
 	}
 )
 
@@ -33,39 +33,71 @@ const (
 	listClustersActivityName = "list-clusters"
 )
 
+type listClustersArguments struct {
+	apiEndpoint string
+	authToken   string
+}
+
+func defaultListClustersArguments() listClustersArguments {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
+	return listClustersArguments{
+		apiEndpoint: endpoint,
+		authToken:   token,
+	}
+}
+
 func init() {
 	ListCommand.AddCommand(ListClustersCommand)
 }
 
-func checkListClusters(cmd *cobra.Command, args []string) error {
-	if config.Config.Token == "" {
-		return errors.New("You are not logged in. Use '" + config.ProgramName + " login' to log in.")
+func listClusterPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+	args := defaultListClustersArguments()
+	err := verifyListClusterPreconditions(args)
+
+	if err == nil {
+		return
 	}
+
+	handleCommonErrors(err)
+}
+
+func verifyListClusterPreconditions(args listClustersArguments) error {
+	if config.Config.Token == "" && args.authToken == "" {
+		return microerror.Mask(notLoggedInError)
+	}
+	if args.apiEndpoint == "" {
+		return microerror.Mask(endpointMissingError)
+	}
+
 	return nil
 }
 
 // listClusters prints a table with all clusters the user has access to
-func listClusters(cmd *cobra.Command, args []string) {
-	output, err := clustersTable()
+func listClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+	args := defaultListClustersArguments()
+
+	output, err := clustersTable(args)
 	if err != nil {
+		handleCommonErrors(err)
+
 		fmt.Println(color.RedString("Error: %s", err))
 		if _, ok := err.(APIError); ok {
 			dumpAPIResponse((err).(APIError).APIResponse)
 		}
 		os.Exit(1)
 	}
+
 	if output != "" {
 		fmt.Println(output)
 	}
 }
 
 // clustersTable returns a table of clusters the user has access to
-func clustersTable() (string, error) {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-
+func clustersTable(args listClustersArguments) (string, error) {
 	clientConfig := client.Configuration{
-		Endpoint:  endpoint,
+		Endpoint:  args.apiEndpoint,
 		Timeout:   5 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
@@ -73,11 +105,14 @@ func clustersTable() (string, error) {
 	if clientErr != nil {
 		return "", microerror.Mask(couldNotCreateClientError)
 	}
-	authHeader := "giantswarm " + token
+	authHeader := "giantswarm " + args.authToken
 
 	clusters, apiResponse, err := apiClient.GetClusters(authHeader,
 		requestIDHeader, listClustersActivityName, cmdLine)
 	if err != nil {
+		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
+			return "", microerror.Mask(accessForbiddenError)
+		}
 		return "", APIError{err.Error(), *apiResponse}
 	}
 
@@ -89,6 +124,7 @@ func clustersTable() (string, error) {
 		color.CyanString("ID"),
 		color.CyanString("ORGANIZATION"),
 		color.CyanString("NAME"),
+		color.CyanString("RELEASE"),
 		color.CyanString("CREATED"),
 	}, "|")}
 
@@ -99,10 +135,16 @@ func clustersTable() (string, error) {
 
 	for _, cluster := range clusters {
 		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
+		releaseVersion := cluster.ReleaseVersion
+		if releaseVersion == "" {
+			releaseVersion = "n/a"
+		}
+
 		output = append(output, strings.Join([]string{
 			cluster.Id,
 			cluster.Owner,
 			cluster.Name,
+			releaseVersion,
 			created,
 		}, "|"))
 	}

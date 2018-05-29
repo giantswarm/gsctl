@@ -30,6 +30,14 @@ func IsNotLoggedInError(err error) bool {
 	return errgo.Cause(err) == notLoggedInError
 }
 
+// userAccountInactiveError means that the user account is marked as inative by the API
+var userAccountInactiveError = errgo.New("user account inactive")
+
+// IsUserAccountInactiveError asserts userAccountInactiveError.
+func IsUserAccountInactiveError(err error) bool {
+	return errgo.Cause(err) == userAccountInactiveError
+}
+
 // commandAbortedError means that the user has aborted a command or input
 var commandAbortedError = errgo.New("user has not confirmed or aborted execution")
 
@@ -155,6 +163,14 @@ func IsClusterOwnerMissingError(err error) bool {
 	return errgo.Cause(err) == clusterOwnerMissingError
 }
 
+// organizationNotFoundError means that the specified organization could not be found
+var organizationNotFoundError = errgo.New("organization not found")
+
+// IsOrganizationNotFoundError asserts organizationNotFoundError
+func IsOrganizationNotFoundError(err error) bool {
+	return errgo.Cause(err) == organizationNotFoundError
+}
+
 // yamlFileNotReadableError means a YAML file was not readable
 var yamlFileNotReadableError = errgo.New("could not read YAML file")
 
@@ -256,6 +272,15 @@ func IsNoEmailArgumentGivenError(err error) bool {
 	return errgo.Cause(err) == noEmailArgumentGivenError
 }
 
+// accessForbiddenError means the client has been denied access to the API endpoint
+// with a HTTP 403 error
+var accessForbiddenError = errgo.New("access forbidden")
+
+// IsAccessForbiddenError asserts accessForbiddenError
+func IsAccessForbiddenError(err error) bool {
+	return errgo.Cause(err) == accessForbiddenError
+}
+
 // invalidCredentialsError means the user's credentials could not be verified
 // by the API
 var invalidCredentialsError = errgo.New("invalid credentials submitted")
@@ -304,4 +329,12 @@ var couldNotUpgradeClusterError = errgo.New("could not upgrade cluster")
 // IsCouldNotUpgradeClusterError asserts couldNotUpgradeClusterError
 func IsCouldNotUpgradeClusterError(err error) bool {
 	return errgo.Cause(err) == couldNotUpgradeClusterError
+}
+
+// invalidDurationError means that a user-provided duration string could not be parsed
+var invalidDurationError = errgo.New("invalid duration")
+
+// IsInvalidDurationError asserts invalidDurationError
+func IsInvalidDurationError(err error) bool {
+	return errgo.Cause(err) == invalidDurationError
 }

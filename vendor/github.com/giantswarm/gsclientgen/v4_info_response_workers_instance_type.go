@@ -10,8 +10,12 @@
 
 package gsclientgen
 
+// Instance types to be used for worker nodes. Only available for AWS clusters.
 type V4InfoResponseWorkersInstanceType struct {
+
+	// List of available instance types
 	Options []string `json:"options,omitempty"`
 
+	// The instance type used in new cluster, if not specified
 	Default_ string `json:"default,omitempty"`
 }

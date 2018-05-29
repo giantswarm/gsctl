@@ -21,11 +21,14 @@
 #  version = "2.4.0"
 
 
+
 [[constraint]]
   name = "github.com/Jeffail/gabs"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/bradfitz/slice"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/coreos/go-semver"
@@ -49,18 +52,30 @@
 
 [[constraint]]
   name = "github.com/giantswarm/microerror"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/hashicorp/go-rootcerts"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/howeyc/gopass"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/juju/errgo"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/spf13/cobra"
+  branch = "master"
 
 [[constraint]]
   name = "gopkg.in/yaml.v2"
+  version = ">=2.1.0"
+
+
+
+[prune]
+  go-tests = true
+  unused-packages = true

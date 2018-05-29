@@ -3,6 +3,7 @@ package commands
 import (
 	"encoding/base64"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -90,30 +91,33 @@ func init() {
 func loginPreRunOutput(cmd *cobra.Command, positionalArgs []string) {
 	err := verifyLoginPreconditions(positionalArgs)
 
-	if err != nil {
-		var headline = ""
-		var subtext = ""
-		switch {
-		case err.Error() == "":
-			return
-		case IsNoEmailArgumentGivenError(err):
-			headline = "The email argument is required."
-			subtext = "Please execute the command as 'gsctl login <email>'. See 'gsctl login --help' for details."
-		case IsTokenArgumentNotApplicableError(err):
-			headline = "The '--auth-token' flag cannot be used with the 'gsctl login' command."
-		case IsEmptyPasswordError(err):
-			headline = "The password cannot be empty."
-			subtext = "Please call the command again and enter a non-empty password. See 'gsctl login --help' for details."
-		default:
-			headline = err.Error()
-		}
-
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
-		os.Exit(1)
+	if err == nil {
+		return
 	}
+
+	var headline = ""
+	var subtext = ""
+
+	switch {
+	case err.Error() == "":
+		return
+	case IsNoEmailArgumentGivenError(err):
+		headline = "The email argument is required."
+		subtext = "Please execute the command as 'gsctl login <email>'. See 'gsctl login --help' for details."
+	case IsTokenArgumentNotApplicableError(err):
+		headline = "The '--auth-token' flag cannot be used with the 'gsctl login' command."
+	case IsEmptyPasswordError(err):
+		headline = "The password cannot be empty."
+		subtext = "Please call the command again and enter a non-empty password. See 'gsctl login --help' for details."
+	default:
+		headline = err.Error()
+	}
+
+	fmt.Println(color.RedString(headline))
+	if subtext != "" {
+		fmt.Println(subtext)
+	}
+	os.Exit(1)
 }
 
 // verifyLoginPreconditions does the pre-checks and returns an error in case something's wrong.
@@ -155,23 +159,27 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 	loginArgs := defaultLoginArguments()
 
 	result, err := login(loginArgs)
+
 	if err != nil {
+
+		handleCommonErrors(err)
+
 		var headline = ""
 		var subtext = ""
 		switch {
 		case err.Error() == "":
 			return
-		case client.IsEndpointNotSpecifiedError(err):
-			headline = "No endpoint has been specified."
-			subtext = "Please use the '-e|--endpoint' flag."
 		case IsEmptyPasswordError(err):
 			headline = "Empty password submitted"
 			subtext = "The API server complains about the password provided."
 			subtext += " Please make sure to provide a string with more than white space characters."
 		case IsInvalidCredentialsError(err):
-			headline = "Bad password or email address."
+			headline = "Bad password or email address"
 			subtext = fmt.Sprintf("Could not log you in to %s.", color.CyanString(loginArgs.apiEndpoint))
 			subtext += " The email or the password provided (or both) was incorrect."
+		case IsUserAccountInactiveError(err):
+			headline = "User account has expired or is deactivated"
+			subtext = "Please contact the Giant Swarm support team."
 		case config.IsAliasMustBeUniqueError(err):
 			headline = "Alias is already in use for a different endpoint"
 			subtext = fmt.Sprintf("The alias '%s' is already used for an endpoint in your configuration.\n", result.alias)
@@ -252,9 +260,19 @@ func login(args loginArguments) (loginResult, error) {
 	}
 
 	requestBody := gsclientgen.LoginBodyModel{Password: string(encodedPassword)}
-	loginResponse, _, err := apiClient.UserLogin(args.email, requestBody, requestIDHeader, loginActivityName, cmdLine)
+	loginResponse, rawResponse, err := apiClient.UserLogin(args.email,
+		requestBody, requestIDHeader, loginActivityName, cmdLine)
+
 	if err != nil {
-		return result, err
+		if rawResponse == nil || rawResponse.Response == nil {
+			return result, microerror.Mask(noResponseError)
+		}
+
+		if rawResponse.StatusCode == http.StatusForbidden {
+			return result, microerror.Mask(accessForbiddenError)
+		}
+
+		return result, microerror.Mask(err)
 	}
 
 	switch loginResponse.StatusCode {
@@ -293,6 +311,8 @@ func login(args loginArguments) (loginResult, error) {
 	case apischema.STATUS_CODE_WRONG_INPUT:
 		// empty password
 		return result, microerror.Mask(emptyPasswordError)
+	case apischema.STATUS_CODE_ACCOUNT_INACTIVE:
+		return result, microerror.Mask(userAccountInactiveError)
 	default:
 		return result, fmt.Errorf("Unhandled response code: %v", loginResponse.StatusCode)
 	}

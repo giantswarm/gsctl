@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
@@ -30,6 +31,7 @@ type addClusterArguments struct {
 	owner                   string
 	token                   string
 	wokerAwsEc2InstanceType string
+	wokerAzureVmSize        string
 	workerNumCPUs           int
 	workerMemorySizeGB      float32
 	workerStorageSizeGB     float32
@@ -50,6 +52,7 @@ func defaultAddClusterArguments() addClusterArguments {
 		token:                   token,
 		releaseVersion:          cmdRelease,
 		wokerAwsEc2InstanceType: cmdWorkerAwsEc2InstanceType,
+		wokerAzureVmSize:        cmdWorkerAzureVMSize,
 		workerNumCPUs:           cmdWorkerNumCPUs,
 		workerMemorySizeGB:      cmdWorkerMemorySizeGB,
 		workerStorageSizeGB:     cmdWorkerStorageSizeGB,
@@ -102,9 +105,15 @@ Examples:
 
 	gsctl create cluster -o myorg -n "My Cluster" --num-workers 5 --num-cpus 2
 
-	gsctl create cluster --owner myorg --name "My AWS Cluster" --num-workers 2 --aws-instance-type m3.medium
+	gsctl create cluster -o myorg -n "My AWS Cluster" --num-workers 2 --aws-instance-type m3.medium
 
-	gsctl create cluster --owner myorg --num-workers 3 --dry-run --verbose`,
+	gsctl create cluster -o myorg -n "My Azure Cluster" --num-workers 2 --azure-vm-size Standard_D2s_v3
+
+	gsctl create cluster -o myorg -n "Cluster using specifc version" -r 1.2.3
+
+	gsctl create cluster -o myorg --num-workers 3 --dry-run --verbose
+
+	`,
 		PreRun: createClusterValidationOutput,
 		Run:    createClusterExecutionOutput,
 	}
@@ -121,6 +130,10 @@ Examples:
 	cmdNumWorkers int
 	// AWS EC2 instance type to use, provided as a command line flag
 	cmdWorkerAwsEc2InstanceType string
+	// Azure VmSize to use, provided as a command line flag
+	cmdWorkerAzureVMSize string
+	// cmdRelease sets a release to use, provided as a command line flag
+	cmdRelease string
 	// dry run command line flag
 	cmdDryRun bool
 )
@@ -130,19 +143,17 @@ func init() {
 	CreateClusterCommand.Flags().StringVarP(&cmdClusterName, "name", "n", "", "Cluster name")
 	CreateClusterCommand.Flags().StringVarP(&cmdKubernetesVersion, "kubernetes-version", "", "", "Kubernetes version of the cluster")
 	CreateClusterCommand.Flags().StringVarP(&cmdOwner, "owner", "o", "", "Organization to own the cluster")
-	CreateClusterCommand.Flags().StringVarP(&cmdRelease, "release", "r", "", "Release version to use, e. g. '0.3.0'. Defaults to the latest. See 'gsctl list releases -h' for details.")
+	CreateClusterCommand.Flags().StringVarP(&cmdRelease, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
 	CreateClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "", 0, "Number of worker nodes. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
+	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAzureVMSize, "azure-vm-size", "", "", "VmSize to use for workers (Azure only), e. g. 'Standard_D2s_v3'")
 	CreateClusterCommand.Flags().IntVarP(&cmdWorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().BoolVarP(&cmdDryRun, "dry-run", "", false, "If set, the cluster won't be created. Useful with -v|--verbose.")
 
-	// we mark this hidden until while it is not useful and undocumented
-	CreateClusterCommand.Flags().MarkHidden("release")
-
 	// kubernetes-version never had any effect, and is deprecated now on the API side, too
-	CreateClusterCommand.Flags().MarkDeprecated("kubernetes-version", "please use --release-version to specify a release to use")
+	CreateClusterCommand.Flags().MarkDeprecated("kubernetes-version", "please use --release to specify a release to use")
 
 	CreateClusterCommand.MarkFlagRequired("owner")
 
@@ -160,12 +171,11 @@ func createClusterValidationOutput(cmd *cobra.Command, args []string) {
 
 	err := validateCreateClusterPreConditions(aca)
 	if err != nil {
+		handleCommonErrors(err)
+
 		switch {
 		case err.Error() == "":
 			return
-		case IsNotLoggedInError(err):
-			headline = "You are not logged in."
-			subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
 		case IsConflictingFlagsError(err):
 			headline = "Conflicting flags used"
 			subtext = "When specifying a definition via a YAML file, certain flags must not be used."
@@ -204,6 +214,8 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 
 	result, err := addCluster(aca)
 	if err != nil {
+		handleCommonErrors(err)
+
 		var headline string
 		var subtext string
 		richError, richErrorOK := err.(*errgo.Err)
@@ -228,6 +240,9 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 			headline = "Not authorized"
 			subtext = "No cluster has been created, as you are are not authenticated or not authorized to perform this action."
 			subtext += " Please check your credentials or, to make sure, use 'gsctl login' to log in again."
+		case IsOrganizationNotFoundError(err):
+			headline = "Organization not found"
+			subtext = "The organization set to own the cluster does not exist."
 		case IsCouldNotCreateClusterError(err):
 			headline = "The cluster could not be created."
 			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
@@ -262,7 +277,15 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 		}
 		fmt.Println("Add key pair and settings to kubectl using")
 		fmt.Println("")
-		fmt.Printf("    %s\n\n", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s", result.id)))
+		fmt.Printf("    %s", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s \n", result.id)))
+		fmt.Println("")
+		fmt.Println("Take into consideration all guest clusters have enabled RBAC and may you want to provide a correct organization for the certificates (like operators, testers, developer, ...)")
+		fmt.Println("")
+		fmt.Printf("    %s \n", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s --certificate-organizations system:masters", result.id)))
+		fmt.Println("")
+		fmt.Println("To know more about how to create the kubeconfig run")
+		fmt.Println("")
+		fmt.Printf("    %s \n\n", color.YellowString("gsctl create kubeconfig --help"))
 	}
 }
 
@@ -275,11 +298,11 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 
 	// false flag combination?
 	if args.inputYAMLFile != "" {
-		if args.numWorkers != 0 || args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" {
+		if args.numWorkers != 0 || args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" || args.wokerAzureVmSize != "" {
 			return microerror.Mask(conflictingFlagsError)
 		}
 	} else {
-		if args.numWorkers == 0 && (args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "") {
+		if args.numWorkers == 0 && (args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" || args.wokerAzureVmSize != "") {
 			return microerror.Mask(numWorkerNodesMissingError)
 		}
 	}
@@ -304,7 +327,7 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 		return microerror.Mask(notEnoughStoragePerWorkerError)
 	}
 
-	if args.wokerAwsEc2InstanceType != "" {
+	if args.wokerAwsEc2InstanceType != "" || args.wokerAzureVmSize != "" {
 		// check for incompatibilities
 		if args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 {
 			return microerror.Mask(incompatibleSettingsError)
@@ -388,6 +411,11 @@ func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 				worker.AWS.InstanceType = args.wokerAwsEc2InstanceType
 			}
 
+			// Azure
+			if args.wokerAzureVmSize != "" {
+				worker.Azure.VmSize = args.wokerAzureVmSize
+			}
+
 			workers = append(workers, worker)
 		}
 		def.Workers = workers
@@ -409,6 +437,7 @@ func createAddClusterBody(d clusterDefinition) gsclientgen.V4AddClusterRequest {
 		ndmWorker.Storage = gsclientgen.V4NodeDefinitionStorage{SizeGb: dWorker.Storage.SizeGB}
 		ndmWorker.Labels = dWorker.Labels
 		ndmWorker.Aws = gsclientgen.V4NodeDefinitionAws{InstanceType: dWorker.AWS.InstanceType}
+		ndmWorker.Azure = gsclientgen.V4NodeDefinitionAzure{VmSize: dWorker.Azure.VmSize}
 		a.Workers = append(a.Workers, ndmWorker)
 	}
 
@@ -480,12 +509,20 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		}
 		responseBody, apiResponse, err := apiClient.AddCluster(authHeader, addClusterBody, requestIDHeader, createClusterActivityName, cmdLine)
 		if err != nil {
+			if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
+				return result, microerror.Mask(accessForbiddenError)
+			}
 			// lower level connection problem
 			return result, microerror.Mask(err)
 		}
 
 		if apiResponse.StatusCode == 401 {
 			return result, microerror.Mask(notAuthorizedError)
+		} else if apiResponse.StatusCode == 404 {
+			// deal with non-existing org error
+			if strings.Contains(responseBody.Message, "organization") && strings.Contains(responseBody.Message, "not found") {
+				return result, microerror.Mask(organizationNotFoundError)
+			}
 		}
 
 		// handle API result

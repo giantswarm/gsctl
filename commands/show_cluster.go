@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/fatih/color"
@@ -66,30 +67,16 @@ func init() {
 func showClusterPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultShowClusterArguments()
 	err := verifyShowClusterPreconditions(args, cmdLineArgs)
-	if err != nil {
-		var headline = ""
-		var subtext = ""
 
-		switch {
-		case err.Error() == "":
-			return
-		case IsNotLoggedInError(err):
-			headline = "You are not logged in."
-			subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
-		case IsClusterIDMissingError(err):
-			headline = "No cluster ID specified."
-			subtext = "Please specify which cluster to show. Use --help for details."
-		default:
-			headline = err.Error()
-		}
-
-		// print output
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
-		os.Exit(1)
+	if err == nil {
+		return
 	}
+
+	handleCommonErrors(err)
+
+	// handle non-common errors
+	fmt.Println(color.RedString(err.Error()))
+	os.Exit(1)
 }
 
 func verifyShowClusterPreconditions(args showClusterArguments, cmdLineArgs []string) error {
@@ -119,18 +106,26 @@ func getClusterDetails(clusterID, token, endpoint string) (gsclientgen.V4Cluster
 	}
 
 	clusterDetails, apiResp, err := apiClient.GetCluster(authHeader, clusterID,
-		requestIDHeader, scaleClusterActivityName, cmdLine)
+		requestIDHeader, showClusterActivityName, cmdLine)
 
 	if err != nil {
+		if apiResp == nil || apiResp.Response == nil {
+			return result, microerror.Mask(noResponseError)
+		}
+
+		if apiResp.StatusCode == http.StatusForbidden {
+			return result, microerror.Mask(accessForbiddenError)
+		}
+
 		return result, microerror.Mask(err)
 	}
 
 	switch apiResp.StatusCode {
-	case 401:
+	case http.StatusUnauthorized:
 		return result, microerror.Mask(notAuthorizedError)
-	case 404:
+	case http.StatusNotFound:
 		return result, microerror.Mask(clusterNotFoundError)
-	case 500:
+	case http.StatusInternalServerError:
 		return result, microerror.Mask(internalServerError)
 	}
 
@@ -178,9 +173,6 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		switch {
 		case err.Error() == "":
 			return
-		case IsCouldNotCreateClientError(err):
-			headline = "Failed to create API client."
-			subtext = "Details: " + err.Error()
 		default:
 			headline = err.Error()
 		}
@@ -218,13 +210,25 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	output = append(output, color.YellowString("Workers:")+"|"+fmt.Sprintf("%d", len(clusterDetails.Workers)))
 
 	// This assumes all nodes use the same instance type.
-	if len(clusterDetails.Workers) > 0 && clusterDetails.Workers[0].Aws.InstanceType != "" {
-		output = append(output, color.YellowString("Worker instance type:")+"|"+clusterDetails.Workers[0].Aws.InstanceType)
+	if len(clusterDetails.Workers) > 0 {
+		if clusterDetails.Workers[0].Aws.InstanceType != "" {
+			output = append(output, color.YellowString("Worker instance type:")+"|"+clusterDetails.Workers[0].Aws.InstanceType)
+		}
+
+		if clusterDetails.Workers[0].Azure.VmSize != "" {
+			output = append(output, color.YellowString("Worker VM size:")+"|"+clusterDetails.Workers[0].Azure.VmSize)
+		}
 	}
 
 	output = append(output, color.YellowString("CPU cores in workers:")+"|"+fmt.Sprintf("%d", sumWorkerCPUs(clusterDetails.Workers)))
-	output = append(output, color.YellowString("RAM in worker nodes (GB):")+"|"+fmt.Sprintf("%v", sumWorkerMemory(clusterDetails.Workers)))
-	output = append(output, color.YellowString("Storage in worker nodes (GB):")+"|"+fmt.Sprintf("%v", sumWorkerStorage(clusterDetails.Workers)))
+	output = append(output, color.YellowString("RAM in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerMemory(clusterDetails.Workers)))
+	output = append(output, color.YellowString("Storage in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerStorage(clusterDetails.Workers)))
+
+	if len(clusterDetails.Kvm.PortMappings) > 0 {
+		for _, portMapping := range clusterDetails.Kvm.PortMappings {
+			output = append(output, color.YellowString(fmt.Sprintf("Ingress port for %s:", portMapping.Protocol))+"|"+fmt.Sprintf("%d", portMapping.Port))
+		}
+	}
 
 	fmt.Println(columnize.SimpleFormat(output))
 }

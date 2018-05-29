@@ -3,12 +3,20 @@ package commands
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
+	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
+)
+
+const (
+	infoActivityName = "info"
 )
 
 var (
@@ -31,10 +39,13 @@ type infoArguments struct {
 // defaultInfoArguments returns an infoArguments object populated by the user's
 // command line arguments
 func defaultInfoArguments() infoArguments {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+
 	return infoArguments{
-		token:       cmdToken,
+		token:       token,
 		verbose:     cmdVerbose,
-		apiEndpoint: config.Config.ChooseEndpoint(cmdAPIEndpoint),
+		apiEndpoint: endpoint,
 	}
 }
 
@@ -48,6 +59,7 @@ type infoResult struct {
 	buildDate        string
 	configFilePath   string
 	kubeConfigPaths  []string
+	infoResponse     *gsclientgen.V4InfoResponse
 }
 
 func init() {
@@ -58,9 +70,16 @@ func init() {
 func printInfo(cmd *cobra.Command, args []string) {
 
 	infoArgs := defaultInfoArguments()
-	result := info(infoArgs)
+	result, err := info(infoArgs)
 
 	output := []string{}
+
+	output = append(output, color.YellowString("%s version:", config.ProgramName)+"|"+color.CyanString(result.version))
+	output = append(output, color.YellowString("%s build:", config.ProgramName)+"|"+color.CyanString(result.buildDate))
+	output = append(output, color.YellowString("Config path:")+"|"+color.CyanString(result.configFilePath))
+
+	// kubectl configuration paths
+	output = append(output, color.YellowString("kubectl config path:")+"|"+color.CyanString(strings.Join(result.kubeConfigPaths, ", ")))
 
 	if result.apiEndpoint == "" {
 		output = append(output, color.YellowString("API endpoint:")+"|n/a")
@@ -92,19 +111,45 @@ func printInfo(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	output = append(output, color.YellowString("%s version:", config.ProgramName)+"|"+color.CyanString(result.version))
-	output = append(output, color.YellowString("%s build:", config.ProgramName)+"|"+color.CyanString(result.buildDate))
-	output = append(output, color.YellowString("Config path:")+"|"+color.CyanString(result.configFilePath))
+	// Info depending on API communication
+	if result.apiEndpoint != "" {
+		// Provider
+		if result.infoResponse == nil || result.infoResponse.General.Provider == "" {
+			output = append(output, color.YellowString("Provider:")+"|n/a")
+		} else {
+			output = append(output, color.YellowString("Provider:")+"|"+color.CyanString(result.infoResponse.General.Provider))
+		}
 
-	// kubectl configuration paths
-	output = append(output, color.YellowString("kubectl config path:")+"|"+color.CyanString(strings.Join(result.kubeConfigPaths, ", ")))
+		if result.infoResponse != nil {
+			if result.infoResponse.General.Provider == "aws" {
+				output = append(output, color.YellowString("Worker instance type options:")+"|"+color.CyanString(strings.Join(result.infoResponse.Workers.InstanceType.Options, ", ")))
+				output = append(output, color.YellowString("Default worker instance type:")+"|"+color.CyanString(result.infoResponse.Workers.InstanceType.Default_))
+			} else if result.infoResponse.General.Provider == "azure" {
+				output = append(output, color.YellowString("Worker VM size options:")+"|"+color.CyanString(strings.Join(result.infoResponse.Workers.VmSize.Options, ", ")))
+				output = append(output, color.YellowString("Default worker VM size:")+"|"+color.CyanString(result.infoResponse.Workers.VmSize.Default_))
+			}
+
+			if result.infoResponse.Workers.CountPerCluster.Default_ != 0 {
+				output = append(output, color.YellowString("Default workers per cluster:")+"|"+color.CyanString(fmt.Sprintf("%.0f", result.infoResponse.Workers.CountPerCluster.Default_)))
+			}
+			if result.infoResponse.Workers.CountPerCluster.Max != 0 {
+				output = append(output, color.YellowString("Maximum workers per cluster:")+"|"+color.CyanString(fmt.Sprintf("%.0f", result.infoResponse.Workers.CountPerCluster.Max)))
+			}
+		}
+	}
 
 	fmt.Println(columnize.SimpleFormat(output))
+
+	if err != nil {
+		fmt.Println()
+		fmt.Println(color.RedString("Some error occurred:"))
+		fmt.Println(err.Error())
+	}
 }
 
 // info gets all the information we'd like to show with the "info" command
 // and returns it as a struct
-func info(args infoArguments) infoResult {
+func info(args infoArguments) (infoResult, error) {
 	result := infoResult{}
 
 	if args.apiEndpoint != "" {
@@ -129,5 +174,25 @@ func info(args infoArguments) infoResult {
 		}
 	}
 
-	return result
+	// get more info from API
+	if args.apiEndpoint != "" {
+		clientConfig := client.Configuration{
+			Endpoint:  args.apiEndpoint,
+			Timeout:   5 * time.Second,
+			UserAgent: config.UserAgent(),
+		}
+		apiClient, clientErr := client.NewClient(clientConfig)
+		if clientErr != nil {
+			return result, microerror.Mask(clientErr)
+		}
+		authHeader := "giantswarm " + args.token
+		infoResponse, _, infoErr := apiClient.GetInfo(authHeader, requestIDHeader, infoActivityName, cmdLine)
+		if infoErr != nil {
+			return result, microerror.Mask(infoErr)
+		}
+
+		result.infoResponse = infoResponse
+	}
+
+	return result, nil
 }

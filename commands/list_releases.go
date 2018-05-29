@@ -31,8 +31,8 @@ var (
 		Long: `Prints detail on all available releases.
 
 A release is a software bundle that constitutes a cluster. It is identified by its semantic version number.`,
-		PreRun: listReleasesValidationOutput,
-		Run:    listReleasesOutput,
+		PreRun: listReleasesPreRunOutput,
+		Run:    listReleasesRunOutput,
 	}
 )
 
@@ -64,35 +64,25 @@ func init() {
 	ListCommand.AddCommand(ListReleasesCommand)
 }
 
-// listReleasesValidationOutput does our pre-checks and shows errors, in case
+// listReleasesPreRunOutput does our pre-checks and shows errors, in case
 // something is missing.
-func listReleasesValidationOutput(cmd *cobra.Command, extraArgs []string) {
+func listReleasesPreRunOutput(cmd *cobra.Command, extraArgs []string) {
 	args := defaultListReleasesArguments()
-	err := listReleasesValidate(&args)
-	if err != nil {
-		var headline string
-		var subtext string
+	err := listReleasesPreconditions(&args)
 
-		switch {
-		case IsNotLoggedInError(err):
-			headline = "You are not logged in."
-			subtext = "Please log in using 'gsctl login <email>' or set an auth token as a command line argument."
-			subtext += " See `gsctl list releases --help` for details."
-		default:
-			headline = err.Error()
-		}
-
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
-		os.Exit(1)
+	if err == nil {
+		return
 	}
+
+	handleCommonErrors(err)
+
+	fmt.Println(color.RedString(err.Error()))
+	os.Exit(1)
 }
 
-// listReleasesValidate validates our pre-conditions and returns an error in
+// listReleasesPreconditions validates our pre-conditions and returns an error in
 // case something is missing.
-func listReleasesValidate(args *listReleasesArguments) error {
+func listReleasesPreconditions(args *listReleasesArguments) error {
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(notLoggedInError)
 	}
@@ -100,42 +90,19 @@ func listReleasesValidate(args *listReleasesArguments) error {
 	return nil
 }
 
-// listReleasesOutput is the function called to list releases and display
+// listReleasesRunOutput is the function called to list releases and display
 // errors in case they happen
-func listReleasesOutput(cmd *cobra.Command, extraArgs []string) {
+func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 	args := defaultListReleasesArguments()
 	result, err := listReleases(args)
 
 	// error output
 	if err != nil {
-		var headline string
-		var subtext string
+		handleCommonErrors(err)
 
-		switch {
-		case IsNotLoggedInError(err):
-			headline = "You are not logged in."
-			subtext = "Please log in using 'gsctl login <email>' or set an auth token as a command line argument."
-			subtext += " See `gsctl list releases --help` for details."
-		case IsNotAuthorizedError(err):
-			headline = "You are not authorized for this cluster."
-			subtext = "You have no permission to access releases for this cluster. Please check your credentials."
-		case IsInternalServerError(err):
-			headline = "An internal error occurred."
-			subtext = "Please notify the Giant Swarm support team, or try listing releases again in a few moments."
-		case IsNoResponseError(err):
-			headline = "The API didn't send a response."
-			subtext = "Please notify the Giant Swarm support team, or try listing releases again in a few moments."
-		case IsUnknownError(err):
-			headline = "An error occurred."
-			subtext = "Please notify the Giant Swarm support team, or try listing releases again in a few moments."
-		default:
-			headline = err.Error()
-		}
+		var headline = err.Error()
 
 		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
 		os.Exit(1)
 	}
 

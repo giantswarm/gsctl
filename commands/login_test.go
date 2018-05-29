@@ -52,23 +52,24 @@ func Test_LoginValidPassword(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	args := loginArguments{}
-	args.apiEndpoint = mockServer.URL
-	args.email = "email@example.com"
-	args.password = "test password"
+	args := loginArguments{
+		apiEndpoint: mockServer.URL,
+		email:       "email@example.com",
+		password:    "test password",
+	}
 
 	result, err := login(args)
 	if err != nil {
 		t.Error(err)
 	}
 	if result.email != args.email {
-		t.Errorf("Expected '%s', got '%s'", args.email, result.email)
+		t.Errorf("Expected %q, got %q", args.email, result.email)
 	}
 	if result.token != "some-test-session-token" {
-		t.Errorf("Expected 'some-test-session-token', got '%s'", result.token)
+		t.Errorf("Expected 'some-test-session-token', got %q", result.token)
 	}
 	if result.alias != "codename" {
-		t.Errorf("Expected alias 'codename', got '%s'", result.alias)
+		t.Errorf("Expected alias 'codename', got %q", result.alias)
 	}
 	if result.loggedOutBefore == true {
 		t.Error("result.loggedOutBefore was true, expected false")
@@ -100,14 +101,15 @@ func Test_LoginInvalidPassword(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	args := loginArguments{}
-	args.apiEndpoint = mockServer.URL
-	args.email = "email@example.com"
-	args.password = "bad password"
+	args := loginArguments{
+		apiEndpoint: mockServer.URL,
+		email:       "email@example.com",
+		password:    "bad password",
+	}
 
 	_, err = login(args)
 	if !IsInvalidCredentialsError(err) {
-		t.Errorf("Expected error '%s', got %v", invalidCredentialsError, err)
+		t.Errorf("Expected error %q, got %v", invalidCredentialsError, err)
 	}
 }
 
@@ -142,25 +144,62 @@ selected_endpoint: "` + mockServer.URL + `"
 	}
 	defer os.RemoveAll(dir)
 
-	args := loginArguments{}
-	args.apiEndpoint = mockServer.URL
-	args.email = "email@example.com"
-	args.password = "test password"
+	args := loginArguments{
+		apiEndpoint: mockServer.URL,
+		email:       "email@example.com",
+		password:    "test password",
+	}
 
 	result, loginErr := login(args)
 	if loginErr != nil {
 		t.Error(err)
 	}
 	if result.email != args.email {
-		t.Errorf("Expected '%s', got '%s'", args.email, result.email)
+		t.Errorf("Expected %q, got %q", args.email, result.email)
 	}
 	if config.Config.Email != args.email {
-		t.Errorf("Expected config email to be '%s', got '%s'", args.email, config.Config.Email)
+		t.Errorf("Expected config email to be %q, got %q", args.email, config.Config.Email)
 	}
 	if result.token != "another-test-session-token" {
-		t.Errorf("Expected 'another-test-session-token', got '%s'", result.token)
+		t.Errorf("Expected 'another-test-session-token', got %q", result.token)
 	}
 	if !result.loggedOutBefore {
 		t.Error("result.loggedOutBefore was false, expected true")
+	}
+}
+
+// Test_LoginInactiveAccount simulates a login with an inactive/expired account
+func Test_LoginInactiveAccount(t *testing.T) {
+	// we start with an empty config
+	dir, err := tempConfig("")
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// mock server responding with a 400 Bad request
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.String() == "/v1/user/developer@giantswarm.io/login" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(`{"status_code":10017,"status_text":"user account in-active"}`))
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer mockServer.Close()
+
+	args := loginArguments{
+		apiEndpoint: mockServer.URL,
+		email:       "developer@giantswarm.io",
+		password:    "test password",
+	}
+
+	_, err = login(args)
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	if !IsUserAccountInactiveError(err) {
+		t.Errorf("Expected userAccountInactiveError, got %q", err.Error())
 	}
 }

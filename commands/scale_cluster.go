@@ -103,30 +103,16 @@ func init() {
 func scaleClusterPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultScaleClusterArguments()
 	err := verifyScaleClusterPreconditions(args, cmdLineArgs)
-	if err != nil {
-		var headline = ""
-		var subtext = ""
 
-		switch {
-		case err.Error() == "":
-			return
-		case IsNotLoggedInError(err):
-			headline = "You are not logged in."
-			subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
-		case IsClusterIDMissingError(err):
-			headline = "No cluster ID specified."
-			subtext = "Please specify which cluster to scale. Use --help for details."
-		default:
-			headline = err.Error()
-		}
-
-		// print output
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
-		os.Exit(1)
+	if err == nil {
+		return
 	}
+
+	handleCommonErrors(err)
+
+	// print non-common error
+	fmt.Println(color.RedString(err.Error()))
+	os.Exit(1)
 }
 
 // verifyScaleClusterPreconditions does a few general checks and returns an error in case something is missing.
@@ -147,6 +133,8 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	result, err := scaleCluster(args)
 	if err != nil {
+		handleCommonErrors(err)
+
 		var headline = ""
 		var subtext = ""
 
@@ -155,9 +143,6 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			return
 		case IsCommandAbortedError(err):
 			headline = "Scaling cancelled."
-		case IsCouldNotCreateClientError(err):
-			headline = "Failed to create API client."
-			subtext = "Details: " + err.Error()
 		case IsCannotScaleBelowMinimumWorkersError(err):
 			headline = "Desired worker node count is too low."
 			subtext = "Please set the -w|--num-workers flag to a value greater than 0."
@@ -275,6 +260,18 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	}
 	scaleResult, rawResponse, err := apiClient.ModifyCluster(authHeader, args.clusterID, reqBody, requestIDHeader, scaleClusterActivityName, cmdLine)
 	if err != nil {
+		if rawResponse == nil || rawResponse.Response == nil {
+			return results, microerror.Mask(noResponseError)
+		}
+
+		if rawResponse.StatusCode == http.StatusForbidden {
+			return results, microerror.Mask(accessForbiddenError)
+		}
+
+		if rawResponse.StatusCode == http.StatusNotFound {
+			return results, microerror.Mask(clusterNotFoundError)
+		}
+
 		return results, microerror.Mask(err)
 	}
 

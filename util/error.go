@@ -29,3 +29,10 @@ var CouldNotUseKubectlContextError = errgo.New("could not apply context using 'k
 func IsCouldNotUseKubectlContextError(err error) bool {
 	return errgo.Cause(err) == CouldNotUseKubectlContextError
 }
+
+var InvalidDurationStringError = errgo.New("could not parse duration string")
+
+// IsInvalidDurationStringError asserts InvalidDurationStringError.
+func IsInvalidDurationStringError(err error) bool {
+	return errgo.Cause(err) == InvalidDurationStringError
+}
