@@ -224,6 +224,11 @@ func (c *configStruct) ChooseEndpoint(overridingEndpointAliasOrURL string) strin
 	// use environment variable
 	envEndpoint := os.Getenv("GSCTL_ENDPOINT")
 	if envEndpoint != "" {
+		if c.HasEndpointAlias(envEndpoint) {
+			ep, _ := c.EndpointByAlias(envEndpoint)
+			return ep
+		}
+
 		ep := normalizeEndpoint(envEndpoint)
 		return ep
 	}
