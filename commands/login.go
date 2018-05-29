@@ -272,6 +272,8 @@ func login(args loginArguments) (loginResult, error) {
 	// now handle HTTP status >= 400
 	if rawResponse.StatusCode == http.StatusForbidden {
 		return result, microerror.Mask(accessForbiddenError)
+	} else if rawResponse.StatusCode == http.StatusUnauthorized {
+		return result, microerror.Mask(invalidCredentialsError)
 	}
 
 	// handle any other cases where err is set
