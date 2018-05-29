@@ -207,9 +207,8 @@ func (c *configStruct) SelectEndpoint(endpointAliasOrURL string) error {
 
 // ChooseEndpoint makes a choice which should be the endpoint to use.
 // If the argument overridingEndpointAliasOrURL is not empty, this will
-// be used as the returned endpoint URL.
-// Errors are only printed to inform users, but not returned, to simplify
-// usage of this function.
+// be used to look up an alias to return an endpoint for. If there is none,
+// it will be the used endpoint URL.
 func (c *configStruct) ChooseEndpoint(overridingEndpointAliasOrURL string) string {
 	if overridingEndpointAliasOrURL != "" {
 		// check if overridingEndpointAliasOrURL is an alias
