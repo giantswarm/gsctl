@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -103,7 +102,7 @@ func logout(args logoutArguments) error {
 	}
 
 	authHeader := "giantswarm " + args.token
-	logoutResponse, apiResponse, err := apiClient.UserLogout(authHeader, requestIDHeader, logoutActivityName, cmdLine)
+	logoutResponse, apiResponse, err := apiClient.DeleteAuthToken(authHeader)
 	if err != nil {
 
 		if apiResponse == nil || apiResponse.Response == nil {
@@ -124,7 +123,7 @@ func logout(args logoutArguments) error {
 		return microerror.Maskf(unspecifiedAPIError, err.Error())
 	}
 
-	if logoutResponse.StatusCode != apischema.STATUS_CODE_RESOURCE_DELETED {
+	if logoutResponse.Code != "RESOURCE_DELETED" {
 		return microerror.Maskf(unspecifiedAPIError, "response: %v", logoutResponse)
 	}
 

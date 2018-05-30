@@ -42,11 +42,7 @@ func Test_LoginValidPassword(t *testing.T) {
 			}`))
 		} else {
 			w.Write([]byte(`{
-	      "status_code": 10000,
-	      "status_text": "Success",
-	      "data": {
-	        "Id": "some-test-session-token"
-	      }
+	      "auth_token": "some-test-session-token"
 	    }`))
 		}
 	}))
@@ -93,10 +89,10 @@ func Test_LoginInvalidPassword(t *testing.T) {
 	// this server will respond positively in any case
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte(`{
-      "status_code": 10008,
-      "status_text": "resource not found"
+      "code": "PERMISSION_DENIED",
+      "message": "The requested resource cannot be accessed using the provided authentication details. Email or password is not correct."
     }`))
 	}))
 	defer mockServer.Close()
@@ -121,11 +117,7 @@ func Test_LoginWhenUserLoggedInBefore(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{
-      "status_code": 10000,
-      "status_text": "Success",
-      "data": {
-        "Id": "another-test-session-token"
-      }
+      "auth_token": "another-test-session-token"
     }`))
 	}))
 	defer mockServer.Close()
@@ -180,9 +172,12 @@ func Test_LoginInactiveAccount(t *testing.T) {
 	// mock server responding with a 400 Bad request
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.URL.String() == "/v1/user/developer@giantswarm.io/login" {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(`{"status_code":10017,"status_text":"user account in-active"}`))
+		if r.URL.String() == "/v4/auth-tokens/" {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(`{
+				"code":"ACCOUNT_EXPIRED",
+				"message":"The account you are using to log in is expired."
+			}`))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
