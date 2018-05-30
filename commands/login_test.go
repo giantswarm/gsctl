@@ -173,9 +173,11 @@ func Test_LoginInactiveAccount(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.URL.String() == "/v4/auth-tokens/" {
-			// TODO: adapt this to the new "account expired" response
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(`{"status_code":10017,"status_text":"user account in-active"}`))
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(`{
+				"code":"ACCOUNT_EXPIRED",
+				"message":"The account you are using to log in is expired."
+			}`))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
