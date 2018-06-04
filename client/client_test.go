@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	operations "github.com/giantswarm/gsclientgen/client/operations"
 )
 
 func TestTimeout(t *testing.T) {
@@ -19,15 +21,18 @@ func TestTimeout(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	clientConfig := Configuration{
-		Endpoint: ts.URL,
-		Timeout:  1 * time.Second,
-	}
+	clientConfig := Configuration{Endpoint: ts.URL}
 	apiClient, clientErr := NewClient(clientConfig)
 	if clientErr != nil {
 		t.Error(clientErr)
 	}
-	_, _, err := apiClient.GetUserOrganizations("foo", "foo", "foo", "foo")
+
+	params := operations.NewGetUserOrganizationsParams()
+
+	// TODO: get timeout from config
+	params.SetTimeout(1 * time.Second)
+
+	_, err := apiClient.Operations.GetUserOrganizations(params)
 	if err == nil {
 		t.Error("Expected Timeout error, got nil")
 	} else {
@@ -57,16 +62,18 @@ func TestUserAgent(t *testing.T) {
 	if clientErr != nil {
 		t.Error(clientErr)
 	}
+
 	// We use GetUserOrganizations just to issue a request. We could use any other
 	// API call, it wouldn't matter.
-	_, apiResponse, _ := apiClient.GetUserOrganizations("foo", "foo", "foo", "foo")
-
-	gr, err := ParseGenericResponse(apiResponse.Payload)
-	if err != nil {
-		t.Error(err)
+	params := operations.NewGetUserOrganizationsParams()
+	_, err := apiClient.Operations.GetUserOrganizations(params)
+	if err == nil {
+		t.Error("Expected error, got nil")
 	}
 
-	if !strings.Contains(gr.Message, clientConfig.UserAgent) {
+	msg := err.(*operations.GetUserOrganizationsDefault).Payload.Message
+
+	if !strings.Contains(*msg, clientConfig.UserAgent) {
 		t.Error("UserAgent string could not be found")
 	}
 }

@@ -9,3 +9,10 @@ var endpointNotSpecifiedError = errgo.New("no endpoint has been specified")
 func IsEndpointNotSpecifiedError(err error) bool {
 	return errgo.Cause(err) == endpointNotSpecifiedError
 }
+
+var endpointInvalidError = errgo.New("not a valid endpoint URL")
+
+// IsEndpointInvalidError asserts endpointInvalidError.
+func IsEndpointInvalidError(err error) bool {
+	return errgo.Cause(err) == endpointInvalidError
+}
