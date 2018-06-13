@@ -62,6 +62,7 @@ func listOrgs(cmd *cobra.Command, args []string) {
 func orgsTable() (string, error) {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
 
 	clientConfig := client.Configuration{
 		Endpoint:  endpoint,
@@ -73,7 +74,7 @@ func orgsTable() (string, error) {
 		return "", microerror.Mask(couldNotCreateClientError)
 	}
 
-	authHeader := "giantswarm " + token
+	authHeader := scheme + " " + token
 	organizations, apiResponse, err := apiClient.GetUserOrganizations(authHeader, requestIDHeader, listOrganizationsActivityName, cmdLine)
 	if err != nil {
 		return "", APIError{err.Error(), *apiResponse}

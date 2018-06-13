@@ -31,6 +31,7 @@ var (
 
 // infoArguments represents the arguments we can make use of in this command
 type infoArguments struct {
+	scheme      string
 	token       string
 	verbose     bool
 	apiEndpoint string
@@ -41,8 +42,10 @@ type infoArguments struct {
 func defaultInfoArguments() infoArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
 
 	return infoArguments{
+		scheme:      scheme,
 		token:       token,
 		verbose:     cmdVerbose,
 		apiEndpoint: endpoint,
@@ -185,7 +188,7 @@ func info(args infoArguments) (infoResult, error) {
 		if clientErr != nil {
 			return result, microerror.Mask(clientErr)
 		}
-		authHeader := "giantswarm " + args.token
+		authHeader := args.scheme + " " + args.token
 		infoResponse, _, infoErr := apiClient.GetInfo(authHeader, requestIDHeader, infoActivityName, cmdLine)
 		if infoErr != nil {
 			return result, microerror.Mask(infoErr)

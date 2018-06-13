@@ -29,6 +29,7 @@ type addClusterArguments struct {
 	inputYAMLFile           string
 	numWorkers              int
 	owner                   string
+	scheme                  string
 	token                   string
 	wokerAwsEc2InstanceType string
 	wokerAzureVmSize        string
@@ -42,6 +43,7 @@ type addClusterArguments struct {
 func defaultAddClusterArguments() addClusterArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
 	return addClusterArguments{
 		apiEndpoint:             endpoint,
 		clusterName:             cmdClusterName,
@@ -49,6 +51,7 @@ func defaultAddClusterArguments() addClusterArguments {
 		inputYAMLFile:           cmdInputYAMLFile,
 		numWorkers:              cmdNumWorkers,
 		owner:                   cmdOwner,
+		scheme:                  scheme,
 		token:                   token,
 		releaseVersion:          cmdRelease,
 		wokerAwsEc2InstanceType: cmdWorkerAwsEc2InstanceType,
@@ -498,7 +501,7 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
 
 		// perform API call
-		authHeader := "giantswarm " + args.token
+		authHeader := args.scheme + " " + args.token
 		clientConfig := client.Configuration{
 			Endpoint:  args.apiEndpoint,
 			UserAgent: config.UserAgent(),

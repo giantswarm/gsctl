@@ -57,6 +57,7 @@ type scaleClusterArguments struct {
 	verbose             bool
 	apiEndpoint         string
 	authToken           string
+	scheme              string
 	workerNumCPUs       int
 	workerMemorySizeGB  float32
 	workerStorageSizeGB float32
@@ -65,10 +66,12 @@ type scaleClusterArguments struct {
 func defaultScaleClusterArguments() scaleClusterArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
 
 	return scaleClusterArguments{
 		apiEndpoint:         endpoint,
 		authToken:           token,
+		scheme:              scheme,
 		clusterID:           cmdClusterID,
 		numWorkersDesired:   cmdNumWorkers,
 		workerNumCPUs:       cmdWorkerNumCPUs,
@@ -200,7 +203,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	}
 
 	clusterDetails, err := getClusterDetails(args.clusterID,
-		args.authToken, args.apiEndpoint)
+		args.scheme, args.authToken, args.apiEndpoint)
 	if err != nil {
 		return results, microerror.Mask(err)
 	}
@@ -241,10 +244,10 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	reqBody := gsclientgen.V4ModifyClusterRequest{Workers: workers}
 
 	// perform API call
-	authHeader := "giantswarm " + config.Config.Token
+	authHeader := args.scheme + " " + config.Config.Token
 	if args.authToken != "" {
 		// command line flag overwrites
-		authHeader = "giantswarm " + args.authToken
+		authHeader = args.scheme + " " + args.authToken
 	}
 	clientConfig := client.Configuration{
 		Endpoint:  args.apiEndpoint,

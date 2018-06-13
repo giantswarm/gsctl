@@ -114,6 +114,9 @@ type endpointConfig struct {
 	// Token is the session token of the authenticated user.
 	Token string `yaml:"token"`
 
+	// Scheme is the scheme to be used in the Authorization header.
+	Scheme string `yaml:"sceme"`
+
 	// Alias is a friendly shortcut for the endpoint
 	Alias string `yaml:"alias,omitempty"`
 }
@@ -240,6 +243,27 @@ func (c *configStruct) ChooseToken(endpoint, overridingToken string) string {
 	if endpointStruct, ok := c.Endpoints[ep]; ok {
 		if endpointStruct != nil && endpointStruct.Token != "" {
 			return endpointStruct.Token
+		}
+	}
+
+	return ""
+}
+
+// ChooseScheme chooses a scheme to use, according to a rule set.
+// - If the given scheme is not empty, we use (return) that
+// - If the given scheme is empty and we have an auth scheme for the given
+//   endpoint, we return that
+// - otherwise we return an empty string
+func (c *configStruct) ChooseScheme(endpoint, overridingScheme string) string {
+	ep := normalizeEndpoint(endpoint)
+
+	if overridingScheme != "" {
+		return overridingScheme
+	}
+
+	if endpointStruct, ok := c.Endpoints[ep]; ok {
+		if endpointStruct != nil && endpointStruct.Scheme != "" {
+			return endpointStruct.Scheme
 		}
 	}
 

@@ -41,6 +41,7 @@ A release is a software bundle that constitutes a cluster. It is identified by i
 type listReleasesArguments struct {
 	apiEndpoint string
 	token       string
+	scheme      string
 }
 
 // defaultListReleasesArguments returns a new listReleasesArguments struct
@@ -48,10 +49,12 @@ type listReleasesArguments struct {
 func defaultListReleasesArguments() listReleasesArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
 
 	return listReleasesArguments{
 		apiEndpoint: endpoint,
 		token:       token,
+		scheme:      scheme,
 	}
 }
 
@@ -156,7 +159,7 @@ func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 	if clientErr != nil {
 		return result, microerror.Mask(couldNotCreateClientError)
 	}
-	authHeader := "giantswarm " + args.token
+	authHeader := args.scheme + " " + args.token
 	releasesResponse, apiResponse, err := apiClient.GetReleases(authHeader,
 		requestIDHeader, listReleasesActivityName, cmdLine)
 
