@@ -94,6 +94,11 @@ type configStruct struct {
 	// SelectedEndpoint is the URL of the selected endpoint
 	SelectedEndpoint string `yaml:"selected_endpoint"`
 
+	// Scheme is the scheme found for the selected endpoint. Might be empty.
+	// Not marshalled back to the config file, as it is contained in the
+	// endpoint's entry.
+	Scheme string `yaml:"-"`
+
 	// Token is the token found for the selected endpoint. Might be empty.
 	// Not marshalled back to the config file, as it is contained in the
 	// endpoint's entry.
@@ -115,7 +120,7 @@ type endpointConfig struct {
 	Token string `yaml:"token"`
 
 	// Scheme is the scheme to be used in the Authorization header.
-	Scheme string `yaml:"sceme"`
+	Scheme string `yaml:"scheme"`
 
 	// Alias is a friendly shortcut for the endpoint
 	Alias string `yaml:"alias,omitempty"`
@@ -155,9 +160,10 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email
 	}
 
 	c.Endpoints[ep] = &endpointConfig{
-		Alias: aliasBefore,
-		Email: email,
-		Token: token,
+		Alias:  aliasBefore,
+		Email:  email,
+		Scheme: "giantswarm",
+		Token:  token,
 	}
 
 	if alias != "" && aliasBefore == "" {
@@ -199,7 +205,13 @@ func (c *configStruct) SelectEndpoint(endpointAliasOrURL string) error {
 		}
 	}
 
+	// Migrate empty scheme to 'giantswarm'
+	if c.Endpoints[ep].Scheme == "" {
+		c.Endpoints[ep].Scheme = "giantswarm"
+	}
+
 	c.SelectedEndpoint = ep
+	c.Scheme = c.Endpoints[ep].Scheme
 	c.Token = c.Endpoints[ep].Token
 	c.Email = c.Endpoints[ep].Email
 
