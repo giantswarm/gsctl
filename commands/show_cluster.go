@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsclientgen"
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -97,18 +96,7 @@ func getClusterDetails(clusterID, scheme, token, endpoint string) (gsclientgen.V
 	result := gsclientgen.V4ClusterDetailsModel{}
 
 	// perform API call
-	authHeader := scheme + " " + token
-	clientConfig := client.Configuration{
-		Endpoint:  endpoint,
-		UserAgent: config.UserAgent(),
-	}
-
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Mask(couldNotCreateClientError)
-	}
-
-	clusterDetails, apiResp, err := apiClient.GetCluster(authHeader, clusterID,
+	clusterDetails, apiResp, err := Client.GetCluster(ClientConfig.AuthHeader, clusterID,
 		requestIDHeader, showClusterActivityName, cmdLine)
 
 	if err != nil {

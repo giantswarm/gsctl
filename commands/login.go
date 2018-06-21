@@ -9,6 +9,11 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
+<<<<<<< HEAD
+=======
+
+	"github.com/giantswarm/gsctl/config"
+>>>>>>> Extract code that initializes Client and AuthHeaders.
 )
 
 const (

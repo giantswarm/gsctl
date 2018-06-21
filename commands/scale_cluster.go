@@ -244,24 +244,10 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	reqBody := gsclientgen.V4ModifyClusterRequest{Workers: workers}
 
 	// perform API call
-	authHeader := args.scheme + " " + config.Config.Token
-	if args.authToken != "" {
-		// command line flag overwrites
-		authHeader = args.scheme + " " + args.authToken
-	}
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return results, microerror.Mask(couldNotCreateClientError)
-	}
-
 	if args.verbose {
 		fmt.Println("Sending API request to modify cluster")
 	}
-	scaleResult, rawResponse, err := apiClient.ModifyCluster(authHeader, args.clusterID, reqBody, requestIDHeader, scaleClusterActivityName, cmdLine)
+	scaleResult, rawResponse, err := Client.ModifyCluster(ClientConfig.AuthHeader, args.clusterID, reqBody, requestIDHeader, scaleClusterActivityName, cmdLine)
 	if err != nil {
 		if rawResponse == nil || rawResponse.Response == nil {
 			return results, microerror.Mask(noResponseError)

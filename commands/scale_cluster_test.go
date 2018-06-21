@@ -30,6 +30,9 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 		clusterID:   "cluster-id",
 	}
 
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
 	err := verifyScaleClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if !IsNotLoggedInError(err) {
 		t.Error("Expected notLoggedInError, got", err)
@@ -106,6 +109,9 @@ func TestScaleCluster(t *testing.T) {
 		numWorkersDesired: numWorkersDesired,
 	}
 	config.Config.Token = "my-token"
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	err := verifyScaleClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {

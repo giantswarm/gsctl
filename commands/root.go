@@ -1,9 +1,14 @@
 package commands
 
 import (
+	"time"
+
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/microerror"
 )
 
 // RootCommand is the main command of the CLI
@@ -12,6 +17,9 @@ var RootCommand = &cobra.Command{
 	// this is inherited by all child commands
 	PersistentPreRunE: initConfig,
 }
+
+var Client *gsclientgen.DefaultApi
+var ClientConfig client.Configuration
 
 func init() {
 	// Replaced by "endpoint" flag
@@ -27,5 +35,36 @@ func init() {
 // initConfig calls the config.Initialize() function
 // before any command is executed.
 func initConfig(cmd *cobra.Command, args []string) error {
-	return config.Initialize(cmdConfigDirPath)
+	err := config.Initialize(cmdConfigDirPath)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	err = initClient()
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	return nil
+}
+
+func initClient() error {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
+
+	ClientConfig = client.Configuration{
+		AuthHeader: scheme + " " + token,
+		Endpoint:   endpoint,
+		Timeout:    10 * time.Second,
+		UserAgent:  config.UserAgent(),
+	}
+
+	var err error
+	Client, err = client.NewClient(ClientConfig)
+	if err != nil {
+		return microerror.Maskf(couldNotCreateClientError, err.Error())
+	}
+
+	return nil
 }

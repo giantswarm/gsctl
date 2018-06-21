@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/bradfitz/slice"
 	"github.com/coreos/go-semver/semver"
@@ -13,7 +12,6 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -149,18 +147,7 @@ func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 	result := listReleasesResult{}
 
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		Timeout:   10 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
-
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Mask(couldNotCreateClientError)
-	}
-	authHeader := args.scheme + " " + args.token
-	releasesResponse, apiResponse, err := apiClient.GetReleases(authHeader,
+	releasesResponse, apiResponse, err := Client.GetReleases(ClientConfig.AuthHeader,
 		requestIDHeader, listReleasesActivityName, cmdLine)
 
 	if err != nil {

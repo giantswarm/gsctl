@@ -30,6 +30,9 @@ func Test_ListReleases_Empty(t *testing.T) {
 		token:       "my-token",
 	}
 
+	cmdAPIEndpoint = releasesMockServer.URL
+	initClient()
+
 	err = listReleasesPreconditions(&args)
 	if err != nil {
 		t.Error(err)
@@ -90,6 +93,9 @@ func Test_ListReleases_NotFound(t *testing.T) {
 		apiEndpoint: releasesMockServer.URL,
 		token:       "my-token",
 	}
+
+	cmdAPIEndpoint = releasesMockServer.URL
+	initClient()
 
 	err = listReleasesPreconditions(&args)
 	if err != nil {
@@ -249,6 +255,9 @@ func Test_ListReleases_Nonempty(t *testing.T) {
 		apiEndpoint: releasesMockServer.URL,
 		token:       "my-token",
 	}
+
+	cmdAPIEndpoint = releasesMockServer.URL
+	initClient()
 
 	err = listReleasesPreconditions(&args)
 	if err != nil {

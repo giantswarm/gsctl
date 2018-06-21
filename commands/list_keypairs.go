@@ -14,7 +14,6 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -178,18 +177,7 @@ func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
 func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
 	result := listKeypairsResult{}
 
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		Timeout:   20 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
-
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Mask(couldNotCreateClientError)
-	}
-	authHeader := args.scheme + " " + args.token
-	keypairsResponse, apiResponse, err := apiClient.GetKeyPairs(authHeader,
+	keypairsResponse, apiResponse, err := Client.GetKeyPairs(ClientConfig.AuthHeader,
 		cmdClusterID, requestIDHeader, listKeypairsActivityName, cmdLine)
 
 	if err != nil {

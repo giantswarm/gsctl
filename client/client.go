@@ -19,6 +19,8 @@ var (
 
 // Configuration is the configuration to be used when creating a new API client
 type Configuration struct {
+	// AuthHeader is the header we should use to make API calls
+	AuthHeader string
 	// Endpoint is the base URL of the API
 	Endpoint string
 	// Timeout is the maximum time to wait for API requests to succeed

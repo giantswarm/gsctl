@@ -74,6 +74,9 @@ func Test_CreateKubeconfig(t *testing.T) {
 		contextName: "giantswarm-test-cluster-id",
 	}
 
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
 	if err != nil {
 		t.Error(err)
@@ -142,6 +145,9 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 		contextName:       "giantswarm-test-cluster-id",
 		selfContainedPath: tmpdir + string(os.PathSeparator) + "kubeconfig",
 	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
 	if err != nil {
@@ -217,6 +223,9 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 		clusterID:   "test-cluster-id",
 		contextName: "test-context",
 	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
 	if err != nil {

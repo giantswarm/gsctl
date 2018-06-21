@@ -38,6 +38,9 @@ func Test_CreateKeypair(t *testing.T) {
 		authToken:   "test-token",
 	}
 
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
 	err = verifyCreateKeypairPreconditions(args)
 	if err != nil {
 		t.Error(err)

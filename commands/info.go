@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
@@ -11,7 +10,6 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 )
 
@@ -71,7 +69,6 @@ func init() {
 
 // printInfo prints some information on the current user and configuration
 func printInfo(cmd *cobra.Command, args []string) {
-
 	infoArgs := defaultInfoArguments()
 	result, err := info(infoArgs)
 
@@ -179,17 +176,7 @@ func info(args infoArguments) (infoResult, error) {
 
 	// get more info from API
 	if args.apiEndpoint != "" {
-		clientConfig := client.Configuration{
-			Endpoint:  args.apiEndpoint,
-			Timeout:   5 * time.Second,
-			UserAgent: config.UserAgent(),
-		}
-		apiClient, clientErr := client.NewClient(clientConfig)
-		if clientErr != nil {
-			return result, microerror.Mask(clientErr)
-		}
-		authHeader := args.scheme + " " + args.token
-		infoResponse, _, infoErr := apiClient.GetInfo(authHeader, requestIDHeader, infoActivityName, cmdLine)
+		infoResponse, _, infoErr := Client.GetInfo(ClientConfig.AuthHeader, requestIDHeader, infoActivityName, cmdLine)
 		if infoErr != nil {
 			return result, microerror.Mask(infoErr)
 		}

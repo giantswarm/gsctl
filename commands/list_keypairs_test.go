@@ -18,6 +18,10 @@ func Test_ListKeypairs_NotLoggedIn(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	args := listKeypairsArguments{}
+
+	cmdAPIEndpoint = ""
+	initClient()
+
 	err = listKeypairsValidate(&args)
 	if err == nil {
 		t.Error("No error thrown where we expected an error.")
@@ -46,6 +50,9 @@ func Test_ListKeypairs_Empty(t *testing.T) {
 	args.apiEndpoint = keyPairsMockServer.URL
 	args.token = "my-token"
 	args.clusterID = "my-cluster"
+
+	cmdAPIEndpoint = keyPairsMockServer.URL
+	initClient()
 
 	err = listKeypairsValidate(&args)
 	if err != nil {
@@ -81,6 +88,9 @@ func Test_ListKeypairs_NotFound(t *testing.T) {
 	args.apiEndpoint = keyPairsMockServer.URL
 	args.token = "my-token"
 	args.clusterID = "unknown-cluster"
+
+	cmdAPIEndpoint = keyPairsMockServer.URL
+	initClient()
 
 	err = listKeypairsValidate(&args)
 	if err != nil {
@@ -130,6 +140,9 @@ func Test_ListKeyPairs_Nonempty(t *testing.T) {
 	args.apiEndpoint = keyPairsMockServer.URL
 	args.token = "my-token"
 	args.clusterID = "my-cluster"
+
+	cmdAPIEndpoint = keyPairsMockServer.URL
+	initClient()
 
 	err = listKeypairsValidate(&args)
 	if err != nil {

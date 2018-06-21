@@ -58,6 +58,9 @@ func Test_LoginValidPassword(t *testing.T) {
 		password:    "test password",
 	}
 
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
 	result, err := login(args)
 	if err != nil {
 		t.Error(err)
@@ -107,6 +110,9 @@ func Test_LoginInvalidPassword(t *testing.T) {
 		password:    "bad password",
 	}
 
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
 	_, err = login(args)
 	if !IsInvalidCredentialsError(err) {
 		t.Errorf("Expected error %q, got %v", invalidCredentialsError, err)
@@ -149,6 +155,9 @@ selected_endpoint: "` + mockServer.URL + `"
 		email:       "email@example.com",
 		password:    "test password",
 	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	result, loginErr := login(args)
 	if loginErr != nil {
@@ -194,6 +203,9 @@ func Test_LoginInactiveAccount(t *testing.T) {
 		email:       "developer@giantswarm.io",
 		password:    "test password",
 	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	_, err = login(args)
 	if err == nil {

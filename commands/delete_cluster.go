@@ -8,7 +8,6 @@ import (
 	"github.com/giantswarm/microerror"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/spf13/cobra"
 )
@@ -155,19 +154,8 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		}
 	}
 
-	// prepare API client
-	authHeader := args.scheme + " " + args.token
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return false, microerror.Mask(couldNotCreateClientError)
-	}
-
 	// perform API call
-	responseBody, rawResponse, err := apiClient.DeleteCluster(authHeader,
+	responseBody, rawResponse, err := Client.DeleteCluster(ClientConfig.AuthHeader,
 		args.clusterID, requestIDHeader, createClusterActivityName, cmdLine)
 	if err != nil {
 		if rawResponse.Response != nil && rawResponse.Response.StatusCode == http.StatusForbidden {

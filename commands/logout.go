@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/fatih/color"
 	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 )
 
@@ -96,18 +94,7 @@ func logout(args logoutArguments) error {
 		return nil
 	}
 
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		Timeout:   10 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return microerror.Mask(couldNotCreateClientError)
-	}
-
-	authHeader := "giantswarm " + args.token
-	logoutResponse, apiResponse, err := apiClient.UserLogout(authHeader, requestIDHeader, logoutActivityName, cmdLine)
+	logoutResponse, apiResponse, err := Client.UserLogout(ClientConfig.AuthHeader, requestIDHeader, logoutActivityName, cmdLine)
 	if err != nil {
 
 		if apiResponse == nil || apiResponse.Response == nil {

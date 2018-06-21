@@ -18,13 +18,16 @@ func TestDeleteClusterSuccess(t *testing.T) {
 	defer mockServer.Close()
 
 	var testCases = []deleteClusterArguments{
-		deleteClusterArguments{
+		{
 			apiEndpoint: mockServer.URL,
 			clusterID:   "somecluster",
 			token:       "fake token",
 			force:       true,
 		},
 	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	for i, testCase := range testCases {
 		validateErr := validateDeleteClusterPreConditions(testCase)
@@ -47,14 +50,14 @@ type failTestCase struct {
 // TestDeleteClusterFailures runs test case that are supposed to fail
 func TestDeleteClusterFailures(t *testing.T) {
 	var failTestCases = []failTestCase{
-		failTestCase{
+		{
 			arguments: deleteClusterArguments{
 				clusterID: "somecluster",
 				token:     "",
 			},
 			expectedError: notLoggedInError,
 		},
-		failTestCase{
+		{
 			arguments: deleteClusterArguments{
 				clusterID: "",
 				token:     "some token",
