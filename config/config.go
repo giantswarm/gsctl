@@ -542,7 +542,7 @@ func GetDefaultCluster(requestIDHeader, activityName, cmdLine, apiEndpoint strin
 		return "", microerror.Mask(clientErr)
 	}
 
-	authHeader := "giantswarm " + Config.Token
+	authHeader := Config.Scheme + " " + Config.Token
 
 	clustersResponse, _, err := apiClient.GetClusters(authHeader, requestIDHeader, activityName, cmdLine)
 	if err != nil {
