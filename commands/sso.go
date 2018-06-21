@@ -146,7 +146,7 @@ func authorizationURL(codeChallenge string) string {
 
 	params := url.Values{}
 	params.Set("audience", "giantswarm-api")
-	params.Set("scope", "openid email profile user_metadata https://giantswarm.io")
+	params.Set("scope", "openid email profile user_metadata https://giantswarm.io offline_access")
 	params.Set("response_type", "code")
 	params.Set("client_id", clientID)
 	params.Set("code_challenge", base64URLEncode(codeChallenge))
@@ -182,11 +182,12 @@ func startCallbackServer(codeCh chan string) http.Server {
 }
 
 type tokenResponse struct {
-	AccessToken string `json:"access_token"`
-	ExpiresIn   string `json:"expires_in"`
-	IDToken     string `json:"id_token"`
-	Scope       string `json:"scope"`
-	TokenType   string `json:"token_type"`
+	AccessToken  string `json:"access_token"`
+	ExpiresIn    string `json:"expires_in"`
+	IDToken      string `json:"id_token"`
+	Scope        string `json:"scope"`
+	TokenType    string `json:"token_type"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 // getToken performs a POST call to auth0 as the final step of the
