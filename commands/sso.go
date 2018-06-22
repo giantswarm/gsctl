@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cenkalti/backoff"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
@@ -28,11 +30,10 @@ import (
 var (
 	// SSOCommand performs the "sso" function
 	SSOCommand = &cobra.Command{
-		Use:    "sso",
-		Short:  "Single Sign on for Admins",
-		Long:   `Prints a list of all clusters you have access to`,
-		PreRun: ssoPreRunOutput,
-		Run:    ssoRunOutput,
+		Use:   "sso",
+		Short: "Single Sign on for Admins",
+		Long:  `Prints a list of all clusters you have access to`,
+		Run:   ssoRunOutput,
 	}
 )
 
@@ -57,9 +58,6 @@ func defaultSSOArguments() ssoArguments {
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	RootCommand.AddCommand(SSOCommand)
-}
-
-func ssoPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 }
 
 func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
@@ -105,7 +103,16 @@ func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		os.Exit(1)
 	}
 
-	// Check if the token works by fetching the installation's name.
+	// Try to parse the ID Token.
+	idToken, err := parseIdToken(tokenResponse.IDToken)
+	if err != nil {
+		fmt.Println(color.RedString("\nSomething went wrong during SSO."))
+		fmt.Println("Unable to parse the ID Token.")
+		fmt.Println("Please notify the Giant Swarm support team, or try the command again in a few moments.")
+		os.Exit(1)
+	}
+
+	// Check if the access token works by fetching the installation's name.
 	clientConfig := client.Configuration{
 		Endpoint:  args.apiEndpoint,
 		Timeout:   10 * time.Second,
@@ -132,7 +139,7 @@ func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	alias := infoResponse.General.InstallationName
 
 	// Store the token in the config file.
-	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, alias, "TOKEN", "Bearer", tokenResponse.AccessToken); err != nil {
+	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, alias, idToken.Email, "Bearer", tokenResponse.AccessToken); err != nil {
 		fmt.Println(color.RedString("\nSomething went while trying to store the token."))
 		fmt.Println(err.Error())
 		fmt.Println("Please notify the Giant Swarm support team, or try the command again in a few moments.")
@@ -140,7 +147,7 @@ func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	fmt.Println(color.GreenString("\nYou are logged in as %s at %s.",
-		"PENDING", args.apiEndpoint))
+		idToken.Email, args.apiEndpoint))
 }
 
 // base64URLEncode encodes a string into URL safe base64.
@@ -272,4 +279,95 @@ func getToken(code, codeVerifier string) (tokenResponse tokenResponse, err error
 	}
 
 	return tokenResponse, nil
+}
+
+type IDToken struct {
+	Email string
+}
+
+func parseIdToken(tokenString string) (token IDToken, err error) {
+	// Parse takes the token string and a function for looking up the key. The latter is especially
+	// useful if you use multiple keys for your application.  The standard is to use 'kid' in the
+	// head of the token to identify which key to use, but the parsed token (head and claims) is provided
+	// to the callback, providing flexibility.
+	t, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		cert, err := getPemCert(token, "https://giantswarm.eu.auth0.com/.well-known/jwks.json")
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		result, _ := jwt.ParseRSAPublicKeyFromPEM([]byte(cert))
+
+		return result, nil
+	})
+
+	if claims, ok := t.Claims.(jwt.MapClaims); ok && t.Valid {
+		if claims["email"] != nil {
+			token.Email = claims["email"].(string)
+		}
+	} else {
+		fmt.Println(err)
+	}
+
+	return token, nil
+}
+
+type Jwks struct {
+	Keys []JSONWebKeys `json:"keys"`
+}
+
+type JSONWebKeys struct {
+	Kty string   `json:"kty"`
+	Kid string   `json:"kid"`
+	Use string   `json:"use"`
+	N   string   `json:"n"`
+	E   string   `json:"e"`
+	X5c []string `json:"x5c"`
+}
+
+// Fetch public keys at a known jwks url and find the public key that corresponds
+// to the private key that was used to sign a given jwt token.
+// `kid` is a jwt header claim which holds a key identifier, it lets us find the key
+// that was used to sign the token in the jwks response.
+func getPemCert(token *jwt.Token, jwksURL string) (string, error) {
+	var cert = ""
+	var jwks = Jwks{}
+
+	op := func() error {
+		resp, err := http.Get(jwksURL)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+		defer resp.Body.Close()
+
+		err = json.NewDecoder(resp.Body).Decode(&jwks)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+
+		return nil
+	}
+
+	backOff := backoff.WithMaxRetries(
+		backoff.NewExponentialBackOff(),
+		3,
+	)
+	err := backoff.Retry(op, backOff)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	x5c := jwks.Keys[0].X5c
+	for k, v := range x5c {
+		if token.Header["kid"] == jwks.Keys[k].Kid {
+			cert = "-----BEGIN CERTIFICATE-----\n" + v + "\n-----END CERTIFICATE-----"
+			break
+		}
+	}
+
+	if cert == "" {
+		return "", microerror.Maskf(unknownError, "Unable to find a certificate that corresponds to this token.")
+	}
+
+	return cert, nil
 }
