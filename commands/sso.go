@@ -12,12 +12,14 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/microerror"
 	"github.com/gobuffalo/packr"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/spf13/cobra"
@@ -37,7 +39,7 @@ var (
 const (
 	activityName = "sso"
 	clientID     = "zQiFLUnrTFQwrybYzeY53hWWfhOKWRAU"
-	redirectURI  = "http://localhost:8085"
+	redirectURI  = "http://localhost:8085/oauth/callback"
 )
 
 type ssoArguments struct {
@@ -63,12 +65,6 @@ func ssoPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultSSOArguments()
 
-	// Start a local webserver that auth0 can redirect to with the code
-	// that we will then exchange for the actual id token.
-	// Credit: https://medium.com/@int128/shutdown-http-server-by-endpoint-in-go-2a0e2d7f9b8c
-	codeCh := make(chan string)
-	callbackServer := startCallbackServer(codeCh)
-
 	// Construct and open the authorization url.
 	// 		1. Generate and store a random codeVerifier.
 	codeVerifier := base64URLEncode(fmt.Sprint(rand.Int31()))
@@ -80,25 +76,33 @@ func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	// 		3. Use the codeChallenge to make a authorizationURL
 	authorizationURL := authorizationURL(string(codeChallenge[:]))
 
+	// Start a local webserver that auth0 can redirect to with the code
+	// that we will then exchange for the actual id token.
+	// Credit: https://medium.com/@int128/shutdown-http-server-by-endpoint-in-go-2a0e2d7f9b8c
+	tokenResponseCh := make(chan tokenResponse)
+	callbackServer := startCallbackServer(tokenResponseCh, codeVerifier)
+
 	// Open the authorization url in the users browser, which will eventually
 	// redirect the user to the local webserver created above.
 	open.Run(authorizationURL)
 
-	// Block until we recieve a code from auth0. (In other words, localhost:8085
+	fmt.Println(color.YellowString("\nYour browser should now be opening:"))
+	fmt.Println(authorizationURL)
+
+	// Block until we recieve a token from auth0. (In other words, localhost:8085
 	// is hit thanks to auth0's redirect by the users browser with /?code=XXXXXXXX)
-	var code string
+	var tokenResponse tokenResponse
 	select {
-	case code = <-codeCh:
-		// Code recieved, shutdown.
+	case tokenResponse = <-tokenResponseCh:
+		// Token response recieved, shutdown.
 		callbackServer.Shutdown(context.Background())
 	}
 
-	// We now have the 'code' which we can then finally exchange
-	// for a real id token by doing a final request to Auth0 and passing the code
-	// along with the codeVerifier we made at the start.
-	tokenResponse, err := getToken(code, codeVerifier)
-	if err != nil {
-		panic(err)
+	if tokenResponse.Error != "" {
+		fmt.Println(color.RedString("\nSomething went wrong during SSO."))
+		fmt.Println(tokenResponse.Error + ": " + tokenResponse.ErrorDescription)
+		fmt.Println("Please notify the Giant Swarm support team, or try the command again in a few moments.\n")
+		os.Exit(1)
 	}
 
 	// Check if the token works by fetching the installation's name
@@ -107,8 +111,8 @@ func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		Timeout:   10 * time.Second,
 		UserAgent: config.UserAgent(),
 	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
+	apiClient, err := client.NewClient(clientConfig)
+	if err != nil {
 		panic(err)
 	}
 
@@ -121,14 +125,12 @@ func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	alias := infoResponse.General.InstallationName
 
-	fmt.Println(alias)
-
 	// Store the token in the config file.
 	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, alias, "TOKEN", "Bearer", tokenResponse.AccessToken); err != nil {
 		panic(err)
 	}
 
-	fmt.Println(color.GreenString("You are logged in as %s at %s.",
+	fmt.Println(color.GreenString("\nYou are logged in as %s at %s.",
 		"PENDING-GET-EMAIL-FROM-ID-TOKEN", args.apiEndpoint))
 }
 
@@ -167,15 +169,26 @@ func authorizationURL(codeChallenge string) string {
 // /?code=XXXXXXXX
 //
 // Once it recieves this code it will pass it along to the given channel.
-func startCallbackServer(codeCh chan string) http.Server {
+func startCallbackServer(tokenResponseCh chan tokenResponse, codeVerifier string) http.Server {
 	box := packr.NewBox("../html")
 
 	m := http.NewServeMux()
 	s := http.Server{Addr: ":8085", Handler: m}
-	m.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(box.Bytes("sso_complete.html")))
+	m.HandleFunc("/oauth/callback", func(w http.ResponseWriter, r *http.Request) {
 		// Send query parameter to the channel
-		codeCh <- r.URL.Query().Get("code")
+		code := r.URL.Query().Get("code")
+
+		// We now have the 'code' which we can then finally exchange
+		// for a real id token by doing a final request to Auth0 and passing the code
+		// along with the codeVerifier we made at the start.
+		tokenResponse, err := getToken(code, codeVerifier)
+		if err != nil {
+			http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(box.Bytes("sso_failed.html")))
+		} else {
+			http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(box.Bytes("sso_complete.html")))
+		}
+
+		tokenResponseCh <- tokenResponse
 	})
 
 	go func() {
@@ -188,12 +201,14 @@ func startCallbackServer(codeCh chan string) http.Server {
 }
 
 type tokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	ExpiresIn    string `json:"expires_in"`
-	IDToken      string `json:"id_token"`
-	Scope        string `json:"scope"`
-	TokenType    string `json:"token_type"`
-	RefreshToken string `json:"refresh_token"`
+	AccessToken      string `json:"access_token"`
+	ExpiresIn        string `json:"expires_in"`
+	IDToken          string `json:"id_token"`
+	Scope            string `json:"scope"`
+	TokenType        string `json:"token_type"`
+	RefreshToken     string `json:"refresh_token"`
+	Error            string `json:"error"`
+	ErrorDescription string `json:"error_description"`
 }
 
 // getToken performs a POST call to auth0 as the final step of the
@@ -210,20 +225,41 @@ func getToken(code, codeVerifier string) (tokenResponse tokenResponse, err error
 
 	req, err := http.NewRequest("POST", tokenURL, payload)
 	if err != nil {
-		panic(err)
+		tokenResponse.Error = "unknown_error"
+		tokenResponse.ErrorDescription = "Unable to construct POST request for Auth0."
+		return tokenResponse, microerror.Maskf(unknownError, tokenResponse.Error)
 	}
 
 	req.Header.Add("content-type", "application/json")
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		panic(err)
+		tokenResponse.Error = "unknown_error"
+		tokenResponse.ErrorDescription = "Unable to perform POST request to Auth0."
+		return tokenResponse, microerror.Maskf(unknownError, tokenResponse.Error)
 	}
 
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		tokenResponse.Error = "unknown_error"
+		tokenResponse.ErrorDescription = "Got an unparseable error from Auth0. Possibly the Auth0 service is down. Try again later."
+		return tokenResponse, microerror.Maskf(unknownError, tokenResponse.Error)
+	}
 
 	json.Unmarshal(body, &tokenResponse)
+
+	// This is a real error from Auth0, in this case we have Error and ErrorDescription
+	// set by what Auth0 sent us.
+	if tokenResponse.Error != "" {
+		return tokenResponse, microerror.Maskf(unknownError, tokenResponse.Error)
+	}
+
+	if res.StatusCode != 200 {
+		tokenResponse.Error = "unknown_error"
+		tokenResponse.ErrorDescription = "Got an unparseable error from Auth0. Possibly the Auth0 service is down. Try again later."
+		return tokenResponse, microerror.Maskf(unknownError, tokenResponse.Error)
+	}
 
 	return tokenResponse, nil
 }

@@ -8,4 +8,3 @@ The files get compiled into a binary file in the `commands` package
 by running the `packr` command.
 
 To learn more about `packr`, visit: https://github.com/gobuffalo/packr
-I
