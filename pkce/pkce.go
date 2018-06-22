@@ -54,7 +54,7 @@ func Run() (pkceResponse, error) {
 	authorizationURL := authorizationURL(string(codeChallenge[:]))
 
 	// Open the authorization url in the user's browser, which will eventually
-	// redirect the user to the local webserver created above.
+	// redirect the user to the local webserver we'll create next.
 	open.Run(authorizationURL)
 
 	fmt.Println(color.YellowString("\nYour browser should now be opening:"))
@@ -66,6 +66,7 @@ func Run() (pkceResponse, error) {
 	pkceResponseCh := make(chan pkceResponse)
 	callbackServer := startCallbackServer("8085", "/oauth/callback", func(code string, w http.ResponseWriter, r *http.Request) {
 		box := packr.NewBox("../html")
+
 		// We now have the 'code' which we can then finally exchange
 		// for a real id token by doing a final request to Auth0 and passing the code
 		// along with the codeVerifier we made at the start.
@@ -79,12 +80,12 @@ func Run() (pkceResponse, error) {
 		pkceResponseCh <- pkceResponse
 	})
 
-	// Block until we recieve a token from auth0. (In other words, localhost:8085
-	// is hit thanks to auth0's redirect by the users browser with /?code=XXXXXXXX)
+	// Block until we recieve a token from auth0. (In other words, until the callback
+	// above is hit and a pkceResponse is sent down the channel.
 	var pkceResponse pkceResponse
 	select {
 	case pkceResponse = <-pkceResponseCh:
-		// Token response recieved, shutdown.
+		// Token response recieved, shutdown the callback server.
 		callbackServer.Shutdown(context.Background())
 	}
 

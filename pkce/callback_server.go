@@ -5,13 +5,16 @@ import (
 	"net/http"
 )
 
-// startCallbackServer starts the callback server listening at port 8085.
-// As part of the authorization code grant flow, it expects a redirect from
+// startCallbackServer starts the callback server listening at a specific port
+// and path.
+//
+// It is used as part of the authorization code grant flow, it expects a redirect from
 // the authorization server (Auth0) with a code in the query like:
 // /?code=XXXXXXXX
 //
-// Once it recieves this code it try to exhange it for a token
-// and will pass the token along to the given channel.
+// Once it recieves this code it calls the provided callback with it, letting
+// the callback function handle what to do next (which should be attempting
+// to change the code for an access token and id token).
 func startCallbackServer(port string, redirectURI string, callback func(code string, w http.ResponseWriter, r *http.Request)) http.Server {
 	m := http.NewServeMux()
 	s := http.Server{Addr: ":" + port, Handler: m}
