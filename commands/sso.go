@@ -65,7 +65,7 @@ func ssoPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultSSOArguments()
 
-	// Construct and open the authorization url.
+	// Construct the authorization url.
 	// 		1. Generate and store a random codeVerifier.
 	codeVerifier := base64URLEncode(fmt.Sprint(rand.Int31()))
 
@@ -105,7 +105,7 @@ func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		os.Exit(1)
 	}
 
-	// Check if the token works by fetching the installation's name
+	// Check if the token works by fetching the installation's name.
 	clientConfig := client.Configuration{
 		Endpoint:  args.apiEndpoint,
 		Timeout:   10 * time.Second,
@@ -113,21 +113,30 @@ func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 	apiClient, err := client.NewClient(clientConfig)
 	if err != nil {
-		panic(err)
+		fmt.Println(color.RedString("\nSomething went wrong during SSO."))
+		fmt.Println("Unable to verify token by fetching installation details.")
+		fmt.Println("Please notify the Giant Swarm support team, or try the command again in a few moments.")
+		os.Exit(1)
 	}
 
-	// fetch installation name as alias
+	// Fetch installation name as alias.
 	authHeader := "Bearer " + tokenResponse.AccessToken
 	infoResponse, _, infoErr := apiClient.GetInfo(authHeader, requestIDHeader, loginActivityName, cmdLine)
 	if infoErr != nil {
-		panic(err)
+		fmt.Println(color.RedString("\nSomething went wrong during SSO."))
+		fmt.Println("Unable to verify token by fetching installation details.")
+		fmt.Println("Please notify the Giant Swarm support team, or try the command again in a few moments.")
+		os.Exit(1)
 	}
 
 	alias := infoResponse.General.InstallationName
 
 	// Store the token in the config file.
 	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, alias, "TOKEN", "Bearer", tokenResponse.AccessToken); err != nil {
-		panic(err)
+		fmt.Println(color.RedString("\nSomething went while trying to store the token."))
+		fmt.Println(err.Error())
+		fmt.Println("Please notify the Giant Swarm support team, or try the command again in a few moments.")
+		os.Exit(1)
 	}
 
 	fmt.Println(color.GreenString("\nYou are logged in as %s at %s.",
@@ -168,14 +177,15 @@ func authorizationURL(codeChallenge string) string {
 // the authorization server (Auth0) with a code in the query like:
 // /?code=XXXXXXXX
 //
-// Once it recieves this code it will pass it along to the given channel.
+// Once it recieves this code it try to exhange it for a token
+// and will pass the token along to the given channel.
 func startCallbackServer(tokenResponseCh chan tokenResponse, codeVerifier string) http.Server {
 	box := packr.NewBox("../html")
 
 	m := http.NewServeMux()
 	s := http.Server{Addr: ":8085", Handler: m}
 	m.HandleFunc("/oauth/callback", func(w http.ResponseWriter, r *http.Request) {
-		// Send query parameter to the channel
+		// Get the code that Auth0 gave us.
 		code := r.URL.Query().Get("code")
 
 		// We now have the 'code' which we can then finally exchange
