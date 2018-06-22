@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -14,8 +15,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/gobuffalo/packr"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/spf13/cobra"
 )
@@ -110,14 +113,14 @@ func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	// fetch installation name as alias
-	authHeader := "Bearer " + tokenResponse.IDToken
+	authHeader := "Bearer " + tokenResponse.AccessToken
 	infoResponse, _, infoErr := apiClient.GetInfo(authHeader, requestIDHeader, loginActivityName, cmdLine)
 	if infoErr != nil {
 		panic(err)
 	}
 
 	alias := infoResponse.General.InstallationName
-	fmt.Println(infoResponse)
+
 	fmt.Println(alias)
 
 	// Store the token in the config file.
@@ -125,7 +128,8 @@ func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		panic(err)
 	}
 
-	fmt.Println(tokenResponse.AccessToken)
+	fmt.Println(color.GreenString("You are logged in as %s at %s.",
+		"PENDING-GET-EMAIL-FROM-ID-TOKEN", args.apiEndpoint))
 }
 
 // base64URLEncode encodes a string into URL safe base64.
@@ -164,10 +168,12 @@ func authorizationURL(codeChallenge string) string {
 //
 // Once it recieves this code it will pass it along to the given channel.
 func startCallbackServer(codeCh chan string) http.Server {
+	box := packr.NewBox("../html")
+
 	m := http.NewServeMux()
 	s := http.Server{Addr: ":8085", Handler: m}
 	m.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Authorization complete, you may now close this window."))
+		http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(box.Bytes("sso_complete.html")))
 		// Send query parameter to the channel
 		codeCh <- r.URL.Query().Get("code")
 	})

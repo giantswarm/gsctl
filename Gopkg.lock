@@ -50,6 +50,12 @@
   revision = "325932fa68e70dd4464598f11e2f710ac1aaec46"
 
 [[projects]]
+  name = "github.com/gobuffalo/packr"
+  packages = ["."]
+  revision = "bd47f2894846e32edcf9aa37290fef76c327883f"
+  version = "v1.11.1"
+
+[[projects]]
   branch = "master"
   name = "github.com/hashicorp/go-rootcerts"
   packages = ["."]
@@ -90,6 +96,18 @@
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/skratchdot/open-golang"
+  packages = ["open"]
+  revision = "75fb7ed4208cf72d323d7d02fd1a5964a7a9073c"
 
 [[projects]]
   branch = "master"
@@ -169,6 +187,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ea2a0e5b7264c092f18bc4453e21a3252f415d3c01147b929da08487303c685d"
+  inputs-digest = "8e96d7c54bbc3994f01d7207536907ca3af7394ee90ad0855f20c86cca8c2302"
   solver-name = "gps-cdcl"
   solver-version = 1
