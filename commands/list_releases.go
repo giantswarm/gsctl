@@ -149,7 +149,6 @@ func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 
 	releasesResponse, apiResponse, err := Client.GetReleases(ClientConfig.AuthHeader,
 		requestIDHeader, listReleasesActivityName, cmdLine)
-
 	if err != nil {
 		if apiResponse == nil || apiResponse.Response == nil {
 			return result, microerror.Mask(noResponseError)

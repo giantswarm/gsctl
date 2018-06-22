@@ -57,6 +57,7 @@ func listOrgs(cmd *cobra.Command, args []string) {
 // orgsTable fetches the organizations the user is a member of
 // and returns a table in string form
 func orgsTable() (string, error) {
+
 	organizations, apiResponse, err := Client.GetUserOrganizations(ClientConfig.AuthHeader, requestIDHeader, listOrganizationsActivityName, cmdLine)
 	if err != nil {
 		return "", APIError{err.Error(), *apiResponse}
