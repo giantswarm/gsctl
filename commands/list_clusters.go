@@ -36,15 +36,18 @@ const (
 type listClustersArguments struct {
 	apiEndpoint string
 	authToken   string
+	scheme      string
 }
 
 func defaultListClustersArguments() listClustersArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
 
 	return listClustersArguments{
 		apiEndpoint: endpoint,
 		authToken:   token,
+		scheme:      scheme,
 	}
 }
 
@@ -105,7 +108,7 @@ func clustersTable(args listClustersArguments) (string, error) {
 	if clientErr != nil {
 		return "", microerror.Mask(couldNotCreateClientError)
 	}
-	authHeader := "giantswarm " + args.authToken
+	authHeader := args.scheme + " " + args.authToken
 
 	clusters, apiResponse, err := apiClient.GetClusters(authHeader,
 		requestIDHeader, listClustersActivityName, cmdLine)

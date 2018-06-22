@@ -16,6 +16,7 @@ import (
 // listing endpoints and printing endpoints lists
 type listEndpointsArguments struct {
 	apiEndpoint string
+	scheme      string
 	token       string
 }
 
@@ -39,9 +40,11 @@ func init() {
 func defaultListEndpointArguments() listEndpointsArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
 	return listEndpointsArguments{
 		apiEndpoint: endpoint,
 		token:       token,
+		scheme:      scheme,
 	}
 }
 

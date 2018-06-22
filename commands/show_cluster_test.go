@@ -40,6 +40,7 @@ func TestShowAWSCluster(t *testing.T) {
 	testArgs := showClusterArguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "cluster-id",
+		scheme:      "giantswarm",
 		authToken:   "my-token",
 	}
 
@@ -49,7 +50,7 @@ func TestShowAWSCluster(t *testing.T) {
 	}
 
 	details, showErr := getClusterDetails(testArgs.clusterID,
-		testArgs.authToken, testArgs.apiEndpoint)
+		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
 	if showErr != nil {
 		t.Error(showErr)
 	}
@@ -81,6 +82,7 @@ func TestShowClusterNotAuthorized(t *testing.T) {
 	testArgs := showClusterArguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "cluster-id",
+		scheme:      "giantswarm",
 		authToken:   "my-wrong-token",
 	}
 
@@ -90,7 +92,7 @@ func TestShowClusterNotAuthorized(t *testing.T) {
 	}
 
 	_, err = getClusterDetails(testArgs.clusterID,
-		testArgs.authToken, testArgs.apiEndpoint)
+		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
 
 	if err == nil {
 		t.Fatal("Expected notAuthorizedError, got nil")
@@ -122,6 +124,7 @@ func TestShowClusterNotFound(t *testing.T) {
 	testArgs := showClusterArguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "non-existing-cluster-id",
+		scheme:      "giantswarm",
 		authToken:   "my-token",
 	}
 
@@ -131,7 +134,7 @@ func TestShowClusterNotFound(t *testing.T) {
 	}
 
 	_, err = getClusterDetails(testArgs.clusterID,
-		testArgs.authToken, testArgs.apiEndpoint)
+		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
 
 	if err == nil {
 		t.Fatal("Expected clusterNotFoundError, got nil")
@@ -163,6 +166,7 @@ func TestShowClusterInternalServerError(t *testing.T) {
 	testArgs := showClusterArguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "non-existing-cluster-id",
+		scheme:      "giantswarm",
 		authToken:   "my-token",
 	}
 
@@ -172,7 +176,7 @@ func TestShowClusterInternalServerError(t *testing.T) {
 	}
 
 	_, err = getClusterDetails(testArgs.clusterID,
-		testArgs.authToken, testArgs.apiEndpoint)
+		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
 
 	if err == nil {
 		t.Fatal("Expected internalServerError, got nil")

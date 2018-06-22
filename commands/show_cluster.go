@@ -44,6 +44,7 @@ const (
 type showClusterArguments struct {
 	apiEndpoint string
 	authToken   string
+	scheme      string
 	clusterID   string
 	verbose     bool
 }
@@ -51,10 +52,12 @@ type showClusterArguments struct {
 func defaultShowClusterArguments() showClusterArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
 
 	return showClusterArguments{
 		apiEndpoint: endpoint,
 		authToken:   token,
+		scheme:      scheme,
 		clusterID:   "",
 		verbose:     cmdVerbose,
 	}
@@ -90,11 +93,11 @@ func verifyShowClusterPreconditions(args showClusterArguments, cmdLineArgs []str
 }
 
 // getClusterDetails returns details for one cluster.
-func getClusterDetails(clusterID, token, endpoint string) (gsclientgen.V4ClusterDetailsModel, error) {
+func getClusterDetails(clusterID, scheme, token, endpoint string) (gsclientgen.V4ClusterDetailsModel, error) {
 	result := gsclientgen.V4ClusterDetailsModel{}
 
 	// perform API call
-	authHeader := "giantswarm " + token
+	authHeader := scheme + " " + token
 	clientConfig := client.Configuration{
 		Endpoint:  endpoint,
 		UserAgent: config.UserAgent(),
@@ -163,7 +166,7 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultShowClusterArguments()
 	args.clusterID = cmdLineArgs[0]
 
-	clusterDetails, err := getClusterDetails(args.clusterID,
+	clusterDetails, err := getClusterDetails(args.clusterID, args.scheme,
 		args.authToken, args.apiEndpoint)
 
 	if err != nil {

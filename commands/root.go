@@ -20,6 +20,7 @@ func init() {
 
 	RootCommand.PersistentFlags().StringVarP(&cmdAPIEndpoint, "endpoint", "e", "", "The API endpoint to use")
 	RootCommand.PersistentFlags().StringVarP(&cmdToken, "auth-token", "", "", "Authorization token to use")
+	RootCommand.PersistentFlags().StringVarP(&cmdScheme, "auth-scheme", "", "giantswarm", "Authorization scheme to use (giantswarm or Bearer, case sensitive)")
 	RootCommand.PersistentFlags().StringVarP(&cmdConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
 	RootCommand.PersistentFlags().BoolVarP(&cmdVerbose, "verbose", "v", false, "Print more information")
 }
