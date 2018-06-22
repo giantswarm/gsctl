@@ -101,7 +101,7 @@ func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	if tokenResponse.Error != "" {
 		fmt.Println(color.RedString("\nSomething went wrong during SSO."))
 		fmt.Println(tokenResponse.Error + ": " + tokenResponse.ErrorDescription)
-		fmt.Println("Please notify the Giant Swarm support team, or try the command again in a few moments.\n")
+		fmt.Println("Please notify the Giant Swarm support team, or try the command again in a few moments.")
 		os.Exit(1)
 	}
 
@@ -131,7 +131,7 @@ func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	fmt.Println(color.GreenString("\nYou are logged in as %s at %s.",
-		"PENDING-GET-EMAIL-FROM-ID-TOKEN", args.apiEndpoint))
+		"PENDING", args.apiEndpoint))
 }
 
 // base64URLEncode encodes a string into URL safe base64.
