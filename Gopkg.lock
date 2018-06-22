@@ -14,10 +14,22 @@
   revision = "d9036e2120b5ddfa53f3ebccd618c4af275f47da"
 
 [[projects]]
+  name = "github.com/cenkalti/backoff"
+  packages = ["."]
+  revision = "2ea60e5f094469f9e65adb9cd103795b73ae743e"
+  version = "v2.0.0"
+
+[[projects]]
   name = "github.com/coreos/go-semver"
   packages = ["semver"]
   revision = "8ab6407b697782a06568d4b7f1db25550ec2e4c6"
   version = "v0.2.0"
+
+[[projects]]
+  name = "github.com/dgrijalva/jwt-go"
+  packages = ["."]
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
 
 [[projects]]
   name = "github.com/fatih/color"
@@ -137,6 +149,7 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = [
+    "context",
     "idna",
     "publicsuffix"
   ]
@@ -187,6 +200,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8e96d7c54bbc3994f01d7207536907ca3af7394ee90ad0855f20c86cca8c2302"
+  inputs-digest = "e759ca9701ac32d405ef596c1866af599ccd89303ef8c2ac5bc9f8cf5986e45c"
   solver-name = "gps-cdcl"
   solver-version = 1
