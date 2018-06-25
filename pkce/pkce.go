@@ -2,7 +2,6 @@ package pkce
 
 import (
 	"bytes"
-	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -18,6 +17,10 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/gobuffalo/packr"
 	"github.com/skratchdot/open-golang/open"
+)
+
+var (
+	templates = packr.NewBox("../html")
 )
 
 const (
@@ -63,33 +66,27 @@ func Run() (pkceResponse, error) {
 	// Start a local webserver that auth0 can redirect to with the code
 	// that we will then exchange for the actual id token.
 	// Credit: https://medium.com/@int128/shutdown-http-server-by-endpoint-in-go-2a0e2d7f9b8c
-	pkceResponseCh := make(chan pkceResponse)
-	callbackServer := startCallbackServer("8085", "/oauth/callback", func(code string, w http.ResponseWriter, r *http.Request) {
-		box := packr.NewBox("../html")
+	p, err := startCallbackServer("8085", "/oauth/callback", func(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+		// Get the code that Auth0 gave us.
+		code := r.URL.Query().Get("code")
 
 		// We now have the 'code' which we can then finally exchange
 		// for a real id token by doing a final request to Auth0 and passing the code
 		// along with the codeVerifier we made at the start.
 		pkceResponse, err := getToken(code, codeVerifier)
 		if err != nil {
-			http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(box.Bytes("sso_failed.html")))
-		} else {
-			http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(box.Bytes("sso_complete.html")))
+			http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(templates.Bytes("sso_failed.html")))
+			return pkceResponse, err
 		}
 
-		pkceResponseCh <- pkceResponse
+		http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(templates.Bytes("sso_complete.html")))
+		return pkceResponse, nil
 	})
-
-	// Block until we recieve a token from auth0. (In other words, until the callback
-	// above is hit and a pkceResponse is sent down the channel.
-	var pkceResponse pkceResponse
-	select {
-	case pkceResponse = <-pkceResponseCh:
-		// Token response recieved, shutdown the callback server.
-		callbackServer.Shutdown(context.Background())
+	if err != nil {
+		return p.(pkceResponse), err
 	}
 
-	return pkceResponse, nil
+	return p.(pkceResponse), nil
 }
 
 // base64URLEncode encodes a string into URL safe base64.
