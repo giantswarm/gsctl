@@ -24,8 +24,12 @@ var (
 )
 
 const (
-	clientID    = "zQiFLUnrTFQwrybYzeY53hWWfhOKWRAU"
-	redirectURI = "http://localhost:8085/oauth/callback"
+	audience             = "giantswarm-api"
+	scope                = "openid email profile user_metadata https://giantswarm.io offline_access"
+	clientID             = "zQiFLUnrTFQwrybYzeY53hWWfhOKWRAU"
+	tokenURL             = "https://giantswarm.eu.auth0.com/oauth/token"
+	redirectURL          = "http://localhost:8085/oauth/callback"
+	authorizationURLBase = "https://giantswarm.eu.auth0.com/authorize"
 )
 
 type pkceResponse struct {
@@ -103,16 +107,17 @@ func base64URLEncode(input string) string {
 // It takes the hashed codeChallenge that starts off the authorization code grant
 // flow.
 func authorizationURL(codeChallenge string) string {
-	r := "https://giantswarm.eu.auth0.com/authorize?"
+	r := authorizationURLBase
 
 	params := url.Values{}
-	params.Set("audience", "giantswarm-api")
-	params.Set("scope", "openid email profile user_metadata https://giantswarm.io offline_access")
+	params.Set("audience", audience)
+	params.Set("scope", scope)
 	params.Set("response_type", "code")
 	params.Set("client_id", clientID)
 	params.Set("code_challenge", base64URLEncode(codeChallenge))
 	params.Set("code_challenge_method", "S256")
-	params.Set("redirect_uri", redirectURI)
+	params.Set("redirect_uri", redirectURL)
+	r += "?"
 	r += params.Encode()
 
 	return r
@@ -121,14 +126,13 @@ func authorizationURL(codeChallenge string) string {
 // getToken performs a POST call to auth0 as the final step of the
 // Authorization Code Grant Flow with PKCE.
 func getToken(code, codeVerifier string) (pkceResponse pkceResponse, err error) {
-	tokenURL := "https://giantswarm.eu.auth0.com/oauth/token"
 	payload := strings.NewReader(fmt.Sprintf(`{
     "grant_type":"authorization_code",
     "client_id": "%s",
     "code_verifier": "%s",
     "code": "%s",
     "redirect_uri": "%s"
-  }`, clientID, codeVerifier, code, redirectURI))
+  }`, clientID, codeVerifier, code, redirectURL))
 
 	req, err := http.NewRequest("POST", tokenURL, payload)
 	if err != nil {

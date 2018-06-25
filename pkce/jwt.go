@@ -19,7 +19,7 @@ type IDToken struct {
 }
 
 // ParseIdToken takes a jwt token and returns an IDToken, which is just a custom
-// struct with only the email claim in it. Since that is all the gsctl cares about
+// struct with only the email claim in it. Since that is all that gsctl cares about
 // for now.
 func ParseIdToken(tokenString string) (token IDToken, err error) {
 	// Parse takes the token string and a function for looking up the key. The latter is especially
