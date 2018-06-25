@@ -48,13 +48,16 @@ func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultSSOArguments()
 
 	pkceResponse, err := pkce.Run()
-
-	if pkceResponse.Error != "" {
+	if err != nil {
 		fmt.Println(color.RedString("\nSomething went wrong during SSO."))
-		fmt.Println(pkceResponse.Error + ": " + pkceResponse.ErrorDescription)
+		if pkceResponse.Error != "" {
+			fmt.Println(pkceResponse.Error + ": " + pkceResponse.ErrorDescription)
+		}
 		fmt.Println("Please notify the Giant Swarm support team, or try the command again in a few moments.")
 		os.Exit(1)
 	}
+
+	fmt.Println(color.GreenString("\nSSO succeeded, verifying credentials with api endpoint."))
 
 	// Try to parse the ID Token.
 	idToken, err := pkce.ParseIdToken(pkceResponse.IDToken)
