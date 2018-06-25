@@ -69,30 +69,13 @@ func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	// Check if the access token works by fetching the installation's name.
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		Timeout:   10 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, err := client.NewClient(clientConfig)
+	alias, err := getAlias(args.apiEndpoint, pkceResponse.AccessToken)
 	if err != nil {
 		fmt.Println(color.RedString("\nSomething went wrong during SSO."))
 		fmt.Println("Unable to verify token by fetching installation details.")
 		fmt.Println("Please notify the Giant Swarm support team, or try the command again in a few moments.")
 		os.Exit(1)
 	}
-
-	// Fetch installation name as alias.
-	authHeader := "Bearer " + pkceResponse.AccessToken
-	infoResponse, _, infoErr := apiClient.GetInfo(authHeader, requestIDHeader, loginActivityName, cmdLine)
-	if infoErr != nil {
-		fmt.Println(color.RedString("\nSomething went wrong during SSO."))
-		fmt.Println("Unable to verify token by fetching installation details.")
-		fmt.Println("Please notify the Giant Swarm support team, or try the command again in a few moments.")
-		os.Exit(1)
-	}
-
-	alias := infoResponse.General.InstallationName
 
 	// Store the token in the config file.
 	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, alias, idToken.Email, "Bearer", pkceResponse.AccessToken); err != nil {
@@ -104,4 +87,30 @@ func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	fmt.Println(color.GreenString("\nYou are logged in as %s at %s.",
 		idToken.Email, args.apiEndpoint))
+}
+
+// getAlias creates a giantswarm API client and tries to fetch the info endpoint.
+// If it succeeds it returns the alias for that endpoint.
+func getAlias(apiEndpoint string, accessToken string) (string, error) {
+	// Create an API client.
+	clientConfig := client.Configuration{
+		Endpoint:  apiEndpoint,
+		Timeout:   10 * time.Second,
+		UserAgent: config.UserAgent(),
+	}
+	apiClient, err := client.NewClient(clientConfig)
+	if err != nil {
+		return "", err
+	}
+
+	// Fetch installation name as alias.
+	authHeader := "Bearer " + accessToken
+	infoResponse, _, infoErr := apiClient.GetInfo(authHeader, requestIDHeader, loginActivityName, cmdLine)
+	if infoErr != nil {
+		return "", err
+	}
+
+	alias := infoResponse.General.InstallationName
+
+	return alias, nil
 }
