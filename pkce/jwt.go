@@ -10,6 +10,10 @@ import (
 	"github.com/giantswarm/microerror"
 )
 
+const (
+	jwksURL = "https://giantswarm.eu.auth0.com/.well-known/jwks.json"
+)
+
 type IDToken struct {
 	Email string
 }
@@ -23,7 +27,7 @@ func ParseIdToken(tokenString string) (token IDToken, err error) {
 	// head of the token to identify which key to use, but the parsed token (head and claims) is provided
 	// to the callback, providing flexibility.
 	t, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		cert, err := getPemCert(token, "https://giantswarm.eu.auth0.com/.well-known/jwks.json")
+		cert, err := getPemCert(token, jwksURL)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
