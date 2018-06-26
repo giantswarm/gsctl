@@ -4,26 +4,21 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"os"
-	"time"
 
-	"github.com/giantswarm/gsclientgen"
+	apiclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/microerror"
+	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 	rootcerts "github.com/hashicorp/go-rootcerts"
-)
-
-var (
-	// DefaultTimeout is the standard request timeout applied if not specified
-	DefaultTimeout time.Duration = 60 * time.Second
 )
 
 // Configuration is the configuration to be used when creating a new API client
 type Configuration struct {
 	// Endpoint is the base URL of the API
 	Endpoint string
-	// Timeout is the maximum time to wait for API requests to succeed
-	Timeout time.Duration
-	// UserAgent
+	// Usergent is the string we pass with the HTTP User-Agent header
 	UserAgent string
 }
 
@@ -33,20 +28,39 @@ type GenericResponse struct {
 	Message string
 }
 
+type roundTripperWithUserAgent struct {
+	inner http.RoundTripper
+	Agent string
+}
+
+// RoundTrip overwrites the http.RoundTripper.RoundTrip function to add our
+// User-Agent HTTP header.
+func (rtwua *roundTripperWithUserAgent) RoundTrip(r *http.Request) (*http.Response, error) {
+	r.Header.Set("User-Agent", rtwua.Agent)
+	return rtwua.inner.RoundTrip(r)
+}
+
+// setUserAgent sets the User-Agent header value for subsequent requests
+// made using this transport
+func setUserAgent(inner http.RoundTripper, userAgent string) http.RoundTripper {
+	return &roundTripperWithUserAgent{
+		inner: inner,
+		Agent: userAgent,
+	}
+}
+
 // NewClient allows to create a new API client
 // with specific configuration
-func NewClient(clientConfig Configuration) (*gsclientgen.DefaultApi, error) {
-	configuration := gsclientgen.NewConfiguration()
+func NewClient(clientConfig Configuration) (*apiclient.Gsclientgen, error) {
 
 	if clientConfig.Endpoint == "" {
-		return &gsclientgen.DefaultApi{}, microerror.Mask(endpointNotSpecifiedError)
+		return nil, microerror.Mask(endpointNotSpecifiedError)
 	}
 
-	configuration.BasePath = clientConfig.Endpoint
-	configuration.UserAgent = clientConfig.UserAgent
-	configuration.Timeout = &DefaultTimeout
-	if clientConfig.Timeout != 0 {
-		configuration.Timeout = &clientConfig.Timeout
+	// parse endpoint URL
+	u, err := url.Parse(clientConfig.Endpoint)
+	if err != nil {
+		return nil, microerror.Mask(endpointInvalidError)
 	}
 
 	// set up client TLS so that custom CAs are accepted.
@@ -58,14 +72,17 @@ func NewClient(clientConfig Configuration) (*gsclientgen.DefaultApi, error) {
 	if rootCertsErr != nil {
 		return nil, microerror.Mask(rootCertsErr)
 	}
-	configuration.Transport = &http.Transport{
+
+	// Pass TLS and http proxy
+	transport := httptransport.New(u.Host, "", []string{u.Scheme})
+	transport.Transport = &http.Transport{
 		Proxy:           http.ProxyFromEnvironment,
 		TLSClientConfig: tlsConfig,
 	}
 
-	return &gsclientgen.DefaultApi{
-		Configuration: configuration,
-	}, nil
+	transport.Transport = setUserAgent(transport.Transport, clientConfig.UserAgent)
+
+	return apiclient.New(transport, strfmt.Default), nil
 }
 
 // ParseGenericResponse parses the standard code, message response document into
