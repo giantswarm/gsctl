@@ -225,6 +225,12 @@ func (c *configStruct) SelectEndpoint(endpointAliasOrURL string) error {
 // be used to look up an alias to return an endpoint for. If there is none,
 // it will be the used endpoint URL.
 func (c *configStruct) ChooseEndpoint(overridingEndpointAliasOrURL string) string {
+
+	// if no local param is given, try the environment variable
+	if overridingEndpointAliasOrURL == "" {
+		overridingEndpointAliasOrURL = os.Getenv("GSCTL_ENDPOINT")
+	}
+
 	if overridingEndpointAliasOrURL != "" {
 		// check if overridingEndpointAliasOrURL is an alias
 		if c.HasEndpointAlias(overridingEndpointAliasOrURL) {
@@ -233,18 +239,6 @@ func (c *configStruct) ChooseEndpoint(overridingEndpointAliasOrURL string) strin
 		}
 
 		ep := normalizeEndpoint(overridingEndpointAliasOrURL)
-		return ep
-	}
-
-	// use environment variable
-	envEndpoint := os.Getenv("GSCTL_ENDPOINT")
-	if envEndpoint != "" {
-		if c.HasEndpointAlias(envEndpoint) {
-			ep, _ := c.EndpointByAlias(envEndpoint)
-			return ep
-		}
-
-		ep := normalizeEndpoint(envEndpoint)
 		return ep
 	}
 
