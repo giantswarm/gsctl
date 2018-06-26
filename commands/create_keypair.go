@@ -35,6 +35,7 @@ const (
 // to the validation function
 type createKeypairArguments struct {
 	apiEndpoint              string
+	scheme                   string
 	authToken                string
 	certificateOrganizations string
 	clusterID                string
@@ -47,6 +48,7 @@ type createKeypairArguments struct {
 func defaultCreateKeypairArguments() (createKeypairArguments, error) {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
 
 	description := cmdDescription
 	if description == "" {
@@ -60,6 +62,7 @@ func defaultCreateKeypairArguments() (createKeypairArguments, error) {
 
 	return createKeypairArguments{
 		apiEndpoint:              endpoint,
+		scheme:                   scheme,
 		authToken:                token,
 		certificateOrganizations: cmdCertificateOrganizations,
 		clusterID:                cmdClusterID,
@@ -199,7 +202,7 @@ func createKeypair(args createKeypairArguments) (createKeypairResult, error) {
 		return result, microerror.Maskf(couldNotCreateClientError, clientErr.Error())
 	}
 
-	authHeader := "giantswarm " + args.authToken
+	authHeader := args.scheme + " " + args.authToken
 
 	addKeyPairBody := gsclientgen.V4AddKeyPairBody{
 		Description:              args.description,

@@ -94,6 +94,11 @@ type configStruct struct {
 	// SelectedEndpoint is the URL of the selected endpoint
 	SelectedEndpoint string `yaml:"selected_endpoint"`
 
+	// Scheme is the scheme found for the selected endpoint. Might be empty.
+	// Not marshalled back to the config file, as it is contained in the
+	// endpoint's entry.
+	Scheme string `yaml:"-"`
+
 	// Token is the token found for the selected endpoint. Might be empty.
 	// Not marshalled back to the config file, as it is contained in the
 	// endpoint's entry.
@@ -113,6 +118,9 @@ type endpointConfig struct {
 
 	// Token is the session token of the authenticated user.
 	Token string `yaml:"token"`
+
+	// Scheme is the scheme to be used in the Authorization header.
+	Scheme string `yaml:"scheme"`
 
 	// Alias is a friendly shortcut for the endpoint
 	Alias string `yaml:"alias,omitempty"`
@@ -152,9 +160,10 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email
 	}
 
 	c.Endpoints[ep] = &endpointConfig{
-		Alias: aliasBefore,
-		Email: email,
-		Token: token,
+		Alias:  aliasBefore,
+		Email:  email,
+		Scheme: "giantswarm",
+		Token:  token,
 	}
 
 	if alias != "" && aliasBefore == "" {
@@ -196,7 +205,13 @@ func (c *configStruct) SelectEndpoint(endpointAliasOrURL string) error {
 		}
 	}
 
+	// Migrate empty scheme to 'giantswarm'
+	if c.Endpoints[ep].Scheme == "" {
+		c.Endpoints[ep].Scheme = "giantswarm"
+	}
+
 	c.SelectedEndpoint = ep
+	c.Scheme = c.Endpoints[ep].Scheme
 	c.Token = c.Endpoints[ep].Token
 	c.Email = c.Endpoints[ep].Email
 
@@ -252,6 +267,27 @@ func (c *configStruct) ChooseToken(endpoint, overridingToken string) string {
 	if endpointStruct, ok := c.Endpoints[ep]; ok {
 		if endpointStruct != nil && endpointStruct.Token != "" {
 			return endpointStruct.Token
+		}
+	}
+
+	return ""
+}
+
+// ChooseScheme chooses a scheme to use, according to a rule set.
+// - If the given scheme is not empty, we use (return) that
+// - If the given scheme is empty and we have an auth scheme for the given
+//   endpoint, we return that
+// - otherwise we return an empty string
+func (c *configStruct) ChooseScheme(endpoint, overridingScheme string) string {
+	ep := normalizeEndpoint(endpoint)
+
+	if overridingScheme != "" {
+		return overridingScheme
+	}
+
+	if endpointStruct, ok := c.Endpoints[ep]; ok {
+		if endpointStruct != nil && endpointStruct.Scheme != "" {
+			return endpointStruct.Scheme
 		}
 	}
 
@@ -518,7 +554,7 @@ func GetDefaultCluster(requestIDHeader, activityName, cmdLine, apiEndpoint strin
 		return "", microerror.Mask(clientErr)
 	}
 
-	authHeader := "giantswarm " + Config.Token
+	authHeader := Config.Scheme + " " + Config.Token
 
 	clustersResponse, _, err := apiClient.GetClusters(authHeader, requestIDHeader, activityName, cmdLine)
 	if err != nil {

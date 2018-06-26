@@ -42,6 +42,7 @@ type listKeypairsArguments struct {
 	clusterID   string
 	full        bool
 	token       string
+	scheme      string
 }
 
 // defaultListKeypairsArguments returns a new listKeypairsArguments struct
@@ -49,12 +50,14 @@ type listKeypairsArguments struct {
 func defaultListKeypairsArguments() listKeypairsArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
 
 	return listKeypairsArguments{
 		apiEndpoint: endpoint,
 		clusterID:   cmdClusterID,
 		full:        cmdFull,
 		token:       token,
+		scheme:      scheme,
 	}
 }
 
@@ -185,7 +188,7 @@ func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
 	if clientErr != nil {
 		return result, microerror.Mask(couldNotCreateClientError)
 	}
-	authHeader := "giantswarm " + args.token
+	authHeader := args.scheme + " " + args.token
 	keypairsResponse, apiResponse, err := apiClient.GetKeyPairs(authHeader,
 		cmdClusterID, requestIDHeader, listKeypairsActivityName, cmdLine)
 

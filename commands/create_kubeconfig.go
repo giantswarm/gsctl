@@ -70,6 +70,7 @@ const (
 // function and to the validation function
 type createKubeconfigArguments struct {
 	apiEndpoint       string
+	scheme            string
 	authToken         string
 	clusterID         string
 	description       string
@@ -86,6 +87,7 @@ type createKubeconfigArguments struct {
 func defaultCreateKubeconfigArguments() (createKubeconfigArguments, error) {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
 
 	description := cmdDescription
 	if description == "" {
@@ -104,6 +106,7 @@ func defaultCreateKubeconfigArguments() (createKubeconfigArguments, error) {
 
 	return createKubeconfigArguments{
 		apiEndpoint:       endpoint,
+		scheme:            scheme,
 		authToken:         token,
 		clusterID:         cmdClusterID,
 		description:       description,
@@ -366,7 +369,7 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 		return result, microerror.Maskf(couldNotCreateClientError, clientErr.Error())
 	}
 
-	authHeader := "giantswarm " + args.authToken
+	authHeader := args.scheme + " " + args.authToken
 
 	// get cluster details
 	clusterDetailsResponse, apiResponse, err := apiClient.GetCluster(
@@ -454,7 +457,7 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 			Kind:           "Config",
 			CurrentContext: args.contextName,
 			Clusters: []KubeconfigNamedCluster{
-				KubeconfigNamedCluster{
+				{
 					Name: "giantswarm-" + args.clusterID,
 					Cluster: KubeconfigCluster{
 						Server: result.apiEndpoint,
@@ -463,7 +466,7 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 				},
 			},
 			Contexts: []KubeconfigNamedContext{
-				KubeconfigNamedContext{
+				{
 					Name: args.contextName,
 					Context: KubeconfigContext{
 						Cluster: "giantswarm-" + args.clusterID,
@@ -472,7 +475,7 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 				},
 			},
 			Users: []KubeconfigUser{
-				KubeconfigUser{
+				{
 					Name: "giantswarm-" + args.clusterID + "-user",
 					User: KubeconfigUserKeyPair{
 						ClientCertificateData: base64.StdEncoding.EncodeToString([]byte(keypairResponse.ClientCertificateData)),

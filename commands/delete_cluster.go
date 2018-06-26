@@ -20,6 +20,8 @@ type deleteClusterArguments struct {
 	clusterID string
 	// don't prompt
 	force bool
+	// auth scheme
+	scheme string
 	// auth token
 	token string
 	// verbosity
@@ -29,10 +31,13 @@ type deleteClusterArguments struct {
 func defaultDeleteClusterArguments() deleteClusterArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
+
 	return deleteClusterArguments{
 		apiEndpoint: endpoint,
 		clusterID:   cmdClusterID,
 		force:       cmdForce,
+		scheme:      scheme,
 		token:       token,
 		verbose:     cmdVerbose,
 	}
@@ -151,7 +156,7 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 	}
 
 	// prepare API client
-	authHeader := "giantswarm " + args.token
+	authHeader := args.scheme + " " + args.token
 	clientConfig := client.Configuration{
 		Endpoint:  args.apiEndpoint,
 		UserAgent: config.UserAgent(),
