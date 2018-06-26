@@ -189,7 +189,7 @@ func init() {
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdKubeconfigSelfContained, "self-contained", "", "", "Create a self-contained kubectl config with embedded credentials and write it to this path.")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdKubeconfigContextName, "context", "", "", "Set a custom context name. Defaults to 'giantswarm-<cluster-id>'.")
-	CreateKubeconfigCommand.Flags().StringVarP(&cmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
+	CreateKubeconfigCommand.Flags().StringVarP(&cmdCertificateOrganizations, "groups", "g", "", "A comma separated list of groups to be used in a Kubernetes ClusterRoleBinding or RoleBinding.")
 	CreateKubeconfigCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation.")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdTTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
 
