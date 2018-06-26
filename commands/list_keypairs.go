@@ -97,7 +97,7 @@ func listKeypairsValidate(args *listKeypairsArguments) error {
 	}
 	if args.clusterID == "" {
 		// use default cluster if possible
-		clusterID, _ := config.GetDefaultCluster(requestIDHeader, listKeypairsActivityName, cmdLine, cmdAPIEndpoint)
+		clusterID, _ := config.GetDefaultCluster(listKeypairsActivityName, cmdAPIEndpoint)
 		if clusterID != "" {
 			cmdClusterID = clusterID
 		} else {
@@ -177,8 +177,9 @@ func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
 func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
 	result := listKeypairsResult{}
 
-	keypairsResponse, apiResponse, err := Client.GetKeyPairs(ClientConfig.AuthHeader,
-		cmdClusterID, requestIDHeader, listKeypairsActivityName, cmdLine)
+	keypairsResponse, apiResponse, err := Client.GetKeyPairs(
+		cmdClusterID,
+		listKeypairsActivityName)
 
 	if err != nil {
 

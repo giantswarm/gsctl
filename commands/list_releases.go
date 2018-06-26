@@ -147,8 +147,7 @@ func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 	result := listReleasesResult{}
 
-	releasesResponse, apiResponse, err := Client.GetReleases(ClientConfig.AuthHeader,
-		requestIDHeader, listReleasesActivityName, cmdLine)
+	releasesResponse, apiResponse, err := Client.GetReleases(listReleasesActivityName)
 	if err != nil {
 		if apiResponse == nil || apiResponse.Response == nil {
 			return result, microerror.Mask(noResponseError)

@@ -97,8 +97,7 @@ func listClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 // clustersTable returns a table of clusters the user has access to
 func clustersTable(args listClustersArguments) (string, error) {
-	clusters, apiResponse, err := Client.GetClusters(ClientConfig.AuthHeader,
-		requestIDHeader, listClustersActivityName, cmdLine)
+	clusters, apiResponse, err := Client.GetClusters(listClustersActivityName)
 	if err != nil {
 		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
 			return "", microerror.Mask(accessForbiddenError)

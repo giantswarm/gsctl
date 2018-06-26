@@ -500,7 +500,7 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
 
 		// perform API call
-		responseBody, apiResponse, err := Client.AddCluster(ClientConfig.AuthHeader, addClusterBody, requestIDHeader, createClusterActivityName, cmdLine)
+		responseBody, apiResponse, err := Client.AddCluster(addClusterBody, createClusterActivityName)
 		if err != nil {
 			if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
 				return result, microerror.Mask(accessForbiddenError)

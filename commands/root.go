@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/microerror"
@@ -18,7 +17,7 @@ var RootCommand = &cobra.Command{
 	PersistentPreRunE: initConfig,
 }
 
-var Client *gsclientgen.DefaultApi
+var Client *client.ClientWrapper
 var ClientConfig client.Configuration
 
 func init() {
@@ -51,7 +50,7 @@ func initConfig(cmd *cobra.Command, args []string) error {
 func initClient() error {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	ClientConfig = client.Configuration{
 		AuthHeader: scheme + " " + token,

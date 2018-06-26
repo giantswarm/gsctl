@@ -196,9 +196,7 @@ func createKeypair(args createKeypairArguments) (createKeypairResult, error) {
 		CnPrefix:                 args.commonNamePrefix,
 		CertificateOrganizations: args.certificateOrganizations,
 	}
-	keypairResponse, apiResponse, err := Client.AddKeyPair(ClientConfig.AuthHeader,
-		args.clusterID, addKeyPairBody, requestIDHeader,
-		addKeyPairActivityName, cmdLine)
+	keypairResponse, apiResponse, err := Client.AddKeyPair(args.clusterID, addKeyPairBody, addKeyPairActivityName)
 
 	if err != nil {
 		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {

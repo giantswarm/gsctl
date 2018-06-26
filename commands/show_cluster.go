@@ -96,8 +96,7 @@ func getClusterDetails(clusterID, scheme, token, endpoint string) (gsclientgen.V
 	result := gsclientgen.V4ClusterDetailsModel{}
 
 	// perform API call
-	clusterDetails, apiResp, err := Client.GetCluster(ClientConfig.AuthHeader, clusterID,
-		requestIDHeader, showClusterActivityName, cmdLine)
+	clusterDetails, apiResp, err := Client.GetCluster(clusterID, showClusterActivityName)
 
 	if err != nil {
 		if apiResp == nil || apiResp.Response == nil {

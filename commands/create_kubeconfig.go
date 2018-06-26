@@ -359,11 +359,8 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 
 	// get cluster details
 	clusterDetailsResponse, apiResponse, err := Client.GetCluster(
-		ClientConfig.AuthHeader,
 		args.clusterID,
-		requestIDHeader,
-		createKubeconfigActivityName,
-		cmdLine)
+		createKubeconfigActivityName)
 	if err != nil {
 		var errorMessage string
 		if apiResponse.Response != nil {
@@ -383,9 +380,10 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 		CertificateOrganizations: args.certOrgs,
 	}
 
-	keypairResponse, apiResponse, err := Client.AddKeyPair(ClientConfig.AuthHeader,
-		args.clusterID, addKeyPairBody, requestIDHeader,
-		createKubeconfigActivityName, cmdLine)
+	keypairResponse, apiResponse, err := Client.AddKeyPair(
+		args.clusterID,
+		addKeyPairBody,
+		createKubeconfigActivityName)
 
 	if err != nil {
 		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {

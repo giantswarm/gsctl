@@ -94,7 +94,7 @@ func logout(args logoutArguments) error {
 		return nil
 	}
 
-	logoutResponse, apiResponse, err := Client.UserLogout(ClientConfig.AuthHeader, requestIDHeader, logoutActivityName, cmdLine)
+	logoutResponse, apiResponse, err := Client.UserLogout(logoutActivityName)
 	if err != nil {
 
 		if apiResponse == nil || apiResponse.Response == nil {

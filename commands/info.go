@@ -176,7 +176,7 @@ func info(args infoArguments) (infoResult, error) {
 
 	// get more info from API
 	if args.apiEndpoint != "" {
-		infoResponse, _, infoErr := Client.GetInfo(ClientConfig.AuthHeader, requestIDHeader, infoActivityName, cmdLine)
+		infoResponse, _, infoErr := Client.GetInfo(infoActivityName)
 		if infoErr != nil {
 			return result, microerror.Mask(infoErr)
 		}

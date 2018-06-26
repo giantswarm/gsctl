@@ -4,8 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"strings"
-	"testing"
 
 	"github.com/giantswarm/gsctl/config"
 )
@@ -68,32 +66,4 @@ contexts:
 	}
 
 	return kubeConfigPath, nil
-}
-
-// TestRedactPasswordArgs tests redactPasswordArgs()
-func TestRedactPasswordArgs(t *testing.T) {
-	argtests := []struct {
-		in  string
-		out string
-	}{
-		// these remain unchangd
-		{"foo", "foo"},
-		{"foo bar", "foo bar"},
-		{"foo bar blah", "foo bar blah"},
-		{"foo bar blah -p mypass", "foo bar blah -p mypass"},
-		{"foo bar blah -p=mypass", "foo bar blah -p=mypass"},
-		// these will be altered
-		{"foo bar blah --password mypass", "foo bar blah --password REDACTED"},
-		{"foo bar blah --password=mypass", "foo bar blah --password=REDACTED"},
-		{"foo login blah -p mypass", "foo login blah -p REDACTED"},
-		{"foo login blah -p=mypass", "foo login blah -p=REDACTED"},
-	}
-
-	for _, tt := range argtests {
-		in := strings.Split(tt.in, " ")
-		out := strings.Join(redactPasswordArgs(in), " ")
-		if out != tt.out {
-			t.Errorf("want '%q', have '%s'", tt.in, tt.out)
-		}
-	}
 }

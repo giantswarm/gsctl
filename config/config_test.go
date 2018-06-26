@@ -237,7 +237,7 @@ selected_endpoint: ` + mockServer.URL
 		t.Error(err)
 	}
 
-	clusterID, err := GetDefaultCluster("", "", "", mockServer.URL)
+	clusterID, err := GetDefaultCluster("", mockServer.URL)
 	if err != nil {
 		t.Error(err)
 	}

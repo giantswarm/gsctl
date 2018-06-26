@@ -155,8 +155,7 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 	}
 
 	// perform API call
-	responseBody, rawResponse, err := Client.DeleteCluster(ClientConfig.AuthHeader,
-		args.clusterID, requestIDHeader, createClusterActivityName, cmdLine)
+	responseBody, rawResponse, err := Client.DeleteCluster(args.clusterID, deleteClusterActivityName)
 	if err != nil {
 		if rawResponse.Response != nil && rawResponse.Response.StatusCode == http.StatusForbidden {
 			return false, microerror.Mask(accessForbiddenError)

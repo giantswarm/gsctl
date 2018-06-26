@@ -534,25 +534,26 @@ func getKubeconfigPaths(homeDir string) []string {
 // @param activityName     Name of the activity calling this function (for tracking)
 // @param cmdLine          Command line content used to run the CLI (for tracking)
 // @param apiEndpoint      Endpoint URL
-func GetDefaultCluster(requestIDHeader, activityName, cmdLine, apiEndpoint string) (clusterID string, err error) {
+func GetDefaultCluster(activityName, apiEndpoint string) (clusterID string, err error) {
 	// Go through available orgs and clusters to find all clusters
 	if Config.Token == "" {
 		return "", errors.New("user not logged in")
 	}
 
+	authHeader := Config.Scheme + " " + Config.Token
+
 	clientConfig := client.Configuration{
-		Endpoint:  apiEndpoint,
-		Timeout:   10 * time.Second,
-		UserAgent: UserAgent(),
+		AuthHeader: authHeader,
+		Endpoint:   apiEndpoint,
+		Timeout:    10 * time.Second,
+		UserAgent:  UserAgent(),
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
 		return "", microerror.Mask(clientErr)
 	}
 
-	authHeader := Config.Scheme + " " + Config.Token
-
-	clustersResponse, _, err := apiClient.GetClusters(authHeader, requestIDHeader, activityName, cmdLine)
+	clustersResponse, _, err := apiClient.GetClusters(activityName)
 	if err != nil {
 		return "", err
 	}

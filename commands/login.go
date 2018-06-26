@@ -3,17 +3,14 @@ package commands
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/microerror"
 	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
-<<<<<<< HEAD
-=======
-
-	"github.com/giantswarm/gsctl/config"
->>>>>>> Extract code that initializes Client and AuthHeaders.
 )
 
 const (
@@ -245,4 +242,32 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 		fmt.Println(color.GreenString("To switch back to this endpoint, you can use this command:\n"))
 		fmt.Println(color.YellowString("    gsctl select endpoint %s\n", result.alias))
 	}
+}
+
+// getAlias creates a giantswarm API client and tries to fetch the info endpoint.
+// If it succeeds it returns the alias for that endpoint.
+func getAlias(apiEndpoint string, scheme string, accessToken string) (string, error) {
+	// Create an API client.
+	authHeader := scheme + " " + accessToken
+	clientConfig := client.Configuration{
+		Endpoint:   apiEndpoint,
+		Timeout:    10 * time.Second,
+		UserAgent:  config.UserAgent(),
+		AuthHeader: authHeader,
+	}
+
+	apiClient, err := client.NewClient(clientConfig)
+	if err != nil {
+		return "", err
+	}
+
+	// Fetch installation name as alias.
+	infoResponse, _, err := apiClient.GetInfo(loginActivityName)
+	if err != nil {
+		return "", err
+	}
+
+	alias := infoResponse.General.InstallationName
+
+	return alias, nil
 }

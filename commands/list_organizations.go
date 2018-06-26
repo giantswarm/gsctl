@@ -58,7 +58,7 @@ func listOrgs(cmd *cobra.Command, args []string) {
 // and returns a table in string form
 func orgsTable() (string, error) {
 
-	organizations, apiResponse, err := Client.GetUserOrganizations(ClientConfig.AuthHeader, requestIDHeader, listOrganizationsActivityName, cmdLine)
+	organizations, apiResponse, err := Client.GetUserOrganizations(listOrganizationsActivityName)
 	if err != nil {
 		return "", APIError{err.Error(), *apiResponse}
 	}

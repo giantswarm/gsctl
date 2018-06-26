@@ -247,7 +247,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	if args.verbose {
 		fmt.Println("Sending API request to modify cluster")
 	}
-	scaleResult, rawResponse, err := Client.ModifyCluster(ClientConfig.AuthHeader, args.clusterID, reqBody, requestIDHeader, scaleClusterActivityName, cmdLine)
+	scaleResult, rawResponse, err := Client.ModifyCluster(args.clusterID, reqBody, scaleClusterActivityName)
 	if err != nil {
 		if rawResponse == nil || rawResponse.Response == nil {
 			return results, microerror.Mask(noResponseError)
