@@ -62,7 +62,7 @@ func listOrgs(cmd *cobra.Command, args []string) {
 func orgsTable() (string, error) {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	clientConfig := client.Configuration{
 		Endpoint:  endpoint,

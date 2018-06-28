@@ -41,6 +41,7 @@ The -e or --endpoint argument can be omitted if an endpoint is already selected.
 func init() {
 	LoginCommand.Flags().StringVarP(&cmdPassword, "password", "p", "", "Password. If not given, will be prompted interactively.")
 	LoginCommand.Flags().BoolVarP(&cmdSSO, "sso", "", false, "Authenticate using Single Sign On through our identity provider.")
+	LoginCommand.Flags().MarkHidden("sso")
 	RootCommand.AddCommand(LoginCommand)
 }
 

@@ -13,10 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	activityName = "sso"
-)
-
 type ssoArguments struct {
 	apiEndpoint string
 }

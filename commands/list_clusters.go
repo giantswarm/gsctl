@@ -42,7 +42,7 @@ type listClustersArguments struct {
 func defaultListClustersArguments() listClustersArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	return listClustersArguments{
 		apiEndpoint: endpoint,

@@ -25,9 +25,6 @@ var (
 	// token flag
 	cmdToken string
 
-	// schemeflag
-	cmdScheme string
-
 	// configuration path to use temporarily
 	cmdConfigDirPath string
 

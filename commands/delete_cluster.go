@@ -31,7 +31,7 @@ type deleteClusterArguments struct {
 func defaultDeleteClusterArguments() deleteClusterArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	return deleteClusterArguments{
 		apiEndpoint: endpoint,

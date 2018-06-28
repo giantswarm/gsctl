@@ -66,7 +66,7 @@ type scaleClusterArguments struct {
 func defaultScaleClusterArguments() scaleClusterArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	return scaleClusterArguments{
 		apiEndpoint:         endpoint,
