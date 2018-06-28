@@ -13,16 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	// SSOCommand performs the "sso" function
-	SSOCommand = &cobra.Command{
-		Use:   "sso",
-		Short: "Single Sign on for Admins",
-		Long:  `Prints a list of all clusters you have access to`,
-		Run:   ssoRunOutput,
-	}
-)
-
 const (
 	activityName = "sso"
 )
@@ -41,7 +31,6 @@ func defaultSSOArguments() ssoArguments {
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	RootCommand.AddCommand(SSOCommand)
 }
 
 func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
