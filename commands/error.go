@@ -263,6 +263,15 @@ func IsTokenArgumentNotApplicableError(err error) bool {
 	return errgo.Cause(err) == tokenArgumentNotApplicableError
 }
 
+// passwordArgumentNotApplicableError means the user used --password argument
+// but it wasn't permitted for that command
+var passwordArgumentNotApplicableError = errgo.New("password argument cannot be used here")
+
+// IsPasswordArgumentNotApplicableError asserts passwordArgumentNotApplicableError.
+func IsPasswordArgumentNotApplicableError(err error) bool {
+	return errgo.Cause(err) == passwordArgumentNotApplicableError
+}
+
 // noEmailArgumentGivenError means the email argument was required
 // but not given/empty
 var noEmailArgumentGivenError = errgo.New("no email argument given")
@@ -321,4 +330,12 @@ var invalidDurationError = errgo.New("invalid duration")
 // IsInvalidDurationError asserts invalidDurationError
 func IsInvalidDurationError(err error) bool {
 	return errgo.Cause(err) == invalidDurationError
+}
+
+// ssoError means something went wrong during the SSO process
+var ssoError = errgo.New("sso error")
+
+// IsSSOError asserts ssoError
+func IsSSOError(err error) bool {
+	return errgo.Cause(err) == ssoError
 }

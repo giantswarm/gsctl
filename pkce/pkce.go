@@ -65,7 +65,7 @@ func Run() (pkceResponse, error) {
 	open.Run(authorizationURL)
 
 	fmt.Println(color.YellowString("\nYour browser should now be opening:"))
-	fmt.Println(authorizationURL)
+	fmt.Println(authorizationURL + "\n")
 
 	// Start a local webserver that auth0 can redirect to with the code
 	// that we will then exchange for the actual id token.

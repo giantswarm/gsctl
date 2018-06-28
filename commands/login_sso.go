@@ -1,77 +1,56 @@
 package commands
 
 import (
-	"fmt"
 	"math/rand"
-	"os"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/pkce"
-	"github.com/spf13/cobra"
+	"github.com/giantswarm/microerror"
 )
-
-type ssoArguments struct {
-	apiEndpoint string
-}
-
-func defaultSSOArguments() ssoArguments {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-
-	return ssoArguments{
-		apiEndpoint: endpoint,
-	}
-}
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-func ssoRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultSSOArguments()
+func loginSSO(args loginArguments) (loginResult, error) {
+	numEndpointsBefore := config.Config.NumEndpoints()
 
 	pkceResponse, err := pkce.Run()
 	if err != nil {
-		fmt.Println(color.RedString("\nSomething went wrong during SSO."))
-		if pkceResponse.Error != "" {
-			fmt.Println(pkceResponse.Error + ": " + pkceResponse.ErrorDescription)
-		}
-		fmt.Println("Please notify the Giant Swarm support team, or try the command again in a few moments.")
-		os.Exit(1)
+		return loginResult{}, microerror.Maskf(ssoError, pkceResponse.ErrorDescription)
 	}
-
-	fmt.Println(color.GreenString("\nSSO succeeded, verifying credentials with api endpoint."))
 
 	// Try to parse the ID Token.
 	idToken, err := pkce.ParseIdToken(pkceResponse.IDToken)
 	if err != nil {
-		fmt.Println(color.RedString("\nSomething went wrong during SSO."))
-		fmt.Println("Unable to parse the ID Token.")
-		fmt.Println("Please notify the Giant Swarm support team, or try the command again in a few moments.")
-		os.Exit(1)
+		return loginResult{}, microerror.Maskf(ssoError, "Unable to parse the IDToken")
 	}
 
 	// Check if the access token works by fetching the installation's name.
 	alias, err := getAlias(args.apiEndpoint, pkceResponse.AccessToken)
 	if err != nil {
-		fmt.Println(color.RedString("\nSomething went wrong during SSO."))
-		fmt.Println("Unable to verify token by fetching installation details.")
-		fmt.Println("Please notify the Giant Swarm support team, or try the command again in a few moments.")
-		os.Exit(1)
+		return loginResult{}, microerror.Maskf(ssoError, "Unable to fetch installation information. Our api might be experiencing difficulties")
 	}
 
 	// Store the token in the config file.
 	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, alias, idToken.Email, "Bearer", pkceResponse.AccessToken); err != nil {
-		fmt.Println(color.RedString("\nSomething went while trying to store the token."))
-		fmt.Println(err.Error())
-		fmt.Println("Please notify the Giant Swarm support team, or try the command again in a few moments.")
-		os.Exit(1)
+		return loginResult{}, microerror.Maskf(ssoError, "Error while attempting to store the token in the config file")
 	}
 
-	fmt.Println(color.GreenString("\nYou are logged in as %s at %s.",
-		idToken.Email, args.apiEndpoint))
+	result := loginResult{
+		apiEndpoint:        args.apiEndpoint,
+		email:              idToken.Email,
+		endpointSwitched:   (config.Config.SelectedEndpoint != args.apiEndpoint),
+		loggedOutBefore:    false,
+		alias:              alias,
+		token:              pkceResponse.AccessToken,
+		numEndpointsBefore: numEndpointsBefore,
+		numEndpointsAfter:  config.Config.NumEndpoints(),
+	}
+
+	return result, nil
 }
 
 // getAlias creates a giantswarm API client and tries to fetch the info endpoint.
@@ -90,8 +69,8 @@ func getAlias(apiEndpoint string, accessToken string) (string, error) {
 
 	// Fetch installation name as alias.
 	authHeader := "Bearer " + accessToken
-	infoResponse, _, infoErr := apiClient.GetInfo(authHeader, requestIDHeader, loginActivityName, cmdLine)
-	if infoErr != nil {
+	infoResponse, _, err := apiClient.GetInfo(authHeader, requestIDHeader, loginActivityName, cmdLine)
+	if err != nil {
 		return "", err
 	}
 
