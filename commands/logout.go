@@ -90,7 +90,11 @@ func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 // Returns nil in case of success, or an error otherwise.
 func logout(args logoutArguments) error {
 	// erase local credentials, no matter what the result on the API side is
-	config.Config.Logout(args.apiEndpoint)
+	defer config.Config.Logout(args.apiEndpoint)
+
+	if config.Config.Scheme == "Bearer" {
+		return nil
+	}
 
 	clientConfig := client.Configuration{
 		Endpoint:  args.apiEndpoint,

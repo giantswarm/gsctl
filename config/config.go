@@ -117,10 +117,10 @@ type endpointConfig struct {
 	Email string `yaml:"email"`
 
 	// Token is the session token of the authenticated user.
-	Token string `yaml:"token"`
+	Token string `yaml:"token,omitempty"`
 
 	// Scheme is the scheme to be used in the Authorization header.
-	Scheme string `yaml:"scheme"`
+	Scheme string `yaml:"auth_scheme,omitempty"`
 
 	// Alias is a friendly shortcut for the endpoint
 	Alias string `yaml:"alias,omitempty"`
@@ -128,7 +128,7 @@ type endpointConfig struct {
 
 // StoreEndpointAuth adds an endpoint to the configStruct.Endpoints field
 // (if not yet there). This should only be done after successful authentication.
-func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email string, token string) error {
+func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email string, scheme string, token string) error {
 	ep := normalizeEndpoint(endpointURL)
 
 	if email == "" || token == "" {
@@ -162,7 +162,7 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email
 	c.Endpoints[ep] = &endpointConfig{
 		Alias:  aliasBefore,
 		Email:  email,
-		Scheme: "giantswarm",
+		Scheme: scheme,
 		Token:  token,
 	}
 
@@ -268,15 +268,15 @@ func (c *configStruct) ChooseToken(endpoint, overridingToken string) string {
 }
 
 // ChooseScheme chooses a scheme to use, according to a rule set.
-// - If the given scheme is not empty, we use (return) that
-// - If the given scheme is empty and we have an auth scheme for the given
-//   endpoint, we return that
-// - otherwise we return an empty string
-func (c *configStruct) ChooseScheme(endpoint, overridingScheme string) string {
+// - If the user is providing their own token via the --auth-token flag,
+//   then always return "giantswarm".
+// - If we have an auth scheme for the given endpoint, we return that.
+// - otherwise we return "giantswarm"
+func (c *configStruct) ChooseScheme(endpoint string, cmdToken string) string {
 	ep := normalizeEndpoint(endpoint)
 
-	if overridingScheme != "" {
-		return overridingScheme
+	if cmdToken != "" {
+		return "giantswarm"
 	}
 
 	if endpointStruct, ok := c.Endpoints[ep]; ok {
@@ -285,7 +285,7 @@ func (c *configStruct) ChooseScheme(endpoint, overridingScheme string) string {
 		}
 	}
 
-	return ""
+	return "giantswarm"
 }
 
 // HasEndpointAlias returns whether the given alias is used for an endpoint
@@ -320,10 +320,12 @@ func (c *configStruct) Logout(endpointURL string) {
 
 	if ep == c.SelectedEndpoint {
 		c.Token = ""
+		c.Scheme = ""
 	}
 
 	if element, ok := c.Endpoints[ep]; ok {
 		element.Token = ""
+		element.Scheme = ""
 	}
 
 	WriteToFile()

@@ -1,21 +1,14 @@
 package commands
 
 import (
-	"encoding/base64"
 	"fmt"
-	"net/http"
 	"os"
-	"time"
 
 	"github.com/fatih/color"
-	apischema "github.com/giantswarm/api-schema"
-	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/microerror"
 	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
-
-	"github.com/giantswarm/gsctl/client"
-	"github.com/giantswarm/gsctl/config"
 )
 
 const (
@@ -28,6 +21,9 @@ var (
 
 	// email address passed as a positional argument
 	cmdEmail string
+
+	// cmdSSO is the bool that triggers login via SSO.
+	cmdSSO bool
 
 	// LoginCommand is the "login" CLI command
 	LoginCommand = &cobra.Command{
@@ -45,6 +41,13 @@ The -e or --endpoint argument can be omitted if an endpoint is already selected.
 		Run:     loginRunOutput,
 	}
 )
+
+func init() {
+	LoginCommand.Flags().StringVarP(&cmdPassword, "password", "p", "", "Password. If not given, will be prompted interactively.")
+	LoginCommand.Flags().BoolVarP(&cmdSSO, "sso", "", false, "Authenticate using Single Sign On through our identity provider.")
+	LoginCommand.Flags().MarkHidden("sso")
+	RootCommand.AddCommand(LoginCommand)
+}
 
 type loginResult struct {
 	// apiEndpoint is the API endpoint the user has been logged in to
@@ -81,11 +84,6 @@ func defaultLoginArguments() loginArguments {
 	}
 }
 
-func init() {
-	LoginCommand.Flags().StringVarP(&cmdPassword, "password", "p", "", "Password. If not given, will be prompted interactively.")
-	RootCommand.AddCommand(LoginCommand)
-}
-
 // loginPreRunOutput runs our pre-checks.
 // If an error occurred, it prints the error info and exits with non-zero code.
 func loginPreRunOutput(cmd *cobra.Command, positionalArgs []string) {
@@ -106,6 +104,8 @@ func loginPreRunOutput(cmd *cobra.Command, positionalArgs []string) {
 		subtext = "Please execute the command as 'gsctl login <email>'. See 'gsctl login --help' for details."
 	case IsTokenArgumentNotApplicableError(err):
 		headline = "The '--auth-token' flag cannot be used with the 'gsctl login' command."
+	case IsPasswordArgumentNotApplicableError(err):
+		headline = "The '--password' flag cannot be used with the 'gsctl login --sso' command."
 	case IsEmptyPasswordError(err):
 		headline = "The password cannot be empty."
 		subtext = "Please call the command again and enter a non-empty password. See 'gsctl login --help' for details."
@@ -122,35 +122,53 @@ func loginPreRunOutput(cmd *cobra.Command, positionalArgs []string) {
 
 // verifyLoginPreconditions does the pre-checks and returns an error in case something's wrong.
 func verifyLoginPreconditions(positionalArgs []string) error {
-	if len(positionalArgs) >= 1 {
-		// set cmdEmail for later use, as cobra doesn't do that for us
-		cmdEmail = positionalArgs[0]
-	} else {
-		return microerror.Mask(noEmailArgumentGivenError)
-	}
-
 	// using auth token flag? The 'login' command is the only exception
 	// where we can't accept this argument.
 	if cmdToken != "" {
 		return microerror.Mask(tokenArgumentNotApplicableError)
 	}
 
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	if cmdSSO {
+		if cmdPassword != "" {
+			return microerror.Mask(passwordArgumentNotApplicableError)
+		}
+	} else {
+		if len(positionalArgs) >= 1 {
+			// set cmdEmail for later use, as cobra doesn't do that for us
+			cmdEmail = positionalArgs[0]
+		} else {
+			return microerror.Mask(noEmailArgumentGivenError)
+		}
 
-	// interactive password prompt
-	if cmdPassword == "" {
-		fmt.Printf("Password for %s on %s: ", color.CyanString(cmdEmail), color.CyanString(endpoint))
-		password, err := gopass.GetPasswd()
-		if err != nil {
-			return err
+		endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+
+		// interactive password prompt
+		if cmdPassword == "" {
+			fmt.Printf("Password for %s on %s: ", color.CyanString(cmdEmail), color.CyanString(endpoint))
+			password, err := gopass.GetPasswd()
+			if err != nil {
+				return err
+			}
+			if string(password) == "" {
+				return microerror.Mask(emptyPasswordError)
+			}
+			cmdPassword = string(password)
 		}
-		if string(password) == "" {
-			return microerror.Mask(emptyPasswordError)
-		}
-		cmdPassword = string(password)
 	}
 
 	return nil
+}
+
+func login(loginArgs loginArguments) (loginResult, error) {
+	var result loginResult
+	var err error
+	if cmdSSO {
+		result, err = loginSSO(loginArgs)
+	} else {
+		result, err = loginGiantSwarm(loginArgs)
+	}
+
+	return result, err
 }
 
 // loginRunOutput executes the login logic and
@@ -161,7 +179,6 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 	result, err := login(loginArgs)
 
 	if err != nil {
-
 		handleCommonErrors(err)
 
 		var headline = ""
@@ -184,6 +201,10 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 			headline = "Alias is already in use for a different endpoint"
 			subtext = fmt.Sprintf("The alias '%s' is already used for an endpoint in your configuration.\n", result.alias)
 			subtext += "Please edit your configuration file manually to delete the alias or endpoint."
+		case IsSSOError(err):
+			headline = "Something went wrong during SSO"
+			subtext = err.Error()
+			subtext += "\nPlease contact the Giant Swarm support team or try the command again later."
 		default:
 			headline = err.Error()
 		}
@@ -218,102 +239,5 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 		fmt.Println()
 		fmt.Println(color.GreenString("To switch back to this endpoint, you can use this command:\n"))
 		fmt.Println(color.YellowString("    gsctl select endpoint %s\n", result.alias))
-	}
-}
-
-// login executes the authentication logic.
-// If the user was logged in before, a logout is performed first.
-func login(args loginArguments) (loginResult, error) {
-	result := loginResult{
-		apiEndpoint:        args.apiEndpoint,
-		email:              args.email,
-		loggedOutBefore:    false,
-		endpointSwitched:   false,
-		numEndpointsBefore: config.Config.NumEndpoints(),
-	}
-
-	endpointBefore := config.Config.SelectedEndpoint
-	if result.apiEndpoint != endpointBefore {
-		result.endpointSwitched = true
-	}
-
-	encodedPassword := base64.StdEncoding.EncodeToString([]byte(args.password))
-
-	// log out if logged in
-	if config.Config.Token != "" {
-		result.loggedOutBefore = true
-		// we deliberately ignore the logout result here
-		logout(logoutArguments{
-			apiEndpoint: args.apiEndpoint,
-			token:       config.Config.Token,
-		})
-	}
-
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		Timeout:   10 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Mask(clientErr)
-	}
-
-	requestBody := gsclientgen.LoginBodyModel{Password: string(encodedPassword)}
-	loginResponse, rawResponse, err := apiClient.UserLogin(args.email,
-		requestBody, requestIDHeader, loginActivityName, cmdLine)
-
-	if err != nil {
-		if rawResponse == nil || rawResponse.Response == nil {
-			return result, microerror.Mask(noResponseError)
-		}
-
-		if rawResponse.StatusCode == http.StatusForbidden {
-			return result, microerror.Mask(accessForbiddenError)
-		}
-
-		return result, microerror.Mask(err)
-	}
-
-	switch loginResponse.StatusCode {
-	case apischema.STATUS_CODE_DATA:
-		// successful login
-		result.token = loginResponse.Data.Id
-		result.email = args.email
-
-		// fetch installation name as alias
-		authHeader := "giantswarm " + result.token
-		infoResponse, _, infoErr := apiClient.GetInfo(authHeader, requestIDHeader, loginActivityName, cmdLine)
-		if infoErr != nil {
-			return result, microerror.Mask(infoErr)
-		}
-
-		result.alias = infoResponse.General.InstallationName
-
-		if err := config.Config.StoreEndpointAuth(args.apiEndpoint, result.alias, args.email, result.token); err != nil {
-			return result, microerror.Mask(err)
-		}
-		if err := config.Config.SelectEndpoint(args.apiEndpoint); err != nil {
-			return result, microerror.Mask(err)
-		}
-
-		// after storing endpoint, get new endpoint count
-		result.numEndpointsAfter = config.Config.NumEndpoints()
-
-		return result, nil
-
-	case apischema.STATUS_CODE_RESOURCE_INVALID_CREDENTIALS:
-		// bad credentials
-		return result, microerror.Mask(invalidCredentialsError)
-	case apischema.STATUS_CODE_RESOURCE_NOT_FOUND:
-		// user unknown or user/password mismatch
-		return result, microerror.Mask(invalidCredentialsError)
-	case apischema.STATUS_CODE_WRONG_INPUT:
-		// empty password
-		return result, microerror.Mask(emptyPasswordError)
-	case apischema.STATUS_CODE_ACCOUNT_INACTIVE:
-		return result, microerror.Mask(userAccountInactiveError)
-	default:
-		return result, fmt.Errorf("Unhandled response code: %v", loginResponse.StatusCode)
 	}
 }

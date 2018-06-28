@@ -48,7 +48,7 @@ type createKeypairArguments struct {
 func defaultCreateKeypairArguments() (createKeypairArguments, error) {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdScheme)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	description := cmdDescription
 	if description == "" {
