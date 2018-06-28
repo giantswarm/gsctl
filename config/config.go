@@ -120,7 +120,7 @@ type endpointConfig struct {
 	Token string `yaml:"token,omitempty"`
 
 	// Scheme is the scheme to be used in the Authorization header.
-	Scheme string `yaml:"scheme,omitempty"`
+	Scheme string `yaml:"auth_scheme,omitempty"`
 
 	// Alias is a friendly shortcut for the endpoint
 	Alias string `yaml:"alias,omitempty"`
