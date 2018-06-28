@@ -117,10 +117,10 @@ type endpointConfig struct {
 	Email string `yaml:"email"`
 
 	// Token is the session token of the authenticated user.
-	Token string `yaml:"token"`
+	Token string `yaml:"token,omitempty"`
 
 	// Scheme is the scheme to be used in the Authorization header.
-	Scheme string `yaml:"scheme"`
+	Scheme string `yaml:"scheme,omitempty"`
 
 	// Alias is a friendly shortcut for the endpoint
 	Alias string `yaml:"alias,omitempty"`
@@ -320,10 +320,12 @@ func (c *configStruct) Logout(endpointURL string) {
 
 	if ep == c.SelectedEndpoint {
 		c.Token = ""
+		c.Scheme = ""
 	}
 
 	if element, ok := c.Endpoints[ep]; ok {
 		element.Token = ""
+		element.Scheme = ""
 	}
 
 	WriteToFile()
