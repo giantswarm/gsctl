@@ -380,7 +380,7 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 		cmdLine)
 	if err != nil {
 		var errorMessage string
-		if apiResponse != nil && apiResponse.Response != nil {
+		if apiResponse.Response != nil {
 			errorMessage = fmt.Sprintf("HTTP status: %d", apiResponse.StatusCode)
 		} else {
 			errorMessage = "No response received from the API"
