@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -192,27 +190,13 @@ func createKeypair(args createKeypairArguments) (createKeypairResult, error) {
 		apiEndpoint: args.apiEndpoint,
 	}
 
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		Timeout:   60 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Maskf(couldNotCreateClientError, clientErr.Error())
-	}
-
-	authHeader := args.scheme + " " + args.authToken
-
 	addKeyPairBody := gsclientgen.V4AddKeyPairBody{
 		Description:              args.description,
 		TtlHours:                 args.ttlHours,
 		CnPrefix:                 args.commonNamePrefix,
 		CertificateOrganizations: args.certificateOrganizations,
 	}
-	keypairResponse, apiResponse, err := apiClient.AddKeyPair(authHeader,
-		args.clusterID, addKeyPairBody, requestIDHeader,
-		addKeyPairActivityName, cmdLine)
+	keypairResponse, apiResponse, err := Client.AddKeyPair(args.clusterID, addKeyPairBody, addKeyPairActivityName)
 
 	if err != nil {
 		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {

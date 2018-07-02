@@ -15,7 +15,6 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen"
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/spf13/cobra"
 )
@@ -501,16 +500,7 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
 
 		// perform API call
-		authHeader := args.scheme + " " + args.token
-		clientConfig := client.Configuration{
-			Endpoint:  args.apiEndpoint,
-			UserAgent: config.UserAgent(),
-		}
-		apiClient, clientErr := client.NewClient(clientConfig)
-		if clientErr != nil {
-			return result, microerror.Mask(couldNotCreateClientError)
-		}
-		responseBody, apiResponse, err := apiClient.AddCluster(authHeader, addClusterBody, requestIDHeader, createClusterActivityName, cmdLine)
+		responseBody, apiResponse, err := Client.AddCluster(addClusterBody, createClusterActivityName)
 		if err != nil {
 			if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
 				return result, microerror.Mask(accessForbiddenError)

@@ -14,7 +14,6 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -98,7 +97,7 @@ func listKeypairsValidate(args *listKeypairsArguments) error {
 	}
 	if args.clusterID == "" {
 		// use default cluster if possible
-		clusterID, _ := config.GetDefaultCluster(requestIDHeader, listKeypairsActivityName, cmdLine, cmdAPIEndpoint)
+		clusterID, _ := config.GetDefaultCluster(listKeypairsActivityName, cmdAPIEndpoint)
 		if clusterID != "" {
 			cmdClusterID = clusterID
 		} else {
@@ -178,19 +177,9 @@ func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
 func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
 	result := listKeypairsResult{}
 
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		Timeout:   20 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
-
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Mask(couldNotCreateClientError)
-	}
-	authHeader := args.scheme + " " + args.token
-	keypairsResponse, apiResponse, err := apiClient.GetKeyPairs(authHeader,
-		cmdClusterID, requestIDHeader, listKeypairsActivityName, cmdLine)
+	keypairsResponse, apiResponse, err := Client.GetKeyPairs(
+		cmdClusterID,
+		listKeypairsActivityName)
 
 	if err != nil {
 

@@ -4,13 +4,11 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"time"
 
 	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/microerror"
 
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 )
 
@@ -42,19 +40,9 @@ func loginGiantSwarm(args loginArguments) (loginResult, error) {
 		})
 	}
 
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		Timeout:   10 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Mask(clientErr)
-	}
-
 	requestBody := gsclientgen.LoginBodyModel{Password: string(encodedPassword)}
-	loginResponse, rawResponse, err := apiClient.UserLogin(args.email,
-		requestBody, requestIDHeader, loginActivityName, cmdLine)
+	loginResponse, rawResponse, err := Client.UserLogin(args.email,
+		requestBody, loginActivityName)
 
 	if err != nil {
 		if rawResponse == nil || rawResponse.Response == nil {
@@ -75,13 +63,12 @@ func loginGiantSwarm(args loginArguments) (loginResult, error) {
 		result.email = args.email
 
 		// fetch installation name as alias
-		authHeader := "giantswarm " + result.token
-		infoResponse, _, infoErr := apiClient.GetInfo(authHeader, requestIDHeader, loginActivityName, cmdLine)
-		if infoErr != nil {
-			return result, microerror.Mask(infoErr)
+		alias, err := getAlias(args.apiEndpoint, "giantswarm", result.token)
+		if err != nil {
+			return result, microerror.Mask(err)
 		}
 
-		result.alias = infoResponse.General.InstallationName
+		result.alias = alias
 
 		if err := config.Config.StoreEndpointAuth(args.apiEndpoint, result.alias, args.email, "giantswarm", result.token); err != nil {
 			return result, microerror.Mask(err)

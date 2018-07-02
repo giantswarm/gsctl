@@ -134,13 +134,13 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 
 	var testCases = []addClusterArguments{
 		// minimal arguments
-		addClusterArguments{
+		{
 			apiEndpoint: mockServer.URL,
 			owner:       "acme",
 			token:       "fake token",
 		},
 		// extensive arguments
-		addClusterArguments{
+		{
 			apiEndpoint:         mockServer.URL,
 			clusterName:         "UnitTestCluster",
 			numWorkers:          4,
@@ -152,7 +152,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			workerStorageSizeGB: 10,
 			verbose:             true,
 		},
-		addClusterArguments{
+		{
 			apiEndpoint:   mockServer.URL,
 			clusterName:   "Cluster Name from Args",
 			owner:         "acme",
@@ -164,6 +164,9 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 
 	validateErr := errors.New("")
 	executeErr := errors.New("")
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	for i, testCase := range testCases {
 		validateErr = validateCreateClusterPreConditions(testCase)
@@ -191,13 +194,13 @@ func Test_CreateClusterFailures(t *testing.T) {
 
 	var testCases = []addClusterArguments{
 		// not authenticated
-		addClusterArguments{
+		{
 			apiEndpoint: mockServer.URL,
 			owner:       "owner",
 			token:       "",
 		},
 		// extensive arguments (only a server error should let this fail)
-		addClusterArguments{
+		{
 			apiEndpoint:         mockServer.URL,
 			clusterName:         "UnitTestCluster",
 			numWorkers:          4,
@@ -210,7 +213,7 @@ func Test_CreateClusterFailures(t *testing.T) {
 			verbose:             true,
 		},
 		// file not readable
-		addClusterArguments{
+		{
 			apiEndpoint:   mockServer.URL,
 			token:         "fake token",
 			inputYAMLFile: "does/not/exist.yaml",

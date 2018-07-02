@@ -27,7 +27,7 @@ func TestTimeout(t *testing.T) {
 	if clientErr != nil {
 		t.Error(clientErr)
 	}
-	_, _, err := apiClient.GetUserOrganizations("foo", "foo", "foo", "foo")
+	_, _, err := apiClient.GetUserOrganizations("foo")
 	if err == nil {
 		t.Error("Expected Timeout error, got nil")
 	} else {
@@ -59,7 +59,7 @@ func TestUserAgent(t *testing.T) {
 	}
 	// We use GetUserOrganizations just to issue a request. We could use any other
 	// API call, it wouldn't matter.
-	_, apiResponse, _ := apiClient.GetUserOrganizations("foo", "foo", "foo", "foo")
+	_, apiResponse, _ := apiClient.GetUserOrganizations("foo")
 
 	gr, err := ParseGenericResponse(apiResponse.Payload)
 	if err != nil {
@@ -68,5 +68,33 @@ func TestUserAgent(t *testing.T) {
 
 	if !strings.Contains(gr.Message, clientConfig.UserAgent) {
 		t.Error("UserAgent string could not be found")
+	}
+}
+
+// TestRedactPasswordArgs tests redactPasswordArgs()
+func TestRedactPasswordArgs(t *testing.T) {
+	argtests := []struct {
+		in  string
+		out string
+	}{
+		// these remain unchangd
+		{"foo", "foo"},
+		{"foo bar", "foo bar"},
+		{"foo bar blah", "foo bar blah"},
+		{"foo bar blah -p mypass", "foo bar blah -p mypass"},
+		{"foo bar blah -p=mypass", "foo bar blah -p=mypass"},
+		// these will be altered
+		{"foo bar blah --password mypass", "foo bar blah --password REDACTED"},
+		{"foo bar blah --password=mypass", "foo bar blah --password=REDACTED"},
+		{"foo login blah -p mypass", "foo login blah -p REDACTED"},
+		{"foo login blah -p=mypass", "foo login blah -p=REDACTED"},
+	}
+
+	for _, tt := range argtests {
+		in := strings.Split(tt.in, " ")
+		out := strings.Join(redactPasswordArgs(in), " ")
+		if out != tt.out {
+			t.Errorf("want '%q', have '%s'", tt.in, tt.out)
+		}
 	}
 }

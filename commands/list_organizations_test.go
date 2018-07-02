@@ -20,6 +20,7 @@ func Test_ListOrganizations(t *testing.T) {
 	defer orgsMockServer.Close()
 
 	cmdAPIEndpoint = orgsMockServer.URL
+	initClient()
 	_, err := orgsTable()
 	if err != nil {
 		t.Error(err)
@@ -38,6 +39,7 @@ func Test_ListOrganizationsEmpty(t *testing.T) {
 	defer orgsMockServer.Close()
 
 	cmdAPIEndpoint = orgsMockServer.URL
+	initClient()
 	_, err := orgsTable()
 	if err != nil {
 		t.Error(err)

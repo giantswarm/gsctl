@@ -27,6 +27,9 @@ func Test_LogoutValidToken(t *testing.T) {
 		token:       "test-token",
 	}
 
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
 	err = logout(logoutArgs)
 	if err != nil {
 		t.Error(err)
@@ -53,6 +56,9 @@ func Test_LogoutInvalidToken(t *testing.T) {
 		token:       "test-token",
 	}
 
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
 	err = logout(logoutArgs)
 	if !IsNotAuthorizedError(err) {
 		t.Errorf("Unexpected error: %s", err)
@@ -77,6 +83,8 @@ func Test_LogoutCommand(t *testing.T) {
 
 	cmdAPIEndpoint = mockServer.URL
 	cmdToken = "some-token"
+	initClient()
+
 	logoutValidationOutput(LogoutCommand, []string{})
 	logoutOutput(LogoutCommand, []string{})
 }

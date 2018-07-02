@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"time"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -16,7 +15,6 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -359,25 +357,10 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, error) {
 	result := createKubeconfigResult{}
 
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		Timeout:   10 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Maskf(couldNotCreateClientError, clientErr.Error())
-	}
-
-	authHeader := args.scheme + " " + args.authToken
-
 	// get cluster details
-	clusterDetailsResponse, apiResponse, err := apiClient.GetCluster(
-		authHeader,
+	clusterDetailsResponse, apiResponse, err := Client.GetCluster(
 		args.clusterID,
-		requestIDHeader,
-		createKubeconfigActivityName,
-		cmdLine)
+		createKubeconfigActivityName)
 	if err != nil {
 		var errorMessage string
 		if apiResponse.Response != nil {
@@ -397,15 +380,10 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 		CertificateOrganizations: args.certOrgs,
 	}
 
-	clientConfig.Timeout = 60 * time.Second
-	apiClient, clientErr = client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Mask(couldNotCreateClientError)
-	}
-
-	keypairResponse, apiResponse, err := apiClient.AddKeyPair(authHeader,
-		args.clusterID, addKeyPairBody, requestIDHeader,
-		createKubeconfigActivityName, cmdLine)
+	keypairResponse, apiResponse, err := Client.AddKeyPair(
+		args.clusterID,
+		addKeyPairBody,
+		createKubeconfigActivityName)
 
 	if err != nil {
 		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {

@@ -44,6 +44,9 @@ func TestShowAWSCluster(t *testing.T) {
 		authToken:   "my-token",
 	}
 
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
 	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
 		t.Error(err)
@@ -85,6 +88,9 @@ func TestShowClusterNotAuthorized(t *testing.T) {
 		scheme:      "giantswarm",
 		authToken:   "my-wrong-token",
 	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
@@ -128,6 +134,9 @@ func TestShowClusterNotFound(t *testing.T) {
 		authToken:   "my-token",
 	}
 
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
 	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
 		t.Error(err)
@@ -169,6 +178,9 @@ func TestShowClusterInternalServerError(t *testing.T) {
 		scheme:      "giantswarm",
 		authToken:   "my-token",
 	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {

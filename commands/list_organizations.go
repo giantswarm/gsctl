@@ -5,14 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
-	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 )
 
@@ -60,22 +57,8 @@ func listOrgs(cmd *cobra.Command, args []string) {
 // orgsTable fetches the organizations the user is a member of
 // and returns a table in string form
 func orgsTable() (string, error) {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
-	clientConfig := client.Configuration{
-		Endpoint:  endpoint,
-		Timeout:   5 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return "", microerror.Mask(couldNotCreateClientError)
-	}
-
-	authHeader := scheme + " " + token
-	organizations, apiResponse, err := apiClient.GetUserOrganizations(authHeader, requestIDHeader, listOrganizationsActivityName, cmdLine)
+	organizations, apiResponse, err := Client.GetUserOrganizations(listOrganizationsActivityName)
 	if err != nil {
 		return "", APIError{err.Error(), *apiResponse}
 	}

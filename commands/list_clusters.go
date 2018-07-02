@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
@@ -13,7 +12,6 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -99,19 +97,7 @@ func listClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 // clustersTable returns a table of clusters the user has access to
 func clustersTable(args listClustersArguments) (string, error) {
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		Timeout:   5 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return "", microerror.Mask(couldNotCreateClientError)
-	}
-	authHeader := args.scheme + " " + args.authToken
-
-	clusters, apiResponse, err := apiClient.GetClusters(authHeader,
-		requestIDHeader, listClustersActivityName, cmdLine)
+	clusters, apiResponse, err := Client.GetClusters(listClustersActivityName)
 	if err != nil {
 		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
 			return "", microerror.Mask(accessForbiddenError)
