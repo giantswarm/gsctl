@@ -73,6 +73,17 @@ func Run() (pkceResponse, error) {
 	p, err := startCallbackServer("8085", "/oauth/callback", func(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 		// Get the code that Auth0 gave us.
 		code := r.URL.Query().Get("code")
+		errorCode := r.URL.Query().Get("error")
+		errorDescription := r.URL.Query().Get("error_description")
+
+		if errorCode != "" {
+			pkceResponse := pkceResponse{
+				Error:            errorCode,
+				ErrorDescription: errorDescription,
+			}
+
+			return pkceResponse, microerror.Maskf(authorizationError, pkceResponse.ErrorDescription)
+		}
 
 		// We now have the 'code' which we can then finally exchange
 		// for a real id token by doing a final request to Auth0 and passing the code
