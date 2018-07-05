@@ -12,7 +12,7 @@ import (
 	"github.com/giantswarm/gsctl/config"
 )
 
-// login executes the authentication logic.
+// loginGiantSwarm executes the authentication logic.
 // If the user was logged in before, a logout is performed first.
 func loginGiantSwarm(args loginArguments) (loginResult, error) {
 	result := loginResult{
