@@ -37,6 +37,9 @@ func loginSSO(args loginArguments) (loginResult, error) {
 	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, alias, idToken.Email, "Bearer", pkceResponse.AccessToken); err != nil {
 		return loginResult{}, microerror.Maskf(ssoError, "Error while attempting to store the token in the config file")
 	}
+	if err := config.Config.SelectEndpoint(args.apiEndpoint); err != nil {
+		return loginResult{}, microerror.Mask(err)
+	}
 
 	result := loginResult{
 		apiEndpoint:        args.apiEndpoint,
