@@ -10,9 +10,9 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
+	gsclientgen "gopkg.in/giantswarm/gsclientgen.v1"
 )
 
 var (

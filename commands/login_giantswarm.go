@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	apischema "github.com/giantswarm/api-schema"
-	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/microerror"
+	gsclientgen "gopkg.in/giantswarm/gsclientgen.v1"
 
 	"github.com/giantswarm/gsctl/config"
 )

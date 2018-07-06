@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/giantswarm/columnize"
-	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/gsctl/client"
+	gsclientgen "gopkg.in/giantswarm/gsclientgen.v1"
 
 	"github.com/fatih/color"
 )

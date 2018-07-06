@@ -47,8 +47,8 @@
   version = "=2.0.2"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/giantswarm/gsclientgen"
+  version = "=1.0.0"
+  name = "gopkg.in/giantswarm/gsclientgen.v1"
 
 [[constraint]]
   name = "github.com/giantswarm/microerror"
