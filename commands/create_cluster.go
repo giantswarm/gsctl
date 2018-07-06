@@ -14,9 +14,9 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/spf13/cobra"
+	gsclientgen "gopkg.in/giantswarm/gsclientgen.v1"
 )
 
 // addClusterArguments contains all possible input parameter needed

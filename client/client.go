@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/microerror"
 	rootcerts "github.com/hashicorp/go-rootcerts"
+	gsclientgen "gopkg.in/giantswarm/gsclientgen.v1"
 )
 
 var (

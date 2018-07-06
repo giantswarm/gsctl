@@ -11,9 +11,9 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
+	gsclientgen "gopkg.in/giantswarm/gsclientgen.v1"
 
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
