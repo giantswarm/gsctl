@@ -11,7 +11,7 @@ import (
 
 	"github.com/giantswarm/microerror"
 	rootcerts "github.com/hashicorp/go-rootcerts"
-	gsclientgen "gopkg.in/giantswarm/gsclientgen.v1"
+	gsclientgenv1 "gopkg.in/giantswarm/gsclientgen.v1"
 )
 
 var (
@@ -44,14 +44,14 @@ type GenericResponse struct {
 
 type ClientWrapper struct {
 	authHeader string
-	client     *gsclientgen.DefaultApi
+	client     *gsclientgenv1.DefaultApi
 	requestID  string
 }
 
 // NewClient allows to create a new API client
 // with specific configuration
 func NewClient(clientConfig Configuration) (*ClientWrapper, error) {
-	configuration := gsclientgen.NewConfiguration()
+	configuration := gsclientgenv1.NewConfiguration()
 
 	if clientConfig.Endpoint == "" {
 		return &ClientWrapper{}, microerror.Mask(endpointNotSpecifiedError)
@@ -80,7 +80,7 @@ func NewClient(clientConfig Configuration) (*ClientWrapper, error) {
 
 	client := ClientWrapper{
 		authHeader: clientConfig.AuthHeader,
-		client: &gsclientgen.DefaultApi{
+		client: &gsclientgenv1.DefaultApi{
 			Configuration: configuration,
 		},
 		requestID: randomRequestID(),
@@ -145,54 +145,54 @@ func redactPasswordArgs(args []string) []string {
 	return args
 }
 
-func (c *ClientWrapper) AddCluster(body gsclientgen.V4AddClusterRequest, activityName string) (*gsclientgen.V4GenericResponse, *gsclientgen.APIResponse, error) {
+func (c *ClientWrapper) AddCluster(body gsclientgenv1.V4AddClusterRequest, activityName string) (*gsclientgenv1.V4GenericResponse, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.AddCluster(c.authHeader, body, c.requestID, activityName, getCommandLine())
 	return response, apiResponse, err
 }
 
-func (c *ClientWrapper) AddKeyPair(clusterID string, body gsclientgen.V4AddKeyPairBody, activityName string) (*gsclientgen.V4AddKeyPairResponse, *gsclientgen.APIResponse, error) {
+func (c *ClientWrapper) AddKeyPair(clusterID string, body gsclientgenv1.V4AddKeyPairBody, activityName string) (*gsclientgenv1.V4AddKeyPairResponse, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.AddKeyPair(c.authHeader, clusterID, body, c.requestID, activityName, getCommandLine())
 	return response, apiResponse, err
 }
 
-func (c *ClientWrapper) DeleteCluster(clusterID string, activityName string) (*gsclientgen.V4GenericResponse, *gsclientgen.APIResponse, error) {
+func (c *ClientWrapper) DeleteCluster(clusterID string, activityName string) (*gsclientgenv1.V4GenericResponse, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.DeleteCluster(c.authHeader, clusterID, c.requestID, activityName, getCommandLine())
 	return response, apiResponse, err
 }
 
-func (c *ClientWrapper) GetCluster(clusterID string, activityName string) (*gsclientgen.V4ClusterDetailsModel, *gsclientgen.APIResponse, error) {
+func (c *ClientWrapper) GetCluster(clusterID string, activityName string) (*gsclientgenv1.V4ClusterDetailsModel, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.GetCluster(c.authHeader, clusterID, c.requestID, activityName, getCommandLine())
 	return response, apiResponse, err
 }
-func (c *ClientWrapper) GetClusters(activityName string) ([]gsclientgen.V4ClusterListItem, *gsclientgen.APIResponse, error) {
+func (c *ClientWrapper) GetClusters(activityName string) ([]gsclientgenv1.V4ClusterListItem, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.GetClusters(c.authHeader, c.requestID, activityName, getCommandLine())
 	return response, apiResponse, err
 }
-func (c *ClientWrapper) GetInfo(activityName string) (*gsclientgen.V4InfoResponse, *gsclientgen.APIResponse, error) {
+func (c *ClientWrapper) GetInfo(activityName string) (*gsclientgenv1.V4InfoResponse, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.GetInfo(c.authHeader, c.requestID, activityName, getCommandLine())
 	return response, apiResponse, err
 }
-func (c *ClientWrapper) GetKeyPairs(clusterID string, activityName string) ([]gsclientgen.KeyPairModel, *gsclientgen.APIResponse, error) {
+func (c *ClientWrapper) GetKeyPairs(clusterID string, activityName string) ([]gsclientgenv1.KeyPairModel, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.GetKeyPairs(c.authHeader, clusterID, c.requestID, activityName, getCommandLine())
 	return response, apiResponse, err
 }
-func (c *ClientWrapper) GetReleases(activityName string) ([]gsclientgen.V4ReleaseListItem, *gsclientgen.APIResponse, error) {
+func (c *ClientWrapper) GetReleases(activityName string) ([]gsclientgenv1.V4ReleaseListItem, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.GetReleases(c.authHeader, c.requestID, activityName, getCommandLine())
 	return response, apiResponse, err
 }
-func (c *ClientWrapper) GetUserOrganizations(activityName string) ([]gsclientgen.V4OrganizationListItem, *gsclientgen.APIResponse, error) {
+func (c *ClientWrapper) GetUserOrganizations(activityName string) ([]gsclientgenv1.V4OrganizationListItem, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.GetUserOrganizations(c.authHeader, c.requestID, activityName, getCommandLine())
 	return response, apiResponse, err
 }
-func (c *ClientWrapper) ModifyCluster(clusterID string, body gsclientgen.V4ModifyClusterRequest, activityName string) (*gsclientgen.V4ClusterDetailsModel, *gsclientgen.APIResponse, error) {
+func (c *ClientWrapper) ModifyCluster(clusterID string, body gsclientgenv1.V4ModifyClusterRequest, activityName string) (*gsclientgenv1.V4ClusterDetailsModel, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.ModifyCluster(c.authHeader, clusterID, body, c.requestID, activityName, getCommandLine())
 	return response, apiResponse, err
 }
-func (c *ClientWrapper) UserLogin(email string, body gsclientgen.LoginBodyModel, activityname string) (*gsclientgen.LoginResponseModel, *gsclientgen.APIResponse, error) {
+func (c *ClientWrapper) UserLogin(email string, body gsclientgenv1.LoginBodyModel, activityname string) (*gsclientgenv1.LoginResponseModel, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.UserLogin(email, body, c.requestID, activityname, cmdLine)
 	return response, apiResponse, err
 }
-func (c *ClientWrapper) UserLogout(activityName string) (*gsclientgen.GenericResponseModel, *gsclientgen.APIResponse, error) {
+func (c *ClientWrapper) UserLogout(activityName string) (*gsclientgenv1.GenericResponseModel, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.UserLogout(c.authHeader, c.requestID, activityName, getCommandLine())
 	return response, apiResponse, err
 }
