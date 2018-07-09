@@ -12,7 +12,7 @@ import (
 )
 
 // V4ClusterListItem v4 cluster list item
-// swagger:model V4ClusterListItem
+// swagger:model v4ClusterListItem
 type V4ClusterListItem struct {
 
 	// Date/time of cluster creation

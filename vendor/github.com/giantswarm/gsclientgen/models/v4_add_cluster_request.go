@@ -16,8 +16,13 @@ import (
 )
 
 // V4AddClusterRequest Request model for creating a new cluster
-// swagger:model V4AddClusterRequest
+// swagger:model v4AddClusterRequest
 type V4AddClusterRequest struct {
+
+	// Kubernetes version number (deprecated). Doesn't have any effect.
+	// This attribute is going to be removed in future API versions.
+	//
+	KubernetesVersion string `json:"kubernetes_version,omitempty"`
 
 	// Cluster name
 	Name string `json:"name,omitempty"`
@@ -26,11 +31,13 @@ type V4AddClusterRequest struct {
 	// Required: true
 	Owner *string `json:"owner"`
 
-	// Release version number
+	// The [release](https://docs.giantswarm.io/api/#tag/releases) version
+	// to use in the new cluster
+	//
 	ReleaseVersion string `json:"release_version,omitempty"`
 
 	// workers
-	Workers []*V4NodeDefinition `json:"workers"`
+	Workers []*V4AddClusterRequestWorkersItems `json:"workers"`
 }
 
 // Validate validates this v4 add cluster request

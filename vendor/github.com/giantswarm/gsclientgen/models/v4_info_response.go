@@ -13,7 +13,7 @@ import (
 )
 
 // V4InfoResponse v4 info response
-// swagger:model V4InfoResponse
+// swagger:model v4InfoResponse
 type V4InfoResponse struct {
 
 	// general

@@ -16,7 +16,7 @@ import (
 )
 
 // V4ReleaseListItem v4 release list item
-// swagger:model V4ReleaseListItem
+// swagger:model v4ReleaseListItem
 type V4ReleaseListItem struct {
 
 	// If true, the version is available for new clusters and cluster
@@ -29,12 +29,12 @@ type V4ReleaseListItem struct {
 	// previous version, with respect to the contained components.
 	//
 	// Required: true
-	Changelog []*V4ReleaseChangelogItem `json:"changelog"`
+	Changelog []*V4ReleaseListItemChangelogItems `json:"changelog"`
 
 	// List of components and their version contained in the release
 	//
 	// Required: true
-	Components []*V4ReleaseComponent `json:"components"`
+	Components []*V4ReleaseListItemComponentsItems `json:"components"`
 
 	// Date and time of the release creation
 	// Required: true

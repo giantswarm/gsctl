@@ -15,17 +15,13 @@ import (
 // swagger:model v4InfoResponseGeneral
 type V4InfoResponseGeneral struct {
 
-	// Identifier of the datacenter or cloud provider region,
-	// e. g. "eu-west-1"
-	//
+	// Identifier of the datacenter or cloud provider region, e. g. "eu-west-1"
 	Datacenter string `json:"datacenter,omitempty"`
 
 	// Unique name of the installation
 	InstallationName string `json:"installation_name,omitempty"`
 
-	// The technical provider used in this installation. Either "kvm",
-	// "aws", or "azure".
-	//
+	// The technical provider used in this installation. Either "kvm", "aws", or "azure".
 	Provider string `json:"provider,omitempty"`
 }
 

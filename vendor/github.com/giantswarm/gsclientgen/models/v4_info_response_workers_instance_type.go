@@ -11,14 +11,11 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// V4InfoResponseWorkersInstanceType Instance types to be used for worker nodes. Only available for
-// AWS clusters.
-//
+// V4InfoResponseWorkersInstanceType Instance types to be used for worker nodes. Only available for AWS clusters.
 // swagger:model v4InfoResponseWorkersInstanceType
 type V4InfoResponseWorkersInstanceType struct {
 
 	// The instance type used in new cluster, if not specified
-	//
 	Default string `json:"default,omitempty"`
 
 	// List of available instance types

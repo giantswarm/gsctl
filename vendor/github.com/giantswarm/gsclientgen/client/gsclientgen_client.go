@@ -11,7 +11,13 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/giantswarm/gsclientgen/client/operations"
+	"github.com/giantswarm/gsclientgen/client/auth_tokens"
+	"github.com/giantswarm/gsclientgen/client/clusters"
+	"github.com/giantswarm/gsclientgen/client/info"
+	"github.com/giantswarm/gsclientgen/client/key_pairs"
+	"github.com/giantswarm/gsclientgen/client/organizations"
+	"github.com/giantswarm/gsclientgen/client/releases"
+	"github.com/giantswarm/gsclientgen/client/users"
 )
 
 // Default gsclientgen HTTP client.
@@ -20,7 +26,7 @@ var Default = NewHTTPClient(nil)
 const (
 	// DefaultHost is the default Host
 	// found in Meta (info) section of spec file
-	DefaultHost string = "api.giantswarm.io"
+	DefaultHost string = "localhost"
 	// DefaultBasePath is the default BasePath
 	// found in Meta (info) section of spec file
 	DefaultBasePath string = "/"
@@ -57,7 +63,19 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Gsclientge
 	cli := new(Gsclientgen)
 	cli.Transport = transport
 
-	cli.Operations = operations.New(transport, formats)
+	cli.AuthTokens = auth_tokens.New(transport, formats)
+
+	cli.Clusters = clusters.New(transport, formats)
+
+	cli.Info = info.New(transport, formats)
+
+	cli.KeyPairs = key_pairs.New(transport, formats)
+
+	cli.Organizations = organizations.New(transport, formats)
+
+	cli.Releases = releases.New(transport, formats)
+
+	cli.Users = users.New(transport, formats)
 
 	return cli
 }
@@ -103,7 +121,19 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // Gsclientgen is a client for gsclientgen
 type Gsclientgen struct {
-	Operations *operations.Client
+	AuthTokens *auth_tokens.Client
+
+	Clusters *clusters.Client
+
+	Info *info.Client
+
+	KeyPairs *key_pairs.Client
+
+	Organizations *organizations.Client
+
+	Releases *releases.Client
+
+	Users *users.Client
 
 	Transport runtime.ClientTransport
 }
@@ -112,6 +142,18 @@ type Gsclientgen struct {
 func (c *Gsclientgen) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
 
-	c.Operations.SetTransport(transport)
+	c.AuthTokens.SetTransport(transport)
+
+	c.Clusters.SetTransport(transport)
+
+	c.Info.SetTransport(transport)
+
+	c.KeyPairs.SetTransport(transport)
+
+	c.Organizations.SetTransport(transport)
+
+	c.Releases.SetTransport(transport)
+
+	c.Users.SetTransport(transport)
 
 }

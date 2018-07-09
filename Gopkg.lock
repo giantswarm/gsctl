@@ -72,10 +72,16 @@
   name = "github.com/giantswarm/gsclientgen"
   packages = [
     "client",
-    "client/operations",
+    "client/auth_tokens",
+    "client/clusters",
+    "client/info",
+    "client/key_pairs",
+    "client/organizations",
+    "client/releases",
+    "client/users",
     "models"
   ]
-  revision = "af7728cd3a523b18366328ca92ea9d6badf476fe"
+  revision = "7562341887c6242299bc028245b798c87bbc052e"
 
 [[projects]]
   branch = "master"

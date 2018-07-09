@@ -14,21 +14,21 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// V4ModifyClusterRequest v4 modify cluster request
-// swagger:model V4ModifyClusterRequest
+// V4ModifyClusterRequest Request body for cluster modification
+// swagger:model v4ModifyClusterRequest
 type V4ModifyClusterRequest struct {
 
-	// name
+	// Name for the cluster
 	Name string `json:"name,omitempty"`
 
-	// owner
+	// Name of the organization owning the cluster
 	Owner string `json:"owner,omitempty"`
 
-	// release version
+	// Release version to use after an upgrade
 	ReleaseVersion string `json:"release_version,omitempty"`
 
-	// workers
-	Workers []*V4NodeDefinition `json:"workers"`
+	// Worker node array
+	Workers []*V4ModifyClusterRequestWorkersItems `json:"workers"`
 }
 
 // Validate validates this v4 modify cluster request

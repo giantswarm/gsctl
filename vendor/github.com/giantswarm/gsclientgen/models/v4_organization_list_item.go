@@ -12,7 +12,7 @@ import (
 )
 
 // V4OrganizationListItem v4 organization list item
-// swagger:model V4OrganizationListItem
+// swagger:model v4OrganizationListItem
 type V4OrganizationListItem struct {
 
 	// Unique name/identifier of the organization

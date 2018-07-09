@@ -8,57 +8,23 @@ package models
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
-	"github.com/go-openapi/validate"
 )
 
 // V4GenericResponse v4 generic response
-// swagger:model V4GenericResponse
+// swagger:model v4GenericResponse
 type V4GenericResponse struct {
 
-	// code
-	// Required: true
-	Code *string `json:"code"`
+	// A machine readable [response code](https://github.com/giantswarm/api-spec/blob/master/details/RESPONSE_CODES.md) like e. g. `INVALID_CREDENTIALS`
+	//
+	Code string `json:"code,omitempty"`
 
-	// message
-	// Required: true
-	Message *string `json:"message"`
+	// A human readable message
+	Message string `json:"message,omitempty"`
 }
 
 // Validate validates this v4 generic response
 func (m *V4GenericResponse) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateCode(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateMessage(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *V4GenericResponse) validateCode(formats strfmt.Registry) error {
-
-	if err := validate.Required("code", "body", m.Code); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *V4GenericResponse) validateMessage(formats strfmt.Registry) error {
-
-	if err := validate.Required("message", "body", m.Message); err != nil {
-		return err
-	}
-
 	return nil
 }
 

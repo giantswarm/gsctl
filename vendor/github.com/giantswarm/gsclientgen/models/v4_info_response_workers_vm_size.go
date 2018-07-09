@@ -11,14 +11,11 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// V4InfoResponseWorkersVMSize Azure Virtual Machine size to be used for worker nodes. Only
-// available for Azure clusters.
-//
+// V4InfoResponseWorkersVMSize Azure Virtual Machine size to be used for worker nodes. Only available for Azure clusters.
 // swagger:model v4InfoResponseWorkersVmSize
 type V4InfoResponseWorkersVMSize struct {
 
 	// The instance type used in new cluster, if not specified
-	//
 	Default string `json:"default,omitempty"`
 
 	// List of available instance types

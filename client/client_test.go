@@ -1,13 +1,23 @@
 package client
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"os"
 	"strings"
 	"testing"
 	"time"
+
+	gsclient "github.com/giantswarm/gsclientgen/client"
+	"github.com/giantswarm/gsclientgen/client/auth_tokens"
+	"github.com/giantswarm/gsclientgen/models"
+	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
+	rootcerts "github.com/hashicorp/go-rootcerts"
 )
 
 func TestTimeout(t *testing.T) {
@@ -97,4 +107,53 @@ func TestRedactPasswordArgs(t *testing.T) {
 			t.Errorf("want '%q', have '%s'", tt.in, tt.out)
 		}
 	}
+}
+
+func TestClientV2(t *testing.T) { // Our test server.
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Return valid JSON containing user agent string received
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"auth_token": "e5239484-2299-41df-b901-d0568db7e3f9"}`))
+	}))
+	defer ts.Close()
+
+	u, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Error(err)
+	}
+
+	tlsConfig := &tls.Config{}
+	rootCertsErr := rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
+		CAFile: os.Getenv("GSCTL_CAFILE"),
+		CAPath: os.Getenv("GSCTL_CAPATH"),
+	})
+	if rootCertsErr != nil {
+		t.Error(rootCertsErr)
+	}
+
+	transport := httptransport.New(u.Host, "", []string{u.Scheme})
+	transport.Transport = &http.Transport{
+		Proxy:           http.ProxyFromEnvironment,
+		TLSClientConfig: tlsConfig,
+	}
+
+	gsClient := gsclient.New(transport, strfmt.Default)
+
+	params := auth_tokens.NewCreateAuthTokenParams()
+	params.SetBody(&models.V4CreateAuthTokenRequest{
+		Email:          "foo",
+		PasswordBase64: "bar",
+	})
+
+	// we use nil as runtime.ClientAuthInfoWriter here
+	_, err = gsClient.AuthTokens.CreateAuthToken(params, nil)
+	if err == nil {
+		t.Error("Expected Timeout error, got nil")
+	} else {
+		if err, ok := err.(net.Error); ok && !err.Timeout() {
+			t.Error("Expected Timeout error, got", err)
+		}
+	}
+
 }

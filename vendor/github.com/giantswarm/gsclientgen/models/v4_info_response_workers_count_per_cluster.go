@@ -15,9 +15,7 @@ import (
 // swagger:model v4InfoResponseWorkersCountPerCluster
 type V4InfoResponseWorkersCountPerCluster struct {
 
-	// Default number of workers in a new cluster will have, if not
-	// specifiec otherwise
-	//
+	// Default number of workers in a new cluster will have, if not specifiec otherwise
 	Default float64 `json:"default,omitempty"`
 
 	// Maximum number of worker a cluster can have
