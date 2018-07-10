@@ -1,23 +1,16 @@
 package client
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
-	gsclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 	"github.com/giantswarm/gsclientgen/models"
-	httptransport "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
-	rootcerts "github.com/hashicorp/go-rootcerts"
 )
 
 func TestTimeout(t *testing.T) {
@@ -119,27 +112,14 @@ func TestClientV2CreateAuthToken(t *testing.T) { // Our test server.
 	}))
 	defer ts.Close()
 
-	u, err := url.Parse(ts.URL)
+	config := &Configuration{
+		Endpoint: ts.URL,
+	}
+
+	gsClient, err := NewV2(config)
 	if err != nil {
 		t.Error(err)
 	}
-
-	tlsConfig := &tls.Config{}
-	rootCertsErr := rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
-		CAFile: os.Getenv("GSCTL_CAFILE"),
-		CAPath: os.Getenv("GSCTL_CAPATH"),
-	})
-	if rootCertsErr != nil {
-		t.Error(rootCertsErr)
-	}
-
-	transport := httptransport.New(u.Host, "", []string{u.Scheme})
-	transport.Transport = &http.Transport{
-		Proxy:           http.ProxyFromEnvironment,
-		TLSClientConfig: tlsConfig,
-	}
-
-	gsClient := gsclient.New(transport, strfmt.Default)
 
 	params := auth_tokens.NewCreateAuthTokenParams()
 	params.SetBody(&models.V4CreateAuthTokenRequest{
@@ -173,27 +153,14 @@ func TestClientV2DeleteAuthToken(t *testing.T) { // Our test server.
 	}))
 	defer ts.Close()
 
-	u, err := url.Parse(ts.URL)
+	config := &Configuration{
+		Endpoint: ts.URL,
+	}
+
+	gsClient, err := NewV2(config)
 	if err != nil {
 		t.Error(err)
 	}
-
-	tlsConfig := &tls.Config{}
-	rootCertsErr := rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
-		CAFile: os.Getenv("GSCTL_CAFILE"),
-		CAPath: os.Getenv("GSCTL_CAPATH"),
-	})
-	if rootCertsErr != nil {
-		t.Error(rootCertsErr)
-	}
-
-	transport := httptransport.New(u.Host, "", []string{u.Scheme})
-	transport.Transport = &http.Transport{
-		Proxy:           http.ProxyFromEnvironment,
-		TLSClientConfig: tlsConfig,
-	}
-
-	gsClient := gsclient.New(transport, strfmt.Default)
 
 	params := auth_tokens.NewDeleteAuthTokenParams().WithAuthorization("giantswarm test-token")
 

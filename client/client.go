@@ -1,10 +1,19 @@
 package client
 
 import (
+	"crypto/tls"
 	"math/rand"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
+
+	gsclient "github.com/giantswarm/gsclientgen/client"
+	"github.com/giantswarm/microerror"
+	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
+	rootcerts "github.com/hashicorp/go-rootcerts"
 )
 
 var (
@@ -23,23 +32,72 @@ func init() {
 	cmdLine = getCommandLine()
 }
 
-// Configuration is the configuration to be used for the old client
-// based on gsclientgen.v1
+// Configuration is the configuration to be used both by the latest as well
+// as the old client based on gsclientgen.v1
 type Configuration struct {
 	// AuthHeader is the header we should use to make API calls
 	AuthHeader string
+
 	// Endpoint is the base URL of the API
 	Endpoint string
+
 	// Timeout is the maximum time to wait for API requests to succeed
 	Timeout time.Duration
-	// UserAgent
+
+	// UserAgent identifier
 	UserAgent string
 }
 
-// NewClientV2
-// func NewClientV2(clientConfig Configuration) (*apiclient.Gsclientgen, error) {
-// 	return apiclient.New()
-// }
+// NewV2 creates a client based on the latest gsclientgen version
+func NewV2(conf *Configuration) (*gsclient.Gsclientgen, error) {
+	if conf.Endpoint == "" {
+		return nil, microerror.Mask(endpointNotSpecifiedError)
+	}
+
+	u, err := url.Parse(conf.Endpoint)
+	if err != nil {
+		return nil, microerror.Mask(endpointInvalidError)
+	}
+
+	tlsConfig := &tls.Config{}
+	rootCertsErr := rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
+		CAFile: os.Getenv("GSCTL_CAFILE"),
+		CAPath: os.Getenv("GSCTL_CAPATH"),
+	})
+	if rootCertsErr != nil {
+		return nil, microerror.Mask(rootCertsErr)
+	}
+
+	transport := httptransport.New(u.Host, "", []string{u.Scheme})
+	transport.Transport = &http.Transport{
+		Proxy:           http.ProxyFromEnvironment,
+		TLSClientConfig: tlsConfig,
+	}
+	transport.Transport = setUserAgent(transport.Transport, conf.UserAgent)
+
+	return gsclient.New(transport, strfmt.Default), nil
+}
+
+type roundTripperWithUserAgent struct {
+	inner http.RoundTripper
+	Agent string
+}
+
+// RoundTrip overwrites the http.RoundTripper.RoundTrip function to add our
+// User-Agent HTTP header to a request
+func (rtwua *roundTripperWithUserAgent) RoundTrip(r *http.Request) (*http.Response, error) {
+	r.Header.Set("User-Agent", rtwua.Agent)
+	return rtwua.inner.RoundTrip(r)
+}
+
+// setUserAgent sets the User-Agent header value for subsequent requests
+// made using this transport
+func setUserAgent(inner http.RoundTripper, userAgent string) http.RoundTripper {
+	return &roundTripperWithUserAgent{
+		inner: inner,
+		Agent: userAgent,
+	}
+}
 
 // randomRequestID returns a new request ID
 func randomRequestID() string {
