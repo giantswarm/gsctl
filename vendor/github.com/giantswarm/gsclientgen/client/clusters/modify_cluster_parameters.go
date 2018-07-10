@@ -64,6 +64,28 @@ for the modify cluster operation typically these are written to a http.Request
 */
 type ModifyClusterParams struct {
 
+	/*XGiantSwarmActivity
+	  Name of an activity to track, like "list-clusters". This allows to
+	analyze several API requests sent in context and gives an idea on
+	the purpose.
+
+
+	*/
+	XGiantSwarmActivity *string
+	/*XGiantSwarmCmdLine
+	  If activity has been issued by a CLI, this header can contain the
+	command line
+
+
+	*/
+	XGiantSwarmCmdLine *string
+	/*XRequestID
+	  A randomly generated key that can be used to track a request throughout
+	services of Giant Swarm.
+
+
+	*/
+	XRequestID *string
 	/*Body
 	  Merge-patch body
 
@@ -113,6 +135,39 @@ func (o *ModifyClusterParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithXGiantSwarmActivity adds the xGiantSwarmActivity to the modify cluster params
+func (o *ModifyClusterParams) WithXGiantSwarmActivity(xGiantSwarmActivity *string) *ModifyClusterParams {
+	o.SetXGiantSwarmActivity(xGiantSwarmActivity)
+	return o
+}
+
+// SetXGiantSwarmActivity adds the xGiantSwarmActivity to the modify cluster params
+func (o *ModifyClusterParams) SetXGiantSwarmActivity(xGiantSwarmActivity *string) {
+	o.XGiantSwarmActivity = xGiantSwarmActivity
+}
+
+// WithXGiantSwarmCmdLine adds the xGiantSwarmCmdLine to the modify cluster params
+func (o *ModifyClusterParams) WithXGiantSwarmCmdLine(xGiantSwarmCmdLine *string) *ModifyClusterParams {
+	o.SetXGiantSwarmCmdLine(xGiantSwarmCmdLine)
+	return o
+}
+
+// SetXGiantSwarmCmdLine adds the xGiantSwarmCmdLine to the modify cluster params
+func (o *ModifyClusterParams) SetXGiantSwarmCmdLine(xGiantSwarmCmdLine *string) {
+	o.XGiantSwarmCmdLine = xGiantSwarmCmdLine
+}
+
+// WithXRequestID adds the xRequestID to the modify cluster params
+func (o *ModifyClusterParams) WithXRequestID(xRequestID *string) *ModifyClusterParams {
+	o.SetXRequestID(xRequestID)
+	return o
+}
+
+// SetXRequestID adds the xRequestId to the modify cluster params
+func (o *ModifyClusterParams) SetXRequestID(xRequestID *string) {
+	o.XRequestID = xRequestID
+}
+
 // WithBody adds the body to the modify cluster params
 func (o *ModifyClusterParams) WithBody(body *models.V4ModifyClusterRequest) *ModifyClusterParams {
 	o.SetBody(body)
@@ -142,6 +197,33 @@ func (o *ModifyClusterParams) WriteToRequest(r runtime.ClientRequest, reg strfmt
 		return err
 	}
 	var res []error
+
+	if o.XGiantSwarmActivity != nil {
+
+		// header param X-Giant-Swarm-Activity
+		if err := r.SetHeaderParam("X-Giant-Swarm-Activity", *o.XGiantSwarmActivity); err != nil {
+			return err
+		}
+
+	}
+
+	if o.XGiantSwarmCmdLine != nil {
+
+		// header param X-Giant-Swarm-CmdLine
+		if err := r.SetHeaderParam("X-Giant-Swarm-CmdLine", *o.XGiantSwarmCmdLine); err != nil {
+			return err
+		}
+
+	}
+
+	if o.XRequestID != nil {
+
+		// header param X-Request-ID
+		if err := r.SetHeaderParam("X-Request-ID", *o.XRequestID); err != nil {
+			return err
+		}
+
+	}
 
 	if o.Body != nil {
 		if err := r.SetBodyParam(o.Body); err != nil {

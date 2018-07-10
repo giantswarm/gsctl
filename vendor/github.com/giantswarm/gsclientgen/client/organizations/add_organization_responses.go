@@ -90,7 +90,7 @@ func NewAddOrganizationConflict() *AddOrganizationConflict {
 Organization already exists
 */
 type AddOrganizationConflict struct {
-	Payload *models.V4GenericResponse
+	Payload *models.V4GenericResponseOAIGen
 }
 
 func (o *AddOrganizationConflict) Error() string {
@@ -99,7 +99,7 @@ func (o *AddOrganizationConflict) Error() string {
 
 func (o *AddOrganizationConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponse)
+	o.Payload = new(models.V4GenericResponseOAIGen)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -123,7 +123,7 @@ Error
 type AddOrganizationDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponse
+	Payload *models.V4GenericResponseOAIGen
 }
 
 // Code gets the status code for the add organization default response
@@ -137,7 +137,7 @@ func (o *AddOrganizationDefault) Error() string {
 
 func (o *AddOrganizationDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponse)
+	o.Payload = new(models.V4GenericResponseOAIGen)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

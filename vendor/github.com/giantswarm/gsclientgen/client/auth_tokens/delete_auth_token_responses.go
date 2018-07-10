@@ -54,7 +54,7 @@ func NewDeleteAuthTokenOK() *DeleteAuthTokenOK {
 Success
 */
 type DeleteAuthTokenOK struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *DeleteAuthTokenOK) Error() string {
@@ -63,7 +63,7 @@ func (o *DeleteAuthTokenOK) Error() string {
 
 func (o *DeleteAuthTokenOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -83,7 +83,7 @@ func NewDeleteAuthTokenUnauthorized() *DeleteAuthTokenUnauthorized {
 Permission denied
 */
 type DeleteAuthTokenUnauthorized struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *DeleteAuthTokenUnauthorized) Error() string {
@@ -92,7 +92,7 @@ func (o *DeleteAuthTokenUnauthorized) Error() string {
 
 func (o *DeleteAuthTokenUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

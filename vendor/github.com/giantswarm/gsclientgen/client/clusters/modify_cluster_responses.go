@@ -90,7 +90,7 @@ func NewModifyClusterNotFound() *ModifyClusterNotFound {
 Cluster not found
 */
 type ModifyClusterNotFound struct {
-	Payload *models.V4GenericResponse
+	Payload *models.V4GenericResponseOAIGen
 }
 
 func (o *ModifyClusterNotFound) Error() string {
@@ -99,7 +99,7 @@ func (o *ModifyClusterNotFound) Error() string {
 
 func (o *ModifyClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponse)
+	o.Payload = new(models.V4GenericResponseOAIGen)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -123,7 +123,7 @@ error
 type ModifyClusterDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponse
+	Payload *models.V4GenericResponseOAIGen
 }
 
 // Code gets the status code for the modify cluster default response
@@ -137,7 +137,7 @@ func (o *ModifyClusterDefault) Error() string {
 
 func (o *ModifyClusterDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponse)
+	o.Payload = new(models.V4GenericResponseOAIGen)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

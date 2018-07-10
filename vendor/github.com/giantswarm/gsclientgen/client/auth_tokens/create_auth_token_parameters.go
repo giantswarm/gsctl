@@ -64,6 +64,28 @@ for the create auth token operation typically these are written to a http.Reques
 */
 type CreateAuthTokenParams struct {
 
+	/*XGiantSwarmActivity
+	  Name of an activity to track, like "list-clusters". This allows to
+	analyze several API requests sent in context and gives an idea on
+	the purpose.
+
+
+	*/
+	XGiantSwarmActivity *string
+	/*XGiantSwarmCmdLine
+	  If activity has been issued by a CLI, this header can contain the
+	command line
+
+
+	*/
+	XGiantSwarmCmdLine *string
+	/*XRequestID
+	  A randomly generated key that can be used to track a request throughout
+	services of Giant Swarm.
+
+
+	*/
+	XRequestID *string
 	/*Body
 	  Create Auth Token Request
 
@@ -108,6 +130,39 @@ func (o *CreateAuthTokenParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithXGiantSwarmActivity adds the xGiantSwarmActivity to the create auth token params
+func (o *CreateAuthTokenParams) WithXGiantSwarmActivity(xGiantSwarmActivity *string) *CreateAuthTokenParams {
+	o.SetXGiantSwarmActivity(xGiantSwarmActivity)
+	return o
+}
+
+// SetXGiantSwarmActivity adds the xGiantSwarmActivity to the create auth token params
+func (o *CreateAuthTokenParams) SetXGiantSwarmActivity(xGiantSwarmActivity *string) {
+	o.XGiantSwarmActivity = xGiantSwarmActivity
+}
+
+// WithXGiantSwarmCmdLine adds the xGiantSwarmCmdLine to the create auth token params
+func (o *CreateAuthTokenParams) WithXGiantSwarmCmdLine(xGiantSwarmCmdLine *string) *CreateAuthTokenParams {
+	o.SetXGiantSwarmCmdLine(xGiantSwarmCmdLine)
+	return o
+}
+
+// SetXGiantSwarmCmdLine adds the xGiantSwarmCmdLine to the create auth token params
+func (o *CreateAuthTokenParams) SetXGiantSwarmCmdLine(xGiantSwarmCmdLine *string) {
+	o.XGiantSwarmCmdLine = xGiantSwarmCmdLine
+}
+
+// WithXRequestID adds the xRequestID to the create auth token params
+func (o *CreateAuthTokenParams) WithXRequestID(xRequestID *string) *CreateAuthTokenParams {
+	o.SetXRequestID(xRequestID)
+	return o
+}
+
+// SetXRequestID adds the xRequestId to the create auth token params
+func (o *CreateAuthTokenParams) SetXRequestID(xRequestID *string) {
+	o.XRequestID = xRequestID
+}
+
 // WithBody adds the body to the create auth token params
 func (o *CreateAuthTokenParams) WithBody(body *models.V4CreateAuthTokenRequest) *CreateAuthTokenParams {
 	o.SetBody(body)
@@ -126,6 +181,33 @@ func (o *CreateAuthTokenParams) WriteToRequest(r runtime.ClientRequest, reg strf
 		return err
 	}
 	var res []error
+
+	if o.XGiantSwarmActivity != nil {
+
+		// header param X-Giant-Swarm-Activity
+		if err := r.SetHeaderParam("X-Giant-Swarm-Activity", *o.XGiantSwarmActivity); err != nil {
+			return err
+		}
+
+	}
+
+	if o.XGiantSwarmCmdLine != nil {
+
+		// header param X-Giant-Swarm-CmdLine
+		if err := r.SetHeaderParam("X-Giant-Swarm-CmdLine", *o.XGiantSwarmCmdLine); err != nil {
+			return err
+		}
+
+	}
+
+	if o.XRequestID != nil {
+
+		// header param X-Request-ID
+		if err := r.SetHeaderParam("X-Request-ID", *o.XRequestID); err != nil {
+			return err
+		}
+
+	}
 
 	if o.Body != nil {
 		if err := r.SetBodyParam(o.Body); err != nil {

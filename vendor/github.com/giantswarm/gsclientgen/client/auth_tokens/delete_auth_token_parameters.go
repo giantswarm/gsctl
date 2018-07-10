@@ -67,6 +67,28 @@ type DeleteAuthTokenParams struct {
 
 	*/
 	Authorization string
+	/*XGiantSwarmActivity
+	  Name of an activity to track, like "list-clusters". This allows to
+	analyze several API requests sent in context and gives an idea on
+	the purpose.
+
+
+	*/
+	XGiantSwarmActivity *string
+	/*XGiantSwarmCmdLine
+	  If activity has been issued by a CLI, this header can contain the
+	command line
+
+
+	*/
+	XGiantSwarmCmdLine *string
+	/*XRequestID
+	  A randomly generated key that can be used to track a request throughout
+	services of Giant Swarm.
+
+
+	*/
+	XRequestID *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -117,6 +139,39 @@ func (o *DeleteAuthTokenParams) SetAuthorization(authorization string) {
 	o.Authorization = authorization
 }
 
+// WithXGiantSwarmActivity adds the xGiantSwarmActivity to the delete auth token params
+func (o *DeleteAuthTokenParams) WithXGiantSwarmActivity(xGiantSwarmActivity *string) *DeleteAuthTokenParams {
+	o.SetXGiantSwarmActivity(xGiantSwarmActivity)
+	return o
+}
+
+// SetXGiantSwarmActivity adds the xGiantSwarmActivity to the delete auth token params
+func (o *DeleteAuthTokenParams) SetXGiantSwarmActivity(xGiantSwarmActivity *string) {
+	o.XGiantSwarmActivity = xGiantSwarmActivity
+}
+
+// WithXGiantSwarmCmdLine adds the xGiantSwarmCmdLine to the delete auth token params
+func (o *DeleteAuthTokenParams) WithXGiantSwarmCmdLine(xGiantSwarmCmdLine *string) *DeleteAuthTokenParams {
+	o.SetXGiantSwarmCmdLine(xGiantSwarmCmdLine)
+	return o
+}
+
+// SetXGiantSwarmCmdLine adds the xGiantSwarmCmdLine to the delete auth token params
+func (o *DeleteAuthTokenParams) SetXGiantSwarmCmdLine(xGiantSwarmCmdLine *string) {
+	o.XGiantSwarmCmdLine = xGiantSwarmCmdLine
+}
+
+// WithXRequestID adds the xRequestID to the delete auth token params
+func (o *DeleteAuthTokenParams) WithXRequestID(xRequestID *string) *DeleteAuthTokenParams {
+	o.SetXRequestID(xRequestID)
+	return o
+}
+
+// SetXRequestID adds the xRequestId to the delete auth token params
+func (o *DeleteAuthTokenParams) SetXRequestID(xRequestID *string) {
+	o.XRequestID = xRequestID
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *DeleteAuthTokenParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -128,6 +183,33 @@ func (o *DeleteAuthTokenParams) WriteToRequest(r runtime.ClientRequest, reg strf
 	// header param Authorization
 	if err := r.SetHeaderParam("Authorization", o.Authorization); err != nil {
 		return err
+	}
+
+	if o.XGiantSwarmActivity != nil {
+
+		// header param X-Giant-Swarm-Activity
+		if err := r.SetHeaderParam("X-Giant-Swarm-Activity", *o.XGiantSwarmActivity); err != nil {
+			return err
+		}
+
+	}
+
+	if o.XGiantSwarmCmdLine != nil {
+
+		// header param X-Giant-Swarm-CmdLine
+		if err := r.SetHeaderParam("X-Giant-Swarm-CmdLine", *o.XGiantSwarmCmdLine); err != nil {
+			return err
+		}
+
+	}
+
+	if o.XRequestID != nil {
+
+		// header param X-Request-ID
+		if err := r.SetHeaderParam("X-Request-ID", *o.XRequestID); err != nil {
+			return err
+		}
+
 	}
 
 	if len(res) > 0 {

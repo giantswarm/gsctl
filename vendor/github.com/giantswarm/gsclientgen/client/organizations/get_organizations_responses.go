@@ -85,7 +85,7 @@ Error
 type GetOrganizationsDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponse
+	Payload *models.V4GenericResponseOAIGen
 }
 
 // Code gets the status code for the get organizations default response
@@ -99,7 +99,7 @@ func (o *GetOrganizationsDefault) Error() string {
 
 func (o *GetOrganizationsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponse)
+	o.Payload = new(models.V4GenericResponseOAIGen)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

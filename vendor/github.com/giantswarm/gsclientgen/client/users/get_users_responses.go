@@ -88,7 +88,7 @@ func NewGetUsersUnauthorized() *GetUsersUnauthorized {
 Permission denied
 */
 type GetUsersUnauthorized struct {
-	Payload *models.V4GenericResponse
+	Payload *models.V4GenericResponseOAIGen
 }
 
 func (o *GetUsersUnauthorized) Error() string {
@@ -97,7 +97,7 @@ func (o *GetUsersUnauthorized) Error() string {
 
 func (o *GetUsersUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponse)
+	o.Payload = new(models.V4GenericResponseOAIGen)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -121,7 +121,7 @@ Error
 type GetUsersDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponse
+	Payload *models.V4GenericResponseOAIGen
 }
 
 // Code gets the status code for the get users default response
@@ -135,7 +135,7 @@ func (o *GetUsersDefault) Error() string {
 
 func (o *GetUsersDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponse)
+	o.Payload = new(models.V4GenericResponseOAIGen)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

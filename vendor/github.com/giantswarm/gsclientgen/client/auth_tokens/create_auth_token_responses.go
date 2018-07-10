@@ -83,7 +83,7 @@ func NewCreateAuthTokenUnauthorized() *CreateAuthTokenUnauthorized {
 Permission denied
 */
 type CreateAuthTokenUnauthorized struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *CreateAuthTokenUnauthorized) Error() string {
@@ -92,7 +92,7 @@ func (o *CreateAuthTokenUnauthorized) Error() string {
 
 func (o *CreateAuthTokenUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

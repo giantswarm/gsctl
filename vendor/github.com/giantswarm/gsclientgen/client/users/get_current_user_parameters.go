@@ -21,7 +21,7 @@ import (
 // NewGetCurrentUserParams creates a new GetCurrentUserParams object
 // with the default values initialized.
 func NewGetCurrentUserParams() *GetCurrentUserParams {
-
+	var ()
 	return &GetCurrentUserParams{
 
 		timeout: cr.DefaultTimeout,
@@ -31,7 +31,7 @@ func NewGetCurrentUserParams() *GetCurrentUserParams {
 // NewGetCurrentUserParamsWithTimeout creates a new GetCurrentUserParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewGetCurrentUserParamsWithTimeout(timeout time.Duration) *GetCurrentUserParams {
-
+	var ()
 	return &GetCurrentUserParams{
 
 		timeout: timeout,
@@ -41,7 +41,7 @@ func NewGetCurrentUserParamsWithTimeout(timeout time.Duration) *GetCurrentUserPa
 // NewGetCurrentUserParamsWithContext creates a new GetCurrentUserParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewGetCurrentUserParamsWithContext(ctx context.Context) *GetCurrentUserParams {
-
+	var ()
 	return &GetCurrentUserParams{
 
 		Context: ctx,
@@ -51,7 +51,7 @@ func NewGetCurrentUserParamsWithContext(ctx context.Context) *GetCurrentUserPara
 // NewGetCurrentUserParamsWithHTTPClient creates a new GetCurrentUserParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewGetCurrentUserParamsWithHTTPClient(client *http.Client) *GetCurrentUserParams {
-
+	var ()
 	return &GetCurrentUserParams{
 		HTTPClient: client,
 	}
@@ -61,6 +61,30 @@ func NewGetCurrentUserParamsWithHTTPClient(client *http.Client) *GetCurrentUserP
 for the get current user operation typically these are written to a http.Request
 */
 type GetCurrentUserParams struct {
+
+	/*XGiantSwarmActivity
+	  Name of an activity to track, like "list-clusters". This allows to
+	analyze several API requests sent in context and gives an idea on
+	the purpose.
+
+
+	*/
+	XGiantSwarmActivity *string
+	/*XGiantSwarmCmdLine
+	  If activity has been issued by a CLI, this header can contain the
+	command line
+
+
+	*/
+	XGiantSwarmCmdLine *string
+	/*XRequestID
+	  A randomly generated key that can be used to track a request throughout
+	services of Giant Swarm.
+
+
+	*/
+	XRequestID *string
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -99,6 +123,39 @@ func (o *GetCurrentUserParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithXGiantSwarmActivity adds the xGiantSwarmActivity to the get current user params
+func (o *GetCurrentUserParams) WithXGiantSwarmActivity(xGiantSwarmActivity *string) *GetCurrentUserParams {
+	o.SetXGiantSwarmActivity(xGiantSwarmActivity)
+	return o
+}
+
+// SetXGiantSwarmActivity adds the xGiantSwarmActivity to the get current user params
+func (o *GetCurrentUserParams) SetXGiantSwarmActivity(xGiantSwarmActivity *string) {
+	o.XGiantSwarmActivity = xGiantSwarmActivity
+}
+
+// WithXGiantSwarmCmdLine adds the xGiantSwarmCmdLine to the get current user params
+func (o *GetCurrentUserParams) WithXGiantSwarmCmdLine(xGiantSwarmCmdLine *string) *GetCurrentUserParams {
+	o.SetXGiantSwarmCmdLine(xGiantSwarmCmdLine)
+	return o
+}
+
+// SetXGiantSwarmCmdLine adds the xGiantSwarmCmdLine to the get current user params
+func (o *GetCurrentUserParams) SetXGiantSwarmCmdLine(xGiantSwarmCmdLine *string) {
+	o.XGiantSwarmCmdLine = xGiantSwarmCmdLine
+}
+
+// WithXRequestID adds the xRequestID to the get current user params
+func (o *GetCurrentUserParams) WithXRequestID(xRequestID *string) *GetCurrentUserParams {
+	o.SetXRequestID(xRequestID)
+	return o
+}
+
+// SetXRequestID adds the xRequestId to the get current user params
+func (o *GetCurrentUserParams) SetXRequestID(xRequestID *string) {
+	o.XRequestID = xRequestID
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetCurrentUserParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -106,6 +163,33 @@ func (o *GetCurrentUserParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 		return err
 	}
 	var res []error
+
+	if o.XGiantSwarmActivity != nil {
+
+		// header param X-Giant-Swarm-Activity
+		if err := r.SetHeaderParam("X-Giant-Swarm-Activity", *o.XGiantSwarmActivity); err != nil {
+			return err
+		}
+
+	}
+
+	if o.XGiantSwarmCmdLine != nil {
+
+		// header param X-Giant-Swarm-CmdLine
+		if err := r.SetHeaderParam("X-Giant-Swarm-CmdLine", *o.XGiantSwarmCmdLine); err != nil {
+			return err
+		}
+
+	}
+
+	if o.XRequestID != nil {
+
+		// header param X-Request-ID
+		if err := r.SetHeaderParam("X-Request-ID", *o.XRequestID); err != nil {
+			return err
+		}
+
+	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

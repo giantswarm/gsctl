@@ -62,6 +62,28 @@ for the get user operation typically these are written to a http.Request
 */
 type GetUserParams struct {
 
+	/*XGiantSwarmActivity
+	  Name of an activity to track, like "list-clusters". This allows to
+	analyze several API requests sent in context and gives an idea on
+	the purpose.
+
+
+	*/
+	XGiantSwarmActivity *string
+	/*XGiantSwarmCmdLine
+	  If activity has been issued by a CLI, this header can contain the
+	command line
+
+
+	*/
+	XGiantSwarmCmdLine *string
+	/*XRequestID
+	  A randomly generated key that can be used to track a request throughout
+	services of Giant Swarm.
+
+
+	*/
+	XRequestID *string
 	/*Email
 	  The user's email address
 
@@ -106,6 +128,39 @@ func (o *GetUserParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithXGiantSwarmActivity adds the xGiantSwarmActivity to the get user params
+func (o *GetUserParams) WithXGiantSwarmActivity(xGiantSwarmActivity *string) *GetUserParams {
+	o.SetXGiantSwarmActivity(xGiantSwarmActivity)
+	return o
+}
+
+// SetXGiantSwarmActivity adds the xGiantSwarmActivity to the get user params
+func (o *GetUserParams) SetXGiantSwarmActivity(xGiantSwarmActivity *string) {
+	o.XGiantSwarmActivity = xGiantSwarmActivity
+}
+
+// WithXGiantSwarmCmdLine adds the xGiantSwarmCmdLine to the get user params
+func (o *GetUserParams) WithXGiantSwarmCmdLine(xGiantSwarmCmdLine *string) *GetUserParams {
+	o.SetXGiantSwarmCmdLine(xGiantSwarmCmdLine)
+	return o
+}
+
+// SetXGiantSwarmCmdLine adds the xGiantSwarmCmdLine to the get user params
+func (o *GetUserParams) SetXGiantSwarmCmdLine(xGiantSwarmCmdLine *string) {
+	o.XGiantSwarmCmdLine = xGiantSwarmCmdLine
+}
+
+// WithXRequestID adds the xRequestID to the get user params
+func (o *GetUserParams) WithXRequestID(xRequestID *string) *GetUserParams {
+	o.SetXRequestID(xRequestID)
+	return o
+}
+
+// SetXRequestID adds the xRequestId to the get user params
+func (o *GetUserParams) SetXRequestID(xRequestID *string) {
+	o.XRequestID = xRequestID
+}
+
 // WithEmail adds the email to the get user params
 func (o *GetUserParams) WithEmail(email string) *GetUserParams {
 	o.SetEmail(email)
@@ -124,6 +179,33 @@ func (o *GetUserParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regis
 		return err
 	}
 	var res []error
+
+	if o.XGiantSwarmActivity != nil {
+
+		// header param X-Giant-Swarm-Activity
+		if err := r.SetHeaderParam("X-Giant-Swarm-Activity", *o.XGiantSwarmActivity); err != nil {
+			return err
+		}
+
+	}
+
+	if o.XGiantSwarmCmdLine != nil {
+
+		// header param X-Giant-Swarm-CmdLine
+		if err := r.SetHeaderParam("X-Giant-Swarm-CmdLine", *o.XGiantSwarmCmdLine); err != nil {
+			return err
+		}
+
+	}
+
+	if o.XRequestID != nil {
+
+		// header param X-Request-ID
+		if err := r.SetHeaderParam("X-Request-ID", *o.XRequestID); err != nil {
+			return err
+		}
+
+	}
 
 	// path param email
 	if err := r.SetPathParam("email", o.Email); err != nil {

@@ -65,7 +65,7 @@ type AddCredentialsCreated struct {
 	 */
 	Location string
 
-	Payload *models.V4GenericResponse
+	Payload *models.V4GenericResponseOAIGen
 }
 
 func (o *AddCredentialsCreated) Error() string {
@@ -77,7 +77,7 @@ func (o *AddCredentialsCreated) readResponse(response runtime.ClientResponse, co
 	// response header Location
 	o.Location = response.GetHeader("Location")
 
-	o.Payload = new(models.V4GenericResponse)
+	o.Payload = new(models.V4GenericResponseOAIGen)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -97,7 +97,7 @@ func NewAddCredentialsConflict() *AddCredentialsConflict {
 Conflict
 */
 type AddCredentialsConflict struct {
-	Payload *models.V4GenericResponse
+	Payload *models.V4GenericResponseOAIGen
 }
 
 func (o *AddCredentialsConflict) Error() string {
@@ -106,7 +106,7 @@ func (o *AddCredentialsConflict) Error() string {
 
 func (o *AddCredentialsConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponse)
+	o.Payload = new(models.V4GenericResponseOAIGen)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -130,7 +130,7 @@ error
 type AddCredentialsDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponse
+	Payload *models.V4GenericResponseOAIGen
 }
 
 // Code gets the status code for the add credentials default response
@@ -144,7 +144,7 @@ func (o *AddCredentialsDefault) Error() string {
 
 func (o *AddCredentialsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponse)
+	o.Payload = new(models.V4GenericResponseOAIGen)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

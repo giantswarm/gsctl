@@ -21,7 +21,7 @@ import (
 // NewGetOrganizationsParams creates a new GetOrganizationsParams object
 // with the default values initialized.
 func NewGetOrganizationsParams() *GetOrganizationsParams {
-
+	var ()
 	return &GetOrganizationsParams{
 
 		timeout: cr.DefaultTimeout,
@@ -31,7 +31,7 @@ func NewGetOrganizationsParams() *GetOrganizationsParams {
 // NewGetOrganizationsParamsWithTimeout creates a new GetOrganizationsParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewGetOrganizationsParamsWithTimeout(timeout time.Duration) *GetOrganizationsParams {
-
+	var ()
 	return &GetOrganizationsParams{
 
 		timeout: timeout,
@@ -41,7 +41,7 @@ func NewGetOrganizationsParamsWithTimeout(timeout time.Duration) *GetOrganizatio
 // NewGetOrganizationsParamsWithContext creates a new GetOrganizationsParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewGetOrganizationsParamsWithContext(ctx context.Context) *GetOrganizationsParams {
-
+	var ()
 	return &GetOrganizationsParams{
 
 		Context: ctx,
@@ -51,7 +51,7 @@ func NewGetOrganizationsParamsWithContext(ctx context.Context) *GetOrganizations
 // NewGetOrganizationsParamsWithHTTPClient creates a new GetOrganizationsParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewGetOrganizationsParamsWithHTTPClient(client *http.Client) *GetOrganizationsParams {
-
+	var ()
 	return &GetOrganizationsParams{
 		HTTPClient: client,
 	}
@@ -61,6 +61,30 @@ func NewGetOrganizationsParamsWithHTTPClient(client *http.Client) *GetOrganizati
 for the get organizations operation typically these are written to a http.Request
 */
 type GetOrganizationsParams struct {
+
+	/*XGiantSwarmActivity
+	  Name of an activity to track, like "list-clusters". This allows to
+	analyze several API requests sent in context and gives an idea on
+	the purpose.
+
+
+	*/
+	XGiantSwarmActivity *string
+	/*XGiantSwarmCmdLine
+	  If activity has been issued by a CLI, this header can contain the
+	command line
+
+
+	*/
+	XGiantSwarmCmdLine *string
+	/*XRequestID
+	  A randomly generated key that can be used to track a request throughout
+	services of Giant Swarm.
+
+
+	*/
+	XRequestID *string
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -99,6 +123,39 @@ func (o *GetOrganizationsParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithXGiantSwarmActivity adds the xGiantSwarmActivity to the get organizations params
+func (o *GetOrganizationsParams) WithXGiantSwarmActivity(xGiantSwarmActivity *string) *GetOrganizationsParams {
+	o.SetXGiantSwarmActivity(xGiantSwarmActivity)
+	return o
+}
+
+// SetXGiantSwarmActivity adds the xGiantSwarmActivity to the get organizations params
+func (o *GetOrganizationsParams) SetXGiantSwarmActivity(xGiantSwarmActivity *string) {
+	o.XGiantSwarmActivity = xGiantSwarmActivity
+}
+
+// WithXGiantSwarmCmdLine adds the xGiantSwarmCmdLine to the get organizations params
+func (o *GetOrganizationsParams) WithXGiantSwarmCmdLine(xGiantSwarmCmdLine *string) *GetOrganizationsParams {
+	o.SetXGiantSwarmCmdLine(xGiantSwarmCmdLine)
+	return o
+}
+
+// SetXGiantSwarmCmdLine adds the xGiantSwarmCmdLine to the get organizations params
+func (o *GetOrganizationsParams) SetXGiantSwarmCmdLine(xGiantSwarmCmdLine *string) {
+	o.XGiantSwarmCmdLine = xGiantSwarmCmdLine
+}
+
+// WithXRequestID adds the xRequestID to the get organizations params
+func (o *GetOrganizationsParams) WithXRequestID(xRequestID *string) *GetOrganizationsParams {
+	o.SetXRequestID(xRequestID)
+	return o
+}
+
+// SetXRequestID adds the xRequestId to the get organizations params
+func (o *GetOrganizationsParams) SetXRequestID(xRequestID *string) {
+	o.XRequestID = xRequestID
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetOrganizationsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -106,6 +163,33 @@ func (o *GetOrganizationsParams) WriteToRequest(r runtime.ClientRequest, reg str
 		return err
 	}
 	var res []error
+
+	if o.XGiantSwarmActivity != nil {
+
+		// header param X-Giant-Swarm-Activity
+		if err := r.SetHeaderParam("X-Giant-Swarm-Activity", *o.XGiantSwarmActivity); err != nil {
+			return err
+		}
+
+	}
+
+	if o.XGiantSwarmCmdLine != nil {
+
+		// header param X-Giant-Swarm-CmdLine
+		if err := r.SetHeaderParam("X-Giant-Swarm-CmdLine", *o.XGiantSwarmCmdLine); err != nil {
+			return err
+		}
+
+	}
+
+	if o.XRequestID != nil {
+
+		// header param X-Request-ID
+		if err := r.SetHeaderParam("X-Request-ID", *o.XRequestID); err != nil {
+			return err
+		}
+
+	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

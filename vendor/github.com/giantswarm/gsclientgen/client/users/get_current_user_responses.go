@@ -90,7 +90,7 @@ func NewGetCurrentUserUnauthorized() *GetCurrentUserUnauthorized {
 Permission denied
 */
 type GetCurrentUserUnauthorized struct {
-	Payload *models.V4GenericResponse
+	Payload *models.V4GenericResponseOAIGen
 }
 
 func (o *GetCurrentUserUnauthorized) Error() string {
@@ -99,7 +99,7 @@ func (o *GetCurrentUserUnauthorized) Error() string {
 
 func (o *GetCurrentUserUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponse)
+	o.Payload = new(models.V4GenericResponseOAIGen)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -123,7 +123,7 @@ Error
 type GetCurrentUserDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponse
+	Payload *models.V4GenericResponseOAIGen
 }
 
 // Code gets the status code for the get current user default response
@@ -137,7 +137,7 @@ func (o *GetCurrentUserDefault) Error() string {
 
 func (o *GetCurrentUserDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponse)
+	o.Payload = new(models.V4GenericResponseOAIGen)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

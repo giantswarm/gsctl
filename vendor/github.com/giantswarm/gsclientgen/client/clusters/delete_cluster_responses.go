@@ -61,7 +61,7 @@ func NewDeleteClusterAccepted() *DeleteClusterAccepted {
 Deleting cluster
 */
 type DeleteClusterAccepted struct {
-	Payload *models.V4GenericResponse
+	Payload *models.V4GenericResponseOAIGen
 }
 
 func (o *DeleteClusterAccepted) Error() string {
@@ -70,7 +70,7 @@ func (o *DeleteClusterAccepted) Error() string {
 
 func (o *DeleteClusterAccepted) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponse)
+	o.Payload = new(models.V4GenericResponseOAIGen)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -90,7 +90,7 @@ func NewDeleteClusterNotFound() *DeleteClusterNotFound {
 Cluster not found
 */
 type DeleteClusterNotFound struct {
-	Payload *models.V4GenericResponse
+	Payload *models.V4GenericResponseOAIGen
 }
 
 func (o *DeleteClusterNotFound) Error() string {
@@ -99,7 +99,7 @@ func (o *DeleteClusterNotFound) Error() string {
 
 func (o *DeleteClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponse)
+	o.Payload = new(models.V4GenericResponseOAIGen)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -123,7 +123,7 @@ error
 type DeleteClusterDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponse
+	Payload *models.V4GenericResponseOAIGen
 }
 
 // Code gets the status code for the delete cluster default response
@@ -137,7 +137,7 @@ func (o *DeleteClusterDefault) Error() string {
 
 func (o *DeleteClusterDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponse)
+	o.Payload = new(models.V4GenericResponseOAIGen)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

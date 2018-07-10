@@ -21,7 +21,7 @@ import (
 // NewGetReleasesParams creates a new GetReleasesParams object
 // with the default values initialized.
 func NewGetReleasesParams() *GetReleasesParams {
-
+	var ()
 	return &GetReleasesParams{
 
 		timeout: cr.DefaultTimeout,
@@ -31,7 +31,7 @@ func NewGetReleasesParams() *GetReleasesParams {
 // NewGetReleasesParamsWithTimeout creates a new GetReleasesParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewGetReleasesParamsWithTimeout(timeout time.Duration) *GetReleasesParams {
-
+	var ()
 	return &GetReleasesParams{
 
 		timeout: timeout,
@@ -41,7 +41,7 @@ func NewGetReleasesParamsWithTimeout(timeout time.Duration) *GetReleasesParams {
 // NewGetReleasesParamsWithContext creates a new GetReleasesParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewGetReleasesParamsWithContext(ctx context.Context) *GetReleasesParams {
-
+	var ()
 	return &GetReleasesParams{
 
 		Context: ctx,
@@ -51,7 +51,7 @@ func NewGetReleasesParamsWithContext(ctx context.Context) *GetReleasesParams {
 // NewGetReleasesParamsWithHTTPClient creates a new GetReleasesParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewGetReleasesParamsWithHTTPClient(client *http.Client) *GetReleasesParams {
-
+	var ()
 	return &GetReleasesParams{
 		HTTPClient: client,
 	}
@@ -61,6 +61,30 @@ func NewGetReleasesParamsWithHTTPClient(client *http.Client) *GetReleasesParams 
 for the get releases operation typically these are written to a http.Request
 */
 type GetReleasesParams struct {
+
+	/*XGiantSwarmActivity
+	  Name of an activity to track, like "list-clusters". This allows to
+	analyze several API requests sent in context and gives an idea on
+	the purpose.
+
+
+	*/
+	XGiantSwarmActivity *string
+	/*XGiantSwarmCmdLine
+	  If activity has been issued by a CLI, this header can contain the
+	command line
+
+
+	*/
+	XGiantSwarmCmdLine *string
+	/*XRequestID
+	  A randomly generated key that can be used to track a request throughout
+	services of Giant Swarm.
+
+
+	*/
+	XRequestID *string
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -99,6 +123,39 @@ func (o *GetReleasesParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithXGiantSwarmActivity adds the xGiantSwarmActivity to the get releases params
+func (o *GetReleasesParams) WithXGiantSwarmActivity(xGiantSwarmActivity *string) *GetReleasesParams {
+	o.SetXGiantSwarmActivity(xGiantSwarmActivity)
+	return o
+}
+
+// SetXGiantSwarmActivity adds the xGiantSwarmActivity to the get releases params
+func (o *GetReleasesParams) SetXGiantSwarmActivity(xGiantSwarmActivity *string) {
+	o.XGiantSwarmActivity = xGiantSwarmActivity
+}
+
+// WithXGiantSwarmCmdLine adds the xGiantSwarmCmdLine to the get releases params
+func (o *GetReleasesParams) WithXGiantSwarmCmdLine(xGiantSwarmCmdLine *string) *GetReleasesParams {
+	o.SetXGiantSwarmCmdLine(xGiantSwarmCmdLine)
+	return o
+}
+
+// SetXGiantSwarmCmdLine adds the xGiantSwarmCmdLine to the get releases params
+func (o *GetReleasesParams) SetXGiantSwarmCmdLine(xGiantSwarmCmdLine *string) {
+	o.XGiantSwarmCmdLine = xGiantSwarmCmdLine
+}
+
+// WithXRequestID adds the xRequestID to the get releases params
+func (o *GetReleasesParams) WithXRequestID(xRequestID *string) *GetReleasesParams {
+	o.SetXRequestID(xRequestID)
+	return o
+}
+
+// SetXRequestID adds the xRequestId to the get releases params
+func (o *GetReleasesParams) SetXRequestID(xRequestID *string) {
+	o.XRequestID = xRequestID
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetReleasesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -106,6 +163,33 @@ func (o *GetReleasesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 		return err
 	}
 	var res []error
+
+	if o.XGiantSwarmActivity != nil {
+
+		// header param X-Giant-Swarm-Activity
+		if err := r.SetHeaderParam("X-Giant-Swarm-Activity", *o.XGiantSwarmActivity); err != nil {
+			return err
+		}
+
+	}
+
+	if o.XGiantSwarmCmdLine != nil {
+
+		// header param X-Giant-Swarm-CmdLine
+		if err := r.SetHeaderParam("X-Giant-Swarm-CmdLine", *o.XGiantSwarmCmdLine); err != nil {
+			return err
+		}
+
+	}
+
+	if o.XRequestID != nil {
+
+		// header param X-Request-ID
+		if err := r.SetHeaderParam("X-Request-ID", *o.XRequestID); err != nil {
+			return err
+		}
+
+	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
