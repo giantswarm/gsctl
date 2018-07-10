@@ -17,7 +17,7 @@ var RootCommand = &cobra.Command{
 	PersistentPreRunE: initConfig,
 }
 
-var Client *client.ClientWrapper
+var Client *client.Wrapper
 var ClientConfig client.Configuration
 
 func init() {
@@ -60,7 +60,7 @@ func initClient() error {
 	}
 
 	var err error
-	Client, err = client.NewClient(ClientConfig)
+	Client, err = client.New(ClientConfig)
 	if err != nil {
 		return microerror.Maskf(couldNotCreateClientError, err.Error())
 	}

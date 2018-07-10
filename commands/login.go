@@ -256,7 +256,7 @@ func getAlias(apiEndpoint string, scheme string, accessToken string) (string, er
 		AuthHeader: authHeader,
 	}
 
-	apiClient, err := client.Client(clientConfig)
+	apiClient, err := client.New(clientConfig)
 	if err != nil {
 		return "", err
 	}

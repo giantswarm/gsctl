@@ -548,7 +548,7 @@ func GetDefaultCluster(activityName, apiEndpoint string) (clusterID string, err 
 		Timeout:    10 * time.Second,
 		UserAgent:  UserAgent(),
 	}
-	apiClient, clientErr := client.Client(clientConfig)
+	apiClient, clientErr := client.New(clientConfig)
 	if clientErr != nil {
 		return "", microerror.Mask(clientErr)
 	}

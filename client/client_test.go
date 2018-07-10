@@ -33,7 +33,7 @@ func TestTimeout(t *testing.T) {
 		Endpoint: ts.URL,
 		Timeout:  1 * time.Second,
 	}
-	apiClient, clientErr := NewClient(clientConfig)
+	apiClient, clientErr := New(clientConfig)
 	if clientErr != nil {
 		t.Error(clientErr)
 	}
@@ -63,7 +63,7 @@ func TestUserAgent(t *testing.T) {
 		Endpoint:  ts.URL,
 		UserAgent: "my own user agent/1.0",
 	}
-	apiClient, clientErr := NewClient(clientConfig)
+	apiClient, clientErr := New(clientConfig)
 	if clientErr != nil {
 		t.Error(clientErr)
 	}
@@ -109,9 +109,10 @@ func TestRedactPasswordArgs(t *testing.T) {
 	}
 }
 
-func TestClientV2(t *testing.T) { // Our test server.
+// TestClientV2CreateAuthToken checks out how creating an auth token works in
+// our new client
+func TestClientV2CreateAuthToken(t *testing.T) { // Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Return valid JSON containing user agent string received
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"auth_token": "e5239484-2299-41df-b901-d0568db7e3f9"}`))
@@ -147,12 +148,18 @@ func TestClientV2(t *testing.T) { // Our test server.
 	})
 
 	// we use nil as runtime.ClientAuthInfoWriter here
-	_, err = gsClient.AuthTokens.CreateAuthToken(params, nil)
-	if err == nil {
-		t.Error("Expected Timeout error, got nil")
-	} else {
-		if err, ok := err.(net.Error); ok && !err.Timeout() {
-			t.Error("Expected Timeout error, got", err)
+	response, err := gsClient.AuthTokens.CreateAuthToken(params, nil)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Logf("%#v", response.Payload)
+
+	if response.Payload.AuthToken != "e5239484-2299-41df-b901-d0568db7e3f9" {
+		t.Errorf("Didn't get the expected token. Got %s", response.Payload.AuthToken)
+	}
+}
+
 		}
 	}
 
