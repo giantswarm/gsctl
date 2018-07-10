@@ -160,7 +160,49 @@ func TestClientV2CreateAuthToken(t *testing.T) { // Our test server.
 	}
 }
 
+// TestClientV2DeleteAuthToken checks out how to issue an authenticted request
+// using the new client
+func TestClientV2DeleteAuthToken(t *testing.T) { // Our test server.
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "giantswarm test-token" {
+			t.Error("Bad authorization header:", r.Header.Get("Authorization"))
 		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"code": "RESOURCE_DELETED", "message": "The authentication token has been succesfully deleted."}`))
+	}))
+	defer ts.Close()
+
+	u, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Error(err)
 	}
 
+	tlsConfig := &tls.Config{}
+	rootCertsErr := rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
+		CAFile: os.Getenv("GSCTL_CAFILE"),
+		CAPath: os.Getenv("GSCTL_CAPATH"),
+	})
+	if rootCertsErr != nil {
+		t.Error(rootCertsErr)
+	}
+
+	transport := httptransport.New(u.Host, "", []string{u.Scheme})
+	transport.Transport = &http.Transport{
+		Proxy:           http.ProxyFromEnvironment,
+		TLSClientConfig: tlsConfig,
+	}
+
+	gsClient := gsclient.New(transport, strfmt.Default)
+
+	params := auth_tokens.NewDeleteAuthTokenParams().WithAuthorization("giantswarm test-token")
+
+	response, err := gsClient.AuthTokens.DeleteAuthToken(params, nil)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if response.Payload.Code != "RESOURCE_DELETED" {
+		t.Errorf("Didn't get the RESOURCE_DELETED message. Got '%s'", response.Payload.Code)
+	}
 }
