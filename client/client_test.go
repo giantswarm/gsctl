@@ -8,9 +8,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/giantswarm/gsclientgen/client/auth_tokens"
-	"github.com/giantswarm/gsclientgen/models"
 )
 
 func TestTimeout(t *testing.T) {
@@ -121,22 +118,13 @@ func TestClientV2CreateAuthToken(t *testing.T) { // Our test server.
 		t.Error(err)
 	}
 
-	params := auth_tokens.NewCreateAuthTokenParams()
-	params.SetBody(&models.V4CreateAuthTokenRequest{
-		Email:          "foo",
-		PasswordBase64: "bar",
-	})
-
-	// we use nil as runtime.ClientAuthInfoWriter here
-	response, err := gsClient.AuthTokens.CreateAuthToken(params, nil)
+	responseBody, err := gsClient.CreateAuthToken("foo", "bar")
 	if err != nil {
 		t.Error(err)
 	}
 
-	t.Logf("%#v", response.Payload)
-
-	if response.Payload.AuthToken != "e5239484-2299-41df-b901-d0568db7e3f9" {
-		t.Errorf("Didn't get the expected token. Got %s", response.Payload.AuthToken)
+	if responseBody.AuthToken != "e5239484-2299-41df-b901-d0568db7e3f9" {
+		t.Errorf("Didn't get the expected token. Got %s", responseBody.AuthToken)
 	}
 }
 
@@ -162,14 +150,12 @@ func TestClientV2DeleteAuthToken(t *testing.T) { // Our test server.
 		t.Error(err)
 	}
 
-	params := auth_tokens.NewDeleteAuthTokenParams().WithAuthorization("giantswarm test-token")
-
-	response, err := gsClient.AuthTokens.DeleteAuthToken(params, nil)
+	responseBody, err := gsClient.DeleteAuthToken("test-token")
 	if err != nil {
 		t.Error(err)
 	}
 
-	if response.Payload.Code != "RESOURCE_DELETED" {
-		t.Errorf("Didn't get the RESOURCE_DELETED message. Got '%s'", response.Payload.Code)
+	if responseBody.Code != "RESOURCE_DELETED" {
+		t.Errorf("Didn't get the RESOURCE_DELETED message. Got '%s'", responseBody.Code)
 	}
 }

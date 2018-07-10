@@ -2,6 +2,7 @@ package client
 
 import (
 	"crypto/tls"
+	"encoding/base64"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -10,6 +11,8 @@ import (
 	"time"
 
 	gsclient "github.com/giantswarm/gsclientgen/client"
+	"github.com/giantswarm/gsclientgen/client/auth_tokens"
+	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
@@ -48,8 +51,13 @@ type Configuration struct {
 	UserAgent string
 }
 
+// WrapperV2 is the structure holding representing our latest API client
+type WrapperV2 struct {
+	gsclient *gsclient.Gsclientgen
+}
+
 // NewV2 creates a client based on the latest gsclientgen version
-func NewV2(conf *Configuration) (*gsclient.Gsclientgen, error) {
+func NewV2(conf *Configuration) (*WrapperV2, error) {
 	if conf.Endpoint == "" {
 		return nil, microerror.Mask(endpointNotSpecifiedError)
 	}
@@ -75,7 +83,9 @@ func NewV2(conf *Configuration) (*gsclient.Gsclientgen, error) {
 	}
 	transport.Transport = setUserAgent(transport.Transport, conf.UserAgent)
 
-	return gsclient.New(transport, strfmt.Default), nil
+	return &WrapperV2{
+		gsclient: gsclient.New(transport, strfmt.Default),
+	}, nil
 }
 
 type roundTripperWithUserAgent struct {
@@ -138,10 +148,29 @@ func redactPasswordArgs(args []string) []string {
 	return args
 }
 
-// DeleteAuthToken calls the deleteAuthToken operation in the latest client
-//func (c *APIClient) DeleteAuthToken() (response, error) {
-//params := apiOperations.NewGetUserOrganizationsParams()
-//params.SetTimeout(1 * time.Second)
+// CreateAuthToken creates an auth token using the latest client
+func (w *WrapperV2) CreateAuthToken(email, password string) (*models.V4CreateAuthTokenResponse, error) {
+	params := auth_tokens.NewCreateAuthTokenParams().WithBody(&models.V4CreateAuthTokenRequest{
+		Email:          email,
+		PasswordBase64: base64.StdEncoding.EncodeToString([]byte(password)),
+	})
 
-//_, err := apiClient.Operations.GetUserOrganizations(params)
-//}
+	response, err := w.gsclient.AuthTokens.CreateAuthToken(params, nil)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return response.Payload, nil
+}
+
+// DeleteAuthToken calls the deleteAuthToken operation in the latest client
+func (w *WrapperV2) DeleteAuthToken(authToken string) (*models.V4GenericResponse, error) {
+	params := auth_tokens.NewDeleteAuthTokenParams().WithAuthorization("giantswarm " + authToken)
+
+	response, err := w.gsclient.AuthTokens.DeleteAuthToken(params, nil)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return response.Payload, nil
+}
