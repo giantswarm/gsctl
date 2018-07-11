@@ -86,7 +86,6 @@ func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 
 // logout terminates the current user session.
 // The email and token are erased from the local config file.
-// Returns nil in case of success, or an error otherwise.
 func logout(args logoutArguments) error {
 	// erase local credentials, no matter what the result on the API side is
 	defer config.Config.Logout(args.apiEndpoint)
@@ -104,8 +103,6 @@ func logout(args logoutArguments) error {
 		if ok {
 			if apiError.Code == http.StatusForbidden {
 				return microerror.Maskf(accessForbiddenError, err.Error())
-			} else if apiError.Code == http.StatusUnauthorized {
-				return microerror.Maskf(notAuthorizedError, err.Error())
 			}
 		}
 
