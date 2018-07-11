@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/giantswarm/microerror"
 )
 
 // Test_LogoutValidToken tests the logout for a valid token
@@ -18,7 +20,7 @@ func Test_LogoutValidToken(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status_code": 10007, "status_text": "Resource deleted"}`))
+		w.Write([]byte(`{"code": "RESOURCE_DELETED", "message": "The authentication token has been succesfully deleted."}`))
 	}))
 	defer mockServer.Close()
 
@@ -47,7 +49,7 @@ func Test_LogoutInvalidToken(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(``))
+		w.Write([]byte(`{"code": "PERMISSION_DENIED", "message": "Nope"}`))
 	}))
 	defer mockServer.Close()
 
@@ -63,6 +65,8 @@ func Test_LogoutInvalidToken(t *testing.T) {
 	if !IsNotAuthorizedError(err) {
 		t.Errorf("Unexpected error: %s", err)
 	}
+
+	t.Logf("err: %#v", microerror.Cause(err))
 }
 
 // Test_LogoutCommand simply calls the functions cobra would call,
@@ -77,7 +81,7 @@ func Test_LogoutCommand(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status_code": 10007, "status_text": "Resource deleted"}`))
+		w.Write([]byte(`{"code": "RESOURCE_DELETED", "message": "The authentication token has been succesfully deleted."}`))
 	}))
 	defer mockServer.Close()
 

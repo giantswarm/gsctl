@@ -142,9 +142,3 @@ func (c *Wrapper) UserLogin(email string, body gsclientgenv1.LoginBodyModel, act
 	response, apiResponse, err := c.client.UserLogin(email, body, c.requestID, activityname, cmdLine)
 	return response, apiResponse, err
 }
-
-// UserLogout calls the v1 logout endpoint via the old client
-func (c *Wrapper) UserLogout(activityName string) (*gsclientgenv1.GenericResponseModel, *gsclientgenv1.APIResponse, error) {
-	response, apiResponse, err := c.client.UserLogout(c.authHeader, c.requestID, activityName, getCommandLine())
-	return response, apiResponse, err
-}

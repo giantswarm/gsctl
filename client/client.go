@@ -169,6 +169,11 @@ func (w *WrapperV2) DeleteAuthToken(authToken string) (*models.V4GenericResponse
 
 	response, err := w.gsclient.AuthTokens.DeleteAuthToken(params, nil)
 	if err != nil {
+		assertedResponse, ok := err.(*auth_tokens.DeleteAuthTokenUnauthorized)
+		if ok {
+			return nil, microerror.Maskf(notAuthorizedError, assertedResponse.Payload.Message)
+		}
+
 		return nil, microerror.Mask(err)
 	}
 

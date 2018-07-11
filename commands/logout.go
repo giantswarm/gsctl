@@ -6,10 +6,11 @@ import (
 	"os"
 
 	"github.com/fatih/color"
-	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/microerror"
+	"github.com/go-openapi/runtime"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 )
 
@@ -94,29 +95,21 @@ func logout(args logoutArguments) error {
 		return nil
 	}
 
-	logoutResponse, apiResponse, err := Client.UserLogout(logoutActivityName)
-	if err != nil {
+	_, err := ClientV2.DeleteAuthToken(args.token)
+	if client.IsNotAuthorizedError(err) {
+		return microerror.Mask(notAuthorizedError)
+	} else if err != nil {
 
-		if apiResponse == nil || apiResponse.Response == nil {
-			return microerror.Mask(noResponseError)
+		apiError, ok := microerror.Cause(err).(*runtime.APIError)
+		if ok {
+			if apiError.Code == http.StatusForbidden {
+				return microerror.Maskf(accessForbiddenError, err.Error())
+			} else if apiError.Code == http.StatusUnauthorized {
+				return microerror.Maskf(notAuthorizedError, err.Error())
+			}
 		}
 
-		if apiResponse.StatusCode == http.StatusForbidden {
-			return microerror.Mask(accessForbiddenError)
-		}
-
-		// special treatment for HTTP 401 (unauthorized) error,
-		// in which case no JSON body is returned.
-		if apiResponse.StatusCode == http.StatusUnauthorized {
-			return microerror.Mask(notAuthorizedError)
-		}
-
-		// other cases
 		return microerror.Maskf(unspecifiedAPIError, err.Error())
-	}
-
-	if logoutResponse.StatusCode != apischema.STATUS_CODE_RESOURCE_DELETED {
-		return microerror.Maskf(unspecifiedAPIError, "response: %v", logoutResponse)
 	}
 
 	return nil

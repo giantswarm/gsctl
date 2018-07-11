@@ -17,8 +17,17 @@ var RootCommand = &cobra.Command{
 	PersistentPreRunE: initConfig,
 }
 
-var Client *client.Wrapper
-var ClientConfig client.Configuration
+var (
+	// Client is the legacy client wrapper we create for all commands to use
+	// TODO: Remove once the client transition is done
+	Client *client.Wrapper
+
+	// ClientV2 is the latest client wrapper we create for all commands to use
+	ClientV2 *client.WrapperV2
+
+	// ClientConfig is a client configuration we apply when creating a new clients
+	ClientConfig *client.Configuration
+)
 
 func init() {
 	// Replaced by "endpoint" flag
@@ -52,7 +61,7 @@ func initClient() error {
 	token := config.Config.ChooseToken(endpoint, cmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
-	ClientConfig = client.Configuration{
+	ClientConfig = &client.Configuration{
 		AuthHeader: scheme + " " + token,
 		Endpoint:   endpoint,
 		Timeout:    10 * time.Second,
@@ -60,7 +69,13 @@ func initClient() error {
 	}
 
 	var err error
-	Client, err = client.New(ClientConfig)
+	// TODO: Remove once the client transition is done
+	Client, err = client.New(*ClientConfig)
+	if err != nil {
+		return microerror.Maskf(couldNotCreateClientError, err.Error())
+	}
+
+	ClientV2, err = client.NewV2(ClientConfig)
 	if err != nil {
 		return microerror.Maskf(couldNotCreateClientError, err.Error())
 	}

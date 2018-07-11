@@ -17,3 +17,11 @@ var endpointNotSpecifiedError = errgo.New("no endpoint has been specified")
 func IsEndpointNotSpecifiedError(err error) bool {
 	return errgo.Cause(err) == endpointNotSpecifiedError
 }
+
+// notAuthorizedError is used when an API request got a 401 response
+var notAuthorizedError = errgo.New("not authorized")
+
+// IsNotAuthorizedError asserts notAuthorizedError.
+func IsNotAuthorizedError(err error) bool {
+	return errgo.Cause(err) == notAuthorizedError
+}

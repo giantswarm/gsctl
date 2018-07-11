@@ -5,9 +5,13 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/giantswarm/microerror"
+	"github.com/go-openapi/runtime"
 )
 
 func TestTimeout(t *testing.T) {
@@ -99,9 +103,144 @@ func TestRedactPasswordArgs(t *testing.T) {
 	}
 }
 
-// TestClientV2CreateAuthToken checks out how creating an auth token works in
+// TestV2NoConnection checks out how the latest client deals with a missing
+// server connection
+func TestV2NoConnection(t *testing.T) { // Our test server.
+
+	// a non-existing endpoint (must use an IP, not a hostname)
+	config := &Configuration{
+		Endpoint: "http://127.0.0.1:55555",
+	}
+
+	gsClient, err := NewV2(config)
+	if err != nil {
+		t.Error(err)
+	}
+
+	responseBody, err := gsClient.CreateAuthToken("email", "password")
+
+	if err == nil {
+		t.Error("Expected 'connection refused' error, got nil")
+	}
+	if responseBody != nil {
+		t.Errorf("Expected nil response body, got %#v", responseBody)
+	}
+	rootError, ok := microerror.Cause(err).(*url.Error)
+	if !ok {
+		t.Error("Type assertion to *url.Error failed")
+	}
+
+	t.Logf("%#v", rootError.Err)
+}
+
+// TestV2NoHostnameUnresolvable checks out how the latest client deals with a
+// non-resolvable host name
+func TestV2NoHostnameUnresolvable(t *testing.T) { // Our test server.
+
+	// a non-existing host name
+	config := &Configuration{
+		Endpoint: "http://non.existing.host.name",
+	}
+
+	gsClient, err := NewV2(config)
+	if err != nil {
+		t.Error(err)
+	}
+
+	responseBody, err := gsClient.CreateAuthToken("email", "password")
+
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	if responseBody != nil {
+		t.Errorf("Expected nil response body, got %#v", responseBody)
+	}
+	urlError, ok := microerror.Cause(err).(*url.Error)
+	if !ok {
+		t.Error("Type assertion to *url.Error failed")
+	}
+
+	netOpError, ok := urlError.Err.(*net.OpError)
+	if !ok {
+		t.Error("Type assertion to *net.OpError failed")
+	}
+
+	rootError, ok := netOpError.Err.(*net.DNSError)
+	if !ok {
+		t.Error("Type assertion to *net.DNSError failed")
+	}
+
+	if rootError.Err != "no such host" {
+		t.Errorf("Expected DNS error 'no such host', got '%s'", rootError.Err)
+	}
+
+}
+
+// TestV2Forbidden tests out how the latest client gives access to
+// HTTP error details for a 403 error
+func TestV2Forbidden(t *testing.T) { // Our test server.
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(`Access forbidden`))
+	}))
+	defer ts.Close()
+
+	gsClient, err := NewV2(&Configuration{Endpoint: ts.URL})
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = gsClient.CreateAuthToken("email", "password")
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+
+	e, ok := microerror.Cause(err).(*runtime.APIError)
+	if !ok {
+		t.Error("Type assertion to *runtime.APIError failed")
+	}
+
+	if e.Code != 403 {
+		t.Error("Expected status code 403, got", e.Code)
+	}
+}
+
+// TestV2Unauthorized tests out how the latest client gives access to
+// HTTP error details for a 401 error
+func TestV2Unauthorized(t *testing.T) { // Our test server.
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(`{"code": "PERMISSION_DENIED", "message": "Not authorized"}`))
+	}))
+	defer ts.Close()
+
+	gsClient, err := NewV2(&Configuration{Endpoint: ts.URL})
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = gsClient.DeleteAuthToken("foo")
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+
+	t.Logf("err: %#v", err)
+
+	// e, ok := microerror.Cause(err).(*runtime.APIError)
+	// if !ok {
+	// 	t.Error("Type assertion to *runtime.APIError failed")
+	// }
+
+	// if e.Code != 403 {
+	// 	t.Error("Expected status code 403, got", e.Code)
+	// }
+}
+
+// TestV2CreateAuthToken checks out how creating an auth token works in
 // our new client
-func TestClientV2CreateAuthToken(t *testing.T) { // Our test server.
+func TestV2CreateAuthToken(t *testing.T) { // Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -128,9 +267,9 @@ func TestClientV2CreateAuthToken(t *testing.T) { // Our test server.
 	}
 }
 
-// TestClientV2DeleteAuthToken checks out how to issue an authenticted request
+// TestV2DeleteAuthToken checks out how to issue an authenticted request
 // using the new client
-func TestClientV2DeleteAuthToken(t *testing.T) { // Our test server.
+func TestV2DeleteAuthToken(t *testing.T) { // Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "giantswarm test-token" {
 			t.Error("Bad authorization header:", r.Header.Get("Authorization"))
