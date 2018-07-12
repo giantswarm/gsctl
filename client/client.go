@@ -13,6 +13,7 @@ import (
 	gsclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/microerror"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
@@ -53,6 +54,10 @@ type Configuration struct {
 
 // WrapperV2 is the structure holding representing our latest API client
 type WrapperV2 struct {
+	// conf is the Configuration used when creating this
+	conf *Configuration
+
+	// gsclient is a pointer to the API client library's client
 	gsclient *gsclient.Gsclientgen
 }
 
@@ -84,6 +89,7 @@ func NewV2(conf *Configuration) (*WrapperV2, error) {
 	transport.Transport = setUserAgent(transport.Transport, conf.UserAgent)
 
 	return &WrapperV2{
+		conf:     conf,
 		gsclient: gsclient.New(transport, strfmt.Default),
 	}, nil
 }
@@ -154,10 +160,13 @@ func (w *WrapperV2) CreateAuthToken(email, password string) (*models.V4CreateAut
 		Email:          email,
 		PasswordBase64: base64.StdEncoding.EncodeToString([]byte(password)),
 	})
+	if w.conf.Timeout > 0 {
+		params.SetTimeout(w.conf.Timeout)
+	}
 
 	response, err := w.gsclient.AuthTokens.CreateAuthToken(params, nil)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, clienterror.New(err)
 	}
 
 	return response.Payload, nil
@@ -166,15 +175,13 @@ func (w *WrapperV2) CreateAuthToken(email, password string) (*models.V4CreateAut
 // DeleteAuthToken calls the deleteAuthToken operation in the latest client
 func (w *WrapperV2) DeleteAuthToken(authToken string) (*models.V4GenericResponse, error) {
 	params := auth_tokens.NewDeleteAuthTokenParams().WithAuthorization("giantswarm " + authToken)
+	if w.conf.Timeout > 0 {
+		params.SetTimeout(w.conf.Timeout)
+	}
 
 	response, err := w.gsclient.AuthTokens.DeleteAuthToken(params, nil)
 	if err != nil {
-		assertedResponse, ok := err.(*auth_tokens.DeleteAuthTokenUnauthorized)
-		if ok {
-			return nil, microerror.Maskf(notAuthorizedError, assertedResponse.Payload.Message)
-		}
-
-		return nil, microerror.Mask(err)
+		return nil, clienterror.New(err)
 	}
 
 	return response.Payload, nil

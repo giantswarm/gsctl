@@ -5,15 +5,14 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/giantswarm/microerror"
-	"github.com/go-openapi/runtime"
+	"github.com/giantswarm/gsctl/client/clienterror"
 )
 
+// TODO: remove once we have gotten rid of the legacy client
 func TestTimeout(t *testing.T) {
 	// Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +42,7 @@ func TestTimeout(t *testing.T) {
 
 // TestUserAgent tests whether request have the proper User-Agent header
 // and if ParseGenericResponse works as expected
+// TODO: remove once we have gotten rid of the legacy client
 func TestUserAgent(t *testing.T) {
 	// Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -125,12 +125,25 @@ func TestV2NoConnection(t *testing.T) { // Our test server.
 	if responseBody != nil {
 		t.Errorf("Expected nil response body, got %#v", responseBody)
 	}
-	rootError, ok := microerror.Cause(err).(*url.Error)
+
+	clientAPIError, ok := err.(*clienterror.APIError)
 	if !ok {
-		t.Error("Type assertion to *url.Error failed")
+		t.Error("Type assertion err.(*clienterror.APIError) not successfull")
 	}
 
-	t.Logf("%#v", rootError.Err)
+	_, ok = clientAPIError.OriginalError.(*net.OpError)
+	if !ok {
+		t.Error("Type assertion to *net.OpError not successfull")
+	}
+
+	t.Logf("clientAPIError: %#v", clientAPIError)
+
+	if clientAPIError.ErrorMessage == "" {
+		t.Error("ErrorMessage was empty, expected helpful message.")
+	}
+	if clientAPIError.ErrorDetails == "" {
+		t.Error("ErrorDetails was empty, expected helpful message.")
+	}
 }
 
 // TestV2NoHostnameUnresolvable checks out how the latest client deals with a
@@ -155,25 +168,88 @@ func TestV2NoHostnameUnresolvable(t *testing.T) { // Our test server.
 	if responseBody != nil {
 		t.Errorf("Expected nil response body, got %#v", responseBody)
 	}
-	urlError, ok := microerror.Cause(err).(*url.Error)
+
+	clientAPIError, ok := err.(*clienterror.APIError)
 	if !ok {
-		t.Error("Type assertion to *url.Error failed")
+		t.Error("Type assertion err.(*clienterror.APIError) not successfull")
 	}
 
-	netOpError, ok := urlError.Err.(*net.OpError)
+	_, ok = clientAPIError.OriginalError.(*net.DNSError)
 	if !ok {
-		t.Error("Type assertion to *net.OpError failed")
+		t.Error("Type assertion to *net.DNSError not successfull")
 	}
 
-	rootError, ok := netOpError.Err.(*net.DNSError)
-	if !ok {
-		t.Error("Type assertion to *net.DNSError failed")
+	t.Logf("clientAPIError: %#v", clientAPIError)
+
+	if clientAPIError.ErrorMessage == "" {
+		t.Error("ErrorMessage was empty, expected helpful message.")
+	}
+	if clientAPIError.ErrorDetails == "" {
+		t.Error("ErrorDetails was empty, expected helpful message.")
+	}
+}
+
+// TestV2Timeout tests if the latest client handles timeouts as expected
+func TestV2Timeout(t *testing.T) {
+	// Our test server.
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// enforce a timeout longer than the client's
+		time.Sleep(3 * time.Second)
+		fmt.Fprintln(w, "Hello")
+	}))
+	defer ts.Close()
+
+	clientConfig := &Configuration{
+		Endpoint: ts.URL,
+		Timeout:  500 * time.Millisecond,
+	}
+	gsClient, err := NewV2(clientConfig)
+	if err != nil {
+		t.Error(err)
+	}
+	resp, err := gsClient.CreateAuthToken("email", "password")
+	if err == nil {
+		t.Error("Expected Timeout error, got nil")
+		t.Logf("resp: %#v", resp)
+	} else {
+		clientAPIError, ok := err.(*clienterror.APIError)
+		if !ok {
+			t.Error("Type assertion err.(*clienterror.APIError) not successfull")
+		}
+		if !clientAPIError.IsTimeout {
+			t.Error("Expected clientAPIError.IsTimeout to be true, got false")
+		}
+	}
+}
+
+// TestV2UserAgent tests whether our user-agent header appears in requests
+func TestV2UserAgent(t *testing.T) {
+	clientConfig := &Configuration{
+		UserAgent: "my own user agent/1.0",
 	}
 
-	if rootError.Err != "no such host" {
-		t.Errorf("Expected DNS error 'no such host', got '%s'", rootError.Err)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ua := r.Header.Get("user-agent")
+
+		if ua != clientConfig.UserAgent {
+			t.Errorf("Expected '%s', got '%s'", clientConfig.UserAgent, ua)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"code": "NONE", "message": "none"}`))
+	}))
+	defer ts.Close()
+
+	clientConfig.Endpoint = ts.URL
+
+	gsClient, err := NewV2(clientConfig)
+	if err != nil {
+		t.Error(err)
 	}
 
+	// just issue a request, don't care about the result
+	_, _ = gsClient.CreateAuthToken("email", "password")
 }
 
 // TestV2Forbidden tests out how the latest client gives access to
@@ -191,18 +267,21 @@ func TestV2Forbidden(t *testing.T) { // Our test server.
 		t.Error(err)
 	}
 
-	_, err = gsClient.CreateAuthToken("email", "password")
+	response, err := gsClient.CreateAuthToken("email", "password")
 	if err == nil {
 		t.Error("Expected error, got nil")
 	}
-
-	e, ok := microerror.Cause(err).(*runtime.APIError)
-	if !ok {
-		t.Error("Type assertion to *runtime.APIError failed")
+	if response != nil {
+		t.Error("Expected nil response")
 	}
 
-	if e.Code != 403 {
-		t.Error("Expected status code 403, got", e.Code)
+	clientAPIError, ok := err.(*clienterror.APIError)
+	if !ok {
+		t.Error("Type assertion err.(*clienterror.APIError) not successfull")
+	}
+
+	if clientAPIError.HTTPStatusCode != http.StatusForbidden {
+		t.Error("Expected HTTP status 403, got", clientAPIError.HTTPStatusCode)
 	}
 }
 
@@ -228,14 +307,14 @@ func TestV2Unauthorized(t *testing.T) { // Our test server.
 
 	t.Logf("err: %#v", err)
 
-	// e, ok := microerror.Cause(err).(*runtime.APIError)
-	// if !ok {
-	// 	t.Error("Type assertion to *runtime.APIError failed")
-	// }
+	clientAPIError, ok := err.(*clienterror.APIError)
+	if !ok {
+		t.Error("Type assertion err.(*clienterror.APIError) not successfull")
+	}
 
-	// if e.Code != 403 {
-	// 	t.Error("Expected status code 403, got", e.Code)
-	// }
+	if clientAPIError.HTTPStatusCode != http.StatusUnauthorized {
+		t.Error("Expected HTTP status 401, got", clientAPIError.HTTPStatusCode)
+	}
 }
 
 // TestV2CreateAuthToken checks out how creating an auth token works in

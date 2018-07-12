@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/gsctl/client/clienterror"
 )
 
 // Test_LogoutValidToken tests the logout for a valid token
@@ -62,11 +62,13 @@ func Test_LogoutInvalidToken(t *testing.T) {
 	initClient()
 
 	err = logout(logoutArgs)
-	if !IsNotAuthorizedError(err) {
-		t.Errorf("Unexpected error: %s", err)
-	}
 
-	t.Logf("err: %#v", microerror.Cause(err))
+	clientAPIErr, clientAPIErrOK := err.(*clienterror.APIError)
+	if !clientAPIErrOK {
+		t.Error("Type assertion to *clienterror.APIError failed. Error in unexpected type.")
+	} else if clientAPIErr.HTTPStatusCode != http.StatusUnauthorized {
+		t.Errorf("Unexpected HTTP status code: %d", clientAPIErr.HTTPStatusCode)
+	}
 }
 
 // Test_LogoutCommand simply calls the functions cobra would call,

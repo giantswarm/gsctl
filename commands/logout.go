@@ -2,15 +2,11 @@ package commands
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/microerror"
-	"github.com/go-openapi/runtime"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 )
 
@@ -95,19 +91,5 @@ func logout(args logoutArguments) error {
 	}
 
 	_, err := ClientV2.DeleteAuthToken(args.token)
-	if client.IsNotAuthorizedError(err) {
-		return microerror.Mask(notAuthorizedError)
-	} else if err != nil {
-
-		apiError, ok := microerror.Cause(err).(*runtime.APIError)
-		if ok {
-			if apiError.Code == http.StatusForbidden {
-				return microerror.Maskf(accessForbiddenError, err.Error())
-			}
-		}
-
-		return microerror.Maskf(unspecifiedAPIError, err.Error())
-	}
-
-	return nil
+	return err
 }
