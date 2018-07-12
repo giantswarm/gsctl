@@ -68,7 +68,7 @@ func NewCreateUserCreated() *CreateUserCreated {
 User created
 */
 type CreateUserCreated struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *CreateUserCreated) Error() string {
@@ -77,7 +77,7 @@ func (o *CreateUserCreated) Error() string {
 
 func (o *CreateUserCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -97,7 +97,7 @@ func NewCreateUserBadRequest() *CreateUserBadRequest {
 User already exists
 */
 type CreateUserBadRequest struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *CreateUserBadRequest) Error() string {
@@ -106,7 +106,7 @@ func (o *CreateUserBadRequest) Error() string {
 
 func (o *CreateUserBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -126,7 +126,7 @@ func NewCreateUserUnauthorized() *CreateUserUnauthorized {
 Permission denied
 */
 type CreateUserUnauthorized struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *CreateUserUnauthorized) Error() string {
@@ -135,7 +135,7 @@ func (o *CreateUserUnauthorized) Error() string {
 
 func (o *CreateUserUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -159,7 +159,7 @@ Error
 type CreateUserDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 // Code gets the status code for the create user default response
@@ -173,7 +173,7 @@ func (o *CreateUserDefault) Error() string {
 
 func (o *CreateUserDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

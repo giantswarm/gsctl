@@ -32,6 +32,13 @@ func (o *GetInfoReader) ReadResponse(response runtime.ClientResponse, consumer r
 		}
 		return result, nil
 
+	case 401:
+		result := NewGetInfoUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
 	default:
 		result := NewGetInfoDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -73,6 +80,35 @@ func (o *GetInfoOK) readResponse(response runtime.ClientResponse, consumer runti
 	return nil
 }
 
+// NewGetInfoUnauthorized creates a GetInfoUnauthorized with default headers values
+func NewGetInfoUnauthorized() *GetInfoUnauthorized {
+	return &GetInfoUnauthorized{}
+}
+
+/*GetInfoUnauthorized handles this case with default header values.
+
+Permission denied
+*/
+type GetInfoUnauthorized struct {
+	Payload *models.V4GenericResponse
+}
+
+func (o *GetInfoUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /v4/info/][%d] getInfoUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetInfoUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.V4GenericResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewGetInfoDefault creates a GetInfoDefault with default headers values
 func NewGetInfoDefault(code int) *GetInfoDefault {
 	return &GetInfoDefault{
@@ -87,7 +123,7 @@ Error
 type GetInfoDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 // Code gets the status code for the get info default response
@@ -101,7 +137,7 @@ func (o *GetInfoDefault) Error() string {
 
 func (o *GetInfoDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

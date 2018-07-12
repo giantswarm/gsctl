@@ -32,6 +32,13 @@ func (o *GetClustersReader) ReadResponse(response runtime.ClientResponse, consum
 		}
 		return result, nil
 
+	case 401:
+		result := NewGetClustersUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
 	default:
 		result := NewGetClustersDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -71,6 +78,35 @@ func (o *GetClustersOK) readResponse(response runtime.ClientResponse, consumer r
 	return nil
 }
 
+// NewGetClustersUnauthorized creates a GetClustersUnauthorized with default headers values
+func NewGetClustersUnauthorized() *GetClustersUnauthorized {
+	return &GetClustersUnauthorized{}
+}
+
+/*GetClustersUnauthorized handles this case with default header values.
+
+Permission denied
+*/
+type GetClustersUnauthorized struct {
+	Payload *models.V4GenericResponse
+}
+
+func (o *GetClustersUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /v4/clusters/][%d] getClustersUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetClustersUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.V4GenericResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewGetClustersDefault creates a GetClustersDefault with default headers values
 func NewGetClustersDefault(code int) *GetClustersDefault {
 	return &GetClustersDefault{
@@ -85,7 +121,7 @@ Error
 type GetClustersDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 // Code gets the status code for the get clusters default response
@@ -99,7 +135,7 @@ func (o *GetClustersDefault) Error() string {
 
 func (o *GetClustersDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

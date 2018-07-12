@@ -32,6 +32,13 @@ func (o *GetClusterReader) ReadResponse(response runtime.ClientResponse, consume
 		}
 		return result, nil
 
+	case 401:
+		result := NewGetClusterUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
 	case 404:
 		result := NewGetClusterNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -80,6 +87,35 @@ func (o *GetClusterOK) readResponse(response runtime.ClientResponse, consumer ru
 	return nil
 }
 
+// NewGetClusterUnauthorized creates a GetClusterUnauthorized with default headers values
+func NewGetClusterUnauthorized() *GetClusterUnauthorized {
+	return &GetClusterUnauthorized{}
+}
+
+/*GetClusterUnauthorized handles this case with default header values.
+
+Permission denied
+*/
+type GetClusterUnauthorized struct {
+	Payload *models.V4GenericResponse
+}
+
+func (o *GetClusterUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /v4/clusters/{cluster_id}/][%d] getClusterUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetClusterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.V4GenericResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewGetClusterNotFound creates a GetClusterNotFound with default headers values
 func NewGetClusterNotFound() *GetClusterNotFound {
 	return &GetClusterNotFound{}
@@ -90,7 +126,7 @@ func NewGetClusterNotFound() *GetClusterNotFound {
 Cluster not found
 */
 type GetClusterNotFound struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *GetClusterNotFound) Error() string {
@@ -99,7 +135,7 @@ func (o *GetClusterNotFound) Error() string {
 
 func (o *GetClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -123,7 +159,7 @@ error
 type GetClusterDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 // Code gets the status code for the get cluster default response
@@ -137,7 +173,7 @@ func (o *GetClusterDefault) Error() string {
 
 func (o *GetClusterDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

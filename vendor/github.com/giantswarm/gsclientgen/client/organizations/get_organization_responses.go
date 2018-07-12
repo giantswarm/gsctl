@@ -97,7 +97,7 @@ func NewGetOrganizationUnauthorized() *GetOrganizationUnauthorized {
 Permission denied
 */
 type GetOrganizationUnauthorized struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *GetOrganizationUnauthorized) Error() string {
@@ -106,7 +106,7 @@ func (o *GetOrganizationUnauthorized) Error() string {
 
 func (o *GetOrganizationUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -126,7 +126,7 @@ func NewGetOrganizationNotFound() *GetOrganizationNotFound {
 Organization not found
 */
 type GetOrganizationNotFound struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *GetOrganizationNotFound) Error() string {
@@ -135,7 +135,7 @@ func (o *GetOrganizationNotFound) Error() string {
 
 func (o *GetOrganizationNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -159,7 +159,7 @@ Error
 type GetOrganizationDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 // Code gets the status code for the get organization default response
@@ -173,7 +173,7 @@ func (o *GetOrganizationDefault) Error() string {
 
 func (o *GetOrganizationDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

@@ -32,6 +32,13 @@ func (o *AddOrganizationReader) ReadResponse(response runtime.ClientResponse, co
 		}
 		return result, nil
 
+	case 401:
+		result := NewAddOrganizationUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
 	case 409:
 		result := NewAddOrganizationConflict()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -80,6 +87,35 @@ func (o *AddOrganizationCreated) readResponse(response runtime.ClientResponse, c
 	return nil
 }
 
+// NewAddOrganizationUnauthorized creates a AddOrganizationUnauthorized with default headers values
+func NewAddOrganizationUnauthorized() *AddOrganizationUnauthorized {
+	return &AddOrganizationUnauthorized{}
+}
+
+/*AddOrganizationUnauthorized handles this case with default header values.
+
+Permission denied
+*/
+type AddOrganizationUnauthorized struct {
+	Payload *models.V4GenericResponse
+}
+
+func (o *AddOrganizationUnauthorized) Error() string {
+	return fmt.Sprintf("[PUT /v4/organizations/{organization_id}/][%d] addOrganizationUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *AddOrganizationUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.V4GenericResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewAddOrganizationConflict creates a AddOrganizationConflict with default headers values
 func NewAddOrganizationConflict() *AddOrganizationConflict {
 	return &AddOrganizationConflict{}
@@ -90,7 +126,7 @@ func NewAddOrganizationConflict() *AddOrganizationConflict {
 Organization already exists
 */
 type AddOrganizationConflict struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *AddOrganizationConflict) Error() string {
@@ -99,7 +135,7 @@ func (o *AddOrganizationConflict) Error() string {
 
 func (o *AddOrganizationConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -123,7 +159,7 @@ Error
 type AddOrganizationDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 // Code gets the status code for the add organization default response
@@ -137,7 +173,7 @@ func (o *AddOrganizationDefault) Error() string {
 
 func (o *AddOrganizationDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

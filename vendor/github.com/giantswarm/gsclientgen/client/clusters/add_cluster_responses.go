@@ -65,7 +65,7 @@ type AddClusterCreated struct {
 	 */
 	Location string
 
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *AddClusterCreated) Error() string {
@@ -77,7 +77,7 @@ func (o *AddClusterCreated) readResponse(response runtime.ClientResponse, consum
 	// response header Location
 	o.Location = response.GetHeader("Location")
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -97,7 +97,7 @@ func NewAddClusterUnauthorized() *AddClusterUnauthorized {
 Permission denied
 */
 type AddClusterUnauthorized struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *AddClusterUnauthorized) Error() string {
@@ -106,7 +106,7 @@ func (o *AddClusterUnauthorized) Error() string {
 
 func (o *AddClusterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -130,7 +130,7 @@ error
 type AddClusterDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 // Code gets the status code for the add cluster default response
@@ -144,7 +144,7 @@ func (o *AddClusterDefault) Error() string {
 
 func (o *AddClusterDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

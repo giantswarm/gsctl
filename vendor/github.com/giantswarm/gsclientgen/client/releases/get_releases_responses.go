@@ -32,6 +32,13 @@ func (o *GetReleasesReader) ReadResponse(response runtime.ClientResponse, consum
 		}
 		return result, nil
 
+	case 401:
+		result := NewGetReleasesUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
 	default:
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
 	}
@@ -58,6 +65,35 @@ func (o *GetReleasesOK) readResponse(response runtime.ClientResponse, consumer r
 
 	// response payload
 	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetReleasesUnauthorized creates a GetReleasesUnauthorized with default headers values
+func NewGetReleasesUnauthorized() *GetReleasesUnauthorized {
+	return &GetReleasesUnauthorized{}
+}
+
+/*GetReleasesUnauthorized handles this case with default header values.
+
+Permission denied
+*/
+type GetReleasesUnauthorized struct {
+	Payload *models.V4GenericResponse
+}
+
+func (o *GetReleasesUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /v4/releases/][%d] getReleasesUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetReleasesUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.V4GenericResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

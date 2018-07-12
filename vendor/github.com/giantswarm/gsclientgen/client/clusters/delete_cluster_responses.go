@@ -32,6 +32,13 @@ func (o *DeleteClusterReader) ReadResponse(response runtime.ClientResponse, cons
 		}
 		return result, nil
 
+	case 401:
+		result := NewDeleteClusterUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
 	case 404:
 		result := NewDeleteClusterNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -61,7 +68,7 @@ func NewDeleteClusterAccepted() *DeleteClusterAccepted {
 Deleting cluster
 */
 type DeleteClusterAccepted struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *DeleteClusterAccepted) Error() string {
@@ -70,7 +77,36 @@ func (o *DeleteClusterAccepted) Error() string {
 
 func (o *DeleteClusterAccepted) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewDeleteClusterUnauthorized creates a DeleteClusterUnauthorized with default headers values
+func NewDeleteClusterUnauthorized() *DeleteClusterUnauthorized {
+	return &DeleteClusterUnauthorized{}
+}
+
+/*DeleteClusterUnauthorized handles this case with default header values.
+
+Permission denied
+*/
+type DeleteClusterUnauthorized struct {
+	Payload *models.V4GenericResponse
+}
+
+func (o *DeleteClusterUnauthorized) Error() string {
+	return fmt.Sprintf("[DELETE /v4/clusters/{cluster_id}/][%d] deleteClusterUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *DeleteClusterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -90,7 +126,7 @@ func NewDeleteClusterNotFound() *DeleteClusterNotFound {
 Cluster not found
 */
 type DeleteClusterNotFound struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *DeleteClusterNotFound) Error() string {
@@ -99,7 +135,7 @@ func (o *DeleteClusterNotFound) Error() string {
 
 func (o *DeleteClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -123,7 +159,7 @@ error
 type DeleteClusterDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 // Code gets the status code for the delete cluster default response
@@ -137,7 +173,7 @@ func (o *DeleteClusterDefault) Error() string {
 
 func (o *DeleteClusterDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

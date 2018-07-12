@@ -32,6 +32,13 @@ func (o *ModifyClusterReader) ReadResponse(response runtime.ClientResponse, cons
 		}
 		return result, nil
 
+	case 401:
+		result := NewModifyClusterUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
 	case 404:
 		result := NewModifyClusterNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -80,6 +87,35 @@ func (o *ModifyClusterOK) readResponse(response runtime.ClientResponse, consumer
 	return nil
 }
 
+// NewModifyClusterUnauthorized creates a ModifyClusterUnauthorized with default headers values
+func NewModifyClusterUnauthorized() *ModifyClusterUnauthorized {
+	return &ModifyClusterUnauthorized{}
+}
+
+/*ModifyClusterUnauthorized handles this case with default header values.
+
+Permission denied
+*/
+type ModifyClusterUnauthorized struct {
+	Payload *models.V4GenericResponse
+}
+
+func (o *ModifyClusterUnauthorized) Error() string {
+	return fmt.Sprintf("[PATCH /v4/clusters/{cluster_id}/][%d] modifyClusterUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *ModifyClusterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.V4GenericResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewModifyClusterNotFound creates a ModifyClusterNotFound with default headers values
 func NewModifyClusterNotFound() *ModifyClusterNotFound {
 	return &ModifyClusterNotFound{}
@@ -90,7 +126,7 @@ func NewModifyClusterNotFound() *ModifyClusterNotFound {
 Cluster not found
 */
 type ModifyClusterNotFound struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *ModifyClusterNotFound) Error() string {
@@ -99,7 +135,7 @@ func (o *ModifyClusterNotFound) Error() string {
 
 func (o *ModifyClusterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -123,7 +159,7 @@ error
 type ModifyClusterDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 // Code gets the status code for the modify cluster default response
@@ -137,7 +173,7 @@ func (o *ModifyClusterDefault) Error() string {
 
 func (o *ModifyClusterDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

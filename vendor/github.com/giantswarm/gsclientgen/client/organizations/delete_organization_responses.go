@@ -68,7 +68,7 @@ func NewDeleteOrganizationOK() *DeleteOrganizationOK {
 Organization deleted
 */
 type DeleteOrganizationOK struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *DeleteOrganizationOK) Error() string {
@@ -77,7 +77,7 @@ func (o *DeleteOrganizationOK) Error() string {
 
 func (o *DeleteOrganizationOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -97,7 +97,7 @@ func NewDeleteOrganizationUnauthorized() *DeleteOrganizationUnauthorized {
 Permission denied
 */
 type DeleteOrganizationUnauthorized struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *DeleteOrganizationUnauthorized) Error() string {
@@ -106,7 +106,7 @@ func (o *DeleteOrganizationUnauthorized) Error() string {
 
 func (o *DeleteOrganizationUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -126,7 +126,7 @@ func NewDeleteOrganizationNotFound() *DeleteOrganizationNotFound {
 Organization not found
 */
 type DeleteOrganizationNotFound struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *DeleteOrganizationNotFound) Error() string {
@@ -135,7 +135,7 @@ func (o *DeleteOrganizationNotFound) Error() string {
 
 func (o *DeleteOrganizationNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -159,7 +159,7 @@ Error
 type DeleteOrganizationDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 // Code gets the status code for the delete organization default response
@@ -173,7 +173,7 @@ func (o *DeleteOrganizationDefault) Error() string {
 
 func (o *DeleteOrganizationDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

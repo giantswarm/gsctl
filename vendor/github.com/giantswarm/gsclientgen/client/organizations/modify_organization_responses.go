@@ -104,7 +104,7 @@ func NewModifyOrganizationBadRequest() *ModifyOrganizationBadRequest {
 Invalid input
 */
 type ModifyOrganizationBadRequest struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *ModifyOrganizationBadRequest) Error() string {
@@ -113,7 +113,7 @@ func (o *ModifyOrganizationBadRequest) Error() string {
 
 func (o *ModifyOrganizationBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -133,7 +133,7 @@ func NewModifyOrganizationUnauthorized() *ModifyOrganizationUnauthorized {
 Permission denied
 */
 type ModifyOrganizationUnauthorized struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *ModifyOrganizationUnauthorized) Error() string {
@@ -142,7 +142,7 @@ func (o *ModifyOrganizationUnauthorized) Error() string {
 
 func (o *ModifyOrganizationUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -162,7 +162,7 @@ func NewModifyOrganizationNotFound() *ModifyOrganizationNotFound {
 Organization not found
 */
 type ModifyOrganizationNotFound struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *ModifyOrganizationNotFound) Error() string {
@@ -171,7 +171,7 @@ func (o *ModifyOrganizationNotFound) Error() string {
 
 func (o *ModifyOrganizationNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -195,7 +195,7 @@ error
 type ModifyOrganizationDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 // Code gets the status code for the modify organization default response
@@ -209,7 +209,7 @@ func (o *ModifyOrganizationDefault) Error() string {
 
 func (o *ModifyOrganizationDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

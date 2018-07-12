@@ -32,6 +32,13 @@ func (o *AddCredentialsReader) ReadResponse(response runtime.ClientResponse, con
 		}
 		return result, nil
 
+	case 401:
+		result := NewAddCredentialsUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
 	case 409:
 		result := NewAddCredentialsConflict()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -65,7 +72,7 @@ type AddCredentialsCreated struct {
 	 */
 	Location string
 
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *AddCredentialsCreated) Error() string {
@@ -77,7 +84,36 @@ func (o *AddCredentialsCreated) readResponse(response runtime.ClientResponse, co
 	// response header Location
 	o.Location = response.GetHeader("Location")
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewAddCredentialsUnauthorized creates a AddCredentialsUnauthorized with default headers values
+func NewAddCredentialsUnauthorized() *AddCredentialsUnauthorized {
+	return &AddCredentialsUnauthorized{}
+}
+
+/*AddCredentialsUnauthorized handles this case with default header values.
+
+Permission denied
+*/
+type AddCredentialsUnauthorized struct {
+	Payload *models.V4GenericResponse
+}
+
+func (o *AddCredentialsUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /v4/organizations/{organization_id}/credentials/][%d] addCredentialsUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *AddCredentialsUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -97,7 +133,7 @@ func NewAddCredentialsConflict() *AddCredentialsConflict {
 Conflict
 */
 type AddCredentialsConflict struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *AddCredentialsConflict) Error() string {
@@ -106,7 +142,7 @@ func (o *AddCredentialsConflict) Error() string {
 
 func (o *AddCredentialsConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -130,7 +166,7 @@ error
 type AddCredentialsDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 // Code gets the status code for the add credentials default response
@@ -144,7 +180,7 @@ func (o *AddCredentialsDefault) Error() string {
 
 func (o *AddCredentialsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

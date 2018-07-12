@@ -68,7 +68,7 @@ func NewDeleteUserOK() *DeleteUserOK {
 User deleted
 */
 type DeleteUserOK struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *DeleteUserOK) Error() string {
@@ -77,7 +77,7 @@ func (o *DeleteUserOK) Error() string {
 
 func (o *DeleteUserOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -97,7 +97,7 @@ func NewDeleteUserUnauthorized() *DeleteUserUnauthorized {
 Permission denied
 */
 type DeleteUserUnauthorized struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *DeleteUserUnauthorized) Error() string {
@@ -106,7 +106,7 @@ func (o *DeleteUserUnauthorized) Error() string {
 
 func (o *DeleteUserUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -126,7 +126,7 @@ func NewDeleteUserNotFound() *DeleteUserNotFound {
 User not found
 */
 type DeleteUserNotFound struct {
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 func (o *DeleteUserNotFound) Error() string {
@@ -135,7 +135,7 @@ func (o *DeleteUserNotFound) Error() string {
 
 func (o *DeleteUserNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -159,7 +159,7 @@ Error
 type DeleteUserDefault struct {
 	_statusCode int
 
-	Payload *models.V4GenericResponseOAIGen
+	Payload *models.V4GenericResponse
 }
 
 // Code gets the status code for the delete user default response
@@ -173,7 +173,7 @@ func (o *DeleteUserDefault) Error() string {
 
 func (o *DeleteUserDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.V4GenericResponseOAIGen)
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
