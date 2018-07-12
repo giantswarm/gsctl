@@ -2,16 +2,18 @@ package commands
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 )
 
 const (
-	logoutActivityName = "login"
+	logoutActivityName = "logout"
 )
 
 var (
@@ -65,9 +67,11 @@ func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 
 		// Special treatment: We ignore the fact that the user was not logged in
 		// and act as if she just logged out.
-		if IsNotAuthorizedError(err) {
-			fmt.Printf("You have logged out from endpoint %s.\n", color.CyanString(logoutArgs.apiEndpoint))
-			os.Exit(0)
+		if clientError, ok := err.(*clienterror.APIError); ok {
+			if clientError.HTTPStatusCode == http.StatusUnauthorized {
+				fmt.Printf("You have logged out from endpoint %s.\n", color.CyanString(logoutArgs.apiEndpoint))
+				os.Exit(0)
+			}
 		}
 
 		handleCommonErrors(err)
@@ -90,6 +94,9 @@ func logout(args logoutArguments) error {
 		return nil
 	}
 
-	_, err := ClientV2.DeleteAuthToken(args.token)
+	ap := ClientV2.DefaultAuxiliaryParams()
+	ap.ActivityName = logoutActivityName
+
+	_, err := ClientV2.DeleteAuthToken(args.token, ap)
 	return err
 }

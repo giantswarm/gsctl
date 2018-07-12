@@ -117,7 +117,7 @@ func TestV2NoConnection(t *testing.T) { // Our test server.
 		t.Error(err)
 	}
 
-	responseBody, err := gsClient.CreateAuthToken("email", "password")
+	responseBody, err := gsClient.CreateAuthToken("email", "password", nil)
 
 	if err == nil {
 		t.Error("Expected 'connection refused' error, got nil")
@@ -146,9 +146,9 @@ func TestV2NoConnection(t *testing.T) { // Our test server.
 	}
 }
 
-// TestV2NoHostnameUnresolvable checks out how the latest client deals with a
+// TestV2HostnameUnresolvable checks out how the latest client deals with a
 // non-resolvable host name
-func TestV2NoHostnameUnresolvable(t *testing.T) { // Our test server.
+func TestV2HostnameUnresolvable(t *testing.T) { // Our test server.
 
 	// a non-existing host name
 	config := &Configuration{
@@ -160,7 +160,7 @@ func TestV2NoHostnameUnresolvable(t *testing.T) { // Our test server.
 		t.Error(err)
 	}
 
-	responseBody, err := gsClient.CreateAuthToken("email", "password")
+	responseBody, err := gsClient.CreateAuthToken("email", "password", nil)
 
 	if err == nil {
 		t.Error("Expected error, got nil")
@@ -194,7 +194,7 @@ func TestV2Timeout(t *testing.T) {
 	// Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// enforce a timeout longer than the client's
-		time.Sleep(3 * time.Second)
+		time.Sleep(2 * time.Second)
 		fmt.Fprintln(w, "Hello")
 	}))
 	defer ts.Close()
@@ -207,7 +207,7 @@ func TestV2Timeout(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	resp, err := gsClient.CreateAuthToken("email", "password")
+	resp, err := gsClient.CreateAuthToken("email", "password", nil)
 	if err == nil {
 		t.Error("Expected Timeout error, got nil")
 		t.Logf("resp: %#v", resp)
@@ -249,7 +249,7 @@ func TestV2UserAgent(t *testing.T) {
 	}
 
 	// just issue a request, don't care about the result
-	_, _ = gsClient.CreateAuthToken("email", "password")
+	_, _ = gsClient.CreateAuthToken("email", "password", nil)
 }
 
 // TestV2Forbidden tests out how the latest client gives access to
@@ -267,7 +267,7 @@ func TestV2Forbidden(t *testing.T) { // Our test server.
 		t.Error(err)
 	}
 
-	response, err := gsClient.CreateAuthToken("email", "password")
+	response, err := gsClient.CreateAuthToken("email", "password", nil)
 	if err == nil {
 		t.Error("Expected error, got nil")
 	}
@@ -300,7 +300,7 @@ func TestV2Unauthorized(t *testing.T) { // Our test server.
 		t.Error(err)
 	}
 
-	_, err = gsClient.DeleteAuthToken("foo")
+	_, err = gsClient.DeleteAuthToken("foo", nil)
 	if err == nil {
 		t.Error("Expected error, got nil")
 	}
@@ -315,6 +315,44 @@ func TestV2Unauthorized(t *testing.T) { // Our test server.
 	if clientAPIError.HTTPStatusCode != http.StatusUnauthorized {
 		t.Error("Expected HTTP status 401, got", clientAPIError.HTTPStatusCode)
 	}
+}
+
+// TestV2AuxiliaryParams checks whether the client carries through our auxiliary
+// parameters
+func TestV2AuxiliaryParams(t *testing.T) { // Our test server.
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if r.Header.Get("X-Request-ID") != "request-id" {
+			t.Error("Header X-Request-ID not available")
+		}
+		if r.Header.Get("X-Giant-Swarm-CmdLine") != "command-line" {
+			t.Error("Header X-Giant-Swarm-CmdLine not available")
+		}
+		if r.Header.Get("X-Giant-Swarm-Activity") != "activity-name" {
+			t.Error("Header X-Giant-Swarm-Activity not available")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"foo": "bar"}`))
+	}))
+	defer ts.Close()
+
+	config := &Configuration{
+		Endpoint: ts.URL,
+	}
+
+	gsClient, err := NewV2(config)
+	if err != nil {
+		t.Error(err)
+	}
+
+	ap := gsClient.DefaultAuxiliaryParams()
+	ap.RequestID = "request-id"
+	ap.CommandLine = "command-line"
+	ap.ActivityName = "activity-name"
+
+	_, _ = gsClient.CreateAuthToken("foo", "bar", ap)
 }
 
 // TestV2CreateAuthToken checks out how creating an auth token works in
@@ -336,7 +374,7 @@ func TestV2CreateAuthToken(t *testing.T) { // Our test server.
 		t.Error(err)
 	}
 
-	responseBody, err := gsClient.CreateAuthToken("foo", "bar")
+	responseBody, err := gsClient.CreateAuthToken("foo", "bar", nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -368,7 +406,7 @@ func TestV2DeleteAuthToken(t *testing.T) { // Our test server.
 		t.Error(err)
 	}
 
-	responseBody, err := gsClient.DeleteAuthToken("test-token")
+	responseBody, err := gsClient.DeleteAuthToken("test-token", nil)
 	if err != nil {
 		t.Error(err)
 	}

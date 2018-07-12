@@ -154,14 +154,39 @@ func redactPasswordArgs(args []string) []string {
 	return args
 }
 
+// AuxiliaryParams are parameters that can be passed to API calls optionally
+type AuxiliaryParams struct {
+	CommandLine  string
+	RequestID    string
+	ActivityName string
+	Timeout      time.Duration
+}
+
+// DefaultAuxiliaryParams returns a partially pre-populated AuxiliaryParams
+// object.
+func (w *WrapperV2) DefaultAuxiliaryParams() *AuxiliaryParams {
+	return &AuxiliaryParams{
+		CommandLine: getCommandLine(),
+		RequestID:   randomRequestID(),
+	}
+}
+
 // CreateAuthToken creates an auth token using the latest client
-func (w *WrapperV2) CreateAuthToken(email, password string) (*models.V4CreateAuthTokenResponse, error) {
+func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) (*models.V4CreateAuthTokenResponse, error) {
 	params := auth_tokens.NewCreateAuthTokenParams().WithBody(&models.V4CreateAuthTokenRequest{
 		Email:          email,
 		PasswordBase64: base64.StdEncoding.EncodeToString([]byte(password)),
 	})
 	if w.conf.Timeout > 0 {
 		params.SetTimeout(w.conf.Timeout)
+	}
+	if p != nil {
+		if p.Timeout > 0 {
+			params.SetTimeout(p.Timeout)
+		}
+		params.SetXGiantSwarmActivity(&p.ActivityName)
+		params.SetXGiantSwarmCmdLine(&p.CommandLine)
+		params.SetXRequestID(&p.RequestID)
 	}
 
 	response, err := w.gsclient.AuthTokens.CreateAuthToken(params, nil)
@@ -173,10 +198,18 @@ func (w *WrapperV2) CreateAuthToken(email, password string) (*models.V4CreateAut
 }
 
 // DeleteAuthToken calls the deleteAuthToken operation in the latest client
-func (w *WrapperV2) DeleteAuthToken(authToken string) (*models.V4GenericResponse, error) {
+func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*models.V4GenericResponse, error) {
 	params := auth_tokens.NewDeleteAuthTokenParams().WithAuthorization("giantswarm " + authToken)
 	if w.conf.Timeout > 0 {
 		params.SetTimeout(w.conf.Timeout)
+	}
+	if p != nil {
+		if p.Timeout > 0 {
+			params.SetTimeout(p.Timeout)
+		}
+		params.SetXGiantSwarmActivity(&p.ActivityName)
+		params.SetXGiantSwarmCmdLine(&p.CommandLine)
+		params.SetXRequestID(&p.RequestID)
 	}
 
 	response, err := w.gsclient.AuthTokens.DeleteAuthToken(params, nil)

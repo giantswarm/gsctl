@@ -91,6 +91,12 @@ func New(err error) *APIError {
 			ae.ErrorMessage = "Not authorized"
 			ae.ErrorDetails = "You are not authorized for this action.\n"
 			ae.ErrorDetails += "Please check whether you are logged in with the given endpoint."
+
+		case http.StatusInternalServerError:
+			ae.ErrorMessage = "Backend error"
+			ae.ErrorDetails = "The backend responded with an HTTP 500 code, indicating an internal error on Giant Swarm's side.\n"
+			ae.ErrorDetails += "Original error message: " + runtimeAPIError.Error() + "\n"
+			ae.ErrorDetails += "Please report this problem to the Giant Swarm support team."
 		}
 
 		return ae
