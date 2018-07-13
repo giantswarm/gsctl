@@ -3,11 +3,8 @@ package commands
 import (
 	"encoding/base64"
 	"fmt"
-	"net/http"
 
-	apischema "github.com/giantswarm/api-schema"
 	"github.com/giantswarm/microerror"
-	gsclientgen "gopkg.in/giantswarm/gsclientgen.v1"
 
 	"github.com/giantswarm/gsctl/config"
 )
@@ -32,6 +29,11 @@ func loginGiantSwarm(args loginArguments) (loginResult, error) {
 
 	// log out if logged in
 	if config.Config.Token != "" {
+
+		if args.verbose {
+			fmt.Println("Logging out using a a previously stored token")
+		}
+
 		result.loggedOutBefore = true
 		// we deliberately ignore the logout result here
 		logout(logoutArguments{
@@ -40,60 +42,39 @@ func loginGiantSwarm(args loginArguments) (loginResult, error) {
 		})
 	}
 
-	requestBody := gsclientgen.LoginBodyModel{Password: string(encodedPassword)}
-	loginResponse, rawResponse, err := Client.UserLogin(args.email,
-		requestBody, loginActivityName)
+	ap := ClientV2.DefaultAuxiliaryParams()
+	ap.ActivityName = loginActivityName
 
+	if args.verbose {
+		fmt.Printf("Submitting API call with email '%s', password '%s'.\n", args.email, encodedPassword)
+	}
+
+	response, err := ClientV2.CreateAuthToken(args.email, encodedPassword, ap)
 	if err != nil {
-		if rawResponse == nil || rawResponse.Response == nil {
-			return result, microerror.Mask(noResponseError)
-		}
+		return result, err
+	}
 
-		if rawResponse.StatusCode == http.StatusForbidden {
-			return result, microerror.Mask(accessForbiddenError)
-		}
+	// success
 
+	result.token = response.AuthToken
+	result.email = args.email
+
+	// fetch installation name as alias
+	alias, err := getAlias(args.apiEndpoint, "giantswarm", result.token)
+	if err != nil {
+		return result, microerror.Mask(err)
+	}
+	result.alias = alias
+
+	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, result.alias, args.email, "giantswarm", result.token); err != nil {
+		return result, microerror.Mask(err)
+	}
+	if err := config.Config.SelectEndpoint(args.apiEndpoint); err != nil {
 		return result, microerror.Mask(err)
 	}
 
-	switch loginResponse.StatusCode {
-	case apischema.STATUS_CODE_DATA:
-		// successful login
-		result.token = loginResponse.Data.Id
-		result.email = args.email
+	// after storing endpoint, get new endpoint count
+	result.numEndpointsAfter = config.Config.NumEndpoints()
 
-		// fetch installation name as alias
-		alias, err := getAlias(args.apiEndpoint, "giantswarm", result.token)
-		if err != nil {
-			return result, microerror.Mask(err)
-		}
-
-		result.alias = alias
-
-		if err := config.Config.StoreEndpointAuth(args.apiEndpoint, result.alias, args.email, "giantswarm", result.token); err != nil {
-			return result, microerror.Mask(err)
-		}
-		if err := config.Config.SelectEndpoint(args.apiEndpoint); err != nil {
-			return result, microerror.Mask(err)
-		}
-
-		// after storing endpoint, get new endpoint count
-		result.numEndpointsAfter = config.Config.NumEndpoints()
-
-		return result, nil
-
-	case apischema.STATUS_CODE_RESOURCE_INVALID_CREDENTIALS:
-		// bad credentials
-		return result, microerror.Mask(invalidCredentialsError)
-	case apischema.STATUS_CODE_RESOURCE_NOT_FOUND:
-		// user unknown or user/password mismatch
-		return result, microerror.Mask(invalidCredentialsError)
-	case apischema.STATUS_CODE_WRONG_INPUT:
-		// empty password
-		return result, microerror.Mask(emptyPasswordError)
-	case apischema.STATUS_CODE_ACCOUNT_INACTIVE:
-		return result, microerror.Mask(userAccountInactiveError)
-	default:
-		return result, fmt.Errorf("Unhandled response code: %v", loginResponse.StatusCode)
-	}
+	return result, nil
 }

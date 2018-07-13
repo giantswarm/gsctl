@@ -59,13 +59,23 @@ func New(err error) *APIError {
 	// We first handle the most specific cases, which differ between operations.
 	// When adding support for more API operations to the client, add handling
 	// of any new specific error types here.
-	convertedError, ok := err.(*auth_tokens.DeleteAuthTokenUnauthorized)
+	deleteAuthoTokenUnauthorizedError, ok := err.(*auth_tokens.DeleteAuthTokenUnauthorized)
 	if ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
-			OriginalError:  convertedError,
+			OriginalError:  deleteAuthoTokenUnauthorizedError,
 			ErrorMessage:   "Unauthorized",
 			ErrorDetails:   "The token presented was likely no longer valid. No further action is required.",
+		}
+	}
+
+	createAuthoTokenUnauthorizedError, ok := err.(*auth_tokens.CreateAuthTokenUnauthorized)
+	if ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  createAuthoTokenUnauthorizedError,
+			ErrorMessage:   "Bad credentials",
+			ErrorDetails:   "The email and password presented don't match any known user credentials. Please check and try again.",
 		}
 	}
 
