@@ -158,6 +158,8 @@ func askForConfirmation(s string) bool {
 // more than one command. If the error given is handled by the function, it
 // prints according text for the end user and exits the process.
 // If the error is not recognized, we simply return.
+//
+// TODO: handle specific errors types of client.clienterror.APIError
 func handleCommonErrors(err error) {
 
 	var headline = ""
@@ -171,7 +173,6 @@ func handleCommonErrors(err error) {
 		headline = "You are not logged in."
 		subtext = "Use 'gsctl login' to login or '--auth-token' to pass a valid auth token."
 	case IsAccessForbiddenError(err):
-		// TODO: remove once the legacy client is no longer used
 		headline = "Access Forbidden"
 		subtext = "The client has been denied access to the API endpoint with an HTTP status of 403.\n"
 		subtext += "Please make sure that you are in the right network or VPN. Once that is verified,\n"
@@ -187,7 +188,6 @@ func handleCommonErrors(err error) {
 		headline = "Failed to create API client."
 		subtext = "Details: " + err.Error()
 	case IsNotAuthorizedError(err):
-		// TODO: remove once the legacy client is no longer used
 		headline = "You are not authorized for this action."
 		subtext = "Please check whether you are logged in with the right credentials using 'gsctl info'."
 	case IsInternalServerError(err):
