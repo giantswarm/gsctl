@@ -2,6 +2,7 @@ package pkce
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -53,18 +54,27 @@ func ParseIDToken(tokenString string) (token *IDToken, err error) {
 		return nil, microerror.Mask(tokenInvalidError)
 	}
 
-	if claims["email"] != nil {
-		token.Email = claims["email"].(string)
+	if claims == nil {
+		fmt.Println("Claims are nil")
+		return nil, microerror.Mask(tokenInvalidError)
 	}
 
-	if claims["iat"] != nil {
-		iatFloat, iatFloatOK := claims["iat"].(float64)
+	resultToken := &IDToken{}
+
+	if email, ok := claims["email"]; ok {
+		resultToken.Email = email.(string)
+	}
+
+	if iat, ok := claims["iat"]; ok {
+		iatFloat, iatFloatOK := iat.(float64)
 		if iatFloatOK {
-			token.IssuedAt = time.Unix(int64(iatFloat), 0)
+			resultToken.IssuedAt = time.Unix(int64(iatFloat), 0)
+		} else {
+			fmt.Println("iat is of type incompatible with float64")
 		}
 	}
 
-	return token, nil
+	return resultToken, nil
 }
 
 type Jwks struct {
