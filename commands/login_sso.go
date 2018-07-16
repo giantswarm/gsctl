@@ -22,9 +22,9 @@ func loginSSO(args loginArguments) (loginResult, error) {
 	}
 
 	// Try to parse the ID Token.
-	idToken, err := pkce.ParseIdToken(pkceResponse.IDToken)
+	idToken, err := pkce.ParseIDToken(pkceResponse.IDToken)
 	if err != nil {
-		return loginResult{}, microerror.Maskf(ssoError, "Unable to parse the IDToken")
+		return loginResult{}, microerror.Mask(err)
 	}
 
 	// Check if the access token works by fetching the installation's name.
