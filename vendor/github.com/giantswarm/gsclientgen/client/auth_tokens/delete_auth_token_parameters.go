@@ -63,7 +63,7 @@ for the delete auth token operation typically these are written to a http.Reques
 type DeleteAuthTokenParams struct {
 
 	/*Authorization
-	  giantswarm AUTH_TOKEN_HERE
+	  As described in the [authentication](#section/Authentication) section
 
 	*/
 	Authorization string
