@@ -71,12 +71,19 @@ func New(err error) *APIError {
 
 	createAuthoTokenUnauthorizedError, ok := err.(*auth_tokens.CreateAuthTokenUnauthorized)
 	if ok {
-		return &APIError{
+		ae := &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
 			OriginalError:  createAuthoTokenUnauthorizedError,
 			ErrorMessage:   "Bad credentials",
 			ErrorDetails:   "The email and password presented don't match any known user credentials. Please check and try again.",
 		}
+
+		if createAuthoTokenUnauthorizedError.Payload.Code == "ACCOUNT_EXPIRED" {
+			ae.ErrorMessage = "Account expired"
+			ae.ErrorDetails = "Please contact the Giant Swarm support team to help you out."
+		}
+
+		return ae
 	}
 
 	// HTTP level error cases
