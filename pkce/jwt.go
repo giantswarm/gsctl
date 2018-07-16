@@ -2,7 +2,6 @@ package pkce
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/cenkalti/backoff"
@@ -14,14 +13,16 @@ const (
 	jwksURL = "https://giantswarm.eu.auth0.com/.well-known/jwks.json"
 )
 
+// IDToken is our custom representation of the details of a JWT we care about
 type IDToken struct {
+	// Email claim
 	Email string
 }
 
-// ParseIdToken takes a jwt token and returns an IDToken, which is just a custom
+// ParseIDToken takes a jwt token and returns an IDToken, which is just a custom
 // struct with only the email claim in it. Since that is all that gsctl cares about
 // for now.
-func ParseIdToken(tokenString string) (token IDToken, err error) {
+func ParseIDToken(tokenString string) (token *IDToken, err error) {
 	// Parse takes the token string and a function for looking up the key. The latter is especially
 	// useful if you use multiple keys for your application.  The standard is to use 'kid' in the
 	// head of the token to identify which key to use, but the parsed token (head and claims) is provided
@@ -36,16 +37,36 @@ func ParseIdToken(tokenString string) (token IDToken, err error) {
 
 		return result, nil
 	})
-
-	if claims, ok := t.Claims.(jwt.MapClaims); ok && t.Valid {
-		if claims["email"] != nil {
-			token.Email = claims["email"].(string)
+	if err != nil {
+		// handle some validation errors specifically
+		valErr, valErrOK := err.(*jwt.ValidationError)
+		if valErrOK && valErr.Errors == jwt.ValidationErrorIssuedAt {
+			return nil, microerror.Maskf(tokenIssuedAtError, valErr.Error())
 		}
-	} else {
-		fmt.Println(err)
+
+		return nil, microerror.Maskf(tokenInvalidError, err.Error())
 	}
 
-	return token, nil
+	if !t.Valid {
+		return nil, microerror.Mask(tokenInvalidError)
+	}
+
+	claims, ok := t.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, microerror.Mask(tokenInvalidError)
+	}
+
+	if claims == nil {
+		return nil, microerror.Mask(tokenInvalidError)
+	}
+
+	resultToken := &IDToken{}
+
+	if email, ok := claims["email"]; ok {
+		resultToken.Email = email.(string)
+	}
+
+	return resultToken, nil
 }
 
 type Jwks struct {

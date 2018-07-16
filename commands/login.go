@@ -8,6 +8,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/pkce"
 	"github.com/giantswarm/microerror"
 	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
@@ -203,6 +204,10 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 			headline = "Alias is already in use for a different endpoint"
 			subtext = fmt.Sprintf("The alias '%s' is already used for an endpoint in your configuration.\n", result.alias)
 			subtext += "Please edit your configuration file manually to delete the alias or endpoint."
+		case pkce.IsTokenIssuedAtError(err):
+			headline = "Token created in the future?"
+			subtext = "It appears as if your system time is behind the actual time. Please adjust the time and make sure\n"
+			subtext += "that it is automatically synchronized with a time service. Otherwise SSO login does not work."
 		case IsSSOError(err):
 			headline = "Something went wrong during SSO"
 			subtext = err.Error()
