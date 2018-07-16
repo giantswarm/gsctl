@@ -2,9 +2,7 @@ package pkce
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/cenkalti/backoff"
 	jwt "github.com/dgrijalva/jwt-go"
@@ -19,8 +17,6 @@ const (
 type IDToken struct {
 	// Email claim
 	Email string
-	// IssuedAt is the iat claim
-	IssuedAt time.Time
 }
 
 // ParseIDToken takes a jwt token and returns an IDToken, which is just a custom
@@ -44,15 +40,11 @@ func ParseIDToken(tokenString string) (token *IDToken, err error) {
 	if err != nil {
 		// handle some validation errors specifically
 		valErr, valErrOK := err.(*jwt.ValidationError)
-		if valErrOK {
-			fmt.Println("Parse error")
-			fmt.Printf("valErr.Inner: %#v\n", valErr.Inner)
-			fmt.Printf("valErr.Errors: %#v\n", valErr.Errors)
+		if valErrOK && valErr.Errors == jwt.ValidationErrorIssuedAt {
+			return nil, microerror.Maskf(tokenIssuedAtError, valErr.Error())
 		}
 
-		fmt.Println("Parse error")
-		fmt.Printf("err: %#v\n", err)
-		return nil, microerror.Mask(err)
+		return nil, microerror.Maskf(tokenInvalidError, err.Error())
 	}
 
 	if !t.Valid {
@@ -72,16 +64,6 @@ func ParseIDToken(tokenString string) (token *IDToken, err error) {
 
 	if email, ok := claims["email"]; ok {
 		resultToken.Email = email.(string)
-	}
-
-	if iat, ok := claims["iat"]; ok {
-		fmt.Printf("Raw iat: %#v\n", iat)
-		iatFloat, iatFloatOK := iat.(float64)
-		if iatFloatOK {
-			resultToken.IssuedAt = time.Unix(int64(iatFloat), 0)
-		} else {
-			fmt.Println("iat is of type incompatible with float64")
-		}
 	}
 
 	return resultToken, nil

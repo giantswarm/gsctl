@@ -16,3 +16,11 @@ var tokenInvalidError = errgo.New("token invalid")
 func IsTokenInvalidError(err error) bool {
 	return errgo.Cause(err) == tokenInvalidError
 }
+
+// To be used when a token's iat claim (issued at) is bad
+var tokenIssuedAtError = errgo.New("token issued at invalid time")
+
+// IsTokenIssuedAtError asserts tokenIssuedAtError.
+func IsTokenIssuedAtError(err error) bool {
+	return errgo.Cause(err) == tokenIssuedAtError
+}
