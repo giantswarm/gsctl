@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/base64"
 	"fmt"
 
 	"github.com/giantswarm/microerror"
@@ -25,8 +24,6 @@ func loginGiantSwarm(args loginArguments) (loginResult, error) {
 		result.endpointSwitched = true
 	}
 
-	encodedPassword := base64.StdEncoding.EncodeToString([]byte(args.password))
-
 	// log out if logged in
 	if config.Config.Token != "" {
 
@@ -46,15 +43,15 @@ func loginGiantSwarm(args loginArguments) (loginResult, error) {
 	ap.ActivityName = loginActivityName
 
 	if args.verbose {
-		fmt.Printf("Submitting API call with email '%s', password '%s'.\n", args.email, encodedPassword)
+		fmt.Printf("Submitting API call with email '%s', password '%s'.\n", args.email, args.password)
 	}
 
-	response, err := ClientV2.CreateAuthToken(args.email, encodedPassword, ap)
+	response, err := ClientV2.CreateAuthToken(args.email, args.password, ap)
 	if err != nil {
 		return result, err
 	}
 
-	// success
+	// handle success
 
 	result.token = response.AuthToken
 	result.email = args.email
