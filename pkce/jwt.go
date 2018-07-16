@@ -2,8 +2,8 @@ package pkce
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/cenkalti/backoff"
 	jwt "github.com/dgrijalva/jwt-go"
@@ -14,14 +14,18 @@ const (
 	jwksURL = "https://giantswarm.eu.auth0.com/.well-known/jwks.json"
 )
 
+// IDToken is our custom representation of the details of a JWT we care about
 type IDToken struct {
+	// Email claim
 	Email string
+	// IssuedAt is the iat claim
+	IssuedAt time.Time
 }
 
-// ParseIdToken takes a jwt token and returns an IDToken, which is just a custom
+// ParseIDToken takes a jwt token and returns an IDToken, which is just a custom
 // struct with only the email claim in it. Since that is all that gsctl cares about
 // for now.
-func ParseIdToken(tokenString string) (token IDToken, err error) {
+func ParseIDToken(tokenString string) (token *IDToken, err error) {
 	// Parse takes the token string and a function for looking up the key. The latter is especially
 	// useful if you use multiple keys for your application.  The standard is to use 'kid' in the
 	// head of the token to identify which key to use, but the parsed token (head and claims) is provided
@@ -36,13 +40,28 @@ func ParseIdToken(tokenString string) (token IDToken, err error) {
 
 		return result, nil
 	})
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
 
-	if claims, ok := t.Claims.(jwt.MapClaims); ok && t.Valid {
-		if claims["email"] != nil {
-			token.Email = claims["email"].(string)
+	if !t.Valid {
+		return nil, microerror.Mask(tokenInvalidError)
+	}
+
+	claims, ok := t.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, microerror.Mask(tokenInvalidError)
+	}
+
+	if claims["email"] != nil {
+		token.Email = claims["email"].(string)
+	}
+
+	if claims["iat"] != nil {
+		iatFloat, iatFloatOK := claims["iat"].(float64)
+		if iatFloatOK {
+			token.IssuedAt = time.Unix(int64(iatFloat), 0)
 		}
-	} else {
-		fmt.Println(err)
 	}
 
 	return token, nil
