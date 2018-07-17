@@ -37,12 +37,12 @@ func New(clientConfig Configuration) (*Wrapper, error) {
 
 	// set up client TLS so that custom CAs are accepted.
 	tlsConfig := &tls.Config{}
-	rootCertsErr := rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
+	err = rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
 		CAFile: os.Getenv("GSCTL_CAFILE"),
 		CAPath: os.Getenv("GSCTL_CAPATH"),
 	})
-	if rootCertsErr != nil {
-		return nil, microerror.Mask(rootCertsErr)
+	if err != nil {
+		return nil, microerror.Mask(err)
 	}
 	configuration.Transport = &http.Transport{
 		Proxy:           http.ProxyFromEnvironment,

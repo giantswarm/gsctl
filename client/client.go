@@ -80,12 +80,12 @@ func NewV2(conf *Configuration) (*WrapperV2, error) {
 	}
 
 	tlsConfig := &tls.Config{}
-	rootCertsErr := rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
+	err = rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
 		CAFile: os.Getenv("GSCTL_CAFILE"),
 		CAPath: os.Getenv("GSCTL_CAPATH"),
 	})
-	if rootCertsErr != nil {
-		return nil, microerror.Mask(rootCertsErr)
+	if err != nil {
+		return nil, microerror.Mask(err)
 	}
 
 	transport := httptransport.New(u.Host, "", []string{u.Scheme})
