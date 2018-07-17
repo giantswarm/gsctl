@@ -249,7 +249,7 @@ func TestV2UserAgent(t *testing.T) {
 	}
 
 	// just issue a request, don't care about the result.
-	_, _ = gsClient.CreateAuthToken("email", "password", nil)
+	gsClient.CreateAuthToken("email", "password", nil)
 }
 
 // TestV2Forbidden tests out how the latest client gives access to
