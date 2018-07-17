@@ -1,11 +1,11 @@
 package clienterror
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
-	"reflect"
 
 	"github.com/go-openapi/runtime"
 
@@ -144,9 +144,7 @@ func New(err error) *APIError {
 	}
 
 	// Timeout / context deadline exceeded
-	// Note: We'd love to do type assertion here, but there is no exported type to assert with.
-	errorType := reflect.TypeOf(err)
-	if errorType != nil && errorType.String() == "context.deadlineExceededError" {
+	if err == context.DeadlineExceeded {
 		ae := &APIError{
 			OriginalError: err,
 			IsTimeout:     true,
