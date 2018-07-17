@@ -352,7 +352,7 @@ func TestV2AuxiliaryParams(t *testing.T) { // Our test server.
 	ap.CommandLine = "command-line"
 	ap.ActivityName = "activity-name"
 
-	_, _ = gsClient.CreateAuthToken("foo", "bar", ap)
+	gsClient.CreateAuthToken("foo", "bar", ap)
 }
 
 // TestV2CreateAuthToken checks out how creating an auth token works in
