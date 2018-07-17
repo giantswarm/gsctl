@@ -6,15 +6,15 @@ import (
 	"os"
 
 	"github.com/fatih/color"
-	apischema "github.com/giantswarm/api-schema"
-	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/microerror"
 )
 
 const (
-	logoutActivityName = "login"
+	logoutActivityName = "logout"
 )
 
 var (
@@ -68,9 +68,11 @@ func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 
 		// Special treatment: We ignore the fact that the user was not logged in
 		// and act as if she just logged out.
-		if IsNotAuthorizedError(err) {
-			fmt.Printf("You have logged out from endpoint %s.\n", color.CyanString(logoutArgs.apiEndpoint))
-			os.Exit(0)
+		if clientError, ok := err.(*clienterror.APIError); ok {
+			if clientError.HTTPStatusCode == http.StatusUnauthorized {
+				fmt.Printf("You have logged out from endpoint %s.\n", color.CyanString(logoutArgs.apiEndpoint))
+				os.Exit(0)
+			}
 		}
 
 		handleCommonErrors(err)
@@ -85,7 +87,6 @@ func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 
 // logout terminates the current user session.
 // The email and token are erased from the local config file.
-// Returns nil in case of success, or an error otherwise.
 func logout(args logoutArguments) error {
 	// erase local credentials, no matter what the result on the API side is
 	defer config.Config.Logout(args.apiEndpoint)
@@ -94,30 +95,9 @@ func logout(args logoutArguments) error {
 		return nil
 	}
 
-	logoutResponse, apiResponse, err := Client.UserLogout(logoutActivityName)
-	if err != nil {
+	ap := ClientV2.DefaultAuxiliaryParams()
+	ap.ActivityName = logoutActivityName
 
-		if apiResponse == nil || apiResponse.Response == nil {
-			return microerror.Mask(noResponseError)
-		}
-
-		if apiResponse.StatusCode == http.StatusForbidden {
-			return microerror.Mask(accessForbiddenError)
-		}
-
-		// special treatment for HTTP 401 (unauthorized) error,
-		// in which case no JSON body is returned.
-		if apiResponse.StatusCode == http.StatusUnauthorized {
-			return microerror.Mask(notAuthorizedError)
-		}
-
-		// other cases
-		return microerror.Maskf(unspecifiedAPIError, err.Error())
-	}
-
-	if logoutResponse.StatusCode != apischema.STATUS_CODE_RESOURCE_DELETED {
-		return microerror.Maskf(unspecifiedAPIError, "response: %v", logoutResponse)
-	}
-
-	return nil
+	_, err := ClientV2.DeleteAuthToken(args.token, ap)
+	return microerror.Mask(err)
 }

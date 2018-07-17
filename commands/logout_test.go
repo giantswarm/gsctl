@@ -5,6 +5,10 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/giantswarm/microerror"
+
+	"github.com/giantswarm/gsctl/client/clienterror"
 )
 
 // Test_LogoutValidToken tests the logout for a valid token
@@ -18,7 +22,7 @@ func Test_LogoutValidToken(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status_code": 10007, "status_text": "Resource deleted"}`))
+		w.Write([]byte(`{"code": "RESOURCE_DELETED", "message": "The authentication token has been succesfully deleted."}`))
 	}))
 	defer mockServer.Close()
 
@@ -47,7 +51,7 @@ func Test_LogoutInvalidToken(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(``))
+		w.Write([]byte(`{"code": "PERMISSION_DENIED", "message": "Nope"}`))
 	}))
 	defer mockServer.Close()
 
@@ -60,8 +64,12 @@ func Test_LogoutInvalidToken(t *testing.T) {
 	initClient()
 
 	err = logout(logoutArgs)
-	if !IsNotAuthorizedError(err) {
-		t.Errorf("Unexpected error: %s", err)
+
+	clientAPIErr, clientAPIErrOK := microerror.Cause(err).(*clienterror.APIError)
+	if !clientAPIErrOK {
+		t.Error("Type assertion to *clienterror.APIError failed. Error in unexpected type.")
+	} else if clientAPIErr.HTTPStatusCode != http.StatusUnauthorized {
+		t.Errorf("Unexpected HTTP status code: %d", clientAPIErr.HTTPStatusCode)
 	}
 }
 
@@ -77,7 +85,7 @@ func Test_LogoutCommand(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status_code": 10007, "status_text": "Resource deleted"}`))
+		w.Write([]byte(`{"code": "RESOURCE_DELETED", "message": "The authentication token has been succesfully deleted."}`))
 	}))
 	defer mockServer.Close()
 

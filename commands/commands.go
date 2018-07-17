@@ -158,6 +158,8 @@ func askForConfirmation(s string) bool {
 // more than one command. If the error given is handled by the function, it
 // prints according text for the end user and exits the process.
 // If the error is not recognized, we simply return.
+//
+// TODO: handle specific errors types of client.clienterror.APIError
 func handleCommonErrors(err error) {
 
 	var headline = ""
