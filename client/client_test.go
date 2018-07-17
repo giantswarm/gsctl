@@ -41,7 +41,7 @@ func TestTimeout(t *testing.T) {
 }
 
 // TestUserAgent tests whether request have the proper User-Agent header
-// and if ParseGenericResponse works as expected
+// and if ParseGenericResponse works as expected.
 // TODO: remove once we have gotten rid of the legacy client
 func TestUserAgent(t *testing.T) {
 	// Our test server.
@@ -75,7 +75,7 @@ func TestUserAgent(t *testing.T) {
 	}
 }
 
-// TestRedactPasswordArgs tests redactPasswordArgs()
+// TestRedactPasswordArgs tests redactPasswordArgs().
 func TestRedactPasswordArgs(t *testing.T) {
 	argtests := []struct {
 		in  string
@@ -104,7 +104,7 @@ func TestRedactPasswordArgs(t *testing.T) {
 }
 
 // TestV2NoConnection checks out how the latest client deals with a missing
-// server connection
+// server connection.
 func TestV2NoConnection(t *testing.T) { // Our test server.
 
 	// a non-existing endpoint (must use an IP, not a hostname)
@@ -147,7 +147,7 @@ func TestV2NoConnection(t *testing.T) { // Our test server.
 }
 
 // TestV2HostnameUnresolvable checks out how the latest client deals with a
-// non-resolvable host name
+// non-resolvable host name.
 func TestV2HostnameUnresolvable(t *testing.T) { // Our test server.
 
 	// a non-existing host name
@@ -189,7 +189,7 @@ func TestV2HostnameUnresolvable(t *testing.T) { // Our test server.
 	}
 }
 
-// TestV2Timeout tests if the latest client handles timeouts as expected
+// TestV2Timeout tests if the latest client handles timeouts as expected.
 func TestV2Timeout(t *testing.T) {
 	// Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +222,7 @@ func TestV2Timeout(t *testing.T) {
 	}
 }
 
-// TestV2UserAgent tests whether our user-agent header appears in requests
+// TestV2UserAgent tests whether our user-agent header appears in requests.
 func TestV2UserAgent(t *testing.T) {
 	clientConfig := &Configuration{
 		UserAgent: "my own user agent/1.0",
@@ -248,12 +248,12 @@ func TestV2UserAgent(t *testing.T) {
 		t.Error(err)
 	}
 
-	// just issue a request, don't care about the result
+	// just issue a request, don't care about the result.
 	_, _ = gsClient.CreateAuthToken("email", "password", nil)
 }
 
 // TestV2Forbidden tests out how the latest client gives access to
-// HTTP error details for a 403 error
+// HTTP error details for a 403 error.
 func TestV2Forbidden(t *testing.T) { // Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
@@ -286,7 +286,7 @@ func TestV2Forbidden(t *testing.T) { // Our test server.
 }
 
 // TestV2Unauthorized tests out how the latest client gives access to
-// HTTP error details for a 401 error
+// HTTP error details for a 401 error.
 func TestV2Unauthorized(t *testing.T) { // Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -318,7 +318,7 @@ func TestV2Unauthorized(t *testing.T) { // Our test server.
 }
 
 // TestV2AuxiliaryParams checks whether the client carries through our auxiliary
-// parameters
+// parameters.
 func TestV2AuxiliaryParams(t *testing.T) { // Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -356,7 +356,7 @@ func TestV2AuxiliaryParams(t *testing.T) { // Our test server.
 }
 
 // TestV2CreateAuthToken checks out how creating an auth token works in
-// our new client
+// our new client.
 func TestV2CreateAuthToken(t *testing.T) { // Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -385,7 +385,7 @@ func TestV2CreateAuthToken(t *testing.T) { // Our test server.
 }
 
 // TestV2DeleteAuthToken checks out how to issue an authenticted request
-// using the new client
+// using the new client.
 func TestV2DeleteAuthToken(t *testing.T) { // Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "giantswarm test-token" {
