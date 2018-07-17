@@ -37,7 +37,7 @@ func New(clientConfig Configuration) (*Wrapper, error) {
 
 	// set up client TLS so that custom CAs are accepted.
 	tlsConfig := &tls.Config{}
-	err = rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
+	err := rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
 		CAFile: os.Getenv("GSCTL_CAFILE"),
 		CAPath: os.Getenv("GSCTL_CAPATH"),
 	})
