@@ -374,13 +374,13 @@ func TestV2CreateAuthToken(t *testing.T) { // Our test server.
 		t.Error(err)
 	}
 
-	responseBody, err := gsClient.CreateAuthToken("foo", "bar", nil)
+	response, err := gsClient.CreateAuthToken("foo", "bar", nil)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if responseBody.AuthToken != "e5239484-2299-41df-b901-d0568db7e3f9" {
-		t.Errorf("Didn't get the expected token. Got %s", responseBody.AuthToken)
+	if response.Payload.AuthToken != "e5239484-2299-41df-b901-d0568db7e3f9" {
+		t.Errorf("Didn't get the expected token. Got %s", response.Payload.AuthToken)
 	}
 }
 
@@ -406,12 +406,12 @@ func TestV2DeleteAuthToken(t *testing.T) { // Our test server.
 		t.Error(err)
 	}
 
-	responseBody, err := gsClient.DeleteAuthToken("test-token", nil)
+	response, err := gsClient.DeleteAuthToken("test-token", nil)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if responseBody.Code != "RESOURCE_DELETED" {
-		t.Errorf("Didn't get the RESOURCE_DELETED message. Got '%s'", responseBody.Code)
+	if response.Payload.Code != "RESOURCE_DELETED" {
+		t.Errorf("Didn't get the RESOURCE_DELETED message. Got '%s'", response.Payload.Code)
 	}
 }

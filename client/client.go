@@ -181,7 +181,7 @@ func (w *WrapperV2) DefaultAuxiliaryParams() *AuxiliaryParams {
 }
 
 // CreateAuthToken creates an auth token using the latest client.
-func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) (*models.V4CreateAuthTokenResponse, error) {
+func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) (*auth_tokens.CreateAuthTokenOK, error) {
 	params := auth_tokens.NewCreateAuthTokenParams().WithBody(&models.V4CreateAuthTokenRequest{
 		Email:          email,
 		PasswordBase64: base64.StdEncoding.EncodeToString([]byte(password)),
@@ -218,11 +218,11 @@ func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) 
 		return nil, clienterror.New(err)
 	}
 
-	return response.Payload, nil
+	return response, nil
 }
 
 // DeleteAuthToken calls the deleteAuthToken operation in the latest client.
-func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*models.V4GenericResponse, error) {
+func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth_tokens.DeleteAuthTokenOK, error) {
 	params := auth_tokens.NewDeleteAuthTokenParams().WithAuthorization("giantswarm " + authToken)
 	if w.conf.Timeout > 0 {
 		params.SetTimeout(w.conf.Timeout)
@@ -256,5 +256,5 @@ func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*mode
 		return nil, clienterror.New(err)
 	}
 
-	return response.Payload, nil
+	return response, nil
 }
