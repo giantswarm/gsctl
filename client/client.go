@@ -32,8 +32,6 @@ var (
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
-	requestIDHeader = randomRequestID()
-	cmdLine = getCommandLine()
 }
 
 // Configuration is the configuration to be used both by the latest as well
@@ -50,6 +48,9 @@ type Configuration struct {
 
 	// UserAgent identifier
 	UserAgent string
+
+	// ActivityName identifies the user action through the according header
+	ActivityName string
 }
 
 // WrapperV2 is the structure holding representing our latest API client
@@ -59,6 +60,12 @@ type WrapperV2 struct {
 
 	// gsclient is a pointer to the API client library's client
 	gsclient *gsclient.Gsclientgen
+
+	// default request ID to use, can be overridden per request
+	requestID string
+
+	// command line
+	commandLine string
 }
 
 // NewV2 creates a client based on the latest gsclientgen version
@@ -89,8 +96,10 @@ func NewV2(conf *Configuration) (*WrapperV2, error) {
 	transport.Transport = setUserAgent(transport.Transport, conf.UserAgent)
 
 	return &WrapperV2{
-		conf:     conf,
-		gsclient: gsclient.New(transport, strfmt.Default),
+		conf:        conf,
+		gsclient:    gsclient.New(transport, strfmt.Default),
+		requestID:   randomRequestID(),
+		commandLine: getCommandLine(),
 	}, nil
 }
 
@@ -180,13 +189,28 @@ func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) 
 	if w.conf.Timeout > 0 {
 		params.SetTimeout(w.conf.Timeout)
 	}
+	if w.conf.ActivityName != "" {
+		params.SetXGiantSwarmActivity(&w.conf.ActivityName)
+	}
+	if w.requestID != "" {
+		params.SetXRequestID(&w.requestID)
+	}
+	if w.commandLine != "" {
+		params.SetXGiantSwarmCmdLine(&w.commandLine)
+	}
 	if p != nil {
 		if p.Timeout > 0 {
 			params.SetTimeout(p.Timeout)
 		}
-		params.SetXGiantSwarmActivity(&p.ActivityName)
-		params.SetXGiantSwarmCmdLine(&p.CommandLine)
-		params.SetXRequestID(&p.RequestID)
+		if p.ActivityName != "" {
+			params.SetXGiantSwarmActivity(&p.ActivityName)
+		}
+		if p.CommandLine != "" {
+			params.SetXGiantSwarmCmdLine(&p.CommandLine)
+		}
+		if p.RequestID != "" {
+			params.SetXRequestID(&p.RequestID)
+		}
 	}
 
 	response, err := w.gsclient.AuthTokens.CreateAuthToken(params, nil)
@@ -203,13 +227,28 @@ func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*mode
 	if w.conf.Timeout > 0 {
 		params.SetTimeout(w.conf.Timeout)
 	}
+	if w.conf.ActivityName != "" {
+		params.SetXGiantSwarmActivity(&w.conf.ActivityName)
+	}
+	if w.requestID != "" {
+		params.SetXRequestID(&w.requestID)
+	}
+	if w.commandLine != "" {
+		params.SetXGiantSwarmCmdLine(&w.commandLine)
+	}
 	if p != nil {
 		if p.Timeout > 0 {
 			params.SetTimeout(p.Timeout)
 		}
-		params.SetXGiantSwarmActivity(&p.ActivityName)
-		params.SetXGiantSwarmCmdLine(&p.CommandLine)
-		params.SetXRequestID(&p.RequestID)
+		if p.ActivityName != "" {
+			params.SetXGiantSwarmActivity(&p.ActivityName)
+		}
+		if p.CommandLine != "" {
+			params.SetXGiantSwarmCmdLine(&p.CommandLine)
+		}
+		if p.RequestID != "" {
+			params.SetXRequestID(&p.RequestID)
+		}
 	}
 
 	response, err := w.gsclient.AuthTokens.DeleteAuthToken(params, nil)
