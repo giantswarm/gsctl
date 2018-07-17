@@ -53,7 +53,7 @@ func loginGiantSwarm(args loginArguments) (loginResult, error) {
 
 	// handle success
 
-	result.token = response.AuthToken
+	result.token = response.Payload.AuthToken
 	result.email = args.email
 
 	// fetch installation name as alias

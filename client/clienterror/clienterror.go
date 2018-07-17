@@ -1,11 +1,11 @@
 package clienterror
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
-	"reflect"
 
 	"github.com/go-openapi/runtime"
 
@@ -13,7 +13,7 @@ import (
 )
 
 // APIError is our structure to carry all error information we care about
-// from the api client to the CLI
+// from the api client to the CLI.
 type APIError struct {
 	// HTTPStatusCode holds the HTTP response status code, if there was any.
 	HTTPStatusCode int
@@ -30,10 +30,10 @@ type APIError struct {
 	// understand and maybe solve the problem.
 	ErrorDetails string
 
-	// URL is the URL called with the request
+	// URL is the URL called with the request.
 	URL string
 
-	// HTTPMethod is the HTTP method used
+	// HTTPMethod is the HTTP method used.
 	HTTPMethod string
 
 	// IsTimeout will be true if our error was a timeout error.
@@ -120,7 +120,7 @@ func New(err error) *APIError {
 	}
 
 	// Errors on levels lower than HTTP
-	// is url.Error
+	// is url.Error.
 	urlError, urlErrorOK := err.(*url.Error)
 	if urlErrorOK {
 		ae := &APIError{
@@ -161,9 +161,7 @@ func New(err error) *APIError {
 	}
 
 	// Timeout / context deadline exceeded
-	// Note: We'd love to do type assertion here, but there is no exported type to assert with.
-	errorType := reflect.TypeOf(err)
-	if errorType != nil && errorType.String() == "context.deadlineExceededError" {
+	if err == context.DeadlineExceeded {
 		ae := &APIError{
 			OriginalError: err,
 			IsTimeout:     true,

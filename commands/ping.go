@@ -73,12 +73,12 @@ func ping(endpointURL string) (time.Duration, error) {
 
 	// create client
 	tlsConfig := &tls.Config{}
-	rootCertsErr := rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
+	err = rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
 		CAFile: os.Getenv("GSCTL_CAFILE"),
 		CAPath: os.Getenv("GSCTL_CAPATH"),
 	})
-	if rootCertsErr != nil {
-		return duration, microerror.Mask(rootCertsErr)
+	if err != nil {
+		return duration, microerror.Mask(err)
 	}
 	t := &http.Transport{
 		Proxy:           http.ProxyFromEnvironment,

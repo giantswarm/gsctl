@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	// DefaultTimeout is the standard request timeout applied if not specified
+	// DefaultTimeout is the standard request timeout applied if not specified.
 	DefaultTimeout = 60 * time.Second
 
 	randomStringCharset = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -32,36 +32,43 @@ var (
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
-	requestIDHeader = randomRequestID()
-	cmdLine = getCommandLine()
 }
 
 // Configuration is the configuration to be used both by the latest as well
-// as the old client based on gsclientgen.v1
+// as the old client based on gsclientgen.v1.
 type Configuration struct {
-	// AuthHeader is the header we should use to make API calls
+	// AuthHeader is the header we should use to make API calls.
 	AuthHeader string
 
-	// Endpoint is the base URL of the API
+	// Endpoint is the base URL of the API.
 	Endpoint string
 
-	// Timeout is the maximum time to wait for API requests to succeed
+	// Timeout is the maximum time to wait for API requests to succeed.
 	Timeout time.Duration
 
 	// UserAgent identifier
 	UserAgent string
+
+	// ActivityName identifies the user action through the according header.
+	ActivityName string
 }
 
-// WrapperV2 is the structure holding representing our latest API client
+// WrapperV2 is the structure holding representing our latest API client.
 type WrapperV2 struct {
-	// conf is the Configuration used when creating this
+	// conf is the Configuration used when creating this.
 	conf *Configuration
 
-	// gsclient is a pointer to the API client library's client
+	// gsclient is a pointer to the API client library's client.
 	gsclient *gsclient.Gsclientgen
+
+	// requestID is the default request ID to use, can be overridden per request.
+	requestID string
+
+	// commandLine is the command line use to execute gsctl, can be overridden.
+	commandLine string
 }
 
-// NewV2 creates a client based on the latest gsclientgen version
+// NewV2 creates a client based on the latest gsclientgen version.
 func NewV2(conf *Configuration) (*WrapperV2, error) {
 	if conf.Endpoint == "" {
 		return nil, microerror.Mask(endpointNotSpecifiedError)
@@ -73,12 +80,12 @@ func NewV2(conf *Configuration) (*WrapperV2, error) {
 	}
 
 	tlsConfig := &tls.Config{}
-	rootCertsErr := rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
+	err = rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
 		CAFile: os.Getenv("GSCTL_CAFILE"),
 		CAPath: os.Getenv("GSCTL_CAPATH"),
 	})
-	if rootCertsErr != nil {
-		return nil, microerror.Mask(rootCertsErr)
+	if err != nil {
+		return nil, microerror.Mask(err)
 	}
 
 	transport := httptransport.New(u.Host, "", []string{u.Scheme})
@@ -89,8 +96,10 @@ func NewV2(conf *Configuration) (*WrapperV2, error) {
 	transport.Transport = setUserAgent(transport.Transport, conf.UserAgent)
 
 	return &WrapperV2{
-		conf:     conf,
-		gsclient: gsclient.New(transport, strfmt.Default),
+		conf:        conf,
+		gsclient:    gsclient.New(transport, strfmt.Default),
+		requestID:   randomRequestID(),
+		commandLine: getCommandLine(),
 	}, nil
 }
 
@@ -100,14 +109,14 @@ type roundTripperWithUserAgent struct {
 }
 
 // RoundTrip overwrites the http.RoundTripper.RoundTrip function to add our
-// User-Agent HTTP header to a request
+// User-Agent HTTP header to a request.
 func (rtwua *roundTripperWithUserAgent) RoundTrip(r *http.Request) (*http.Response, error) {
 	r.Header.Set("User-Agent", rtwua.Agent)
 	return rtwua.inner.RoundTrip(r)
 }
 
 // setUserAgent sets the User-Agent header value for subsequent requests
-// made using this transport
+// made using this transport.
 func setUserAgent(inner http.RoundTripper, userAgent string) http.RoundTripper {
 	return &roundTripperWithUserAgent{
 		inner: inner,
@@ -115,7 +124,7 @@ func setUserAgent(inner http.RoundTripper, userAgent string) http.RoundTripper {
 	}
 }
 
-// randomRequestID returns a new request ID
+// randomRequestID returns a new request ID.
 func randomRequestID() string {
 	size := 14
 	b := make([]rune, size)
@@ -125,7 +134,7 @@ func randomRequestID() string {
 	return string(b)
 }
 
-// getCommandLine returns the command line that has been called
+// getCommandLine returns the command line that has been called.
 func getCommandLine() string {
 	if os.Getenv("GSCTL_DISABLE_CMDLINE_TRACKING") != "" {
 		return ""
@@ -135,7 +144,7 @@ func getCommandLine() string {
 }
 
 // redactPasswordArgs replaces password in an arguments slice
-// with "REDACTED"
+// with "REDACTED".
 func redactPasswordArgs(args []string) []string {
 	for index, arg := range args {
 		if strings.HasPrefix(arg, "--password=") {
@@ -154,7 +163,7 @@ func redactPasswordArgs(args []string) []string {
 	return args
 }
 
-// AuxiliaryParams are parameters that can be passed to API calls optionally
+// AuxiliaryParams are parameters that can be passed to API calls optionally.
 type AuxiliaryParams struct {
 	CommandLine  string
 	RequestID    string
@@ -171,8 +180,8 @@ func (w *WrapperV2) DefaultAuxiliaryParams() *AuxiliaryParams {
 	}
 }
 
-// CreateAuthToken creates an auth token using the latest client
-func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) (*models.V4CreateAuthTokenResponse, error) {
+// CreateAuthToken creates an auth token using the latest client.
+func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) (*auth_tokens.CreateAuthTokenOK, error) {
 	params := auth_tokens.NewCreateAuthTokenParams().WithBody(&models.V4CreateAuthTokenRequest{
 		Email:          email,
 		PasswordBase64: base64.StdEncoding.EncodeToString([]byte(password)),
@@ -180,13 +189,28 @@ func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) 
 	if w.conf.Timeout > 0 {
 		params.SetTimeout(w.conf.Timeout)
 	}
+	if w.conf.ActivityName != "" {
+		params.SetXGiantSwarmActivity(&w.conf.ActivityName)
+	}
+	if w.requestID != "" {
+		params.SetXRequestID(&w.requestID)
+	}
+	if w.commandLine != "" {
+		params.SetXGiantSwarmCmdLine(&w.commandLine)
+	}
 	if p != nil {
 		if p.Timeout > 0 {
 			params.SetTimeout(p.Timeout)
 		}
-		params.SetXGiantSwarmActivity(&p.ActivityName)
-		params.SetXGiantSwarmCmdLine(&p.CommandLine)
-		params.SetXRequestID(&p.RequestID)
+		if p.ActivityName != "" {
+			params.SetXGiantSwarmActivity(&p.ActivityName)
+		}
+		if p.CommandLine != "" {
+			params.SetXGiantSwarmCmdLine(&p.CommandLine)
+		}
+		if p.RequestID != "" {
+			params.SetXRequestID(&p.RequestID)
+		}
 	}
 
 	response, err := w.gsclient.AuthTokens.CreateAuthToken(params, nil)
@@ -194,22 +218,37 @@ func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) 
 		return nil, clienterror.New(err)
 	}
 
-	return response.Payload, nil
+	return response, nil
 }
 
-// DeleteAuthToken calls the deleteAuthToken operation in the latest client
-func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*models.V4GenericResponse, error) {
+// DeleteAuthToken calls the deleteAuthToken operation in the latest client.
+func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth_tokens.DeleteAuthTokenOK, error) {
 	params := auth_tokens.NewDeleteAuthTokenParams().WithAuthorization("giantswarm " + authToken)
 	if w.conf.Timeout > 0 {
 		params.SetTimeout(w.conf.Timeout)
+	}
+	if w.conf.ActivityName != "" {
+		params.SetXGiantSwarmActivity(&w.conf.ActivityName)
+	}
+	if w.requestID != "" {
+		params.SetXRequestID(&w.requestID)
+	}
+	if w.commandLine != "" {
+		params.SetXGiantSwarmCmdLine(&w.commandLine)
 	}
 	if p != nil {
 		if p.Timeout > 0 {
 			params.SetTimeout(p.Timeout)
 		}
-		params.SetXGiantSwarmActivity(&p.ActivityName)
-		params.SetXGiantSwarmCmdLine(&p.CommandLine)
-		params.SetXRequestID(&p.RequestID)
+		if p.ActivityName != "" {
+			params.SetXGiantSwarmActivity(&p.ActivityName)
+		}
+		if p.CommandLine != "" {
+			params.SetXGiantSwarmCmdLine(&p.CommandLine)
+		}
+		if p.RequestID != "" {
+			params.SetXRequestID(&p.RequestID)
+		}
 	}
 
 	response, err := w.gsclient.AuthTokens.DeleteAuthToken(params, nil)
@@ -217,5 +256,5 @@ func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*mode
 		return nil, clienterror.New(err)
 	}
 
-	return response.Payload, nil
+	return response, nil
 }

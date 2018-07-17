@@ -10,6 +10,7 @@ import (
 
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/microerror"
 )
 
 const (
@@ -98,5 +99,5 @@ func logout(args logoutArguments) error {
 	ap.ActivityName = logoutActivityName
 
 	_, err := ClientV2.DeleteAuthToken(args.token, ap)
-	return err
+	return microerror.Mask(err)
 }

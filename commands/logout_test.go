@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/giantswarm/microerror"
+
 	"github.com/giantswarm/gsctl/client/clienterror"
 )
 
@@ -63,7 +65,7 @@ func Test_LogoutInvalidToken(t *testing.T) {
 
 	err = logout(logoutArgs)
 
-	clientAPIErr, clientAPIErrOK := err.(*clienterror.APIError)
+	clientAPIErr, clientAPIErrOK := microerror.Cause(err).(*clienterror.APIError)
 	if !clientAPIErrOK {
 		t.Error("Type assertion to *clienterror.APIError failed. Error in unexpected type.")
 	} else if clientAPIErr.HTTPStatusCode != http.StatusUnauthorized {
