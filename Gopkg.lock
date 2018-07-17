@@ -68,7 +68,7 @@
   version = "v2.0.2"
 
 [[projects]]
-  branch = "goswagger"
+  branch = "master"
   name = "github.com/giantswarm/gsclientgen"
   packages = [
     "client",
@@ -81,7 +81,7 @@
     "client/users",
     "models"
   ]
-  revision = "b2fe75cbfbda2e3d8736d8cefd82355fe88d4c0a"
+  revision = "3fd2fc6a1080e8189dec26ab7d0d2e7ad693be50"
 
 [[projects]]
   branch = "master"
@@ -330,6 +330,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c607a2546597761d81d92590516bb0c84ccba27b547b27f24cbb851f110f4417"
+  inputs-digest = "3d1a0683590dac1e17b805c51c07ac283a5879d8e5f8f7fe8abeeada06a98012"
   solver-name = "gps-cdcl"
   solver-version = 1
