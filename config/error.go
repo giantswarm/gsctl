@@ -20,7 +20,7 @@ func IsAliasMustBeUniqueError(err error) bool {
 }
 
 // credentialsRequiredError means an attempt to store incomplete credentials in the config
-var credentialsRequiredError = errgo.New("email and password must not be empty")
+var credentialsRequiredError = errgo.New("email, password, or token must not be empty")
 
 // IsCredentialsRequiredError asserts credentialsRequiredError.
 func IsCredentialsRequiredError(err error) bool {
