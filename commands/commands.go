@@ -160,7 +160,6 @@ func askForConfirmation(s string) bool {
 // prints according text for the end user and exits the process.
 // If the error is not recognized, we simply return.
 //
-// TODO: handle specific errors types of client.clienterror.APIError
 func handleCommonErrors(err error) {
 
 	var headline = ""
