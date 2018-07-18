@@ -183,6 +183,10 @@ func (w *WrapperV2) DefaultAuxiliaryParams() *AuxiliaryParams {
 
 // CreateAuthToken creates an auth token using the latest client.
 func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) (*auth_tokens.CreateAuthTokenOK, error) {
+	if w == nil {
+		return nil, microerror.Mask(clientV2NotInitializedError)
+	}
+
 	params := auth_tokens.NewCreateAuthTokenParams().WithBody(&models.V4CreateAuthTokenRequest{
 		Email:          email,
 		PasswordBase64: base64.StdEncoding.EncodeToString([]byte(password)),
@@ -224,6 +228,10 @@ func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) 
 
 // DeleteAuthToken calls the deleteAuthToken operation in the latest client.
 func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth_tokens.DeleteAuthTokenOK, error) {
+	if w == nil {
+		return nil, microerror.Mask(clientV2NotInitializedError)
+	}
+
 	params := auth_tokens.NewDeleteAuthTokenParams().WithAuthorization("giantswarm " + authToken)
 	if w.conf.Timeout > 0 {
 		params.SetTimeout(w.conf.Timeout)
@@ -264,6 +272,10 @@ func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth
 //
 // TODO: Add Authorization header support, both for Bearer and giantswarm schemes
 func (w *WrapperV2) CreateCluster(addClusterRequest *models.V4AddClusterRequest, p *AuxiliaryParams) (*clusters.AddClusterCreated, error) {
+	if w == nil {
+		return nil, microerror.Mask(clientV2NotInitializedError)
+	}
+
 	params := clusters.NewAddClusterParams().WithBody(addClusterRequest)
 	if w.conf.Timeout > 0 {
 		params.SetTimeout(w.conf.Timeout)
