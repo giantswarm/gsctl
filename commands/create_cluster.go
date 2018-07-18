@@ -9,14 +9,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fatih/color"
+	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/juju/errgo"
+	"github.com/spf13/cobra"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/fatih/color"
 	"github.com/giantswarm/gsctl/config"
-	"github.com/spf13/cobra"
-	gsclientgen "gopkg.in/giantswarm/gsclientgen.v1"
 )
 
 // addClusterArguments contains all possible input parameter needed
