@@ -506,10 +506,17 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		// perform API call
 		response, err := ClientV2.CreateCluster(addClusterBody, auxParams)
 		if err != nil {
-			// owner org not existing
+			// create specific error types for cases we care about
 			if clientErr, ok := err.(*clienterror.APIError); ok {
 				if clientErr.HTTPStatusCode == http.StatusNotFound {
+					// owner org not existing
 					return result, microerror.Mask(organizationNotFoundError)
+				} else if clientErr.HTTPStatusCode == http.StatusUnauthorized {
+					// not authorized
+					return result, microerror.Mask(notAuthorizedError)
+				} else if clientErr.HTTPStatusCode == http.StatusBadRequest {
+					// bad request
+					return result, microerror.Mask(badRequestError)
 				}
 			}
 
