@@ -269,8 +269,6 @@ func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth
 }
 
 // CreateCluster creates cluster using the latest client.
-//
-// TODO: Add Authorization header support, both for Bearer and giantswarm schemes
 func (w *WrapperV2) CreateCluster(addClusterRequest *models.V4AddClusterRequest, p *AuxiliaryParams) (*clusters.AddClusterCreated, error) {
 	if w == nil {
 		return nil, microerror.Mask(clientV2NotInitializedError)
@@ -288,6 +286,9 @@ func (w *WrapperV2) CreateCluster(addClusterRequest *models.V4AddClusterRequest,
 	}
 	if w.commandLine != "" {
 		params.SetXGiantSwarmCmdLine(&w.commandLine)
+	}
+	if w.conf.AuthHeader != "" {
+		params.SetAuthorization(w.conf.AuthHeader)
 	}
 	if p != nil {
 		if p.Timeout > 0 {
