@@ -87,7 +87,7 @@ type awsSpecificDefinition struct {
 }
 
 type azureSpecificDefinition struct {
-	VmSize string `yaml:"vm_size,omitempty"`
+	VMSize string `yaml:"vm_size,omitempty"`
 }
 
 type nodeDefinition struct {

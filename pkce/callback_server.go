@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// CallbackResult is used by our channel to store callback results.
 type CallbackResult struct {
 	Interface interface{}
 	Error     error

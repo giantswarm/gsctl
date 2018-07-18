@@ -31,7 +31,7 @@ type addClusterArguments struct {
 	scheme                  string
 	token                   string
 	wokerAwsEc2InstanceType string
-	wokerAzureVmSize        string
+	wokerAzureVMSize        string
 	workerNumCPUs           int
 	workerMemorySizeGB      float32
 	workerStorageSizeGB     float32
@@ -54,7 +54,7 @@ func defaultAddClusterArguments() addClusterArguments {
 		token:                   token,
 		releaseVersion:          cmdRelease,
 		wokerAwsEc2InstanceType: cmdWorkerAwsEc2InstanceType,
-		wokerAzureVmSize:        cmdWorkerAzureVMSize,
+		wokerAzureVMSize:        cmdWorkerAzureVMSize,
 		workerNumCPUs:           cmdWorkerNumCPUs,
 		workerMemorySizeGB:      cmdWorkerMemorySizeGB,
 		workerStorageSizeGB:     cmdWorkerStorageSizeGB,
@@ -300,11 +300,11 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 
 	// false flag combination?
 	if args.inputYAMLFile != "" {
-		if args.numWorkers != 0 || args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" || args.wokerAzureVmSize != "" {
+		if args.numWorkers != 0 || args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" || args.wokerAzureVMSize != "" {
 			return microerror.Mask(conflictingFlagsError)
 		}
 	} else {
-		if args.numWorkers == 0 && (args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" || args.wokerAzureVmSize != "") {
+		if args.numWorkers == 0 && (args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" || args.wokerAzureVMSize != "") {
 			return microerror.Mask(numWorkerNodesMissingError)
 		}
 	}
@@ -329,7 +329,7 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 		return microerror.Mask(notEnoughStoragePerWorkerError)
 	}
 
-	if args.wokerAwsEc2InstanceType != "" || args.wokerAzureVmSize != "" {
+	if args.wokerAwsEc2InstanceType != "" || args.wokerAzureVMSize != "" {
 		// check for incompatibilities
 		if args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 {
 			return microerror.Mask(incompatibleSettingsError)
@@ -414,8 +414,8 @@ func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 			}
 
 			// Azure
-			if args.wokerAzureVmSize != "" {
-				worker.Azure.VmSize = args.wokerAzureVmSize
+			if args.wokerAzureVMSize != "" {
+				worker.Azure.VMSize = args.wokerAzureVMSize
 			}
 
 			workers = append(workers, worker)
@@ -439,7 +439,7 @@ func createAddClusterBody(d clusterDefinition) gsclientgen.V4AddClusterRequest {
 		ndmWorker.Storage = gsclientgen.V4NodeDefinitionStorage{SizeGb: dWorker.Storage.SizeGB}
 		ndmWorker.Labels = dWorker.Labels
 		ndmWorker.Aws = gsclientgen.V4NodeDefinitionAws{InstanceType: dWorker.AWS.InstanceType}
-		ndmWorker.Azure = gsclientgen.V4NodeDefinitionAzure{VmSize: dWorker.Azure.VmSize}
+		ndmWorker.Azure = gsclientgen.V4NodeDefinitionAzure{VmSize: dWorker.Azure.VMSize}
 		a.Workers = append(a.Workers, ndmWorker)
 	}
 

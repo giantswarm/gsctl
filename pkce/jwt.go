@@ -69,10 +69,12 @@ func ParseIDToken(tokenString string) (token *IDToken, err error) {
 	return resultToken, nil
 }
 
+// Jwks holds JSON web keys.
 type Jwks struct {
 	Keys []JSONWebKeys `json:"keys"`
 }
 
+// JSONWebKeys represents one JWS web key.
 type JSONWebKeys struct {
 	Kty string   `json:"kty"`
 	Kid string   `json:"kid"`
