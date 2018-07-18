@@ -59,26 +59,26 @@ func New(err error) *APIError {
 	// We first handle the most specific cases, which differ between operations.
 	// When adding support for more API operations to the client, add handling
 	// of any new specific error types here.
-	deleteAuthoTokenUnauthorizedError, ok := err.(*auth_tokens.DeleteAuthTokenUnauthorized)
+	deleteAuthTokenUnauthorizedError, ok := err.(*auth_tokens.DeleteAuthTokenUnauthorized)
 	if ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
-			OriginalError:  deleteAuthoTokenUnauthorizedError,
+			OriginalError:  deleteAuthTokenUnauthorizedError,
 			ErrorMessage:   "Unauthorized",
 			ErrorDetails:   "The token presented was likely no longer valid. No further action is required.",
 		}
 	}
 
-	createAuthoTokenUnauthorizedError, ok := err.(*auth_tokens.CreateAuthTokenUnauthorized)
+	createAuthTokenUnauthorizedError, ok := err.(*auth_tokens.CreateAuthTokenUnauthorized)
 	if ok {
 		ae := &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
-			OriginalError:  createAuthoTokenUnauthorizedError,
+			OriginalError:  createAuthTokenUnauthorizedError,
 			ErrorMessage:   "Bad credentials",
 			ErrorDetails:   "The email and password presented don't match any known user credentials. Please check and try again.",
 		}
 
-		if createAuthoTokenUnauthorizedError.Payload.Code == "ACCOUNT_EXPIRED" {
+		if createAuthTokenUnauthorizedError.Payload.Code == "ACCOUNT_EXPIRED" {
 			ae.ErrorMessage = "Account expired"
 			ae.ErrorDetails = "Please contact the Giant Swarm support team to help you out."
 		}
