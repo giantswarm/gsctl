@@ -77,12 +77,6 @@ func ParseGenericResponse(jsonBody []byte) (GenericResponse, error) {
 	return response, nil
 }
 
-// AddCluster calls the addCLuster operation via the old client.
-func (c *Wrapper) AddCluster(body gsclientgenv1.V4AddClusterRequest, activityName string) (*gsclientgenv1.V4GenericResponse, *gsclientgenv1.APIResponse, error) {
-	response, apiResponse, err := c.client.AddCluster(c.authHeader, body, c.requestID, activityName, getCommandLine())
-	return response, apiResponse, err
-}
-
 // AddKeyPair calls the addKeyPair operation via the old client.
 func (c *Wrapper) AddKeyPair(clusterID string, body gsclientgenv1.V4AddKeyPairBody, activityName string) (*gsclientgenv1.V4AddKeyPairResponse, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.AddKeyPair(c.authHeader, clusterID, body, c.requestID, activityName, getCommandLine())
