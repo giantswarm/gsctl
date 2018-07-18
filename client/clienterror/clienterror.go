@@ -10,6 +10,7 @@ import (
 	"github.com/go-openapi/runtime"
 
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
+	"github.com/giantswarm/gsclientgen/client/clusters"
 )
 
 // APIError is our structure to carry all error information we care about
@@ -85,6 +86,34 @@ func New(err error) *APIError {
 
 		return ae
 	}
+
+	createClusterUnauthorizedErr, ok := err.(*clusters.AddClusterUnauthorized)
+	if ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  createClusterUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to create a cluster for this organization.",
+		}
+	}
+	createClusterDefaultErr, ok := err.(*clusters.AddClusterDefault)
+	if ok {
+		ae := &APIError{
+			HTTPStatusCode: createClusterDefaultErr.Code(),
+			OriginalError:  createClusterDefaultErr,
+		}
+		if ae.HTTPStatusCode == http.StatusNotFound {
+			ae.ErrorMessage = "Organization does not exist"
+			ae.ErrorDetails = "The organization to own the cluster does not exist. Please check the name."
+		} else if ae.HTTPStatusCode == http.StatusBadRequest {
+			ae.ErrorMessage = "Invalid parameters"
+			ae.ErrorDetails = "The cluster cannot be created. Some parameter(s) are considered invalid.\n"
+			ae.ErrorDetails += "Details: " + createClusterDefaultErr.Payload.Message
+		}
+		return ae
+	}
+
+	fmt.Printf("%#v\n", err)
 
 	// HTTP level error cases
 	runtimeAPIError, runtimeAPIErrorOK := err.(*runtime.APIError)
