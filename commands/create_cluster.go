@@ -425,21 +425,21 @@ func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 	return def
 }
 
-// creates a gsclientgen.V4AddClusterRequest from clusterDefinition
-func createAddClusterBody(d clusterDefinition) gsclientgen.V4AddClusterRequest {
-	a := gsclientgen.V4AddClusterRequest{}
+// creates a models.V4AddClusterRequest from clusterDefinition
+func createAddClusterBody(d clusterDefinition) *models.V4AddClusterRequest {
+	a := &models.V4AddClusterRequest{}
 	a.Name = d.Name
-	a.Owner = d.Owner
+	a.Owner = &d.Owner
 	a.ReleaseVersion = d.ReleaseVersion
 
 	for _, dWorker := range d.Workers {
-		ndmWorker := gsclientgen.V4NodeDefinition{}
-		ndmWorker.Memory = gsclientgen.V4NodeDefinitionMemory{SizeGb: dWorker.Memory.SizeGB}
-		ndmWorker.Cpu = gsclientgen.V4NodeDefinitionCpu{Cores: int32(dWorker.CPU.Cores)}
-		ndmWorker.Storage = gsclientgen.V4NodeDefinitionStorage{SizeGb: dWorker.Storage.SizeGB}
+		ndmWorker := &models.V4AddClusterRequestWorkersItems{}
+		ndmWorker.Memory = &models.V4AddClusterRequestWorkersItemsMemory{SizeGb: float64(dWorker.Memory.SizeGB)}
+		ndmWorker.CPU = &models.V4AddClusterRequestWorkersItemsCPU{Cores: int64(dWorker.CPU.Cores)}
+		ndmWorker.Storage = &models.V4AddClusterRequestWorkersItemsStorage{SizeGb: float64(dWorker.Storage.SizeGB)}
 		ndmWorker.Labels = dWorker.Labels
-		ndmWorker.Aws = gsclientgen.V4NodeDefinitionAws{InstanceType: dWorker.AWS.InstanceType}
-		ndmWorker.Azure = gsclientgen.V4NodeDefinitionAzure{VmSize: dWorker.Azure.VMSize}
+		ndmWorker.Aws = &models.V4AddClusterRequestWorkersItemsAws{InstanceType: dWorker.AWS.InstanceType}
+		ndmWorker.Azure = &models.V4AddClusterRequestWorkersItemsAzure{VMSize: dWorker.Azure.VMSize}
 		a.Workers = append(a.Workers, ndmWorker)
 	}
 
