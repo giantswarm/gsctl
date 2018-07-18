@@ -26,7 +26,7 @@ func startCallbackServer(port string, redirectURI string, callback func(w http.R
 
 	// Setup the server.
 	m := http.NewServeMux()
-	s := http.Server{Addr: ":" + port, Handler: m}
+	s := &http.Server{Addr: ":" + port, Handler: m}
 
 	// This is the handler for the path we specified, it calls the provided
 	// callback as soon as a request arrives and moves the result of the callback
@@ -53,7 +53,7 @@ func startCallbackServer(port string, redirectURI string, callback func(w http.R
 	return r.Interface, r.Error
 }
 
-func startServer(s http.Server) {
+func startServer(s *http.Server) {
 	if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		panic(err)
 	}
