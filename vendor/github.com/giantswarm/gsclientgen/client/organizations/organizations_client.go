@@ -31,8 +31,7 @@ Add a set of credentials to the organization allowing the creation and
 operation of clusters within a cloud provider account/subscription.
 
 The actual type of these credentials depends on the cloud provider the
-installation is running on. Currently, only AWS is supported, with
-support for Azure being planned for the near future.
+installation is running on. AWS and Azure are currently supported.
 
 Credentials in an organization are immutable. Each organization can only
 have one set of credentials.
@@ -49,6 +48,22 @@ every new cluster that will be created for the organization.
     "roles": {
       "admin": "arn:aws:iam::123456789012:role/GiantSwarmAdmin",
       "awsoperator": "arn:aws:iam::123456789012:role/GiantSwarmAWSOperator"
+    }
+  }
+}
+```
+
+### Example request body for Azure
+
+```json
+{
+  "provider": "azure",
+  "azure": {
+    "credential": {
+      "client_id": "c93bf55e-5bf7-4966-ad2b-e6f6e7721d50",
+      "secret_key": "720e38f7-3af4-463c-9313-abcdf2ead612",
+      "subscription_id": "b388b7c7-4479-4040-9ac5-1e13edd6b1cd",
+      "tenant_id": "3dd2e94a-92ba-434c-99be-32bb65864a99"
     }
   }
 }

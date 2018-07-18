@@ -56,12 +56,6 @@
   version = "v1.6.0"
 
 [[projects]]
-  name = "github.com/giantswarm/api-schema"
-  packages = ["."]
-  revision = "f8468345e621ea9f5af6965919449dbbe827a841"
-  version = "0.7.1"
-
-[[projects]]
   name = "github.com/giantswarm/columnize"
   packages = ["."]
   revision = "677ded9e47e75ca49bd2541794a7281a49a2f17b"
@@ -81,7 +75,7 @@
     "client/users",
     "models"
   ]
-  revision = "3fd2fc6a1080e8189dec26ab7d0d2e7ad693be50"
+  revision = "8e8061d8ab58f253014d801d88d752253ceda65b"
 
 [[projects]]
   branch = "master"
@@ -330,6 +324,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3d1a0683590dac1e17b805c51c07ac283a5879d8e5f8f7fe8abeeada06a98012"
+  inputs-digest = "4ab9c9a8f1170789b0e394a4bd86b93713a6d608c85264741fd2bb8d0a88dfb1"
   solver-name = "gps-cdcl"
   solver-version = 1

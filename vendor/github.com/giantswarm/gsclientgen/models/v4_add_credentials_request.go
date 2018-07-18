@@ -20,6 +20,9 @@ type V4AddCredentialsRequest struct {
 	// aws
 	Aws *V4AddCredentialsRequestAws `json:"aws,omitempty"`
 
+	// azure
+	Azure *V4AddCredentialsRequestAzure `json:"azure,omitempty"`
+
 	// provider
 	// Required: true
 	Provider *string `json:"provider"`
@@ -30,6 +33,10 @@ func (m *V4AddCredentialsRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateAws(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateAzure(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -53,6 +60,24 @@ func (m *V4AddCredentialsRequest) validateAws(formats strfmt.Registry) error {
 		if err := m.Aws.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("aws")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V4AddCredentialsRequest) validateAzure(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Azure) { // not required
+		return nil
+	}
+
+	if m.Azure != nil {
+		if err := m.Azure.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("azure")
 			}
 			return err
 		}
