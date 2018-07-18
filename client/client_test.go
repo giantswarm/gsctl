@@ -128,12 +128,12 @@ func TestV2NoConnection(t *testing.T) { // Our test server.
 
 	clientAPIError, ok := err.(*clienterror.APIError)
 	if !ok {
-		t.Error("Type assertion err.(*clienterror.APIError) not successfull")
+		t.Error("Type assertion err.(*clienterror.APIError) not successful")
 	}
 
 	_, ok = clientAPIError.OriginalError.(*net.OpError)
 	if !ok {
-		t.Error("Type assertion to *net.OpError not successfull")
+		t.Error("Type assertion to *net.OpError not successful")
 	}
 
 	t.Logf("clientAPIError: %#v", clientAPIError)
@@ -171,12 +171,12 @@ func TestV2HostnameUnresolvable(t *testing.T) { // Our test server.
 
 	clientAPIError, ok := err.(*clienterror.APIError)
 	if !ok {
-		t.Error("Type assertion err.(*clienterror.APIError) not successfull")
+		t.Error("Type assertion err.(*clienterror.APIError) not successful")
 	}
 
 	_, ok = clientAPIError.OriginalError.(*net.DNSError)
 	if !ok {
-		t.Error("Type assertion to *net.DNSError not successfull")
+		t.Error("Type assertion to *net.DNSError not successful")
 	}
 
 	t.Logf("clientAPIError: %#v", clientAPIError)
@@ -214,7 +214,7 @@ func TestV2Timeout(t *testing.T) {
 	} else {
 		clientAPIError, ok := err.(*clienterror.APIError)
 		if !ok {
-			t.Error("Type assertion err.(*clienterror.APIError) not successfull")
+			t.Error("Type assertion err.(*clienterror.APIError) not successful")
 		}
 		if !clientAPIError.IsTimeout {
 			t.Error("Expected clientAPIError.IsTimeout to be true, got false")
@@ -277,7 +277,7 @@ func TestV2Forbidden(t *testing.T) { // Our test server.
 
 	clientAPIError, ok := err.(*clienterror.APIError)
 	if !ok {
-		t.Error("Type assertion err.(*clienterror.APIError) not successfull")
+		t.Error("Type assertion err.(*clienterror.APIError) not successful")
 	}
 
 	if clientAPIError.HTTPStatusCode != http.StatusForbidden {
@@ -309,7 +309,7 @@ func TestV2Unauthorized(t *testing.T) { // Our test server.
 
 	clientAPIError, ok := err.(*clienterror.APIError)
 	if !ok {
-		t.Error("Type assertion err.(*clienterror.APIError) not successfull")
+		t.Error("Type assertion err.(*clienterror.APIError) not successful")
 	}
 
 	if clientAPIError.HTTPStatusCode != http.StatusUnauthorized {
@@ -393,7 +393,7 @@ func TestV2DeleteAuthToken(t *testing.T) { // Our test server.
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"code": "RESOURCE_DELETED", "message": "The authentication token has been succesfully deleted."}`))
+		w.Write([]byte(`{"code": "RESOURCE_DELETED", "message": "The authentication token has been successfully deleted."}`))
 	}))
 	defer ts.Close()
 
