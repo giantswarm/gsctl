@@ -56,12 +56,6 @@
   version = "v1.6.0"
 
 [[projects]]
-  name = "github.com/giantswarm/api-schema"
-  packages = ["."]
-  revision = "f8468345e621ea9f5af6965919449dbbe827a841"
-  version = "0.7.1"
-
-[[projects]]
   name = "github.com/giantswarm/columnize"
   packages = ["."]
   revision = "677ded9e47e75ca49bd2541794a7281a49a2f17b"

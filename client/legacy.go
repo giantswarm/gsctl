@@ -136,9 +136,3 @@ func (c *Wrapper) ModifyCluster(clusterID string, body gsclientgenv1.V4ModifyClu
 	response, apiResponse, err := c.client.ModifyCluster(c.authHeader, clusterID, body, c.requestID, activityName, getCommandLine())
 	return response, apiResponse, err
 }
-
-// UserLogin calls the v1 login endpoint via the old client.
-func (c *Wrapper) UserLogin(email string, body gsclientgenv1.LoginBodyModel, activityname string) (*gsclientgenv1.LoginResponseModel, *gsclientgenv1.APIResponse, error) {
-	response, apiResponse, err := c.client.UserLogin(email, body, c.requestID, activityname, cmdLine)
-	return response, apiResponse, err
-}
