@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 )
 
@@ -499,32 +500,25 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 	if !args.dryRun {
 		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
 
+		auxParams := ClientV2.DefaultAuxiliaryParams()
+		auxParams.ActivityName = createClusterActivityName
+
 		// perform API call
-		responseBody, apiResponse, err := Client.AddCluster(addClusterBody, createClusterActivityName)
+		response, err := ClientV2.CreateCluster(addClusterBody, auxParams)
 		if err != nil {
-			if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
-				return result, microerror.Mask(accessForbiddenError)
+			// owner org not existing
+			if clientErr, ok := err.(*clienterror.APIError); ok {
+				if clientErr.HTTPStatusCode == http.StatusNotFound {
+					return result, microerror.Mask(organizationNotFoundError)
+				}
 			}
-			// lower level connection problem
+
 			return result, microerror.Mask(err)
 		}
 
-		if apiResponse.StatusCode == 401 {
-			return result, microerror.Mask(notAuthorizedError)
-		} else if apiResponse.StatusCode == 404 {
-			// deal with non-existing org error
-			if strings.Contains(responseBody.Message, "organization") && strings.Contains(responseBody.Message, "not found") {
-				return result, microerror.Mask(organizationNotFoundError)
-			}
-		}
+		// success
 
-		// handle API result
-		if responseBody.Code != "RESOURCE_CREATED" {
-			return result, microerror.Maskf(couldNotCreateClusterError,
-				fmt.Sprintf("Error in API request to create cluster: %s (Code: %s, HTTP status: %d)",
-					responseBody.Message, responseBody.Code, apiResponse.StatusCode))
-		}
-		result.location = apiResponse.Header["Location"][0]
+		result.location = response.Location
 		result.id = strings.Split(result.location, "/")[3]
 	}
 
