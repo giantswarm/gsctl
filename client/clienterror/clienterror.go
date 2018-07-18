@@ -205,7 +205,7 @@ func New(err error) *APIError {
 	// Return unspecific error
 	ae := &APIError{
 		OriginalError: err,
-		ErrorMessage:  "Unknown error",
+		ErrorMessage:  "Unknown error: " + err.Error(),
 	}
 
 	ae.ErrorDetails = "An error has occurred for which we don't have specific handling in place.\n"
