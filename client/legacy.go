@@ -77,12 +77,6 @@ func ParseGenericResponse(jsonBody []byte) (GenericResponse, error) {
 	return response, nil
 }
 
-// AddCluster calls the addCLuster operation via the old client.
-func (c *Wrapper) AddCluster(body gsclientgenv1.V4AddClusterRequest, activityName string) (*gsclientgenv1.V4GenericResponse, *gsclientgenv1.APIResponse, error) {
-	response, apiResponse, err := c.client.AddCluster(c.authHeader, body, c.requestID, activityName, getCommandLine())
-	return response, apiResponse, err
-}
-
 // DeleteCluster calls the deleteCluster operation via the old client.
 func (c *Wrapper) DeleteCluster(clusterID string, activityName string) (*gsclientgenv1.V4GenericResponse, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.DeleteCluster(c.authHeader, clusterID, c.requestID, activityName, getCommandLine())

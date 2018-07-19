@@ -199,6 +199,14 @@ func IsCouldNotCreateClusterError(err error) bool {
 	return errgo.Cause(err) == couldNotCreateClusterError
 }
 
+// badRequestError should be used when the server returns status 400 on cluster creation.
+var badRequestError = errgo.New("server reported bad request")
+
+// IsBadRequestError asserts badRequestError
+func IsBadRequestError(err error) bool {
+	return errgo.Cause(err) == badRequestError
+}
+
 // errors for cluster deletion
 
 // couldNotDeleteClusterError should be used if the API call to delete a

@@ -9,14 +9,15 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fatih/color"
+	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/juju/errgo"
+	"github.com/spf13/cobra"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/fatih/color"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
-	"github.com/spf13/cobra"
-	gsclientgen "gopkg.in/giantswarm/gsclientgen.v1"
 )
 
 // addClusterArguments contains all possible input parameter needed
@@ -425,21 +426,21 @@ func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 	return def
 }
 
-// creates a gsclientgen.V4AddClusterRequest from clusterDefinition
-func createAddClusterBody(d clusterDefinition) gsclientgen.V4AddClusterRequest {
-	a := gsclientgen.V4AddClusterRequest{}
+// creates a models.V4AddClusterRequest from clusterDefinition
+func createAddClusterBody(d clusterDefinition) *models.V4AddClusterRequest {
+	a := &models.V4AddClusterRequest{}
 	a.Name = d.Name
-	a.Owner = d.Owner
+	a.Owner = &d.Owner
 	a.ReleaseVersion = d.ReleaseVersion
 
 	for _, dWorker := range d.Workers {
-		ndmWorker := gsclientgen.V4NodeDefinition{}
-		ndmWorker.Memory = gsclientgen.V4NodeDefinitionMemory{SizeGb: dWorker.Memory.SizeGB}
-		ndmWorker.Cpu = gsclientgen.V4NodeDefinitionCpu{Cores: int32(dWorker.CPU.Cores)}
-		ndmWorker.Storage = gsclientgen.V4NodeDefinitionStorage{SizeGb: dWorker.Storage.SizeGB}
+		ndmWorker := &models.V4AddClusterRequestWorkersItems{}
+		ndmWorker.Memory = &models.V4AddClusterRequestWorkersItemsMemory{SizeGb: float64(dWorker.Memory.SizeGB)}
+		ndmWorker.CPU = &models.V4AddClusterRequestWorkersItemsCPU{Cores: int64(dWorker.CPU.Cores)}
+		ndmWorker.Storage = &models.V4AddClusterRequestWorkersItemsStorage{SizeGb: float64(dWorker.Storage.SizeGB)}
 		ndmWorker.Labels = dWorker.Labels
-		ndmWorker.Aws = gsclientgen.V4NodeDefinitionAws{InstanceType: dWorker.AWS.InstanceType}
-		ndmWorker.Azure = gsclientgen.V4NodeDefinitionAzure{VmSize: dWorker.Azure.VMSize}
+		ndmWorker.Aws = &models.V4AddClusterRequestWorkersItemsAws{InstanceType: dWorker.AWS.InstanceType}
+		ndmWorker.Azure = &models.V4AddClusterRequestWorkersItemsAzure{VMSize: dWorker.Azure.VMSize}
 		a.Workers = append(a.Workers, ndmWorker)
 	}
 
@@ -499,32 +500,32 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 	if !args.dryRun {
 		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
 
+		auxParams := ClientV2.DefaultAuxiliaryParams()
+		auxParams.ActivityName = createClusterActivityName
+
 		// perform API call
-		responseBody, apiResponse, err := Client.AddCluster(addClusterBody, createClusterActivityName)
+		response, err := ClientV2.CreateCluster(addClusterBody, auxParams)
 		if err != nil {
-			if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
-				return result, microerror.Mask(accessForbiddenError)
+			// create specific error types for cases we care about
+			if clientErr, ok := err.(*clienterror.APIError); ok {
+				if clientErr.HTTPStatusCode == http.StatusNotFound {
+					// owner org not existing
+					return result, microerror.Mask(organizationNotFoundError)
+				} else if clientErr.HTTPStatusCode == http.StatusUnauthorized {
+					// not authorized
+					return result, microerror.Mask(notAuthorizedError)
+				} else if clientErr.HTTPStatusCode == http.StatusBadRequest {
+					// bad request
+					return result, microerror.Mask(badRequestError)
+				}
 			}
-			// lower level connection problem
+
 			return result, microerror.Mask(err)
 		}
 
-		if apiResponse.StatusCode == 401 {
-			return result, microerror.Mask(notAuthorizedError)
-		} else if apiResponse.StatusCode == 404 {
-			// deal with non-existing org error
-			if strings.Contains(responseBody.Message, "organization") && strings.Contains(responseBody.Message, "not found") {
-				return result, microerror.Mask(organizationNotFoundError)
-			}
-		}
+		// success
 
-		// handle API result
-		if responseBody.Code != "RESOURCE_CREATED" {
-			return result, microerror.Maskf(couldNotCreateClusterError,
-				fmt.Sprintf("Error in API request to create cluster: %s (Code: %s, HTTP status: %d)",
-					responseBody.Message, responseBody.Code, apiResponse.StatusCode))
-		}
-		result.location = apiResponse.Header["Location"][0]
+		result.location = response.Location
 		result.id = strings.Split(result.location, "/")[3]
 	}
 
