@@ -11,6 +11,7 @@ import (
 
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 	"github.com/giantswarm/gsclientgen/client/clusters"
+	"github.com/giantswarm/gsclientgen/client/key_pairs"
 )
 
 // APIError is our structure to carry all error information we care about
@@ -70,6 +71,7 @@ func New(err error) *APIError {
 		}
 	}
 
+	// create auth token
 	createAuthTokenUnauthorizedError, ok := err.(*auth_tokens.CreateAuthTokenUnauthorized)
 	if ok {
 		ae := &APIError{
@@ -87,6 +89,7 @@ func New(err error) *APIError {
 		return ae
 	}
 
+	// create cluster
 	createClusterUnauthorizedErr, ok := err.(*clusters.AddClusterUnauthorized)
 	if ok {
 		return &APIError{
@@ -113,7 +116,6 @@ func New(err error) *APIError {
 		return ae
 	}
 
-	fmt.Printf("%#v\n", err)
 	// create key pair
 	createKeyPairUnauthorizedErr, ok := err.(*key_pairs.AddKeyPairUnauthorized)
 	if ok {
