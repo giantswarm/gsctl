@@ -77,12 +77,6 @@ func ParseGenericResponse(jsonBody []byte) (GenericResponse, error) {
 	return response, nil
 }
 
-// DeleteCluster calls the deleteCluster operation via the old client.
-func (c *Wrapper) DeleteCluster(clusterID string, activityName string) (*gsclientgenv1.V4GenericResponse, *gsclientgenv1.APIResponse, error) {
-	response, apiResponse, err := c.client.DeleteCluster(c.authHeader, clusterID, c.requestID, activityName, getCommandLine())
-	return response, apiResponse, err
-}
-
 // GetCluster calls the getCluster operation via the old client.
 func (c *Wrapper) GetCluster(clusterID string, activityName string) (*gsclientgenv1.V4ClusterDetailsModel, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.GetCluster(c.authHeader, clusterID, c.requestID, activityName, getCommandLine())
