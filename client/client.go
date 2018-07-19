@@ -317,6 +317,51 @@ func (w *WrapperV2) CreateCluster(addClusterRequest *models.V4AddClusterRequest,
 	return response, nil
 }
 
+// DeleteCluster deletes a cluster using the latest client.
+func (w *WrapperV2) DeleteCluster(clusterID string, p *AuxiliaryParams) (*clusters.DeleteClusterAccepted, error) {
+	if w == nil {
+		return nil, microerror.Mask(clientV2NotInitializedError)
+	}
+
+	params := clusters.NewDeleteClusterParams().WithClusterID(clusterID)
+	if w.conf.Timeout > 0 {
+		params.SetTimeout(w.conf.Timeout)
+	}
+	if w.conf.ActivityName != "" {
+		params.SetXGiantSwarmActivity(&w.conf.ActivityName)
+	}
+	if w.requestID != "" {
+		params.SetXRequestID(&w.requestID)
+	}
+	if w.commandLine != "" {
+		params.SetXGiantSwarmCmdLine(&w.commandLine)
+	}
+	if w.conf.AuthHeader != "" {
+		params.SetAuthorization(w.conf.AuthHeader)
+	}
+	if p != nil {
+		if p.Timeout > 0 {
+			params.SetTimeout(p.Timeout)
+		}
+		if p.ActivityName != "" {
+			params.SetXGiantSwarmActivity(&p.ActivityName)
+		}
+		if p.CommandLine != "" {
+			params.SetXGiantSwarmCmdLine(&p.CommandLine)
+		}
+		if p.RequestID != "" {
+			params.SetXRequestID(&p.RequestID)
+		}
+	}
+
+	response, err := w.gsclient.Clusters.DeleteCluster(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
 // CreateKeyPair calls the addKeyPair API operation using the latest client.
 func (w *WrapperV2) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4AddKeyPairRequest, p *AuxiliaryParams) (*key_pairs.AddKeyPairOK, error) {
 	if w == nil {

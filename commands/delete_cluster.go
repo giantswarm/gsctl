@@ -8,6 +8,7 @@ import (
 	"github.com/giantswarm/microerror"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/spf13/cobra"
 )
@@ -154,21 +155,21 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		}
 	}
 
+	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = deleteClusterActivityName
+
 	// perform API call
-	responseBody, rawResponse, err := Client.DeleteCluster(args.clusterID, deleteClusterActivityName)
+	_, err := ClientV2.DeleteCluster(args.clusterID, auxParams)
 	if err != nil {
-		if rawResponse.Response != nil && rawResponse.Response.StatusCode == http.StatusForbidden {
-			return false, microerror.Mask(accessForbiddenError)
+		// create specific error types for cases we care about
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			if clientErr.HTTPStatusCode == http.StatusForbidden {
+				return false, microerror.Mask(accessForbiddenError)
+			}
 		}
-		return false, microerror.Mask(err)
+
+		return false, microerror.Maskf(couldNotDeleteClusterError, err.Error())
 	}
 
-	// handle API result
-	if responseBody.Code == "RESOURCE_DELETED" || responseBody.Code == "RESOURCE_DELETION_STARTED" {
-		return true, nil
-	}
-
-	return false, microerror.Maskf(couldNotDeleteClusterError,
-		fmt.Sprintf("Error in API request to create cluster: %s (Code: %s)",
-			responseBody.Message, responseBody.Code))
+	return true, nil
 }
