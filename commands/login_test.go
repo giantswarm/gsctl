@@ -13,6 +13,24 @@ import (
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 )
 
+// regularInfoResponse is a JSON snippet we use in several test cases
+var regularInfoResponse = []byte(`{
+	"general": {
+		"installation_name": "codename",
+		"provider": "aws"
+	},
+	"workers": {
+		"count_per_cluster": {
+			"max": 20,
+			"default": 3
+		},
+		"instance_type": {
+			"options": ["m3.large", "m4.xlarge"],
+			"default": "m3.large"
+		}
+	}
+}`)
+
 // Test_LoginValidPassword simulates a login with a valid email/password combination
 func Test_LoginValidPassword(t *testing.T) {
 	// we start with an empty config
@@ -27,22 +45,7 @@ func Test_LoginValidPassword(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		if r.URL.String() == "/v4/info/" {
-			w.Write([]byte(`{
-			  "general": {
-			    "installation_name": "codename",
-			    "provider": "aws"
-			  },
-			  "workers": {
-			    "count_per_cluster": {
-			      "max": 20,
-			      "default": 3
-			    },
-			    "instance_type": {
-			      "options": ["m3.large", "m4.xlarge"],
-			      "default": "m3.large"
-			    }
-			  }
-			}`))
+			w.Write(regularInfoResponse)
 		} else {
 			w.Write([]byte(`{"auth_token": "some-test-session-token"}`))
 		}
@@ -127,7 +130,11 @@ func Test_LoginWhenUserLoggedInBefore(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"auth_token": "another-test-session-token"}`))
+		if r.URL.String() == "/v4/info/" {
+			w.Write(regularInfoResponse)
+		} else {
+			w.Write([]byte(`{"auth_token": "another-test-session-token"}`))
+		}
 	}))
 	defer mockServer.Close()
 
