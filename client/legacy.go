@@ -83,12 +83,6 @@ func (c *Wrapper) AddCluster(body gsclientgenv1.V4AddClusterRequest, activityNam
 	return response, apiResponse, err
 }
 
-// AddKeyPair calls the addKeyPair operation via the old client.
-func (c *Wrapper) AddKeyPair(clusterID string, body gsclientgenv1.V4AddKeyPairBody, activityName string) (*gsclientgenv1.V4AddKeyPairResponse, *gsclientgenv1.APIResponse, error) {
-	response, apiResponse, err := c.client.AddKeyPair(c.authHeader, clusterID, body, c.requestID, activityName, getCommandLine())
-	return response, apiResponse, err
-}
-
 // DeleteCluster calls the deleteCluster operation via the old client.
 func (c *Wrapper) DeleteCluster(clusterID string, activityName string) (*gsclientgenv1.V4GenericResponse, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.DeleteCluster(c.authHeader, clusterID, c.requestID, activityName, getCommandLine())
