@@ -118,6 +118,25 @@ func New(err error) *APIError {
 		return ae
 	}
 
+	// delete cluster
+	deleteClusterUnauthorizedErr, ok := err.(*clusters.DeleteClusterUnauthorized)
+	if ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  deleteClusterUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to delete this cluster.",
+		}
+	}
+	deleteClusterDefaultErr, ok := err.(*clusters.DeleteClusterDefault)
+	if ok {
+		return &APIError{
+			HTTPStatusCode: deleteClusterDefaultErr.Code(),
+			OriginalError:  deleteClusterDefaultErr,
+			ErrorMessage:   deleteClusterDefaultErr.Error(),
+		}
+	}
+
 	// create key pair
 	createKeyPairUnauthorizedErr, ok := err.(*key_pairs.AddKeyPairUnauthorized)
 	if ok {
