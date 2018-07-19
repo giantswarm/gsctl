@@ -13,6 +13,7 @@ import (
 	gsclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 	"github.com/giantswarm/gsclientgen/client/clusters"
+	"github.com/giantswarm/gsclientgen/client/info"
 	"github.com/giantswarm/gsclientgen/client/key_pairs"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/gsctl/client/clienterror"
@@ -354,6 +355,51 @@ func (w *WrapperV2) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4
 	}
 
 	response, err := w.gsclient.KeyPairs.AddKeyPair(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+// GetInfo calls the API's getInfo operation using the new client.
+func (w *WrapperV2) GetInfo(p *AuxiliaryParams) (*info.GetInfoOK, error) {
+	if w == nil {
+		return nil, microerror.Mask(clientV2NotInitializedError)
+	}
+
+	params := info.NewGetInfoParams()
+	if w.conf.Timeout > 0 {
+		params.SetTimeout(w.conf.Timeout)
+	}
+	if w.conf.ActivityName != "" {
+		params.SetXGiantSwarmActivity(&w.conf.ActivityName)
+	}
+	if w.requestID != "" {
+		params.SetXRequestID(&w.requestID)
+	}
+	if w.commandLine != "" {
+		params.SetXGiantSwarmCmdLine(&w.commandLine)
+	}
+	if w.conf.AuthHeader != "" {
+		params.SetAuthorization(w.conf.AuthHeader)
+	}
+	if p != nil {
+		if p.Timeout > 0 {
+			params.SetTimeout(p.Timeout)
+		}
+		if p.ActivityName != "" {
+			params.SetXGiantSwarmActivity(&p.ActivityName)
+		}
+		if p.CommandLine != "" {
+			params.SetXGiantSwarmCmdLine(&p.CommandLine)
+		}
+		if p.RequestID != "" {
+			params.SetXRequestID(&p.RequestID)
+		}
+	}
+
+	response, err := w.gsclient.Info.GetInfo(params, nil)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}

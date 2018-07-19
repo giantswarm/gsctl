@@ -95,12 +95,6 @@ func (c *Wrapper) GetClusters(activityName string) ([]gsclientgenv1.V4ClusterLis
 	return response, apiResponse, err
 }
 
-// GetInfo calls the getInfo operation via the old client.
-func (c *Wrapper) GetInfo(activityName string) (*gsclientgenv1.V4InfoResponse, *gsclientgenv1.APIResponse, error) {
-	response, apiResponse, err := c.client.GetInfo(c.authHeader, c.requestID, activityName, getCommandLine())
-	return response, apiResponse, err
-}
-
 // GetKeyPairs calls the getKeyPairs operation via the old client.
 func (c *Wrapper) GetKeyPairs(clusterID string, activityName string) ([]gsclientgenv1.KeyPairModel, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.GetKeyPairs(c.authHeader, clusterID, c.requestID, activityName, getCommandLine())

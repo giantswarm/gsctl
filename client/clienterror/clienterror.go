@@ -11,6 +11,7 @@ import (
 
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 	"github.com/giantswarm/gsclientgen/client/clusters"
+	"github.com/giantswarm/gsclientgen/client/info"
 	"github.com/giantswarm/gsclientgen/client/key_pairs"
 )
 
@@ -104,6 +105,7 @@ func New(err error) *APIError {
 		ae := &APIError{
 			HTTPStatusCode: createClusterDefaultErr.Code(),
 			OriginalError:  createClusterDefaultErr,
+			ErrorMessage:   createClusterDefaultErr.Error(),
 		}
 		if ae.HTTPStatusCode == http.StatusNotFound {
 			ae.ErrorMessage = "Organization does not exist"
@@ -124,6 +126,25 @@ func New(err error) *APIError {
 			OriginalError:  createKeyPairUnauthorizedErr,
 			ErrorMessage:   "Unauthorized",
 			ErrorDetails:   "You don't have permission to create a key pair for this cluster.",
+		}
+	}
+
+	// get info
+	getInfoUnauthorizedErr, ok := err.(*info.GetInfoUnauthorized)
+	if ok {
+		return &APIError{
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to get information on this installation.",
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  getInfoUnauthorizedErr,
+		}
+	}
+	getInfoDefaultErr, ok := err.(*info.GetInfoDefault)
+	if ok {
+		return &APIError{
+			ErrorMessage:   getInfoDefaultErr.Error(),
+			HTTPStatusCode: getInfoDefaultErr.Code(),
+			OriginalError:  getInfoDefaultErr,
 		}
 	}
 

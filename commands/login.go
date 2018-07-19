@@ -238,7 +238,7 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 	fmt.Println(color.GreenString("You are logged in as %s at %s.",
 		result.email, result.apiEndpoint))
 
-	// we only want this extra hin on endpoint switching if
+	// we only want this extra hint on endpoint switching if
 	// - at least two endpoints in total
 	// - an endpoint has been just added
 	// - the new endpoint has an alias
@@ -254,25 +254,26 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 func getAlias(apiEndpoint string, scheme string, accessToken string) (string, error) {
 	// Create an API client.
 	authHeader := scheme + " " + accessToken
-	clientConfig := client.Configuration{
+	clientConfig := &client.Configuration{
 		Endpoint:   apiEndpoint,
 		Timeout:    10 * time.Second,
 		UserAgent:  config.UserAgent(),
 		AuthHeader: authHeader,
 	}
-
-	apiClient, err := client.New(clientConfig)
+	clientV2, err := client.NewV2(clientConfig)
 	if err != nil {
-		return "", err
+		return "", microerror.Maskf(couldNotCreateClientError, err.Error())
 	}
 
 	// Fetch installation name as alias.
-	infoResponse, _, err := apiClient.GetInfo(loginActivityName)
+	// TODO: set request ID of the previous request
+	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = loginActivityName
+
+	infoResponse, err := clientV2.GetInfo(auxParams)
 	if err != nil {
 		return "", err
 	}
 
-	alias := infoResponse.General.InstallationName
-
-	return alias, nil
+	return infoResponse.Payload.General.InstallationName, nil
 }
