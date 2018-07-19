@@ -12,6 +12,7 @@ import (
 
 	gsclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
+	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/microerror"
@@ -182,6 +183,10 @@ func (w *WrapperV2) DefaultAuxiliaryParams() *AuxiliaryParams {
 
 // CreateAuthToken creates an auth token using the latest client.
 func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) (*auth_tokens.CreateAuthTokenOK, error) {
+	if w == nil {
+		return nil, microerror.Mask(clientV2NotInitializedError)
+	}
+
 	params := auth_tokens.NewCreateAuthTokenParams().WithBody(&models.V4CreateAuthTokenRequest{
 		Email:          email,
 		PasswordBase64: base64.StdEncoding.EncodeToString([]byte(password)),
@@ -223,6 +228,10 @@ func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) 
 
 // DeleteAuthToken calls the deleteAuthToken operation in the latest client.
 func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth_tokens.DeleteAuthTokenOK, error) {
+	if w == nil {
+		return nil, microerror.Mask(clientV2NotInitializedError)
+	}
+
 	params := auth_tokens.NewDeleteAuthTokenParams().WithAuthorization("giantswarm " + authToken)
 	if w.conf.Timeout > 0 {
 		params.SetTimeout(w.conf.Timeout)
@@ -252,6 +261,51 @@ func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth
 	}
 
 	response, err := w.gsclient.AuthTokens.DeleteAuthToken(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+// CreateCluster creates cluster using the latest client.
+func (w *WrapperV2) CreateCluster(addClusterRequest *models.V4AddClusterRequest, p *AuxiliaryParams) (*clusters.AddClusterCreated, error) {
+	if w == nil {
+		return nil, microerror.Mask(clientV2NotInitializedError)
+	}
+
+	params := clusters.NewAddClusterParams().WithBody(addClusterRequest)
+	if w.conf.Timeout > 0 {
+		params.SetTimeout(w.conf.Timeout)
+	}
+	if w.conf.ActivityName != "" {
+		params.SetXGiantSwarmActivity(&w.conf.ActivityName)
+	}
+	if w.requestID != "" {
+		params.SetXRequestID(&w.requestID)
+	}
+	if w.commandLine != "" {
+		params.SetXGiantSwarmCmdLine(&w.commandLine)
+	}
+	if w.conf.AuthHeader != "" {
+		params.SetAuthorization(w.conf.AuthHeader)
+	}
+	if p != nil {
+		if p.Timeout > 0 {
+			params.SetTimeout(p.Timeout)
+		}
+		if p.ActivityName != "" {
+			params.SetXGiantSwarmActivity(&p.ActivityName)
+		}
+		if p.CommandLine != "" {
+			params.SetXGiantSwarmCmdLine(&p.CommandLine)
+		}
+		if p.RequestID != "" {
+			params.SetXRequestID(&p.RequestID)
+		}
+	}
+
+	response, err := w.gsclient.Clusters.AddCluster(params, nil)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}

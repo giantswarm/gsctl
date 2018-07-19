@@ -2,6 +2,14 @@ package client
 
 import "github.com/juju/errgo"
 
+// clientV2NotInitializedError is used when the new client hasn't been initialized.
+var clientV2NotInitializedError = errgo.New("v2 client not initialized")
+
+// IsClientV2NotInitializedError asserts clientV2NotInitializedError.
+func IsClientV2NotInitializedError(err error) bool {
+	return errgo.Cause(err) == clientV2NotInitializedError
+}
+
 // endpointInvalidError is used if an endpoint string is not a valid URL.
 var endpointInvalidError = errgo.New("not a valid endpoint URL")
 
