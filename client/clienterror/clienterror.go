@@ -105,6 +105,7 @@ func New(err error) *APIError {
 		ae := &APIError{
 			HTTPStatusCode: createClusterDefaultErr.Code(),
 			OriginalError:  createClusterDefaultErr,
+			ErrorMessage:   createClusterDefaultErr.Error(),
 		}
 		if ae.HTTPStatusCode == http.StatusNotFound {
 			ae.ErrorMessage = "Organization does not exist"
