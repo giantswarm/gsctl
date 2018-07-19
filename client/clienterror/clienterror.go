@@ -114,6 +114,16 @@ func New(err error) *APIError {
 	}
 
 	fmt.Printf("%#v\n", err)
+	// create key pair
+	createKeyPairUnauthorizedErr, ok := err.(*key_pairs.AddKeyPairUnauthorized)
+	if ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  createKeyPairUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to create a key pair for this cluster.",
+		}
+	}
 
 	// HTTP level error cases
 	runtimeAPIError, runtimeAPIErrorOK := err.(*runtime.APIError)
