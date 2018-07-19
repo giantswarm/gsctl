@@ -261,12 +261,12 @@ func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth
 }
 
 // CreateKeyPair calls the addKeyPair API operation using the latest client.
-func (w *WrapperV2) CreateKeyPair(addKeyPairRequest *models.V4AddKeyPairRequest, p *AuxiliaryParams) (*key_pairs.AddKeyPairOK, error) {
+func (w *WrapperV2) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4AddKeyPairRequest, p *AuxiliaryParams) (*key_pairs.AddKeyPairOK, error) {
 	if w == nil {
 		return nil, microerror.Mask(clientV2NotInitializedError)
 	}
 
-	params := key_pairs.NewAddKeyPairParams().WithBody(addKeyPairRequest)
+	params := key_pairs.NewAddKeyPairParams().WithClusterID(clusterID).WithBody(addKeyPairRequest)
 	if w.conf.Timeout > 0 {
 		params.SetTimeout(w.conf.Timeout)
 	}
