@@ -46,8 +46,15 @@ func Test_CreateKeypair(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = createKeypair(args)
+	result, err := createKeypair(args)
 	if err != nil {
 		t.Error(err)
+	}
+
+	if result.id != "48:b9:01:ce:34:8f:b2:08:d3:4f:8c:bb:5e:2f:d7:b6:bc:ae:5c:98" {
+		t.Error("Bad key-pair ID returned: ", result.id)
+	}
+	if result.ttlHours != 24 {
+		t.Error("Bad key-pair TTL returned: ", result.ttlHours)
 	}
 }
