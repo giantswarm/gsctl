@@ -47,69 +47,6 @@ func Test_ListReleases_Empty(t *testing.T) {
 	}
 }
 
-// Test_ListReleases_Connection_Unavailable simulates the situation where we
-// cannot reach the endpoint
-func Test_ListReleases_Connection_Unavailable(t *testing.T) {
-	dir, err := tempConfig("")
-	if err != nil {
-		t.Error(err)
-	}
-	defer os.RemoveAll(dir)
-
-	// needed to prevent search for the default cluster
-	args := listReleasesArguments{
-		apiEndpoint: "http://localhost:45454",
-		token:       "my-token",
-	}
-
-	err = listReleasesPreconditions(&args)
-	if err != nil {
-		t.Error(err)
-	}
-
-	_, listErr := listReleases(args)
-	if !IsNoResponseError(listErr) {
-		t.Errorf("Expected noResponseError, got '%s'", listErr)
-	}
-}
-
-// Test_ListReleases_NotFound simulates the situation where the cluster
-// to list releases for is not found
-func Test_ListReleases_NotFound(t *testing.T) {
-	dir, err := tempConfig("")
-	if err != nil {
-		t.Error(err)
-	}
-	defer os.RemoveAll(dir)
-
-	releasesMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"code": "RESOURCE_NOT_FOUND", "message": "The cluster could not be found."}`))
-	}))
-	defer releasesMockServer.Close()
-
-	args := listReleasesArguments{
-		apiEndpoint: releasesMockServer.URL,
-		token:       "my-token",
-	}
-
-	cmdAPIEndpoint = releasesMockServer.URL
-	initClient()
-
-	err = listReleasesPreconditions(&args)
-	if err != nil {
-		t.Error(err)
-	}
-
-	_, listErr := listReleases(args)
-	if listErr == nil {
-		t.Error("No error occurred where we expected one.")
-	} else if !IsClusterNotFoundError(listErr) {
-		t.Errorf("Expected error '%s', got '%s'.", clusterNotFoundError, listErr)
-	}
-}
-
 // Test_ListReleases_Nonempty simulates listing releases where several
 // items are returned.
 func Test_ListReleases_Nonempty(t *testing.T) {
@@ -273,7 +210,7 @@ func Test_ListReleases_Nonempty(t *testing.T) {
 		t.Errorf("We expected 2 releases, got %d", len(result.releases))
 	}
 
-	if result.releases[0].Version != "0.10.0" || result.releases[1].Version != "0.1.0" {
+	if *result.releases[0].Version != "0.10.0" || *result.releases[1].Version != "0.1.0" {
 		t.Error("Releases returned were not in the expected order.")
 	}
 }

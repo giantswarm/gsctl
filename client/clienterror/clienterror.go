@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/client/info"
 	"github.com/giantswarm/gsclientgen/client/key_pairs"
+	"github.com/giantswarm/gsclientgen/client/releases"
 )
 
 // APIError is our structure to carry all error information we care about
@@ -145,6 +146,17 @@ func New(err error) *APIError {
 			ErrorMessage:   getInfoDefaultErr.Error(),
 			HTTPStatusCode: getInfoDefaultErr.Code(),
 			OriginalError:  getInfoDefaultErr,
+		}
+	}
+
+	// get releases
+	getReleasesUnauthorized, ok := err.(*releases.GetReleasesUnauthorized)
+	if ok {
+		return &APIError{
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to list releases on this installation.",
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  getReleasesUnauthorized,
 		}
 	}
 
