@@ -101,12 +101,6 @@ func (c *Wrapper) GetKeyPairs(clusterID string, activityName string) ([]gsclient
 	return response, apiResponse, err
 }
 
-// GetReleases calls the getReleases operation via the old client.
-func (c *Wrapper) GetReleases(activityName string) ([]gsclientgenv1.V4ReleaseListItem, *gsclientgenv1.APIResponse, error) {
-	response, apiResponse, err := c.client.GetReleases(c.authHeader, c.requestID, activityName, getCommandLine())
-	return response, apiResponse, err
-}
-
 // GetUserOrganizations calls the getUserOrganization operation via the old client.
 func (c *Wrapper) GetUserOrganizations(activityName string) ([]gsclientgenv1.V4OrganizationListItem, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.GetUserOrganizations(c.authHeader, c.requestID, activityName, getCommandLine())
