@@ -6,10 +6,11 @@ import (
 	"os"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
-	gsclientgen "gopkg.in/giantswarm/gsclientgen.v1"
 
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -73,14 +74,16 @@ func defaultCreateKeypairArguments() (createKeypairArguments, error) {
 type createKeypairResult struct {
 	// cluster's API endpoint
 	apiEndpoint string
-	// response body returned from a successful response
-	keypairResponse gsclientgen.V4AddKeyPairResponse
 	// path where we stored the CA file
 	caCertPath string
 	// path where we stored the client cert
 	clientCertPath string
 	// path where we stored the client's private key
 	clientKeyPath string
+	// key pair ID
+	id string
+	// TTL of the key pair in hours
+	ttlHours uint
 }
 
 func init() {
@@ -173,8 +176,8 @@ func createKeyPairRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	// Success output
 	msg := fmt.Sprintf("New key pair created with ID %s and expiry of %v",
-		util.Truncate(util.CleanKeypairID(result.keypairResponse.Id), 10, true),
-		util.DurationPhrase(int(result.keypairResponse.TtlHours)))
+		util.Truncate(util.CleanKeypairID(result.id), 10, true),
+		util.DurationPhrase(int(result.ttlHours)))
 	fmt.Println(color.GreenString(msg))
 
 	fmt.Println("Certificate and key files written to:")
@@ -190,40 +193,42 @@ func createKeypair(args createKeypairArguments) (createKeypairResult, error) {
 		apiEndpoint: args.apiEndpoint,
 	}
 
-	addKeyPairBody := gsclientgen.V4AddKeyPairBody{
-		Description:              args.description,
-		TtlHours:                 args.ttlHours,
+	addKeyPairBody := &models.V4AddKeyPairRequest{
+		Description:              &args.description,
+		TTLHours:                 args.ttlHours,
 		CnPrefix:                 args.commonNamePrefix,
 		CertificateOrganizations: args.certificateOrganizations,
 	}
-	keypairResponse, apiResponse, err := Client.AddKeyPair(args.clusterID, addKeyPairBody, addKeyPairActivityName)
+	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = addKeyPairActivityName
 
+	response, err := ClientV2.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
 	if err != nil {
-		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
-			return result, microerror.Mask(accessForbiddenError)
+		// create specific error types for cases we care about
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			if clientErr.HTTPStatusCode == http.StatusForbidden {
+				return result, microerror.Mask(accessForbiddenError)
+			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
+				return result, microerror.Mask(clusterNotFoundError)
+			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
+				return result, microerror.Mask(accessForbiddenError)
+			}
 		}
+
 		return result, microerror.Mask(err)
 	}
 
-	if apiResponse.StatusCode == http.StatusNotFound {
-		return result, microerror.Mask(clusterNotFoundError)
-	} else if apiResponse.StatusCode == http.StatusForbidden {
-		return result, microerror.Mask(accessForbiddenError)
-	} else if apiResponse.StatusCode != http.StatusOK && apiResponse.StatusCode != 201 {
-		return result, microerror.Maskf(unknownError,
-			"Unhandled response code: %v", apiResponse.StatusCode)
-	}
-
 	// success
-	result.keypairResponse = *keypairResponse
+	result.id = response.Payload.ID
+	result.ttlHours = uint(response.Payload.TTLHours)
 
 	// store credentials to file
 	result.caCertPath = util.StoreCaCertificate(config.CertsDirPath,
-		args.clusterID, keypairResponse.CertificateAuthorityData)
+		args.clusterID, response.Payload.CertificateAuthorityData)
 	result.clientCertPath = util.StoreClientCertificate(config.CertsDirPath,
-		args.clusterID, keypairResponse.Id, keypairResponse.ClientCertificateData)
+		args.clusterID, response.Payload.ID, response.Payload.ClientCertificateData)
 	result.clientKeyPath = util.StoreClientKey(config.CertsDirPath,
-		args.clusterID, keypairResponse.Id, keypairResponse.ClientKeyData)
+		args.clusterID, response.Payload.ID, response.Payload.ClientKeyData)
 
 	return result, nil
 }
