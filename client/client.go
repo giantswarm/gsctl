@@ -12,8 +12,8 @@ import (
 
 	gsclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
-	"github.com/giantswarm/gsclientgen/client/key_pairs"
 	"github.com/giantswarm/gsclientgen/client/clusters"
+	"github.com/giantswarm/gsclientgen/client/key_pairs"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/microerror"
@@ -277,7 +277,7 @@ func (w *WrapperV2) CreateCluster(addClusterRequest *models.V4AddClusterRequest,
 
 	params := clusters.NewAddClusterParams().WithBody(addClusterRequest)
 
-  if w.conf.Timeout > 0 {
+	if w.conf.Timeout > 0 {
 		params.SetTimeout(w.conf.Timeout)
 	}
 	if w.conf.ActivityName != "" {
@@ -321,9 +321,9 @@ func (w *WrapperV2) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4
 		return nil, microerror.Mask(clientV2NotInitializedError)
 	}
 
-  params := key_pairs.NewAddKeyPairParams().WithClusterID(clusterID).WithBody(addKeyPairRequest)
-  
-  if w.conf.Timeout > 0 {
+	params := key_pairs.NewAddKeyPairParams().WithClusterID(clusterID).WithBody(addKeyPairRequest)
+
+	if w.conf.Timeout > 0 {
 		params.SetTimeout(w.conf.Timeout)
 	}
 	if w.conf.ActivityName != "" {
@@ -352,9 +352,9 @@ func (w *WrapperV2) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4
 			params.SetXRequestID(&p.RequestID)
 		}
 	}
-  
-  response, err := w.gsclient.KeyPairs.AddKeyPair(params, nil)
-  if err != nil {
+
+	response, err := w.gsclient.KeyPairs.AddKeyPair(params, nil)
+	if err != nil {
 		return nil, clienterror.New(err)
 	}
 
