@@ -181,6 +181,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			]`))
 			}
 		}))
+		defer mockServer.Close()
 
 		cmdAPIEndpoint = mockServer.URL
 		cmdToken = testCase.inputArgs.token
@@ -194,8 +195,6 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		if executeErr != nil {
 			t.Errorf("Execution error in testCase %d: %s", i, executeErr.Error())
 		}
-
-		mockServer.Close()
 	}
 }
 
@@ -264,6 +263,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 			w.WriteHeader(testCase.responseStatus)
 			w.Write([]byte(testCase.serverResponseJSON))
 		}))
+		defer mockServer.Close()
 
 		// client
 		cmdAPIEndpoint = mockServer.URL // required to make initClient() work
@@ -286,7 +286,5 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 				t.Errorf("Test case %d did not yield the expected execution error, instead: %#v", i, err)
 			}
 		}
-
-		mockServer.Close()
 	}
 }
