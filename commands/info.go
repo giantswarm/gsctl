@@ -6,9 +6,9 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
+	clientinfo "github.com/giantswarm/gsclientgen/client/info"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
-	gsclientgen "gopkg.in/giantswarm/gsclientgen.v1"
 
 	"github.com/giantswarm/gsctl/config"
 )
@@ -60,7 +60,7 @@ type infoResult struct {
 	buildDate        string
 	configFilePath   string
 	kubeConfigPaths  []string
-	infoResponse     *gsclientgen.V4InfoResponse
+	infoResponse     *clientinfo.GetInfoOK
 }
 
 func init() {
@@ -114,26 +114,26 @@ func printInfo(cmd *cobra.Command, args []string) {
 	// Info depending on API communication
 	if result.apiEndpoint != "" {
 		// Provider
-		if result.infoResponse == nil || result.infoResponse.General.Provider == "" {
+		if result.infoResponse == nil || result.infoResponse.Payload.General.Provider == "" {
 			output = append(output, color.YellowString("Provider:")+"|n/a")
 		} else {
-			output = append(output, color.YellowString("Provider:")+"|"+color.CyanString(result.infoResponse.General.Provider))
+			output = append(output, color.YellowString("Provider:")+"|"+color.CyanString(result.infoResponse.Payload.General.Provider))
 		}
 
 		if result.infoResponse != nil {
-			if result.infoResponse.General.Provider == "aws" {
-				output = append(output, color.YellowString("Worker instance type options:")+"|"+color.CyanString(strings.Join(result.infoResponse.Workers.InstanceType.Options, ", ")))
-				output = append(output, color.YellowString("Default worker instance type:")+"|"+color.CyanString(result.infoResponse.Workers.InstanceType.Default_))
-			} else if result.infoResponse.General.Provider == "azure" {
-				output = append(output, color.YellowString("Worker VM size options:")+"|"+color.CyanString(strings.Join(result.infoResponse.Workers.VmSize.Options, ", ")))
-				output = append(output, color.YellowString("Default worker VM size:")+"|"+color.CyanString(result.infoResponse.Workers.VmSize.Default_))
+			if result.infoResponse.Payload.General.Provider == "aws" {
+				output = append(output, color.YellowString("Worker instance type options:")+"|"+color.CyanString(strings.Join(result.infoResponse.Payload.Workers.InstanceType.Options, ", ")))
+				output = append(output, color.YellowString("Default worker instance type:")+"|"+color.CyanString(result.infoResponse.Payload.Workers.InstanceType.Default))
+			} else if result.infoResponse.Payload.General.Provider == "azure" {
+				output = append(output, color.YellowString("Worker VM size options:")+"|"+color.CyanString(strings.Join(result.infoResponse.Payload.Workers.VMSize.Options, ", ")))
+				output = append(output, color.YellowString("Default worker VM size:")+"|"+color.CyanString(result.infoResponse.Payload.Workers.VMSize.Default))
 			}
 
-			if result.infoResponse.Workers.CountPerCluster.Default_ != 0 {
-				output = append(output, color.YellowString("Default workers per cluster:")+"|"+color.CyanString(fmt.Sprintf("%.0f", result.infoResponse.Workers.CountPerCluster.Default_)))
+			if result.infoResponse.Payload.Workers.CountPerCluster.Default != 0 {
+				output = append(output, color.YellowString("Default workers per cluster:")+"|"+color.CyanString(fmt.Sprintf("%.0f", result.infoResponse.Payload.Workers.CountPerCluster.Default)))
 			}
-			if result.infoResponse.Workers.CountPerCluster.Max != 0 {
-				output = append(output, color.YellowString("Maximum workers per cluster:")+"|"+color.CyanString(fmt.Sprintf("%.0f", result.infoResponse.Workers.CountPerCluster.Max)))
+			if result.infoResponse.Payload.Workers.CountPerCluster.Max != 0 {
+				output = append(output, color.YellowString("Maximum workers per cluster:")+"|"+color.CyanString(fmt.Sprintf("%.0f", result.infoResponse.Payload.Workers.CountPerCluster.Max)))
 			}
 		}
 	}
@@ -176,12 +176,15 @@ func info(args infoArguments) (infoResult, error) {
 
 	// get more info from API
 	if args.apiEndpoint != "" {
-		infoResponse, _, infoErr := Client.GetInfo(infoActivityName)
-		if infoErr != nil {
-			return result, microerror.Mask(infoErr)
+		auxParams := ClientV2.DefaultAuxiliaryParams()
+		auxParams.ActivityName = infoActivityName
+
+		response, err := ClientV2.GetInfo(auxParams)
+		if err != nil {
+			return result, microerror.Mask(err)
 		}
 
-		result.infoResponse = infoResponse
+		result.infoResponse = response
 	}
 
 	return result, nil
