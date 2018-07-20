@@ -108,3 +108,59 @@ func Test_ListClustersEmpty(t *testing.T) {
 		t.Errorf("Expected '', got '%s'", table)
 	}
 }
+
+// Test_ListClustersUnauthorized tests listing clusters with a 401 response.
+func Test_ListClustersUnauthorized(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(`{"code": "PERMISSION_DENIED", "message": "Lorem ipsum"}`))
+	}))
+	defer mockServer.Close()
+
+	args := listClustersArguments{
+		apiEndpoint: mockServer.URL,
+		authToken:   "testtoken",
+	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
+	err := verifyListClusterPreconditions(args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = clustersTable(args)
+	if !IsNotAuthorizedError(err) {
+		t.Errorf("Expected notAuthorizedError, got %#v", err)
+	}
+}
+
+// Test_ListClustersForbidden tests listing clusters with a 403 response.
+func Test_ListClustersForbidden(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(`Forbidden`))
+	}))
+	defer mockServer.Close()
+
+	args := listClustersArguments{
+		apiEndpoint: mockServer.URL,
+		authToken:   "testtoken",
+	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
+	err := verifyListClusterPreconditions(args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = clustersTable(args)
+	if !IsAccessForbiddenError(err) {
+		t.Errorf("Expected accessForbiddenError, got %#v", err)
+	}
+}
