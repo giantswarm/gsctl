@@ -307,7 +307,7 @@ func (w *WrapperV2) DeleteCluster(clusterID string, p *AuxiliaryParams) (*cluste
 	return response, nil
 }
 
-// GetCluster fetches details on a clsuter using the latest client.
+// GetCluster fetches details on a cluster using the latest client.
 func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.GetClusterOK, error) {
 	if w == nil {
 		return nil, microerror.Mask(clientV2NotInitializedError)
