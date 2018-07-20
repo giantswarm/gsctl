@@ -314,34 +314,9 @@ func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.
 	}
 
 	params := clusters.NewGetClusterParams().WithClusterID(clusterID)
-	if w.conf.Timeout > 0 {
-		params.SetTimeout(w.conf.Timeout)
-	}
-	if w.conf.ActivityName != "" {
-		params.SetXGiantSwarmActivity(&w.conf.ActivityName)
-	}
-	if w.requestID != "" {
-		params.SetXRequestID(&w.requestID)
-	}
-	if w.commandLine != "" {
-		params.SetXGiantSwarmCmdLine(&w.commandLine)
-	}
+	setParams(p, w, params)
 	if w.conf.AuthHeader != "" {
 		params.SetAuthorization(w.conf.AuthHeader)
-	}
-	if p != nil {
-		if p.Timeout > 0 {
-			params.SetTimeout(p.Timeout)
-		}
-		if p.ActivityName != "" {
-			params.SetXGiantSwarmActivity(&p.ActivityName)
-		}
-		if p.CommandLine != "" {
-			params.SetXGiantSwarmCmdLine(&p.CommandLine)
-		}
-		if p.RequestID != "" {
-			params.SetXRequestID(&p.RequestID)
-		}
 	}
 
 	response, err := w.gsclient.Clusters.GetCluster(params, nil)
