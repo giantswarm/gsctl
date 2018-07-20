@@ -184,9 +184,9 @@ func (w *WrapperV2) DefaultAuxiliaryParams() *AuxiliaryParams {
 	}
 }
 
-// ParamSetter is the interface we use to abstract away the differences between
+// paramSetter is the interface we use to abstract away the differences between
 // request parameter types.
-type ParamSetter interface {
+type paramSetter interface {
 	SetTimeout(time.Duration)
 	SetXGiantSwarmActivity(*string)
 	SetXRequestID(*string)
@@ -196,7 +196,7 @@ type ParamSetter interface {
 // setParams takes parameters from an AuxiliaryParams input, and from the
 // client wrapper (or rather it's config) and sets request parameters
 // accordingly, independent of type.
-func setParams(p *AuxiliaryParams, w *WrapperV2, params ParamSetter) {
+func setParams(p *AuxiliaryParams, w *WrapperV2, params paramSetter) {
 	// first take client-level config params
 	if w != nil && w.conf != nil {
 		if w.conf.Timeout > 0 {
