@@ -327,6 +327,26 @@ func (w *WrapperV2) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4
 	return response, nil
 }
 
+// GetKeyPairs calls the API to fetch key pairs.
+func (w *WrapperV2) GetKeyPairs(clusterID string, p *AuxiliaryParams) (*key_pairs.GetKeyPairsOK, error) {
+	if w == nil {
+		return nil, microerror.Mask(clientV2NotInitializedError)
+	}
+
+	params := key_pairs.NewGetKeyPairsParams().WithClusterID(clusterID)
+	setParams(p, w, params)
+	if w.conf.AuthHeader != "" {
+		params.SetAuthorization(w.conf.AuthHeader)
+	}
+
+	response, err := w.gsclient.KeyPairs.GetKeyPairs(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
 // GetInfo calls the API's getInfo operation using the new client.
 func (w *WrapperV2) GetInfo(p *AuxiliaryParams) (*info.GetInfoOK, error) {
 	if w == nil {
