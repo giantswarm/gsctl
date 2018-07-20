@@ -136,31 +136,3 @@ func Test_ListClustersUnauthorized(t *testing.T) {
 		t.Errorf("Expected notAuthorizedError, got %#v", err)
 	}
 }
-
-// Test_ListClustersForbidden tests listing clusters with a 403 response.
-func Test_ListClustersForbidden(t *testing.T) {
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte(`Forbidden`))
-	}))
-	defer mockServer.Close()
-
-	args := listClustersArguments{
-		apiEndpoint: mockServer.URL,
-		authToken:   "testtoken",
-	}
-
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
-
-	err := verifyListClusterPreconditions(args)
-	if err != nil {
-		t.Error(err)
-	}
-
-	_, err = clustersTable(args)
-	if !IsAccessForbiddenError(err) {
-		t.Errorf("Expected accessForbiddenError, got %#v", err)
-	}
-}
