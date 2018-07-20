@@ -58,8 +58,8 @@ func TestShowAWSCluster(t *testing.T) {
 		t.Error(showErr)
 	}
 
-	if details.Id != testArgs.clusterID {
-		t.Errorf("Expected cluster ID '%s', got '%s'", testArgs.clusterID, details.Id)
+	if details.ID != testArgs.clusterID {
+		t.Errorf("Expected cluster ID '%s', got '%s'", testArgs.clusterID, details.ID)
 	}
 
 }
