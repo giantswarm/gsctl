@@ -307,6 +307,23 @@ func (w *WrapperV2) DeleteCluster(clusterID string, p *AuxiliaryParams) (*cluste
 	return response, nil
 }
 
+// GetClusters fetches a list of all clusters via the new client.
+func (w *WrapperV2) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, error) {
+	if w == nil {
+		return nil, microerror.Mask(clientV2NotInitializedError)
+	}
+
+	params := clusters.NewGetClustersParams().WithAuthorization(w.conf.AuthHeader)
+	setParams(p, w, params)
+
+	response, err := w.gsclient.Clusters.GetClusters(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
 // CreateKeyPair calls the addKeyPair API operation using the latest client.
 func (w *WrapperV2) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4AddKeyPairRequest, p *AuxiliaryParams) (*key_pairs.AddKeyPairOK, error) {
 	if w == nil {
