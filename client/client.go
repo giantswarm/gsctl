@@ -184,6 +184,52 @@ func (w *WrapperV2) DefaultAuxiliaryParams() *AuxiliaryParams {
 	}
 }
 
+// paramSetter is the interface we use to abstract away the differences between
+// request parameter types.
+type paramSetter interface {
+	SetTimeout(time.Duration)
+	SetXGiantSwarmActivity(*string)
+	SetXRequestID(*string)
+	SetXGiantSwarmCmdLine(*string)
+}
+
+// setParams takes parameters from an AuxiliaryParams input, and from the
+// client wrapper (or rather it's config) and sets request parameters
+// accordingly, independent of type.
+func setParams(p *AuxiliaryParams, w *WrapperV2, params paramSetter) {
+	// first take client-level config params
+	if w != nil && w.conf != nil {
+		if w.conf.Timeout > 0 {
+			params.SetTimeout(w.conf.Timeout)
+		}
+		if w.commandLine != "" {
+			params.SetXGiantSwarmCmdLine(&w.commandLine)
+		}
+		if w.conf.ActivityName != "" {
+			params.SetXGiantSwarmActivity(&w.conf.ActivityName)
+		}
+		if w.requestID != "" {
+			params.SetXRequestID(&w.requestID)
+		}
+	}
+
+	// let per-request params overwrite the above
+	if p != nil {
+		if p.Timeout > 0 {
+			params.SetTimeout(p.Timeout)
+		}
+		if p.CommandLine != "" {
+			params.SetXGiantSwarmCmdLine(&p.CommandLine)
+		}
+		if p.ActivityName != "" {
+			params.SetXGiantSwarmActivity(&p.ActivityName)
+		}
+		if p.RequestID != "" {
+			params.SetXRequestID(&p.RequestID)
+		}
+	}
+}
+
 // CreateAuthToken creates an auth token using the latest client.
 func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) (*auth_tokens.CreateAuthTokenOK, error) {
 	if w == nil {
@@ -194,32 +240,7 @@ func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) 
 		Email:          email,
 		PasswordBase64: base64.StdEncoding.EncodeToString([]byte(password)),
 	})
-	if w.conf.Timeout > 0 {
-		params.SetTimeout(w.conf.Timeout)
-	}
-	if w.conf.ActivityName != "" {
-		params.SetXGiantSwarmActivity(&w.conf.ActivityName)
-	}
-	if w.requestID != "" {
-		params.SetXRequestID(&w.requestID)
-	}
-	if w.commandLine != "" {
-		params.SetXGiantSwarmCmdLine(&w.commandLine)
-	}
-	if p != nil {
-		if p.Timeout > 0 {
-			params.SetTimeout(p.Timeout)
-		}
-		if p.ActivityName != "" {
-			params.SetXGiantSwarmActivity(&p.ActivityName)
-		}
-		if p.CommandLine != "" {
-			params.SetXGiantSwarmCmdLine(&p.CommandLine)
-		}
-		if p.RequestID != "" {
-			params.SetXRequestID(&p.RequestID)
-		}
-	}
+	setParams(p, w, params)
 
 	response, err := w.gsclient.AuthTokens.CreateAuthToken(params, nil)
 	if err != nil {
@@ -236,32 +257,7 @@ func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth
 	}
 
 	params := auth_tokens.NewDeleteAuthTokenParams().WithAuthorization("giantswarm " + authToken)
-	if w.conf.Timeout > 0 {
-		params.SetTimeout(w.conf.Timeout)
-	}
-	if w.conf.ActivityName != "" {
-		params.SetXGiantSwarmActivity(&w.conf.ActivityName)
-	}
-	if w.requestID != "" {
-		params.SetXRequestID(&w.requestID)
-	}
-	if w.commandLine != "" {
-		params.SetXGiantSwarmCmdLine(&w.commandLine)
-	}
-	if p != nil {
-		if p.Timeout > 0 {
-			params.SetTimeout(p.Timeout)
-		}
-		if p.ActivityName != "" {
-			params.SetXGiantSwarmActivity(&p.ActivityName)
-		}
-		if p.CommandLine != "" {
-			params.SetXGiantSwarmCmdLine(&p.CommandLine)
-		}
-		if p.RequestID != "" {
-			params.SetXRequestID(&p.RequestID)
-		}
-	}
+	setParams(p, w, params)
 
 	response, err := w.gsclient.AuthTokens.DeleteAuthToken(params, nil)
 	if err != nil {
@@ -278,35 +274,9 @@ func (w *WrapperV2) CreateCluster(addClusterRequest *models.V4AddClusterRequest,
 	}
 
 	params := clusters.NewAddClusterParams().WithBody(addClusterRequest)
-
-	if w.conf.Timeout > 0 {
-		params.SetTimeout(w.conf.Timeout)
-	}
-	if w.conf.ActivityName != "" {
-		params.SetXGiantSwarmActivity(&w.conf.ActivityName)
-	}
-	if w.requestID != "" {
-		params.SetXRequestID(&w.requestID)
-	}
-	if w.commandLine != "" {
-		params.SetXGiantSwarmCmdLine(&w.commandLine)
-	}
+	setParams(p, w, params)
 	if w.conf.AuthHeader != "" {
 		params.SetAuthorization(w.conf.AuthHeader)
-	}
-	if p != nil {
-		if p.Timeout > 0 {
-			params.SetTimeout(p.Timeout)
-		}
-		if p.ActivityName != "" {
-			params.SetXGiantSwarmActivity(&p.ActivityName)
-		}
-		if p.CommandLine != "" {
-			params.SetXGiantSwarmCmdLine(&p.CommandLine)
-		}
-		if p.RequestID != "" {
-			params.SetXRequestID(&p.RequestID)
-		}
 	}
 
 	response, err := w.gsclient.Clusters.AddCluster(params, nil)
@@ -324,34 +294,9 @@ func (w *WrapperV2) DeleteCluster(clusterID string, p *AuxiliaryParams) (*cluste
 	}
 
 	params := clusters.NewDeleteClusterParams().WithClusterID(clusterID)
-	if w.conf.Timeout > 0 {
-		params.SetTimeout(w.conf.Timeout)
-	}
-	if w.conf.ActivityName != "" {
-		params.SetXGiantSwarmActivity(&w.conf.ActivityName)
-	}
-	if w.requestID != "" {
-		params.SetXRequestID(&w.requestID)
-	}
-	if w.commandLine != "" {
-		params.SetXGiantSwarmCmdLine(&w.commandLine)
-	}
+	setParams(p, w, params)
 	if w.conf.AuthHeader != "" {
 		params.SetAuthorization(w.conf.AuthHeader)
-	}
-	if p != nil {
-		if p.Timeout > 0 {
-			params.SetTimeout(p.Timeout)
-		}
-		if p.ActivityName != "" {
-			params.SetXGiantSwarmActivity(&p.ActivityName)
-		}
-		if p.CommandLine != "" {
-			params.SetXGiantSwarmCmdLine(&p.CommandLine)
-		}
-		if p.RequestID != "" {
-			params.SetXRequestID(&p.RequestID)
-		}
 	}
 
 	response, err := w.gsclient.Clusters.DeleteCluster(params, nil)
@@ -369,35 +314,9 @@ func (w *WrapperV2) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4
 	}
 
 	params := key_pairs.NewAddKeyPairParams().WithClusterID(clusterID).WithBody(addKeyPairRequest)
-
-	if w.conf.Timeout > 0 {
-		params.SetTimeout(w.conf.Timeout)
-	}
-	if w.conf.ActivityName != "" {
-		params.SetXGiantSwarmActivity(&w.conf.ActivityName)
-	}
-	if w.requestID != "" {
-		params.SetXRequestID(&w.requestID)
-	}
-	if w.commandLine != "" {
-		params.SetXGiantSwarmCmdLine(&w.commandLine)
-	}
+	setParams(p, w, params)
 	if w.conf.AuthHeader != "" {
 		params.SetAuthorization(w.conf.AuthHeader)
-	}
-	if p != nil {
-		if p.Timeout > 0 {
-			params.SetTimeout(p.Timeout)
-		}
-		if p.ActivityName != "" {
-			params.SetXGiantSwarmActivity(&p.ActivityName)
-		}
-		if p.CommandLine != "" {
-			params.SetXGiantSwarmCmdLine(&p.CommandLine)
-		}
-		if p.RequestID != "" {
-			params.SetXRequestID(&p.RequestID)
-		}
 	}
 
 	response, err := w.gsclient.KeyPairs.AddKeyPair(params, nil)
@@ -415,34 +334,9 @@ func (w *WrapperV2) GetInfo(p *AuxiliaryParams) (*info.GetInfoOK, error) {
 	}
 
 	params := info.NewGetInfoParams()
-	if w.conf.Timeout > 0 {
-		params.SetTimeout(w.conf.Timeout)
-	}
-	if w.conf.ActivityName != "" {
-		params.SetXGiantSwarmActivity(&w.conf.ActivityName)
-	}
-	if w.requestID != "" {
-		params.SetXRequestID(&w.requestID)
-	}
-	if w.commandLine != "" {
-		params.SetXGiantSwarmCmdLine(&w.commandLine)
-	}
+	setParams(p, w, params)
 	if w.conf.AuthHeader != "" {
 		params.SetAuthorization(w.conf.AuthHeader)
-	}
-	if p != nil {
-		if p.Timeout > 0 {
-			params.SetTimeout(p.Timeout)
-		}
-		if p.ActivityName != "" {
-			params.SetXGiantSwarmActivity(&p.ActivityName)
-		}
-		if p.CommandLine != "" {
-			params.SetXGiantSwarmCmdLine(&p.CommandLine)
-		}
-		if p.RequestID != "" {
-			params.SetXRequestID(&p.RequestID)
-		}
 	}
 
 	response, err := w.gsclient.Info.GetInfo(params, nil)
@@ -460,34 +354,9 @@ func (w *WrapperV2) GetReleases(p *AuxiliaryParams) (*releases.GetReleasesOK, er
 	}
 
 	params := releases.NewGetReleasesParams()
-	if w.conf.Timeout > 0 {
-		params.SetTimeout(w.conf.Timeout)
-	}
-	if w.conf.ActivityName != "" {
-		params.SetXGiantSwarmActivity(&w.conf.ActivityName)
-	}
-	if w.requestID != "" {
-		params.SetXRequestID(&w.requestID)
-	}
-	if w.commandLine != "" {
-		params.SetXGiantSwarmCmdLine(&w.commandLine)
-	}
+	setParams(p, w, params)
 	if w.conf.AuthHeader != "" {
 		params.SetAuthorization(w.conf.AuthHeader)
-	}
-	if p != nil {
-		if p.Timeout > 0 {
-			params.SetTimeout(p.Timeout)
-		}
-		if p.ActivityName != "" {
-			params.SetXGiantSwarmActivity(&p.ActivityName)
-		}
-		if p.CommandLine != "" {
-			params.SetXGiantSwarmCmdLine(&p.CommandLine)
-		}
-		if p.RequestID != "" {
-			params.SetXRequestID(&p.RequestID)
-		}
 	}
 
 	response, err := w.gsclient.Releases.GetReleases(params, nil)
