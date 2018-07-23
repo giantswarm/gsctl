@@ -39,8 +39,7 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-// Configuration is the configuration to be used both by the latest as well
-// as the old client based on gsclientgen.v1.
+// Configuration is the client configuration
 type Configuration struct {
 	// AuthHeader is the header we should use to make API calls.
 	AuthHeader string
@@ -251,7 +250,7 @@ func setParamsWithAuthorization(p *AuxiliaryParams, w *WrapperV2, params paramSe
 	setParams(p, w, params)
 }
 
-// CreateAuthToken creates an auth token using the latest client.
+// CreateAuthToken creates an auth token using the V2 client.
 func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) (*auth_tokens.CreateAuthTokenOK, error) {
 	if w == nil {
 		return nil, microerror.Mask(clientV2NotInitializedError)
@@ -271,7 +270,7 @@ func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) 
 	return response, nil
 }
 
-// DeleteAuthToken calls the deleteAuthToken operation in the latest client.
+// DeleteAuthToken calls the API's deleteAuthToken operation using the V2 client.
 func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth_tokens.DeleteAuthTokenOK, error) {
 	if w == nil {
 		return nil, microerror.Mask(clientV2NotInitializedError)
@@ -288,7 +287,7 @@ func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth
 	return response, nil
 }
 
-// CreateCluster creates cluster using the latest client.
+// CreateCluster creates cluster using the V2 client.
 func (w *WrapperV2) CreateCluster(addClusterRequest *models.V4AddClusterRequest, p *AuxiliaryParams) (*clusters.AddClusterCreated, error) {
 	if w == nil {
 		return nil, microerror.Mask(clientV2NotInitializedError)
@@ -305,7 +304,7 @@ func (w *WrapperV2) CreateCluster(addClusterRequest *models.V4AddClusterRequest,
 	return response, nil
 }
 
-// ModifyCluster modifies a cluster using the latest client.
+// ModifyCluster modifies a cluster using the V2 client.
 func (w *WrapperV2) ModifyCluster(clusterID string, body *models.V4ModifyClusterRequest, p *AuxiliaryParams) (*clusters.ModifyClusterOK, error) {
 	params := clusters.NewModifyClusterParams().WithClusterID(clusterID).WithBody(body)
 	setParamsWithAuthorization(p, w, params)
@@ -318,7 +317,7 @@ func (w *WrapperV2) ModifyCluster(clusterID string, body *models.V4ModifyCluster
 	return response, nil
 }
 
-// DeleteCluster deletes a cluster using the latest client.
+// DeleteCluster deletes a cluster using the V2 client.
 func (w *WrapperV2) DeleteCluster(clusterID string, p *AuxiliaryParams) (*clusters.DeleteClusterAccepted, error) {
 	if w == nil {
 		return nil, microerror.Mask(clientV2NotInitializedError)
@@ -335,7 +334,7 @@ func (w *WrapperV2) DeleteCluster(clusterID string, p *AuxiliaryParams) (*cluste
 	return response, nil
 }
 
-// GetClusters fetches details on a cluster using the latest client.
+// GetClusters fetches details on a cluster using the V2 client.
 func (w *WrapperV2) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, error) {
 	if w == nil {
 		return nil, microerror.Mask(clientV2NotInitializedError)
@@ -352,7 +351,7 @@ func (w *WrapperV2) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, er
 	return response, nil
 }
 
-// GetCluster fetches details on a cluster using the latest client.
+// GetCluster fetches details on a cluster using the V2 client.
 func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.GetClusterOK, error) {
 	if w == nil {
 		return nil, microerror.Mask(clientV2NotInitializedError)
@@ -369,7 +368,7 @@ func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.
 	return response, nil
 }
 
-// CreateKeyPair calls the addKeyPair API operation using the latest client.
+// CreateKeyPair calls the addKeyPair API operation using the V2 client.
 func (w *WrapperV2) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4AddKeyPairRequest, p *AuxiliaryParams) (*key_pairs.AddKeyPairOK, error) {
 	if w == nil {
 		return nil, microerror.Mask(clientV2NotInitializedError)
@@ -386,7 +385,7 @@ func (w *WrapperV2) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4
 	return response, nil
 }
 
-// GetKeyPairs calls the API to fetch key pairs.
+// GetKeyPairs calls the API to fetch key pairs using the V2 client.
 func (w *WrapperV2) GetKeyPairs(clusterID string, p *AuxiliaryParams) (*key_pairs.GetKeyPairsOK, error) {
 	if w == nil {
 		return nil, microerror.Mask(clientV2NotInitializedError)
@@ -403,7 +402,7 @@ func (w *WrapperV2) GetKeyPairs(clusterID string, p *AuxiliaryParams) (*key_pair
 	return response, nil
 }
 
-// GetInfo calls the API's getInfo operation using the new client.
+// GetInfo calls the API's getInfo operation using the V2 client.
 func (w *WrapperV2) GetInfo(p *AuxiliaryParams) (*info.GetInfoOK, error) {
 	if w == nil {
 		return nil, microerror.Mask(clientV2NotInitializedError)
@@ -420,7 +419,7 @@ func (w *WrapperV2) GetInfo(p *AuxiliaryParams) (*info.GetInfoOK, error) {
 	return response, nil
 }
 
-// GetReleases calls the API's getReleases operation using the new client.
+// GetReleases calls the API's getReleases operation using the V2 client.
 func (w *WrapperV2) GetReleases(p *AuxiliaryParams) (*releases.GetReleasesOK, error) {
 	if w == nil {
 		return nil, microerror.Mask(clientV2NotInitializedError)
@@ -437,7 +436,7 @@ func (w *WrapperV2) GetReleases(p *AuxiliaryParams) (*releases.GetReleasesOK, er
 	return response, nil
 }
 
-// GetOrganizations calls the API's getOrganizations operation using the new client.
+// GetOrganizations calls the API's getOrganizations operation using the V2 client.
 func (w *WrapperV2) GetOrganizations(p *AuxiliaryParams) (*organizations.GetOrganizationsOK, error) {
 	if w == nil {
 		return nil, microerror.Mask(clientV2NotInitializedError)
