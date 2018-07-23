@@ -258,8 +258,7 @@
   packages = [
     "context",
     "context/ctxhttp",
-    "idna",
-    "publicsuffix"
+    "idna"
   ]
   revision = "2491c5de3490fced2f6cff376127c667efeed857"
 
@@ -295,18 +294,6 @@
   version = "v0.3.0"
 
 [[projects]]
-  name = "gopkg.in/giantswarm/gsclientgen.v1"
-  packages = ["."]
-  revision = "3b5b840fb616af1517127bdb32d13072b08d3faa"
-  version = "v1.0.0"
-
-[[projects]]
-  name = "gopkg.in/go-resty/resty.v0"
-  packages = ["."]
-  revision = "cf81ed0a604d373be63b4c036c6b05c06520615f"
-  version = "v0.13"
-
-[[projects]]
   branch = "v2"
   name = "gopkg.in/mgo.v2"
   packages = [
@@ -324,6 +311,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c5f38031f61a66922a67095120c135e3b854a30d9c4d1670ba8545d14128a853"
+  inputs-digest = "955550412cd71b5c4ead82afa9f5eba13539efcbcc9d7a930be2a7ec07d1f2a7"
   solver-name = "gps-cdcl"
   solver-version = 1
