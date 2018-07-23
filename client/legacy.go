@@ -76,9 +76,3 @@ func ParseGenericResponse(jsonBody []byte) (GenericResponse, error) {
 	}
 	return response, nil
 }
-
-// ModifyCluster calls the modifyCluster operation via the old client.
-func (c *Wrapper) ModifyCluster(clusterID string, body gsclientgenv1.V4ModifyClusterRequest, activityName string) (*gsclientgenv1.V4ClusterDetailsModel, *gsclientgenv1.APIResponse, error) {
-	response, apiResponse, err := c.client.ModifyCluster(c.authHeader, clusterID, body, c.requestID, activityName, getCommandLine())
-	return response, apiResponse, err
-}
