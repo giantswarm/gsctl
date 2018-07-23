@@ -12,8 +12,6 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/columnize"
-	gsclientgen "gopkg.in/giantswarm/gsclientgen.v1"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
@@ -63,14 +61,6 @@ var (
 	cmdWorkerStorageSizeGB float32
 )
 
-// APIError is an error type we use for errors generated after API requests
-type APIError struct {
-	// msg is the error message
-	msg string
-	// APIResponse is the response we got from the API
-	APIResponse gsclientgen.APIResponse
-}
-
 type cpuDefinition struct {
 	Cores int `yaml:"cores,omitempty"`
 }
@@ -108,26 +98,8 @@ type clusterDefinition struct {
 	Workers           []nodeDefinition `yaml:"workers,omitempty"`
 }
 
-func (e APIError) Error() string {
-	return e.msg
-}
-
 func init() {
 	rand.Seed(time.Now().UnixNano())
-}
-
-// dumpAPIResponse prints details on an API response, useful in case of an error
-func dumpAPIResponse(response gsclientgen.APIResponse) {
-	if response.Response == nil {
-		fmt.Println("No response received")
-	} else {
-		output := []string{}
-		fmt.Println("API request/response details:")
-		output = append(output, fmt.Sprintf("Operation:|%s (%s %s)", response.Operation, response.Method, response.RequestURL))
-		output = append(output, fmt.Sprintf("Status:|%s", response.Response.Status))
-		output = append(output, fmt.Sprintf("Response body:|%v", string(response.Payload)))
-		fmt.Println(columnize.SimpleFormat(output))
-	}
 }
 
 // askForConfirmation asks the user for confirmation. A user must type in "yes" or "no" and
