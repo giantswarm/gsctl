@@ -132,6 +132,23 @@ func New(err error) *APIError {
 		}
 	}
 
+	// get clusters
+	if getClustersUnauthorizedErr, ok := err.(*clusters.GetClustersUnauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  getClustersUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to list clusters for this organization.",
+		}
+	}
+	if getClustersDefaultErr, ok := err.(*clusters.GetClustersDefault); ok {
+		return &APIError{
+			HTTPStatusCode: getClustersDefaultErr.Code(),
+			OriginalError:  getClustersDefaultErr,
+			ErrorMessage:   getClustersDefaultErr.Error(),
+		}
+	}
+
 	// get cluster
 	if getClusterUnauthorizedErr, ok := err.(*clusters.GetClusterUnauthorized); ok {
 		return &APIError{
@@ -293,6 +310,8 @@ func New(err error) *APIError {
 
 		return ae
 	}
+
+	fmt.Printf("Error: %#v\n", err)
 
 	// Return unspecific error
 	ae := &APIError{

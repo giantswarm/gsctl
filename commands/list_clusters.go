@@ -12,6 +12,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -97,15 +98,24 @@ func listClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 // clustersTable returns a table of clusters the user has access to
 func clustersTable(args listClustersArguments) (string, error) {
-	clusters, apiResponse, err := Client.GetClusters(listClustersActivityName)
+	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = listClustersActivityName
+
+	response, err := ClientV2.GetClusters(auxParams)
 	if err != nil {
-		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
-			return "", microerror.Mask(accessForbiddenError)
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			switch clientErr.HTTPStatusCode {
+			case http.StatusUnauthorized:
+				return "", microerror.Mask(notAuthorizedError)
+			case http.StatusForbidden:
+				return "", microerror.Mask(accessForbiddenError)
+			}
 		}
-		return "", APIError{err.Error(), *apiResponse}
+
+		return "", microerror.Mask(err)
 	}
 
-	if len(clusters) == 0 {
+	if len(response.Payload) == 0 {
 		return "", nil
 	}
 	// table headers
@@ -118,11 +128,11 @@ func clustersTable(args listClustersArguments) (string, error) {
 	}, "|")}
 
 	// sort clusters by ID
-	slice.Sort(clusters[:], func(i, j int) bool {
-		return clusters[i].Id < clusters[j].Id
+	slice.Sort(response.Payload[:], func(i, j int) bool {
+		return response.Payload[i].ID < response.Payload[j].ID
 	})
 
-	for _, cluster := range clusters {
+	for _, cluster := range response.Payload {
 		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
 		releaseVersion := cluster.ReleaseVersion
 		if releaseVersion == "" {
@@ -130,7 +140,7 @@ func clustersTable(args listClustersArguments) (string, error) {
 		}
 
 		output = append(output, strings.Join([]string{
-			cluster.Id,
+			cluster.ID,
 			cluster.Owner,
 			cluster.Name,
 			releaseVersion,
