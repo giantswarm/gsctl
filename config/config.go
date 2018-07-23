@@ -542,24 +542,27 @@ func GetDefaultCluster(activityName, apiEndpoint string) (clusterID string, err 
 
 	authHeader := Config.Scheme + " " + Config.Token
 
-	clientConfig := client.Configuration{
+	clientConfig := &client.Configuration{
 		AuthHeader: authHeader,
 		Endpoint:   apiEndpoint,
 		Timeout:    10 * time.Second,
 		UserAgent:  UserAgent(),
 	}
-	apiClient, clientErr := client.New(clientConfig)
-	if clientErr != nil {
-		return "", microerror.Mask(clientErr)
+	apiClient, err := client.NewV2(clientConfig)
+	if err != nil {
+		return "", microerror.Mask(err)
 	}
 
-	clustersResponse, _, err := apiClient.GetClusters(activityName)
+	auxParams := apiClient.DefaultAuxiliaryParams()
+	auxParams.ActivityName = activityName
+
+	response, err := apiClient.GetClusters(auxParams)
 	if err != nil {
 		return "", err
 	}
 
-	if len(clustersResponse) == 1 {
-		return clustersResponse[0].Id, nil
+	if len(response.Payload) == 1 {
+		return response.Payload[0].ID, nil
 	}
 
 	return "", nil

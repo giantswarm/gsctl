@@ -64,8 +64,7 @@ func New(err error) *APIError {
 	// We first handle the most specific cases, which differ between operations.
 	// When adding support for more API operations to the client, add handling
 	// of any new specific error types here.
-	deleteAuthTokenUnauthorizedError, ok := err.(*auth_tokens.DeleteAuthTokenUnauthorized)
-	if ok {
+	if deleteAuthTokenUnauthorizedError, ok := err.(*auth_tokens.DeleteAuthTokenUnauthorized); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
 			OriginalError:  deleteAuthTokenUnauthorizedError,
@@ -75,8 +74,7 @@ func New(err error) *APIError {
 	}
 
 	// create auth token
-	createAuthTokenUnauthorizedError, ok := err.(*auth_tokens.CreateAuthTokenUnauthorized)
-	if ok {
+	if createAuthTokenUnauthorizedError, ok := err.(*auth_tokens.CreateAuthTokenUnauthorized); ok {
 		ae := &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
 			OriginalError:  createAuthTokenUnauthorizedError,
@@ -93,8 +91,7 @@ func New(err error) *APIError {
 	}
 
 	// create cluster
-	createClusterUnauthorizedErr, ok := err.(*clusters.AddClusterUnauthorized)
-	if ok {
+	if createClusterUnauthorizedErr, ok := err.(*clusters.AddClusterUnauthorized); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
 			OriginalError:  createClusterUnauthorizedErr,
@@ -102,8 +99,7 @@ func New(err error) *APIError {
 			ErrorDetails:   "You don't have permission to create a cluster for this organization.",
 		}
 	}
-	createClusterDefaultErr, ok := err.(*clusters.AddClusterDefault)
-	if ok {
+	if createClusterDefaultErr, ok := err.(*clusters.AddClusterDefault); ok {
 		ae := &APIError{
 			HTTPStatusCode: createClusterDefaultErr.Code(),
 			OriginalError:  createClusterDefaultErr,
@@ -121,8 +117,7 @@ func New(err error) *APIError {
 	}
 
 	// delete cluster
-	deleteClusterUnauthorizedErr, ok := err.(*clusters.DeleteClusterUnauthorized)
-	if ok {
+	if deleteClusterUnauthorizedErr, ok := err.(*clusters.DeleteClusterUnauthorized); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
 			OriginalError:  deleteClusterUnauthorizedErr,
@@ -130,8 +125,7 @@ func New(err error) *APIError {
 			ErrorDetails:   "You don't have permission to delete this cluster.",
 		}
 	}
-	deleteClusterDefaultErr, ok := err.(*clusters.DeleteClusterDefault)
-	if ok {
+	if deleteClusterDefaultErr, ok := err.(*clusters.DeleteClusterDefault); ok {
 		return &APIError{
 			HTTPStatusCode: deleteClusterDefaultErr.Code(),
 			OriginalError:  deleteClusterDefaultErr,
@@ -139,9 +133,50 @@ func New(err error) *APIError {
 		}
 	}
 
+	// get clusters
+	if getClustersUnauthorizedErr, ok := err.(*clusters.GetClustersUnauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  getClustersUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to list clusters for this organization.",
+		}
+	}
+	if getClustersDefaultErr, ok := err.(*clusters.GetClustersDefault); ok {
+		return &APIError{
+			HTTPStatusCode: getClustersDefaultErr.Code(),
+			OriginalError:  getClustersDefaultErr,
+			ErrorMessage:   getClustersDefaultErr.Error(),
+		}
+	}
+
+	// get cluster
+	if getClusterUnauthorizedErr, ok := err.(*clusters.GetClusterUnauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  getClusterUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to access this cluster's details.",
+		}
+	}
+	if getClusterNotFoundErr, ok := err.(*clusters.GetClusterNotFound); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusNotFound,
+			OriginalError:  getClusterNotFoundErr,
+			ErrorMessage:   "Cluster not found",
+			ErrorDetails:   "The cluster with the given ID does not exist.",
+		}
+	}
+	if getClusterDefaultErr, ok := err.(*clusters.GetClusterDefault); ok {
+		return &APIError{
+			HTTPStatusCode: getClusterDefaultErr.Code(),
+			OriginalError:  getClusterDefaultErr,
+			ErrorMessage:   getClusterDefaultErr.Error(),
+		}
+	}
+
 	// create key pair
-	createKeyPairUnauthorizedErr, ok := err.(*key_pairs.AddKeyPairUnauthorized)
-	if ok {
+	if createKeyPairUnauthorizedErr, ok := err.(*key_pairs.AddKeyPairUnauthorized); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
 			OriginalError:  createKeyPairUnauthorizedErr,
@@ -168,8 +203,7 @@ func New(err error) *APIError {
 	}
 
 	// get info
-	getInfoUnauthorizedErr, ok := err.(*info.GetInfoUnauthorized)
-	if ok {
+	if getInfoUnauthorizedErr, ok := err.(*info.GetInfoUnauthorized); ok {
 		return &APIError{
 			ErrorMessage:   "Unauthorized",
 			ErrorDetails:   "You don't have permission to get information on this installation.",
@@ -177,8 +211,7 @@ func New(err error) *APIError {
 			OriginalError:  getInfoUnauthorizedErr,
 		}
 	}
-	getInfoDefaultErr, ok := err.(*info.GetInfoDefault)
-	if ok {
+	if getInfoDefaultErr, ok := err.(*info.GetInfoDefault); ok {
 		return &APIError{
 			ErrorMessage:   getInfoDefaultErr.Error(),
 			HTTPStatusCode: getInfoDefaultErr.Code(),
@@ -187,8 +220,7 @@ func New(err error) *APIError {
 	}
 
 	// get releases
-	getReleasesUnauthorized, ok := err.(*releases.GetReleasesUnauthorized)
-	if ok {
+	if getReleasesUnauthorized, ok := err.(*releases.GetReleasesUnauthorized); ok {
 		return &APIError{
 			ErrorMessage:   "Unauthorized",
 			ErrorDetails:   "You don't have permission to list releases on this installation.",
@@ -215,8 +247,7 @@ func New(err error) *APIError {
 	}
 
 	// HTTP level error cases
-	runtimeAPIError, runtimeAPIErrorOK := err.(*runtime.APIError)
-	if runtimeAPIErrorOK {
+	if runtimeAPIError, ok := err.(*runtime.APIError); ok {
 		ae := &APIError{
 			HTTPStatusCode: runtimeAPIError.Code,
 			OriginalError:  runtimeAPIError,
@@ -249,8 +280,7 @@ func New(err error) *APIError {
 
 	// Errors on levels lower than HTTP
 	// is url.Error.
-	urlError, urlErrorOK := err.(*url.Error)
-	if urlErrorOK {
+	if urlError, ok := err.(*url.Error); ok {
 		ae := &APIError{
 			OriginalError: urlError,
 			URL:           urlError.URL,
@@ -258,13 +288,11 @@ func New(err error) *APIError {
 		}
 
 		// is net.OpError
-		netOpError, netOpErrorOK := urlError.Err.(*net.OpError)
-		if netOpErrorOK {
+		if netOpError, netOpErrorOK := urlError.Err.(*net.OpError); netOpErrorOK {
 			ae.OriginalError = netOpError
 
 			// is net.DNSError
-			netDNSError, netDNSErrorOK := netOpError.Err.(*net.DNSError)
-			if netDNSErrorOK {
+			if netDNSError, netDNSErrorOK := netOpError.Err.(*net.DNSError); netDNSErrorOK {
 				ae.OriginalError = netDNSError
 				ae.IsTemporary = netDNSError.IsTemporary
 				ae.IsTimeout = netDNSError.IsTimeout
@@ -300,6 +328,8 @@ func New(err error) *APIError {
 
 		return ae
 	}
+
+	fmt.Printf("Error: %#v\n", err)
 
 	// Return unspecific error
 	ae := &APIError{
