@@ -359,21 +359,22 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, error) {
 	result := createKubeconfigResult{}
 
+	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = createKubeconfigActivityName
+
 	// get cluster details
-	clusterDetailsResponse, apiResponse, err := Client.GetCluster(
-		args.clusterID,
-		createKubeconfigActivityName)
+
+	clusterDetailsResponse, err := ClientV2.GetCluster(args.clusterID, auxParams)
 	if err != nil {
-		var errorMessage string
-		if apiResponse.Response != nil {
-			errorMessage = fmt.Sprintf("HTTP status: %d", apiResponse.StatusCode)
-		} else {
-			errorMessage = "No response received from the API"
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			return result, microerror.Maskf(clientErr,
+				fmt.Sprintf("HTTP Status: %d, %s", clientErr.HTTPStatusCode, clientErr.ErrorMessage))
 		}
-		return result, microerror.Maskf(err, errorMessage)
+
+		return result, microerror.Mask(err)
 	}
 
-	result.apiEndpoint = clusterDetailsResponse.ApiEndpoint
+	result.apiEndpoint = clusterDetailsResponse.Payload.APIEndpoint
 
 	addKeyPairBody := &models.V4AddKeyPairRequest{
 		Description:              &args.description,
@@ -381,8 +382,6 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 		CnPrefix:                 args.cnPrefix,
 		CertificateOrganizations: args.certOrgs,
 	}
-	auxParams := ClientV2.DefaultAuxiliaryParams()
-	auxParams.ActivityName = createKubeconfigActivityName
 
 	response, err := ClientV2.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
 
@@ -416,7 +415,7 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 		result.contextName = args.contextName
 
 		// edit kubectl config
-		if err := util.KubectlSetCluster(args.clusterID, clusterDetailsResponse.ApiEndpoint, result.caCertPath); err != nil {
+		if err := util.KubectlSetCluster(args.clusterID, result.apiEndpoint, result.caCertPath); err != nil {
 			return result, microerror.Mask(util.CouldNotSetKubectlClusterError)
 		}
 		if err := util.KubectlSetCredentials(args.clusterID, result.clientKeyPath, result.clientCertPath); err != nil {
