@@ -193,6 +193,14 @@ type paramSetter interface {
 	SetXGiantSwarmCmdLine(*string)
 }
 
+// paramSetterWithAuthorization is the interface we use to abstract
+// parameter types that include a SetAuthorization function.
+type paramSetterWithAuthorization interface {
+	paramSetter
+
+	SetAuthorization(string)
+}
+
 // setParams takes parameters from an AuxiliaryParams input, and from the
 // client wrapper (or rather it's config) and sets request parameters
 // accordingly, independent of type.
@@ -228,6 +236,18 @@ func setParams(p *AuxiliaryParams, w *WrapperV2, params paramSetter) {
 			params.SetXRequestID(&p.RequestID)
 		}
 	}
+}
+
+// setParamsWithAuthorization does the same as setParams, but also sets
+// an Autorization header if configured.
+func setParamsWithAuthorization(p *AuxiliaryParams, w *WrapperV2, params paramSetterWithAuthorization) {
+	if w != nil && w.conf != nil {
+		if w.conf.AuthHeader != "" {
+			params.SetAuthorization(w.conf.AuthHeader)
+		}
+	}
+
+	setParams(p, w, params)
 }
 
 // CreateAuthToken creates an auth token using the latest client.
@@ -274,10 +294,7 @@ func (w *WrapperV2) CreateCluster(addClusterRequest *models.V4AddClusterRequest,
 	}
 
 	params := clusters.NewAddClusterParams().WithBody(addClusterRequest)
-	setParams(p, w, params)
-	if w.conf.AuthHeader != "" {
-		params.SetAuthorization(w.conf.AuthHeader)
-	}
+	setParamsWithAuthorization(p, w, params)
 
 	response, err := w.gsclient.Clusters.AddCluster(params, nil)
 	if err != nil {
@@ -294,10 +311,7 @@ func (w *WrapperV2) DeleteCluster(clusterID string, p *AuxiliaryParams) (*cluste
 	}
 
 	params := clusters.NewDeleteClusterParams().WithClusterID(clusterID)
-	setParams(p, w, params)
-	if w.conf.AuthHeader != "" {
-		params.SetAuthorization(w.conf.AuthHeader)
-	}
+	setParamsWithAuthorization(p, w, params)
 
 	response, err := w.gsclient.Clusters.DeleteCluster(params, nil)
 	if err != nil {
@@ -313,8 +327,8 @@ func (w *WrapperV2) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, er
 		return nil, microerror.Mask(clientV2NotInitializedError)
 	}
 
-	params := clusters.NewGetClustersParams().WithAuthorization(w.conf.AuthHeader)
-	setParams(p, w, params)
+	params := clusters.NewGetClustersParams()
+	setParamsWithAuthorization(p, w, params)
 
 	response, err := w.gsclient.Clusters.GetClusters(params, nil)
 	if err != nil {
@@ -331,12 +345,26 @@ func (w *WrapperV2) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4
 	}
 
 	params := key_pairs.NewAddKeyPairParams().WithClusterID(clusterID).WithBody(addKeyPairRequest)
-	setParams(p, w, params)
-	if w.conf.AuthHeader != "" {
-		params.SetAuthorization(w.conf.AuthHeader)
-	}
+	setParamsWithAuthorization(p, w, params)
 
 	response, err := w.gsclient.KeyPairs.AddKeyPair(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+// GetKeyPairs calls the API to fetch key pairs.
+func (w *WrapperV2) GetKeyPairs(clusterID string, p *AuxiliaryParams) (*key_pairs.GetKeyPairsOK, error) {
+	if w == nil {
+		return nil, microerror.Mask(clientV2NotInitializedError)
+	}
+
+	params := key_pairs.NewGetKeyPairsParams().WithClusterID(clusterID)
+	setParamsWithAuthorization(p, w, params)
+
+	response, err := w.gsclient.KeyPairs.GetKeyPairs(params, nil)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -351,10 +379,7 @@ func (w *WrapperV2) GetInfo(p *AuxiliaryParams) (*info.GetInfoOK, error) {
 	}
 
 	params := info.NewGetInfoParams()
-	setParams(p, w, params)
-	if w.conf.AuthHeader != "" {
-		params.SetAuthorization(w.conf.AuthHeader)
-	}
+	setParamsWithAuthorization(p, w, params)
 
 	response, err := w.gsclient.Info.GetInfo(params, nil)
 	if err != nil {
@@ -371,10 +396,7 @@ func (w *WrapperV2) GetReleases(p *AuxiliaryParams) (*releases.GetReleasesOK, er
 	}
 
 	params := releases.NewGetReleasesParams()
-	setParams(p, w, params)
-	if w.conf.AuthHeader != "" {
-		params.SetAuthorization(w.conf.AuthHeader)
-	}
+	setParamsWithAuthorization(p, w, params)
 
 	response, err := w.gsclient.Releases.GetReleases(params, nil)
 	if err != nil {

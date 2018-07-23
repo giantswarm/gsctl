@@ -166,6 +166,23 @@ func New(err error) *APIError {
 		}
 	}
 
+	// get key pairs
+	if getKeyPairsUnauthorizedErr, ok := err.(*key_pairs.GetKeyPairsUnauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  getKeyPairsUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to list key pairs for this cluster.",
+		}
+	}
+	if getKeyPairsDefaultErr, ok := err.(*key_pairs.GetKeyPairsDefault); ok {
+		return &APIError{
+			HTTPStatusCode: getKeyPairsDefaultErr.Code(),
+			OriginalError:  getKeyPairsDefaultErr,
+			ErrorMessage:   getKeyPairsDefaultErr.Error(),
+		}
+	}
+
 	// get info
 	getInfoUnauthorizedErr, ok := err.(*info.GetInfoUnauthorized)
 	if ok {
