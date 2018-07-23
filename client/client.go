@@ -15,6 +15,7 @@ import (
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/client/info"
 	"github.com/giantswarm/gsclientgen/client/key_pairs"
+	"github.com/giantswarm/gsclientgen/client/organizations"
 	"github.com/giantswarm/gsclientgen/client/releases"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/gsctl/client/clienterror"
@@ -382,6 +383,23 @@ func (w *WrapperV2) GetReleases(p *AuxiliaryParams) (*releases.GetReleasesOK, er
 	setParamsWithAuthorization(p, w, params)
 
 	response, err := w.gsclient.Releases.GetReleases(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+// GetOrganizations calls the API's getOrganizations operation using the new client.
+func (w *WrapperV2) GetOrganizations(p *AuxiliaryParams) (*organizations.GetOrganizationsOK, error) {
+	if w == nil {
+		return nil, microerror.Mask(clientV2NotInitializedError)
+	}
+
+	params := organizations.NewGetOrganizationsParams()
+	setParamsWithAuthorization(p, w, params)
+
+	response, err := w.gsclient.Organizations.GetOrganizations(params, nil)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
