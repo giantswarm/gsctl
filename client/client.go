@@ -321,7 +321,7 @@ func (w *WrapperV2) DeleteCluster(clusterID string, p *AuxiliaryParams) (*cluste
 	return response, nil
 }
 
-// GetClusters fetches a list of all clusters via the new client.
+// GetClusters fetches details on a cluster using the latest client.
 func (w *WrapperV2) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, error) {
 	if w == nil {
 		return nil, microerror.Mask(clientV2NotInitializedError)
@@ -331,6 +331,23 @@ func (w *WrapperV2) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, er
 	setParamsWithAuthorization(p, w, params)
 
 	response, err := w.gsclient.Clusters.GetClusters(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+// GetCluster fetches details on a cluster using the latest client.
+func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.GetClusterOK, error) {
+	if w == nil {
+		return nil, microerror.Mask(clientV2NotInitializedError)
+	}
+
+	params := clusters.NewGetClusterParams().WithClusterID(clusterID)
+	setParamsWithAuthorization(p, w, params)
+
+	response, err := w.gsclient.Clusters.GetCluster(params, nil)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}

@@ -77,12 +77,6 @@ func ParseGenericResponse(jsonBody []byte) (GenericResponse, error) {
 	return response, nil
 }
 
-// GetCluster calls the getCluster operation via the old client.
-func (c *Wrapper) GetCluster(clusterID string, activityName string) (*gsclientgenv1.V4ClusterDetailsModel, *gsclientgenv1.APIResponse, error) {
-	response, apiResponse, err := c.client.GetCluster(c.authHeader, clusterID, c.requestID, activityName, getCommandLine())
-	return response, apiResponse, err
-}
-
 // GetUserOrganizations calls the getUserOrganization operation via the old client.
 func (c *Wrapper) GetUserOrganizations(activityName string) ([]gsclientgenv1.V4OrganizationListItem, *gsclientgenv1.APIResponse, error) {
 	response, apiResponse, err := c.client.GetUserOrganizations(c.authHeader, c.requestID, activityName, getCommandLine())
