@@ -305,6 +305,19 @@ func (w *WrapperV2) CreateCluster(addClusterRequest *models.V4AddClusterRequest,
 	return response, nil
 }
 
+// ModifyCluster modifies a cluster using the latest client.
+func (w *WrapperV2) ModifyCluster(clusterID string, body *models.V4ModifyClusterRequest, p *AuxiliaryParams) (*clusters.ModifyClusterOK, error) {
+	params := clusters.NewModifyClusterParams().WithClusterID(clusterID).WithBody(body)
+	setParamsWithAuthorization(p, w, params)
+
+	response, err := w.gsclient.Clusters.ModifyCluster(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
 // DeleteCluster deletes a cluster using the latest client.
 func (w *WrapperV2) DeleteCluster(clusterID string, p *AuxiliaryParams) (*clusters.DeleteClusterAccepted, error) {
 	if w == nil {
