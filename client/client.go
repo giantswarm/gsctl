@@ -396,17 +396,8 @@ func (w *WrapperV2) GetReleases(p *AuxiliaryParams) (*releases.GetReleasesOK, er
 	return response, nil
 }
 
-<<<<<<< HEAD
-// GetOrganizations calls the API's getOrganizations operation using the V2 client.
-func (w *WrapperV2) GetOrganizations(p *AuxiliaryParams) (*organizations.GetOrganizationsOK, error) {
-	if w == nil {
-		return nil, microerror.Mask(clientV2NotInitializedError)
-	}
-
-=======
 // GetOrganizations calls the API's getOrganizations operation using the new client.
 func (w *WrapperV2) GetOrganizations(p *AuxiliaryParams) (*organizations.GetOrganizationsOK, error) {
->>>>>>> master
 	params := organizations.NewGetOrganizationsParams()
 	setParamsWithAuthorization(p, w, params)
 
