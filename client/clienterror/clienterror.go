@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/client/info"
 	"github.com/giantswarm/gsclientgen/client/key_pairs"
+	"github.com/giantswarm/gsclientgen/client/organizations"
 	"github.com/giantswarm/gsclientgen/client/releases"
 )
 
@@ -225,6 +226,23 @@ func New(err error) *APIError {
 			ErrorDetails:   "You don't have permission to list releases on this installation.",
 			HTTPStatusCode: http.StatusUnauthorized,
 			OriginalError:  getReleasesUnauthorized,
+		}
+	}
+
+	// get organizations
+	if getOrganizationsUnauthorized, ok := err.(*organizations.GetOrganizationsUnauthorized); ok {
+		return &APIError{
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to list organizations in this installation.",
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  getOrganizationsUnauthorized,
+		}
+	}
+	if getOrganizationsDefault, ok := err.(*organizations.GetOrganizationsDefault); ok {
+		return &APIError{
+			ErrorMessage:   getOrganizationsDefault.Error(),
+			HTTPStatusCode: getOrganizationsDefault.Code(),
+			OriginalError:  getOrganizationsDefault,
 		}
 	}
 
