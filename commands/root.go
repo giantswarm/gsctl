@@ -18,10 +18,6 @@ var RootCommand = &cobra.Command{
 }
 
 var (
-	// Client is the legacy client wrapper we create for all commands to use
-	// TODO: Remove once the client transition is done
-	Client *client.Wrapper
-
 	// ClientV2 is the latest client wrapper we create for all commands to use
 	ClientV2 *client.WrapperV2
 
@@ -69,12 +65,6 @@ func initClient() error {
 	}
 
 	var err error
-	// TODO: Remove once the client transition is done
-	Client, err = client.New(*ClientConfig)
-	if err != nil {
-		return microerror.Maskf(couldNotCreateClientError, err.Error())
-	}
-
 	ClientV2, err = client.NewV2(ClientConfig)
 	if err != nil {
 		return microerror.Maskf(couldNotCreateClientError, err.Error())

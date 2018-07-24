@@ -78,9 +78,13 @@ func verifyListOrgsPreconditions(args listOrgsArguments) error {
 func listOrgsRunOutput(cmd *cobra.Command, args []string) {
 	output, err := orgsTable()
 	if err != nil {
-		fmt.Println(color.RedString("Error: %s", err))
-		if _, ok := err.(APIError); ok {
-			dumpAPIResponse((err).(APIError).APIResponse)
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			fmt.Println(color.RedString(clientErr.ErrorMessage))
+			if clientErr.ErrorDetails != "" {
+				fmt.Println(clientErr.ErrorDetails)
+			}
+		} else {
+			fmt.Println(color.RedString("Error: %s", err.Error()))
 		}
 		os.Exit(1)
 	}
