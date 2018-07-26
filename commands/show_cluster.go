@@ -199,11 +199,11 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	// This assumes all nodes use the same instance type.
 	if len(clusterDetails.Workers) > 0 {
-		if clusterDetails.Workers[0].Aws.InstanceType != "" {
+		if clusterDetails.Workers[0].Aws != nil && clusterDetails.Workers[0].Aws.InstanceType != "" {
 			output = append(output, color.YellowString("Worker instance type:")+"|"+clusterDetails.Workers[0].Aws.InstanceType)
 		}
 
-		if clusterDetails.Workers[0].Azure.VMSize != "" {
+		if clusterDetails.Workers[0].Azure != nil && clusterDetails.Workers[0].Azure.VMSize != "" {
 			output = append(output, color.YellowString("Worker VM size:")+"|"+clusterDetails.Workers[0].Azure.VMSize)
 		}
 	}
@@ -212,7 +212,7 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	output = append(output, color.YellowString("RAM in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerMemory(clusterDetails.Workers)))
 	output = append(output, color.YellowString("Storage in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerStorage(clusterDetails.Workers)))
 
-	if len(clusterDetails.Kvm.PortMappings) > 0 {
+	if clusterDetails.Kvm != nil && len(clusterDetails.Kvm.PortMappings) > 0 {
 		for _, portMapping := range clusterDetails.Kvm.PortMappings {
 			output = append(output, color.YellowString(fmt.Sprintf("Ingress port for %s:", portMapping.Protocol))+"|"+fmt.Sprintf("%d", portMapping.Port))
 		}
