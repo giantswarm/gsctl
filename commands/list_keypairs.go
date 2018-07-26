@@ -155,13 +155,19 @@ func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
 		output = append(output, strings.Join(headers, "|"))
 
 		for _, keypair := range result.keypairs {
-			created := util.ParseDate(keypair.CreateDate)
-			expires := util.ParseDate(keypair.CreateDate).Add(time.Duration(keypair.TTLHours) * time.Hour)
+			createdTime := util.ParseDate(keypair.CreateDate)
+			expiryTime := createdTime.Add(time.Duration(keypair.TTLHours) * time.Hour)
+			expiryDuration := expiryTime.Sub(time.Now())
+			expires := util.ShortDate(expiryTime)
+
+			if expiryDuration < (24 * time.Hour) {
+				expires = color.YellowString(expires)
+			}
 
 			// Idea: skip if expired, or only display when verbose
 			row := []string{
-				util.ShortDate(created),
-				util.ShortDate(expires),
+				util.ShortDate(createdTime),
+				expires,
 				util.Truncate(util.CleanKeypairID(keypair.ID), 10, !args.full),
 				keypair.Description,
 				util.Truncate(keypair.CommonName, 24, !args.full),
