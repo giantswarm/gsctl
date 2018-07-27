@@ -41,3 +41,11 @@ var InvalidDurationStringError = errgo.New("could not parse duration string")
 func IsInvalidDurationStringError(err error) bool {
 	return errgo.Cause(err) == InvalidDurationStringError
 }
+
+// durationExceededError is thrown when a duration value is larger than can be represented internally
+var durationExceededError = errgo.New("duration limit exceeded")
+
+// IsDurationExceededError asserts durationExceededError
+func IsDurationExceededError(err error) bool {
+	return errgo.Cause(err) == durationExceededError
+}
