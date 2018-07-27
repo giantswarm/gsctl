@@ -340,6 +340,14 @@ func IsInvalidDurationError(err error) bool {
 	return errgo.Cause(err) == invalidDurationError
 }
 
+// durationExceededError is thrown when a duration value is larger than can be represented internally
+var durationExceededError = errgo.New("duration limit exceeded")
+
+// IsDurationExceededError asserts durationExceededError
+func IsDurationExceededError(err error) bool {
+	return errgo.Cause(err) == durationExceededError
+}
+
 // ssoError means something went wrong during the SSO process
 var ssoError = errgo.New("sso error")
 

@@ -55,8 +55,12 @@ func defaultCreateKeypairArguments() (createKeypairArguments, error) {
 	}
 
 	ttl, err := util.ParseDuration(cmdTTL)
-	if err != nil {
+	if IsInvalidDurationError(err) {
 		return createKeypairArguments{}, microerror.Mask(invalidDurationError)
+	} else if IsDurationExceededError(err) {
+		return createKeypairArguments{}, microerror.Mask(durationExceededError)
+	} else if err != nil {
+		return createKeypairArguments{}, microerror.Mask(durationExceededError)
 	}
 
 	return createKeypairArguments{
@@ -104,6 +108,9 @@ func createKeyPairPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		if IsInvalidDurationError(argsErr) {
 			fmt.Println(color.RedString("The value passed with --ttl is invalid."))
 			fmt.Println("Please provide a number and a unit, e. g. '10h', '1d', '1w'.")
+		} else if IsDurationExceededError(argsErr) {
+			fmt.Println(color.RedString("The expiration period passed with --ttl is too long."))
+			fmt.Println("The maximum possible value is the eqivalent of 292 years.")
 		} else {
 			fmt.Println(color.RedString(argsErr.Error()))
 		}
