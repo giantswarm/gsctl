@@ -50,6 +50,13 @@ func TestParseDuration(t *testing.T) {
 		{"1w", 7 * 24 * time.Hour},
 		{"1m", 30 * 24 * time.Hour},
 		{"1y", 365 * 24 * time.Hour},
+		{"10y", 10 * 365 * 24 * time.Hour},
+		{"100y", 100 * 365 * 24 * time.Hour},
+		{"2562047h", 2562047 * time.Hour},
+		{"106751d", 106751 * 24 * time.Hour},
+		{"15250w", 15250 * 7 * 24 * time.Hour},
+		{"3558m", 3558 * 30 * 24 * time.Hour},
+		{"292y", 292 * 365 * 24 * time.Hour},
 	}
 
 	for _, tc := range testCases {
@@ -58,6 +65,29 @@ func TestParseDuration(t *testing.T) {
 			t.Errorf("Value '%s' yielded error: '%s'", tc.in, err)
 		} else if duration != tc.out {
 			t.Errorf("Value '%s', got '%v', wanted '%v'", tc.in, duration, tc.out)
+		}
+	}
+}
+
+// TestParseDurationError tests the parsing of durations which is supposed to fail
+func TestParseDurationError(t *testing.T) {
+	testCases := []struct {
+		in           string
+		errorMatcher func(error) bool
+	}{
+		{"", IsInvalidDurationStringError},
+		{"10f", IsInvalidDurationStringError},
+		{"293y", IsDurationExceededError},
+		{"3559m", IsDurationExceededError},
+		{"15251w", IsDurationExceededError},
+		{"106752d", IsDurationExceededError},
+		{"2562048h", IsDurationExceededError},
+	}
+
+	for _, tc := range testCases {
+		_, err := ParseDuration(tc.in)
+		if !tc.errorMatcher(err) {
+			t.Errorf("test case '%s': Expected error, got '%#v'", tc.in, err)
 		}
 	}
 }
