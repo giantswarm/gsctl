@@ -319,6 +319,10 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		case IsCouldNotWriteFileError(err):
 			headline = "Error: File could not be written"
 			subtext = fmt.Sprintf("Details: %s", err.Error())
+		case IsBadRequestError(err):
+			headline = "API Error 400: Bad Request"
+			subtext = "The key pair could not be created with the given parameters. Please try a shorter expiry period (--ttl)\n"
+			subtext += "and check the other arguments, too. Please contact the Giant Swarm support team if you need assistance."
 		default:
 			headline = err.Error()
 		}
@@ -401,6 +405,8 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 				return result, microerror.Mask(clusterNotFoundError)
 			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
 				return result, microerror.Mask(accessForbiddenError)
+			} else if clientErr.HTTPStatusCode == http.StatusBadRequest {
+				return result, microerror.Maskf(badRequestError, clientErr.ErrorDetails)
 			}
 		}
 

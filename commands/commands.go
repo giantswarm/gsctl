@@ -138,8 +138,7 @@ func handleCommonErrors(err error) {
 	var subtext = ""
 
 	// V2 client error handling
-	convertedErr, ok := err.(*clienterror.APIError)
-	if ok {
+	if convertedErr, ok := err.(*clienterror.APIError); ok {
 		headline = convertedErr.ErrorMessage
 		subtext = convertedErr.ErrorDetails
 	} else {
