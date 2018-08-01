@@ -46,7 +46,7 @@ func runPingCommand(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println(color.GreenString("API connection is fine"))
-	fmt.Printf("Ping took %d Milliseconds\n", int(duration.Seconds()*1000))
+	fmt.Printf("Ping took %d Milliseconds\n", duration/time.Millisecond)
 }
 
 // ping checks the API connection and returns
