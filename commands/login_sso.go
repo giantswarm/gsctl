@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -18,6 +19,8 @@ func loginSSO(args loginArguments) (loginResult, error) {
 
 	pkceResponse, err := pkce.Run()
 	if err != nil {
+		fmt.Printf("DEBUG Error in pkce.Run(): %#v\n", err)
+		fmt.Printf("DEBUG pkce.Run() pkceResponse.ErrorDescription: %#v\n", pkceResponse.ErrorDescription)
 		return loginResult{}, microerror.Maskf(ssoError, pkceResponse.ErrorDescription)
 	}
 
@@ -30,14 +33,17 @@ func loginSSO(args loginArguments) (loginResult, error) {
 	// Check if the access token works by fetching the installation's name.
 	alias, err := getAlias(args.apiEndpoint, "Bearer", pkceResponse.AccessToken)
 	if err != nil {
+		fmt.Printf("DEBUG Error in getAlias: %#v\n", err)
 		return loginResult{}, microerror.Maskf(ssoError, "Unable to fetch installation information. Our api might be experiencing difficulties")
 	}
 
 	// Store the token in the config file.
 	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, alias, idToken.Email, "Bearer", pkceResponse.AccessToken); err != nil {
+		fmt.Printf("DEBUG Error in StoreEndpointAuth: %#v\n", err)
 		return loginResult{}, microerror.Maskf(ssoError, "Error while attempting to store the token in the config file")
 	}
 	if err := config.Config.SelectEndpoint(args.apiEndpoint); err != nil {
+		fmt.Printf("DEBUG Error in SelectEndpoint: %#v\n", err)
 		return loginResult{}, microerror.Mask(err)
 	}
 
