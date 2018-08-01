@@ -54,12 +54,12 @@ func runPingCommand(cmd *cobra.Command, args []string) {
 func ping(endpointURL string) (time.Duration, error) {
 	var duration time.Duration
 
-	// create URI
+	// create root URI for the endpoint
 	u, err := url.Parse(endpointURL)
 	if err != nil {
 		return duration, microerror.Mask(err)
 	}
-	u, err = u.Parse("/v1/ping")
+	u, err = u.Parse("/")
 	if err != nil {
 		return duration, microerror.Mask(err)
 	}
