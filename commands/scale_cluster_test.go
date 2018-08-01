@@ -41,10 +41,7 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 }
 
 // TestScaleCluster tests scaling a cluster under normal conditions:
-// user logged in,
-// The test is more invoved than it should be, as the API currently
-// does not return cluster details with the PATCH response.
-// See https://github.com/giantswarm/api/issues/437
+// user logged in.
 func TestScaleCluster(t *testing.T) {
 	var numWorkersDesired = 5
 
