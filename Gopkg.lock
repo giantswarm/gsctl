@@ -2,10 +2,10 @@
 
 
 [[projects]]
-  branch = "master"
   name = "github.com/Jeffail/gabs"
   packages = ["."]
   revision = "7a0fed31069aba77993a518cc2f37b28ee7aa883"
+  version = "1.1"
 
 [[projects]]
   name = "github.com/PuerkitoBio/purell"
@@ -52,8 +52,8 @@
 [[projects]]
   name = "github.com/fatih/color"
   packages = ["."]
-  revision = "507f6050b8568533fb3f5504de8e5205fa62a114"
-  version = "v1.6.0"
+  revision = "5b77d2a35fb0ede96d138fc9a99f5c9b6aef11b4"
+  version = "v1.7.0"
 
 [[projects]]
   name = "github.com/giantswarm/columnize"
@@ -81,40 +81,39 @@
   branch = "master"
   name = "github.com/giantswarm/microerror"
   packages = ["."]
-  revision = "325932fa68e70dd4464598f11e2f710ac1aaec46"
+  revision = "a8d5d4f526c526b4b773062958847fe7e0b7f449"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/analysis"
   packages = ["."]
-  revision = "a300ac7e9cfde2614eb71f7fe78ea4514bb14cfa"
+  revision = "3c8fe72ed5d307113ef76c7c3035964d7e4d4b73"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/errors"
   packages = ["."]
   revision = "b2b2befaf267d082d779bcef52d682a47c779517"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/jsonpointer"
   packages = ["."]
   revision = "3a0015ad55fa9873f41605d3e8f28cd279c32ab2"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/jsonreference"
   packages = ["."]
   revision = "3fb327e6747da3043567ee86abd02bb6376b6be2"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/loads"
   packages = ["."]
   revision = "2a2b323bab96e6b1fdee110e57d959322446e9c9"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/runtime"
   packages = [
     ".",
@@ -127,36 +126,37 @@
     "security"
   ]
   revision = "9a3091f566c0811ef4d54b535179bc0fc484a11f"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/spec"
   packages = ["."]
-  revision = "ac0b6b8f99a45e327038d5a3daa810cbf6e6806c"
+  revision = "bce47c9386f9ecd6b86f450478a80103c3fe1402"
+  version = "0.15.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/strfmt"
   packages = ["."]
   revision = "913ee058e387ac83a67e2d9f13acecdcd5769fc6"
+  version = "0.15.0"
 
 [[projects]]
   branch = "master"
   name = "github.com/go-openapi/swag"
   packages = ["."]
-  revision = "2b0bd4f193d011c203529df626a65d63cb8a79e8"
+  revision = "becd2f08beafcca035645a8a101e0e3e18140458"
 
 [[projects]]
-  branch = "master"
   name = "github.com/go-openapi/validate"
   packages = ["."]
   revision = "9a6e517cddf1ddd47449be5d06a6a786e51d9986"
+  version = "0.15.0"
 
 [[projects]]
   name = "github.com/gobuffalo/packr"
   packages = ["."]
-  revision = "bd47f2894846e32edcf9aa37290fef76c327883f"
-  version = "v1.11.1"
+  revision = "9e76dbe10b00dd1fa8f29cfa4fac72297beb32a4"
+  version = "v1.12.1"
 
 [[projects]]
   branch = "master"
@@ -190,7 +190,7 @@
     "jlexer",
     "jwriter"
   ]
-  revision = "3fdea8d05856a0c8df22ed4bc71b3219245e4485"
+  revision = "03f2033d19d5860aef995fe360ac7d395cd8ce65"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -208,13 +208,13 @@
   branch = "master"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
-  revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
+  revision = "3864e76763d94a6df2f9960b16a20a33da9f9a66"
 
 [[projects]]
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
-  revision = "bb74f1db0675b241733089d5a1faa5dd8b0ef57b"
+  revision = "f15292f7a699fcc1a38a80977f80a046874ba8ac"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -232,7 +232,7 @@
   branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
+  revision = "7c4570c3ebeb8129a1f7456d0908a8b676b6f9f1"
 
 [[projects]]
   name = "github.com/spf13/pflag"
@@ -250,7 +250,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "94e3fad7f1b4eed4ec147751ad6b4c4d33f00611"
+  revision = "c126467f60eb25f8f27e5a981f32a87e3965053f"
 
 [[projects]]
   branch = "master"
@@ -260,7 +260,7 @@
     "context/ctxhttp",
     "idna"
   ]
-  revision = "2491c5de3490fced2f6cff376127c667efeed857"
+  revision = "49c15d80dfbc983ea25246ee959d970efe09ec09"
 
 [[projects]]
   branch = "master"
@@ -269,7 +269,7 @@
     "unix",
     "windows"
   ]
-  revision = "d0faeb539838e250bd0a9db4182d48d4a1915181"
+  revision = "bd9dbc187b6e1dacfdd2722a87e83093c2d7bd6e"
 
 [[projects]]
   name = "golang.org/x/text"

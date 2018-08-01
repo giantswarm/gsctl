@@ -1,26 +1,32 @@
 package pkce
 
-import "github.com/juju/errgo"
+import "github.com/giantswarm/microerror"
 
-var authorizationError = errgo.New("authorization error")
+var authorizationError = &microerror.Error{
+	Kind: "authorizationError",
+}
 
 // IsAuthorizationError asserts authorizationError.
 func IsAuthorizationError(err error) bool {
-	return errgo.Cause(err) == authorizationError
+	return microerror.Cause(err) == authorizationError
 }
 
 // To be used when a token's signature or syntax is invalid
-var tokenInvalidError = errgo.New("token invalid")
+var tokenInvalidError = &microerror.Error{
+	Kind: "tokenInvalidError",
+}
 
 // IsTokenInvalidError asserts tokenInvalidError.
 func IsTokenInvalidError(err error) bool {
-	return errgo.Cause(err) == tokenInvalidError
+	return microerror.Cause(err) == tokenInvalidError
 }
 
 // To be used when a token's iat claim (issued at) is bad
-var tokenIssuedAtError = errgo.New("token issued at invalid time")
+var tokenIssuedAtError = &microerror.Error{
+	Kind: "tokenIssuedAtError",
+}
 
 // IsTokenIssuedAtError asserts tokenIssuedAtError.
 func IsTokenIssuedAtError(err error) bool {
-	return errgo.Cause(err) == tokenIssuedAtError
+	return microerror.Cause(err) == tokenIssuedAtError
 }
