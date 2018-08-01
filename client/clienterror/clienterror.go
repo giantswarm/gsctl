@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 
@@ -329,7 +330,21 @@ func New(err error) *APIError {
 		return ae
 	}
 
-	fmt.Printf("Error: %#v\n", err)
+	// Response parser error - likely indicating that we didn't talk to the API, but some
+	// proxy instead which didn't respond with JSON but plain text.
+	// Example: '(*models.V4GenericResponse) is not supported by the TextConsumer, can be resolved by supporting TextUnmarshaler interface'
+	if strings.Contains(err.Error(), "TextConsumer") && strings.Contains(err.Error(), "TextUnmarshaler") {
+		ae := &APIError{
+			OriginalError: err,
+			ErrorMessage:  "Malformed response",
+		}
+
+		ae.ErrorDetails = "The response we received did not match the expected format. The reason could be that we\n"
+		ae.ErrorDetails += "don't have access to the actual API server. Please check whether your network has access\n"
+		ae.ErrorDetails += "using the 'gsctl ping' command with the according endpoint.\n"
+
+		return ae
+	}
 
 	// Return unspecific error
 	ae := &APIError{
@@ -338,7 +353,7 @@ func New(err error) *APIError {
 	}
 
 	ae.ErrorDetails = "An error has occurred for which we don't have specific handling in place.\n"
-	ae.ErrorDetails += "Please report this error to support@giantswarm including the command you\n"
+	ae.ErrorDetails += "Please report this error to support@giantswarm.io including the command you\n"
 	ae.ErrorDetails += "tried executing and the context information (gsctl info). Details:\n\n"
 	ae.ErrorDetails += fmt.Sprintf("%#v", err)
 
