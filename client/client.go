@@ -76,6 +76,9 @@ type WrapperV2 struct {
 
 // NewV2 creates a client based on the latest gsclientgen version.
 func NewV2(conf *Configuration) (*WrapperV2, error) {
+	if conf.AuthHeaderGetter == nil {
+		conf.AuthHeaderGetter = func() (string, error) { return "", nil }
+	}
 	if conf.Endpoint == "" {
 		return nil, microerror.Mask(endpointNotSpecifiedError)
 	}
