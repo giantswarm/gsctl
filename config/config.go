@@ -94,6 +94,11 @@ type configStruct struct {
 	// SelectedEndpoint is the URL of the selected endpoint
 	SelectedEndpoint string `yaml:"selected_endpoint"`
 
+	// RefreshToken is the refresh token found for the selected endpoint. Might be empty.
+	// Not marshalled back to the config file, as it is contained in the
+	// endpoint's entry.
+	RefreshToken string `yaml:"-"`
+
 	// Scheme is the scheme found for the selected endpoint. Might be empty.
 	// Not marshalled back to the config file, as it is contained in the
 	// endpoint's entry.
@@ -163,10 +168,11 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email
 	}
 
 	c.Endpoints[ep] = &endpointConfig{
-		Alias:  aliasBefore,
-		Email:  email,
-		Scheme: scheme,
-		Token:  token,
+		Alias:        aliasBefore,
+		Email:        email,
+		RefreshToken: refreshToken,
+		Scheme:       scheme,
+		Token:        token,
 	}
 
 	if alias != "" && aliasBefore == "" {
@@ -214,6 +220,7 @@ func (c *configStruct) SelectEndpoint(endpointAliasOrURL string) error {
 	}
 
 	c.SelectedEndpoint = ep
+	c.RefreshToken = c.Endpoints[ep].RefreshToken
 	c.Scheme = c.Endpoints[ep].Scheme
 	c.Token = c.Endpoints[ep].Token
 	c.Email = c.Endpoints[ep].Email
@@ -327,6 +334,7 @@ func (c *configStruct) Logout(endpointURL string) {
 	}
 
 	if element, ok := c.Endpoints[ep]; ok {
+		element.RefreshToken = ""
 		element.Token = ""
 		element.Scheme = ""
 	}
