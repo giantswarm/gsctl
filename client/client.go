@@ -10,6 +10,10 @@ import (
 	"strings"
 	"time"
 
+	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
+	rootcerts "github.com/hashicorp/go-rootcerts"
+
 	gsclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 	"github.com/giantswarm/gsclientgen/client/clusters"
@@ -18,11 +22,9 @@ import (
 	"github.com/giantswarm/gsclientgen/client/organizations"
 	"github.com/giantswarm/gsclientgen/client/releases"
 	"github.com/giantswarm/gsclientgen/models"
-	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/microerror"
-	httptransport "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
-	rootcerts "github.com/hashicorp/go-rootcerts"
+
+	"github.com/giantswarm/gsctl/client/clienterror"
 )
 
 var (
@@ -41,8 +43,8 @@ func init() {
 
 // Configuration is the client configuration
 type Configuration struct {
-	// AuthHeader is the header we should use to make API calls.
-	AuthHeader string
+	// AuthHeaderGetter is a function that returns the header we should use to make API calls.
+	AuthHeaderGetter func() (string, error)
 
 	// Endpoint is the base URL of the API.
 	Endpoint string
@@ -240,14 +242,21 @@ func setParams(p *AuxiliaryParams, w *WrapperV2, params paramSetter) {
 
 // setParamsWithAuthorization does the same as setParams, but also sets
 // an Autorization header if configured.
-func setParamsWithAuthorization(p *AuxiliaryParams, w *WrapperV2, params paramSetterWithAuthorization) {
+func setParamsWithAuthorization(p *AuxiliaryParams, w *WrapperV2, params paramSetterWithAuthorization) error {
 	if w != nil && w.conf != nil {
-		if w.conf.AuthHeader != "" {
-			params.SetAuthorization(w.conf.AuthHeader)
+		authHeader, err := w.conf.AuthHeaderGetter()
+		if err != nil {
+			return err
+		}
+
+		if authHeader != "" {
+			params.SetAuthorization(authHeader)
 		}
 	}
 
 	setParams(p, w, params)
+
+	return nil
 }
 
 // CreateAuthToken creates an auth token using the V2 client.
@@ -269,7 +278,10 @@ func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) 
 // DeleteAuthToken calls the API's deleteAuthToken operation using the V2 client.
 func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth_tokens.DeleteAuthTokenOK, error) {
 	params := auth_tokens.NewDeleteAuthTokenParams().WithAuthorization("giantswarm " + authToken)
-	setParams(p, w, params)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
 
 	response, err := w.gsclient.AuthTokens.DeleteAuthToken(params, nil)
 	if err != nil {
@@ -282,7 +294,10 @@ func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth
 // CreateCluster creates cluster using the V2 client.
 func (w *WrapperV2) CreateCluster(addClusterRequest *models.V4AddClusterRequest, p *AuxiliaryParams) (*clusters.AddClusterCreated, error) {
 	params := clusters.NewAddClusterParams().WithBody(addClusterRequest)
-	setParamsWithAuthorization(p, w, params)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
 
 	response, err := w.gsclient.Clusters.AddCluster(params, nil)
 	if err != nil {
@@ -295,7 +310,10 @@ func (w *WrapperV2) CreateCluster(addClusterRequest *models.V4AddClusterRequest,
 // ModifyCluster modifies a cluster using the V2 client.
 func (w *WrapperV2) ModifyCluster(clusterID string, body *models.V4ModifyClusterRequest, p *AuxiliaryParams) (*clusters.ModifyClusterOK, error) {
 	params := clusters.NewModifyClusterParams().WithClusterID(clusterID).WithBody(body)
-	setParamsWithAuthorization(p, w, params)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
 
 	response, err := w.gsclient.Clusters.ModifyCluster(params, nil)
 	if err != nil {
@@ -308,7 +326,10 @@ func (w *WrapperV2) ModifyCluster(clusterID string, body *models.V4ModifyCluster
 // DeleteCluster deletes a cluster using the V2 client.
 func (w *WrapperV2) DeleteCluster(clusterID string, p *AuxiliaryParams) (*clusters.DeleteClusterAccepted, error) {
 	params := clusters.NewDeleteClusterParams().WithClusterID(clusterID)
-	setParamsWithAuthorization(p, w, params)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
 
 	response, err := w.gsclient.Clusters.DeleteCluster(params, nil)
 	if err != nil {
@@ -321,7 +342,10 @@ func (w *WrapperV2) DeleteCluster(clusterID string, p *AuxiliaryParams) (*cluste
 // GetClusters fetches details on a cluster using the V2 client.
 func (w *WrapperV2) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, error) {
 	params := clusters.NewGetClustersParams()
-	setParamsWithAuthorization(p, w, params)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
 
 	response, err := w.gsclient.Clusters.GetClusters(params, nil)
 	if err != nil {
@@ -334,7 +358,10 @@ func (w *WrapperV2) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, er
 // GetCluster fetches details on a cluster using the V2 client.
 func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.GetClusterOK, error) {
 	params := clusters.NewGetClusterParams().WithClusterID(clusterID)
-	setParamsWithAuthorization(p, w, params)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
 
 	response, err := w.gsclient.Clusters.GetCluster(params, nil)
 	if err != nil {
@@ -347,7 +374,10 @@ func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.
 // CreateKeyPair calls the addKeyPair API operation using the V2 client.
 func (w *WrapperV2) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4AddKeyPairRequest, p *AuxiliaryParams) (*key_pairs.AddKeyPairOK, error) {
 	params := key_pairs.NewAddKeyPairParams().WithClusterID(clusterID).WithBody(addKeyPairRequest)
-	setParamsWithAuthorization(p, w, params)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
 
 	response, err := w.gsclient.KeyPairs.AddKeyPair(params, nil)
 	if err != nil {
@@ -360,7 +390,10 @@ func (w *WrapperV2) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4
 // GetKeyPairs calls the API to fetch key pairs using the V2 client.
 func (w *WrapperV2) GetKeyPairs(clusterID string, p *AuxiliaryParams) (*key_pairs.GetKeyPairsOK, error) {
 	params := key_pairs.NewGetKeyPairsParams().WithClusterID(clusterID)
-	setParamsWithAuthorization(p, w, params)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
 
 	response, err := w.gsclient.KeyPairs.GetKeyPairs(params, nil)
 	if err != nil {
@@ -373,7 +406,10 @@ func (w *WrapperV2) GetKeyPairs(clusterID string, p *AuxiliaryParams) (*key_pair
 // GetInfo calls the API's getInfo operation using the V2 client.
 func (w *WrapperV2) GetInfo(p *AuxiliaryParams) (*info.GetInfoOK, error) {
 	params := info.NewGetInfoParams()
-	setParamsWithAuthorization(p, w, params)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
 
 	response, err := w.gsclient.Info.GetInfo(params, nil)
 	if err != nil {
@@ -386,7 +422,10 @@ func (w *WrapperV2) GetInfo(p *AuxiliaryParams) (*info.GetInfoOK, error) {
 // GetReleases calls the API's getReleases operation using the V2 client.
 func (w *WrapperV2) GetReleases(p *AuxiliaryParams) (*releases.GetReleasesOK, error) {
 	params := releases.NewGetReleasesParams()
-	setParamsWithAuthorization(p, w, params)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
 
 	response, err := w.gsclient.Releases.GetReleases(params, nil)
 	if err != nil {
@@ -399,7 +438,10 @@ func (w *WrapperV2) GetReleases(p *AuxiliaryParams) (*releases.GetReleasesOK, er
 // GetOrganizations calls the API's getOrganizations operation using the new client.
 func (w *WrapperV2) GetOrganizations(p *AuxiliaryParams) (*organizations.GetOrganizationsOK, error) {
 	params := organizations.NewGetOrganizationsParams()
-	setParamsWithAuthorization(p, w, params)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
 
 	response, err := w.gsclient.Organizations.GetOrganizations(params, nil)
 	if err != nil {

@@ -342,6 +342,24 @@ func (c *configStruct) Logout(endpointURL string) {
 	WriteToFile()
 }
 
+// AuthHeaderGetter returns a function that can get the auth header for a given endpoint that the client can use.
+// The returned function will attempt to refresh the token in case the scheme is Bearer and the token is expired.
+func (c *configStruct) AuthHeaderGetter(endpoint string, overridingToken string) func() (authheader string, err error) {
+	return func() (string, error) {
+		token := c.ChooseToken(endpoint, overridingToken)
+		scheme := c.ChooseScheme(endpoint, overridingToken)
+
+		// If the scheme is Bearer, first verify that the token is expired.
+		// And if it is expired, then try to refresh it.
+		if scheme == "Bearer" {
+			return scheme + " " + token, nil
+		}
+
+		// If the scheme is not Bearer, just return scheme and token as normal.
+		return scheme + " " + token, nil
+	}
+}
+
 // init sets defaults and initializes config paths
 func init() {
 	SystemUser, err := user.Current()
@@ -551,13 +569,11 @@ func GetDefaultCluster(activityName, apiEndpoint string) (clusterID string, err 
 		return "", errors.New("user not logged in")
 	}
 
-	authHeader := Config.Scheme + " " + Config.Token
-
 	clientConfig := &client.Configuration{
-		AuthHeader: authHeader,
-		Endpoint:   apiEndpoint,
-		Timeout:    10 * time.Second,
-		UserAgent:  UserAgent(),
+		AuthHeaderGetter: Config.AuthHeaderGetter(apiEndpoint, Config.Token),
+		Endpoint:         apiEndpoint,
+		Timeout:          10 * time.Second,
+		UserAgent:        UserAgent(),
 	}
 	apiClient, err := client.NewV2(clientConfig)
 	if err != nil {

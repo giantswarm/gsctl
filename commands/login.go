@@ -253,12 +253,15 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 // If it succeeds it returns the alias for that endpoint.
 func getAlias(apiEndpoint string, scheme string, accessToken string) (string, error) {
 	// Create an API client.
-	authHeader := scheme + " " + accessToken
+	authHeaderGetter := func() (string, error) {
+		return scheme + " " + accessToken, nil
+	}
+
 	clientConfig := &client.Configuration{
-		Endpoint:   apiEndpoint,
-		Timeout:    10 * time.Second,
-		UserAgent:  config.UserAgent(),
-		AuthHeader: authHeader,
+		Endpoint:         apiEndpoint,
+		Timeout:          10 * time.Second,
+		UserAgent:        config.UserAgent(),
+		AuthHeaderGetter: authHeaderGetter,
 	}
 	clientV2, err := client.NewV2(clientConfig)
 	if err != nil {

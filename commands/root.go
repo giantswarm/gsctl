@@ -54,11 +54,9 @@ func initConfig(cmd *cobra.Command, args []string) error {
 
 func initClient() error {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	ClientConfig = &client.Configuration{
-		AuthHeader: scheme + " " + token,
+		AuthHeaderGetter: config.Config.AuthHeaderGetter(endpoint, cmdToken),
 		Endpoint:   endpoint,
 		Timeout:    10 * time.Second,
 		UserAgent:  config.UserAgent(),
