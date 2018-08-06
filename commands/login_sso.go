@@ -58,7 +58,7 @@ func loginSSO(args loginArguments) (loginResult, error) {
 	}
 
 	// Store the token in the config file.
-	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, alias, idToken.Email, "Bearer", pkceResponse.AccessToken); err != nil {
+	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, alias, idToken.Email, "Bearer", pkceResponse.AccessToken, pkceResponse.RefreshToken); err != nil {
 		if args.verbose {
 			fmt.Println(color.WhiteString("Attempt to store our authentication data with the endpoint in the configuration failed."))
 			fmt.Println(color.WhiteString("Error details: %s", err.Error()))

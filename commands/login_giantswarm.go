@@ -63,7 +63,7 @@ func loginGiantSwarm(args loginArguments) (loginResult, error) {
 	}
 	result.alias = alias
 
-	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, result.alias, args.email, "giantswarm", result.token); err != nil {
+	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, result.alias, args.email, "giantswarm", result.token, ""); err != nil {
 		return result, microerror.Mask(err)
 	}
 	if err := config.Config.SelectEndpoint(args.apiEndpoint); err != nil {

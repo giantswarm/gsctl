@@ -113,22 +113,25 @@ type configStruct struct {
 // endpointConfig is used to serialize/deserialize endpoint configuration
 // to/from a config file
 type endpointConfig struct {
+	// Alias is a friendly shortcut for the endpoint
+	Alias string `yaml:"alias,omitempty"`
+
 	// Email is the email address of the authenticated user.
 	Email string `yaml:"email"`
 
-	// Token is the session token of the authenticated user.
-	Token string `yaml:"token,omitempty"`
+	// RefreshToken for acquiring a new token when using the bearer scheme.
+	RefreshToken string `yaml:"refresh_token,omitempty"`
 
 	// Scheme is the scheme to be used in the Authorization header.
 	Scheme string `yaml:"auth_scheme,omitempty"`
 
-	// Alias is a friendly shortcut for the endpoint
-	Alias string `yaml:"alias,omitempty"`
+	// Token is the session token of the authenticated user.
+	Token string `yaml:"token,omitempty"`
 }
 
 // StoreEndpointAuth adds an endpoint to the configStruct.Endpoints field
 // (if not yet there). This should only be done after successful authentication.
-func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email string, scheme string, token string) error {
+func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email string, scheme string, token string, refreshToken string) error {
 	ep := normalizeEndpoint(endpointURL)
 
 	if email == "" || token == "" {
