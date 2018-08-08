@@ -44,12 +44,12 @@ type PKCEResponse struct {
 	ErrorDescription string `json:"error_description"`
 }
 
-// Run starts the Authorization Code Grant Flow with PKCE.
+// RunPKCE starts the Authorization Code Grant Flow with PKCE.
 // It does roughly the following steps:
 // 1. Craft the authorization URL and open the users browser.
 // 2. Starting a callback server to wait for the redirect with the code.
 // 3. Exchanging the code for an access token and id token.
-func Run() (PKCEResponse, error) {
+func RunPKCE() (PKCEResponse, error) {
 	// Construct the authorization url.
 	//    1. Generate and store a random codeVerifier.
 	codeVerifier := base64URLEncode(fmt.Sprint(rand.Int31()))
