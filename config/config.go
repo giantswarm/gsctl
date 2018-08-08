@@ -94,6 +94,11 @@ type configStruct struct {
 	// SelectedEndpoint is the URL of the selected endpoint
 	SelectedEndpoint string `yaml:"selected_endpoint"`
 
+	// RefreshToken is the refresh token found for the selected endpoint. Might be empty.
+	// Not marshalled back to the config file, as it is contained in the
+	// endpoint's entry.
+	RefreshToken string `yaml:"-"`
+
 	// Scheme is the scheme found for the selected endpoint. Might be empty.
 	// Not marshalled back to the config file, as it is contained in the
 	// endpoint's entry.
@@ -113,22 +118,25 @@ type configStruct struct {
 // endpointConfig is used to serialize/deserialize endpoint configuration
 // to/from a config file
 type endpointConfig struct {
+	// Alias is a friendly shortcut for the endpoint
+	Alias string `yaml:"alias,omitempty"`
+
 	// Email is the email address of the authenticated user.
 	Email string `yaml:"email"`
 
-	// Token is the session token of the authenticated user.
-	Token string `yaml:"token,omitempty"`
+	// RefreshToken for acquiring a new token when using the bearer scheme.
+	RefreshToken string `yaml:"refresh_token,omitempty"`
 
 	// Scheme is the scheme to be used in the Authorization header.
 	Scheme string `yaml:"auth_scheme,omitempty"`
 
-	// Alias is a friendly shortcut for the endpoint
-	Alias string `yaml:"alias,omitempty"`
+	// Token is the session token of the authenticated user.
+	Token string `yaml:"token,omitempty"`
 }
 
 // StoreEndpointAuth adds an endpoint to the configStruct.Endpoints field
 // (if not yet there). This should only be done after successful authentication.
-func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email string, scheme string, token string) error {
+func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email string, scheme string, token string, refreshToken string) error {
 	ep := normalizeEndpoint(endpointURL)
 
 	if email == "" || token == "" {
@@ -160,10 +168,11 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email
 	}
 
 	c.Endpoints[ep] = &endpointConfig{
-		Alias:  aliasBefore,
-		Email:  email,
-		Scheme: scheme,
-		Token:  token,
+		Alias:        aliasBefore,
+		Email:        email,
+		RefreshToken: refreshToken,
+		Scheme:       scheme,
+		Token:        token,
 	}
 
 	if alias != "" && aliasBefore == "" {
@@ -211,6 +220,7 @@ func (c *configStruct) SelectEndpoint(endpointAliasOrURL string) error {
 	}
 
 	c.SelectedEndpoint = ep
+	c.RefreshToken = c.Endpoints[ep].RefreshToken
 	c.Scheme = c.Endpoints[ep].Scheme
 	c.Token = c.Endpoints[ep].Token
 	c.Email = c.Endpoints[ep].Email
@@ -324,11 +334,30 @@ func (c *configStruct) Logout(endpointURL string) {
 	}
 
 	if element, ok := c.Endpoints[ep]; ok {
+		element.RefreshToken = ""
 		element.Token = ""
 		element.Scheme = ""
 	}
 
 	WriteToFile()
+}
+
+// AuthHeaderGetter returns a function that can get the auth header for a given endpoint that the client can use.
+// The returned function will attempt to refresh the token in case the scheme is Bearer and the token is expired.
+func (c *configStruct) AuthHeaderGetter(endpoint string, overridingToken string) func() (authheader string, err error) {
+	return func() (string, error) {
+		token := c.ChooseToken(endpoint, overridingToken)
+		scheme := c.ChooseScheme(endpoint, overridingToken)
+
+		// If the scheme is Bearer, first verify that the token is expired.
+		// And if it is expired, then try to refresh it.
+		if scheme == "Bearer" {
+			return scheme + " " + token, nil
+		}
+
+		// If the scheme is not Bearer, just return scheme and token as normal.
+		return scheme + " " + token, nil
+	}
 }
 
 // init sets defaults and initializes config paths
@@ -540,13 +569,11 @@ func GetDefaultCluster(activityName, apiEndpoint string) (clusterID string, err 
 		return "", errors.New("user not logged in")
 	}
 
-	authHeader := Config.Scheme + " " + Config.Token
-
 	clientConfig := &client.Configuration{
-		AuthHeader: authHeader,
-		Endpoint:   apiEndpoint,
-		Timeout:    10 * time.Second,
-		UserAgent:  UserAgent(),
+		AuthHeaderGetter: Config.AuthHeaderGetter(apiEndpoint, Config.Token),
+		Endpoint:         apiEndpoint,
+		Timeout:          10 * time.Second,
+		UserAgent:        UserAgent(),
 	}
 	apiClient, err := client.NewV2(clientConfig)
 	if err != nil {

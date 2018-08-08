@@ -60,6 +60,7 @@ func Test_Initialize_Empty(t *testing.T) {
 
 	testEndpointURL := "https://myapi.domain.tld"
 	testEmail := "user@domain.tld"
+	testRefreshToken := "some-refresh-token"
 	testScheme := "some-scheme"
 	testToken := "some-token"
 	testAlias := "testalias"
@@ -71,7 +72,7 @@ func Test_Initialize_Empty(t *testing.T) {
 
 	// directly set some configuration
 	Config.LastVersionCheck = time.Time{}
-	err = Config.StoreEndpointAuth(testEndpointURL, testAlias, testEmail, testScheme, testToken)
+	err = Config.StoreEndpointAuth(testEndpointURL, testAlias, testEmail, testScheme, testToken, testRefreshToken)
 	if err != nil {
 		t.Error(err)
 	}

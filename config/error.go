@@ -48,3 +48,14 @@ var garbageCollectionPartiallyFailedError = &microerror.Error{
 func IsGarbageCollectionPartiallyFailedError(err error) bool {
 	return microerror.Cause(err) == garbageCollectionPartiallyFailedError
 }
+
+// unableToRefreshToken indicates that we were not able to get a new access token
+// when we attempted to do so
+var unableToRefreshTokenError = &microerror.Error{
+	Kind: "IsUnableToRefreshTokenError",
+}
+
+// IsUnableToRefreshTokenErrorr asserts unableToRefreshTokenError.
+func IsUnableToRefreshTokenErrorr(err error) bool {
+	return microerror.Cause(err) == unableToRefreshTokenError
+}
