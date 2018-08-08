@@ -281,10 +281,7 @@ func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) 
 // DeleteAuthToken calls the API's deleteAuthToken operation using the V2 client.
 func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth_tokens.DeleteAuthTokenOK, error) {
 	params := auth_tokens.NewDeleteAuthTokenParams().WithAuthorization("giantswarm " + authToken)
-	err := setParamsWithAuthorization(p, w, params)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
+	setParams(p, w, params)
 
 	response, err := w.gsclient.AuthTokens.DeleteAuthToken(params, nil)
 	if err != nil {
