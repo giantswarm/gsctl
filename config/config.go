@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/microerror"
 
@@ -352,12 +353,39 @@ func (c *configStruct) AuthHeaderGetter(endpoint string, overridingToken string)
 		// If the scheme is Bearer, first verify that the token is expired.
 		// And if it is expired, then try to refresh it.
 		if scheme == "Bearer" {
+			if !isTokenValid(token) {
+				// Get a new token
+				fmt.Println("token is expired")
+			} else {
+				fmt.Println("token is valid")
+			}
 			return scheme + " " + token, nil
 		}
 
 		// If the scheme is not Bearer, just return scheme and token as normal.
 		return scheme + " " + token, nil
 	}
+}
+
+// isTokenValid takes a JWT access token and returns true/false depending on
+// whether or not the access token is valid. Does not check if the signature is valid.
+// Only checkes time based claims.
+func isTokenValid(token string) (expired bool) {
+	fmt.Println("checking validity")
+	// Parse token
+	claims := jwt.MapClaims{}
+
+	parsedToken, _, err := new(jwt.Parser).ParseUnverified(token, claims)
+	if err != nil {
+		return false
+	}
+
+	err = parsedToken.Claims.Valid()
+	if err != nil {
+		return false
+	}
+
+	return true
 }
 
 // init sets defaults and initializes config paths

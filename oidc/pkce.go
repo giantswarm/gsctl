@@ -1,4 +1,4 @@
-package pkce
+package oidc
 
 import (
 	"bytes"
@@ -32,8 +32,8 @@ const (
 	authorizationURLBase = "https://giantswarm.eu.auth0.com/authorize"
 )
 
-// Response represents the result we get from the PKCE flow.
-type Response struct {
+// PKCEResponse represents the result we get from the PKCE flow.
+type PKCEResponse struct {
 	AccessToken      string `json:"access_token"`
 	ExpiresIn        string `json:"expires_in"`
 	IDToken          string `json:"id_token"`
@@ -49,7 +49,7 @@ type Response struct {
 // 1. Craft the authorization URL and open the users browser.
 // 2. Starting a callback server to wait for the redirect with the code.
 // 3. Exchanging the code for an access token and id token.
-func Run() (Response, error) {
+func Run() (PKCEResponse, error) {
 	// Construct the authorization url.
 	//    1. Generate and store a random codeVerifier.
 	codeVerifier := base64URLEncode(fmt.Sprint(rand.Int31()))
@@ -78,7 +78,7 @@ func Run() (Response, error) {
 		errorDescription := r.URL.Query().Get("error_description")
 
 		if errorCode != "" {
-			pkceResponse := Response{
+			pkceResponse := PKCEResponse{
 				Error:            errorCode,
 				ErrorDescription: errorDescription,
 			}
@@ -99,10 +99,10 @@ func Run() (Response, error) {
 		return pkceResponse, nil
 	})
 	if err != nil {
-		return p.(Response), err
+		return p.(PKCEResponse), err
 	}
 
-	return p.(Response), nil
+	return p.(PKCEResponse), nil
 }
 
 // base64URLEncode encodes a string into URL safe base64.
@@ -137,7 +137,7 @@ func authorizationURL(codeChallenge string) string {
 
 // getToken performs a POST call to auth0 as the final step of the
 // Authorization Code Grant Flow with PKCE.
-func getToken(code, codeVerifier string) (pkceResponse Response, err error) {
+func getToken(code, codeVerifier string) (pkceResponse PKCEResponse, err error) {
 	payload := strings.NewReader(fmt.Sprintf(`{
     "grant_type":"authorization_code",
     "client_id": "%s",
