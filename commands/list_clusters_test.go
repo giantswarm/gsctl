@@ -104,8 +104,8 @@ func Test_ListClustersEmpty(t *testing.T) {
 		t.Error(err)
 	}
 
-	if table != "No clusters available" {
-		t.Errorf("Expected 'No clusters available', got '%s'", table)
+	if table != "No clusters" {
+		t.Errorf("Expected 'No clusters', got '%s'", table)
 	}
 }
 
