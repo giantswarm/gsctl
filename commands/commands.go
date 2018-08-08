@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/microerror"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
@@ -139,7 +140,10 @@ func handleCommonErrors(err error) {
 	var subtext = ""
 
 	// V2 client error handling
-	if convertedErr, ok := err.(*clienterror.APIError); ok {
+	if convertedErr, ok := microerror.Cause(err).(*clienterror.APIError); ok {
+		headline = convertedErr.ErrorMessage
+		subtext = convertedErr.ErrorDetails
+	} else if convertedErr, ok := err.(*clienterror.APIError); ok {
 		headline = convertedErr.ErrorMessage
 		subtext = convertedErr.ErrorDetails
 	} else {
