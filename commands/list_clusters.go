@@ -120,7 +120,7 @@ func clustersTable(args listClustersArguments) (string, error) {
 	}
 
 	if len(response.Payload) == 0 {
-		return "", nil
+		return color.YellowString("No clusters"), nil
 	}
 	// table headers
 	output := []string{strings.Join([]string{
