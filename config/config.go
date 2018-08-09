@@ -350,11 +350,21 @@ func (c *configStruct) AuthHeaderGetter(endpoint string, overridingToken string)
 	return func() (string, error) {
 		token := c.ChooseToken(endpoint, overridingToken)
 		scheme := c.ChooseScheme(endpoint, overridingToken)
-		refreshToken := c.Endpoints[endpoint].RefreshToken
 
 		// If the scheme is Bearer, first verify that the token is valid.
 		// If it is expired, then try to refresh it.
 		if scheme == "Bearer" {
+			// Check if the endpoint we are accessing is even saved.
+			if _, ok := c.Endpoints[endpoint]; !ok {
+				return "", microerror.Mask(endpointNotDefinedError)
+			}
+
+			// Check if it has a refresh token.
+			refreshToken := c.Endpoints[endpoint].RefreshToken
+			if refreshToken == "" {
+				return "", microerror.Maskf(endpointNotDefinedError, "No refresh token saved in config file, unable to acquire new access token. Please login again.")
+			}
+
 			if !isTokenValid(token) {
 				// Get a new token.
 				refreshTokenResponse, err := oidc.RefreshToken(refreshToken)
