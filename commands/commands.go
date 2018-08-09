@@ -17,6 +17,7 @@ import (
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/oidc"
 )
 
 var (
@@ -152,6 +153,10 @@ func handleCommonErrors(err error) {
 		case client.IsEndpointNotSpecifiedError(err):
 			headline = "No endpoint has been specified."
 			subtext = "Please use the '-e|--endpoint' flag."
+		case oidc.IsAuthorizationError(err):
+			headline = "Unauthorized"
+			subtext = "Something went wrong during a OIDC operation: " + err.Error() + "\n"
+			subtext += "Please try logging in again."
 		case IsNotLoggedInError(err):
 			headline = "You are not logged in."
 			subtext = "Use 'gsctl login' to login or '--auth-token' to pass a valid auth token."
