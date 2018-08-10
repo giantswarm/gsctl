@@ -156,6 +156,10 @@ func handleCommonErrors(err error) {
 			headline = "Unauthorized"
 			subtext = "Something went wrong during a OIDC operation: " + err.Error() + "\n"
 			subtext += "Please try logging in again."
+		case oidc.IsRefreshError(err):
+			headline = "Unable to refresh your SSO token."
+			subtext = err.Error() + "\n"
+			subtext += "Please try loging in again using: gsctl login --sso"
 		case IsNotLoggedInError(err):
 			headline = "You are not logged in."
 			subtext = "Use 'gsctl login' to login or '--auth-token' to pass a valid auth token."
@@ -186,10 +190,6 @@ func handleCommonErrors(err error) {
 			headline = "The API didn't send a response."
 			subtext = "Please check your connection using 'gsctl ping'. If your connection is fine,\n"
 			subtext += "please try again in a few moments."
-		case oidc.IsRefreshError(err):
-			headline = "Unable to refresh your SSO token."
-			subtext = err.Error() + "\n"
-			subtext += "Please try loging in again using: gsctl login --sso"
 		case IsUnknownError(err):
 			headline = "An error occurred."
 			subtext = "Please notify the Giant Swarm support team, or try the command again in a few moments.\n"
