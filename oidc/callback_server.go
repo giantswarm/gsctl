@@ -1,4 +1,4 @@
-package pkce
+package oidc
 
 import (
 	"context"

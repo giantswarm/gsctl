@@ -12,7 +12,9 @@ import (
 	"strings"
 	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/oidc"
 	"github.com/giantswarm/microerror"
 
 	yaml "gopkg.in/yaml.v2"
@@ -349,15 +351,67 @@ func (c *configStruct) AuthHeaderGetter(endpoint string, overridingToken string)
 		token := c.ChooseToken(endpoint, overridingToken)
 		scheme := c.ChooseScheme(endpoint, overridingToken)
 
-		// If the scheme is Bearer, first verify that the token is expired.
-		// And if it is expired, then try to refresh it.
+		// If the scheme is Bearer, first verify that the token is valid.
+		// If it is expired, then try to refresh it.
 		if scheme == "Bearer" {
+			// Check if the endpoint we are accessing is even saved.
+			if _, ok := c.Endpoints[endpoint]; !ok {
+				return "", microerror.Mask(endpointNotDefinedError)
+			}
+
+			// Check if it has a refresh token.
+			refreshToken := c.Endpoints[endpoint].RefreshToken
+			if refreshToken == "" {
+				return "", microerror.Maskf(endpointNotDefinedError, "No refresh token saved in config file, unable to acquire new access token. Please login again.")
+			}
+
+			if !isTokenValid(token) {
+				// Get a new token.
+				refreshTokenResponse, err := oidc.RefreshToken(refreshToken)
+				if err != nil {
+					return "", microerror.Mask(err)
+				}
+
+				// Parse the ID Token for the email address.
+				idToken, err := oidc.ParseIDToken(refreshTokenResponse.IDToken)
+				if err != nil {
+					return "", microerror.Mask(err)
+				}
+
+				// Update the config file with the new access token.
+				if err := Config.StoreEndpointAuth(endpoint, c.Endpoints[endpoint].Alias, idToken.Email, "Bearer", refreshTokenResponse.AccessToken, refreshToken); err != nil {
+					return "", microerror.Maskf(err, "Error while attempting to store the token in the config file")
+				}
+
+				// Use the new access token.
+				return scheme + " " + refreshTokenResponse.AccessToken, nil
+			}
 			return scheme + " " + token, nil
 		}
 
 		// If the scheme is not Bearer, just return scheme and token as normal.
 		return scheme + " " + token, nil
 	}
+}
+
+// isTokenValid takes a JWT access token and returns true/false depending on
+// whether or not the access token is valid. Does not check if the signature is valid.
+// Only checkes time based claims.
+func isTokenValid(token string) (expired bool) {
+	// Parse token
+	claims := jwt.MapClaims{}
+
+	parsedToken, _, err := new(jwt.Parser).ParseUnverified(token, claims)
+	if err != nil {
+		return false
+	}
+
+	err = parsedToken.Claims.Valid()
+	if err != nil {
+		return false
+	}
+
+	return true
 }
 
 // init sets defaults and initializes config paths

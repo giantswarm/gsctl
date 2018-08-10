@@ -9,7 +9,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
-	"github.com/giantswarm/gsctl/pkce"
+	"github.com/giantswarm/gsctl/oidc"
 	"github.com/giantswarm/microerror"
 )
 
@@ -20,7 +20,7 @@ func init() {
 func loginSSO(args loginArguments) (loginResult, error) {
 	numEndpointsBefore := config.Config.NumEndpoints()
 
-	pkceResponse, err := pkce.Run()
+	pkceResponse, err := oidc.RunPKCE()
 	if err != nil {
 		if args.verbose {
 			fmt.Println(color.WhiteString("Attempt to run the OAuth2 PKCE workflow with a local callback HTTP server failed."))
@@ -29,7 +29,7 @@ func loginSSO(args loginArguments) (loginResult, error) {
 	}
 
 	// Try to parse the ID Token.
-	idToken, err := pkce.ParseIDToken(pkceResponse.IDToken)
+	idToken, err := oidc.ParseIDToken(pkceResponse.IDToken)
 	if err != nil {
 		return loginResult{}, microerror.Mask(err)
 	}
