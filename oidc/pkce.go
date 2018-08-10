@@ -148,7 +148,7 @@ func getToken(code, codeVerifier string) (pkceResponse PKCEResponse, err error) 
 
 	req, err := http.NewRequest("POST", tokenURL, payload)
 	if err != nil {
-		pkceResponse.Error = "unknown_error"
+		pkceResponse.Error = "unknown error"
 		pkceResponse.ErrorDescription = "Unable to construct POST request for Auth0."
 		return pkceResponse, microerror.Maskf(authorizationError, pkceResponse.Error)
 	}
@@ -157,7 +157,7 @@ func getToken(code, codeVerifier string) (pkceResponse PKCEResponse, err error) 
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		pkceResponse.Error = "unknown_error"
+		pkceResponse.Error = "unknown error"
 		pkceResponse.ErrorDescription = "Unable to perform POST request to Auth0."
 		return pkceResponse, microerror.Maskf(authorizationError, pkceResponse.Error)
 	}
@@ -165,7 +165,7 @@ func getToken(code, codeVerifier string) (pkceResponse PKCEResponse, err error) 
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		pkceResponse.Error = "unknown_error"
+		pkceResponse.Error = "unknown error"
 		pkceResponse.ErrorDescription = "Got an unparseable error from Auth0. Possibly the Auth0 service is down. Try again later."
 		return pkceResponse, microerror.Maskf(authorizationError, pkceResponse.Error)
 	}
@@ -179,7 +179,7 @@ func getToken(code, codeVerifier string) (pkceResponse PKCEResponse, err error) 
 	}
 
 	if res.StatusCode != 200 {
-		pkceResponse.Error = "unknown_error"
+		pkceResponse.Error = "unknown error"
 		pkceResponse.ErrorDescription = "Got an unparseable error from Auth0. Possibly the Auth0 service is down. Try again later."
 		return pkceResponse, microerror.Maskf(authorizationError, pkceResponse.Error)
 	}

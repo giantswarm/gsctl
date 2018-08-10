@@ -11,6 +11,15 @@ func IsAuthorizationError(err error) bool {
 	return microerror.Cause(err) == authorizationError
 }
 
+var refreshError = &microerror.Error{
+	Kind: "refreshError",
+}
+
+// IsRefreshError asserts refreshError.
+func IsRefreshError(err error) bool {
+	return microerror.Cause(err) == refreshError
+}
+
 // To be used when a token's signature or syntax is invalid
 var tokenInvalidError = &microerror.Error{
 	Kind: "tokenInvalidError",

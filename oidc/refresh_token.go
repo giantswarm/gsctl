@@ -42,26 +42,20 @@ func RefreshToken(refreshToken string) (refreshResponse RefreshResponse, err err
 
 	req, err := http.NewRequest("POST", tokenURL, payload)
 	if err != nil {
-		refreshResponse.Error = "unknown_error"
-		refreshResponse.ErrorDescription = "Unable to construct POST request for Auth0."
-		return refreshResponse, microerror.Maskf(authorizationError, refreshResponse.Error)
+		return refreshResponse, microerror.Maskf(refreshError, "Unable to construct POST request for Auth0")
 	}
 
 	req.Header.Add("content-type", "application/json")
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		refreshResponse.Error = "unknown_error"
-		refreshResponse.ErrorDescription = "Unable to perform POST request to Auth0."
-		return refreshResponse, microerror.Maskf(authorizationError, refreshResponse.Error)
+		return refreshResponse, microerror.Maskf(refreshError, "Unable to perform POST request to Auth0")
 	}
 
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		refreshResponse.Error = "unknown_error"
-		refreshResponse.ErrorDescription = "Got an unparseable error from Auth0. Possibly the Auth0 service is down. Try again later."
-		return refreshResponse, microerror.Maskf(authorizationError, refreshResponse.Error)
+		return refreshResponse, microerror.Maskf(refreshError, "Got an unparseable error from Auth0. Possibly the Auth0 service is down. Try again later")
 	}
 
 	json.Unmarshal(body, &refreshResponse)
@@ -69,13 +63,11 @@ func RefreshToken(refreshToken string) (refreshResponse RefreshResponse, err err
 	// This is a real error from Auth0, in this case we have Error and ErrorDescription
 	// set by what Auth0 sent us.
 	if refreshResponse.Error != "" {
-		return refreshResponse, microerror.Maskf(authorizationError, refreshResponse.Error)
+		return refreshResponse, microerror.Maskf(refreshError, refreshResponse.ErrorDescription)
 	}
 
 	if res.StatusCode != 200 {
-		refreshResponse.Error = "unknown_error"
-		refreshResponse.ErrorDescription = "Got an unparseable error from Auth0. Possibly the Auth0 service is down. Try again later."
-		return refreshResponse, microerror.Maskf(authorizationError, refreshResponse.Error)
+		return refreshResponse, microerror.Maskf(refreshError, "Got an unparseable error from Auth0. Possibly the Auth0 service is down. Try again later")
 	}
 
 	return refreshResponse, nil

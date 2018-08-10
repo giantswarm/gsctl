@@ -16,7 +16,6 @@ import (
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/oidc"
 )
 
@@ -187,9 +186,10 @@ func handleCommonErrors(err error) {
 			headline = "The API didn't send a response."
 			subtext = "Please check your connection using 'gsctl ping'. If your connection is fine,\n"
 			subtext += "please try again in a few moments."
-		case config.IsUnableToRefreshTokenErrorr(err):
-			headline = "Unable to refresh your SSO Token."
-			subtext = "Please try loging in again using: gsctl login --sso"
+		case oidc.IsRefreshError(err):
+			headline = "Unable to refresh your SSO token."
+			subtext = err.Error() + "\n"
+			subtext += "Please try loging in again using: gsctl login --sso"
 		case IsUnknownError(err):
 			headline = "An error occurred."
 			subtext = "Please notify the Giant Swarm support team, or try the command again in a few moments.\n"
