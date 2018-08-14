@@ -20,11 +20,12 @@ import (
 var (
 	// ListClustersCommand performs the "list clusters" function
 	ListClustersCommand = &cobra.Command{
-		Use:    "clusters",
-		Short:  "List clusters",
-		Long:   `Prints a list of all clusters you have access to`,
-		PreRun: listClusterPreRunOutput,
-		Run:    listClusterRunOutput,
+		Use:     "clusters",
+		Aliases: []string{"cluster"},
+		Short:   "List clusters",
+		Long:    `Prints a list of all clusters you have access to`,
+		PreRun:  listClusterPreRunOutput,
+		Run:     listClusterRunOutput,
 	}
 )
 
