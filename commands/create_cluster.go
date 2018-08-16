@@ -282,7 +282,7 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 		fmt.Println("")
 		fmt.Printf("    %s", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s \n", result.id)))
 		fmt.Println("")
-		fmt.Println("Take into consideration all guest clusters have enabled RBAC and may you want to provide a correct organization for the certificates (like operators, testers, developer, ...)")
+		fmt.Println("Take into consideration all clusters have enabled RBAC and may you want to provide a correct organization for the certificates (like operators, testers, developer, ...)")
 		fmt.Println("")
 		fmt.Printf("    %s \n", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s --certificate-organizations system:masters", result.id)))
 		fmt.Println("")
