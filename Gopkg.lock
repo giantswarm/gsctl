@@ -26,12 +26,6 @@
   version = "v9"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/bradfitz/slice"
-  packages = ["."]
-  revision = "2b758aa73013d2b1f11077aeca87ea042a1438bf"
-
-[[projects]]
   name = "github.com/cenkalti/backoff"
   packages = ["."]
   revision = "2ea60e5f094469f9e65adb9cd103795b73ae743e"
@@ -245,12 +239,6 @@
 
 [[projects]]
   branch = "master"
-  name = "go4.org"
-  packages = ["reflectutil"]
-  revision = "417644f6feb5ed3a356ca5d6d8e3a3fac7dfd33f"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   revision = "614d502a4dac94afa3a6ce146bd1736da82514c6"
@@ -314,6 +302,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "955550412cd71b5c4ead82afa9f5eba13539efcbcc9d7a930be2a7ec07d1f2a7"
+  inputs-digest = "b2ad617d28c855d744ddfbaf55cec3b908c647fb00683232c365b88488debd2f"
   solver-name = "gps-cdcl"
   solver-version = 1
