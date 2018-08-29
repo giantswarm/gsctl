@@ -18,7 +18,7 @@ import (
 // swagger:model v4ClusterDetailsResponseKvm
 type V4ClusterDetailsResponseKvm struct {
 
-	// Reveals the ports on the host cluster that are mapped to this guest cluster's ingress
+	// Reveals the ports on the control plane that are mapped to this tenant cluster's ingress
 	// and which protocol that port supports. Only shown and relevant on our on-prem KVM clusters.
 	//
 	PortMappings []*V4ClusterDetailsResponseKvmPortMappingsItems `json:"port_mappings"`
