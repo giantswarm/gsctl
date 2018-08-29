@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
-	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gsclientgen/models"
@@ -204,7 +204,7 @@ func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
 
 	// sort key pairs by create date (descending)
 	if len(response.Payload) > 1 {
-		slice.Sort(response.Payload[:], func(i, j int) bool {
+		sort.Slice(response.Payload[:], func(i, j int) bool {
 			return response.Payload[i].CreateDate < response.Payload[j].CreateDate
 		})
 	}
