@@ -75,7 +75,7 @@
     "client/users",
     "models"
   ]
-  revision = "8e8061d8ab58f253014d801d88d752253ceda65b"
+  revision = "fa3388260426ae8598b25f9432d2c40e82d70c53"
 
 [[projects]]
   branch = "master"
@@ -90,10 +90,10 @@
   version = "0.15.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/go-openapi/errors"
   packages = ["."]
-  revision = "b2b2befaf267d082d779bcef52d682a47c779517"
-  version = "0.15.0"
+  revision = "87bb653288778f8b0d922c5c3fb8b3f00a47ff28"
 
 [[projects]]
   name = "github.com/go-openapi/jsonpointer"
@@ -114,6 +114,7 @@
   version = "0.15.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/go-openapi/runtime"
   packages = [
     ".",
@@ -125,8 +126,7 @@
     "middleware/untyped",
     "security"
   ]
-  revision = "9a3091f566c0811ef4d54b535179bc0fc484a11f"
-  version = "0.15.0"
+  revision = "95364c1e5610d0e7bc98d445a483036a36888329"
 
 [[projects]]
   name = "github.com/go-openapi/spec"
@@ -135,10 +135,10 @@
   version = "0.15.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/go-openapi/strfmt"
   packages = ["."]
-  revision = "913ee058e387ac83a67e2d9f13acecdcd5769fc6"
-  version = "0.15.0"
+  revision = "6292e8b5de3b3535638b89eb165304ffa1e7cfae"
 
 [[projects]]
   branch = "master"
@@ -147,10 +147,10 @@
   revision = "becd2f08beafcca035645a8a101e0e3e18140458"
 
 [[projects]]
+  branch = "master"
   name = "github.com/go-openapi/validate"
   packages = ["."]
-  revision = "9a6e517cddf1ddd47449be5d06a6a786e51d9986"
-  version = "0.15.0"
+  revision = "e0648ff405079d973622f8b2bf739ed3a1c5cd9b"
 
 [[projects]]
   name = "github.com/gobuffalo/packr"

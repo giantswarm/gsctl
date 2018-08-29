@@ -185,6 +185,70 @@ func (a *Client) GetUsers(params *GetUsersParams, authInfo runtime.ClientAuthInf
 
 }
 
+/*
+ModifyPassword modifies password
+
+This operation allows you to change your password. Admins are able to change passwords of other users.
+
+*/
+func (a *Client) ModifyPassword(params *ModifyPasswordParams, authInfo runtime.ClientAuthInfoWriter) (*ModifyPasswordAccepted, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewModifyPasswordParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "modifyPassword",
+		Method:             "POST",
+		PathPattern:        "/v4/users/{email}/password/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ModifyPasswordReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ModifyPasswordAccepted), nil
+
+}
+
+/*
+ModifyUser modifies user
+
+This operation allows you to change details of a given user. Only administrators can edit accounts of other users.
+
+*/
+func (a *Client) ModifyUser(params *ModifyUserParams, authInfo runtime.ClientAuthInfoWriter) (*ModifyUserOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewModifyUserParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "modifyUser",
+		Method:             "PATCH",
+		PathPattern:        "/v4/users/{email}/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ModifyUserReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ModifyUserOK), nil
+
+}
+
 // SetTransport changes the transport on the client
 func (a *Client) SetTransport(transport runtime.ClientTransport) {
 	a.transport = transport
