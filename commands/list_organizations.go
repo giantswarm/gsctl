@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 
-	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
@@ -115,7 +115,7 @@ func orgsTable() (string, error) {
 		output = color.YellowString("No organizations available\n")
 	} else {
 		// sort orgs by Id
-		slice.Sort(response.Payload[:], func(i, j int) bool {
+		sort.Slice(response.Payload[:], func(i, j int) bool {
 			return response.Payload[i].ID < response.Payload[j].ID
 		})
 

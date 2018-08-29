@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 
-	"github.com/bradfitz/slice"
 	"github.com/coreos/go-semver/semver"
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen/models"
@@ -169,7 +169,7 @@ func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 
 	// sort releases by version (descending)
 	if len(response.Payload) > 1 {
-		slice.Sort(response.Payload[:], func(i, j int) bool {
+		sort.Slice(response.Payload[:], func(i, j int) bool {
 			vi := semver.New(*response.Payload[i].Version)
 			vj := semver.New(*response.Payload[j].Version)
 			return vj.LessThan(*vi)
@@ -178,13 +178,13 @@ func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 
 	// sort changelog and components by component name
 	for n := range response.Payload {
-		slice.Sort(response.Payload[n].Components[:], func(i, j int) bool {
+		sort.Slice(response.Payload[n].Components[:], func(i, j int) bool {
 			if *response.Payload[n].Components[i].Name == "kubernetes" {
 				return true
 			}
 			return *response.Payload[n].Components[i].Name < *response.Payload[n].Components[j].Name
 		})
-		slice.Sort(response.Payload[n].Changelog[:], func(i, j int) bool {
+		sort.Slice(response.Payload[n].Changelog[:], func(i, j int) bool {
 			if response.Payload[n].Changelog[i].Component == "kubernetes" {
 				return true
 			}

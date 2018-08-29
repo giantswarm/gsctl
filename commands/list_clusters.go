@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 
-	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/microerror"
@@ -133,7 +133,7 @@ func clustersTable(args listClustersArguments) (string, error) {
 	}, "|")}
 
 	// sort clusters by ID
-	slice.Sort(response.Payload[:], func(i, j int) bool {
+	sort.Slice(response.Payload[:], func(i, j int) bool {
 		return response.Payload[i].ID < response.Payload[j].ID
 	})
 
