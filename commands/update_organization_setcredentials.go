@@ -277,9 +277,9 @@ func updateOrgSetCredentialsRunOutput(cmd *cobra.Command, cmdLineArgs []string) 
 		switch {
 		case err.Error() == "":
 			return
-		case IsOrganizationNotSpecifiedError(err):
-			headline = "No organization given"
-			subtext = "Please specify the organization to set credentials for using the -o|--organization flag."
+		case IsCredentialsAlreadySetError(err):
+			headline = "Credentials already set"
+			subtext = fmt.Sprintf("Organization '%s' has credentials already. These cannot be overwritten.", args.organizationID)
 		default:
 			headline = err.Error()
 		}
@@ -323,6 +323,11 @@ func updateOrgSetCredentials(args updateOrgSetCredentialsArguments) (*updateOrgS
 	auxParams.ActivityName = updateOrgSetCredentialsActivityName
 	response, err := ClientV2.SetCredentials(args.organizationID, requestBody, auxParams)
 	if err != nil {
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			if clientErr.HTTPStatusCode == http.StatusConflict {
+				return nil, microerror.Mask(credentialsAlreadySetError)
+			}
+		}
 		return nil, microerror.Mask(err)
 	}
 

@@ -59,6 +59,7 @@ func IsCommandAbortedError(err error) bool {
 // conflictingFlagsError means that the user combined command line options
 // that are incompatible
 var conflictingFlagsError = &microerror.Error{
+	Desc: "Some of the command line flags used cannot be combined.",
 	Kind: "conflictingFlagsError",
 }
 
@@ -465,4 +466,15 @@ var requiredFlagMissingError = &microerror.Error{
 // IsRequiredFlagMissingError asserts requiredFlagMissingError.
 func IsRequiredFlagMissingError(err error) bool {
 	return microerror.Cause(err) == requiredFlagMissingError
+}
+
+// credentialsAlreadySetError means the user tried setting credential to an org
+// that has credentials already.
+var credentialsAlreadySetError = &microerror.Error{
+	Kind: "credentialsAlreadySetError",
+}
+
+// IsCredentialsAlreadySetError asserts credentialsAlreadySetError.
+func IsCredentialsAlreadySetError(err error) bool {
+	return microerror.Cause(err) == credentialsAlreadySetError
 }
