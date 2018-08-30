@@ -53,6 +53,9 @@ var (
 	// full flag. if set, output must not be truncated.
 	cmdFull bool
 
+	// organizaiton ID as passed by the user as a flag
+	cmdOrganization string
+
 	// number of CPUs per worker as required via flag on execution
 	cmdWorkerNumCPUs int
 
