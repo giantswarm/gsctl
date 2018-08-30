@@ -109,11 +109,17 @@ func defaultUpdateOrgSetCredentialsArguments() updateOrgSetCredentialsArguments 
 	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	return updateOrgSetCredentialsArguments{
-		apiEndpoint:    endpoint,
-		authToken:      token,
-		scheme:         scheme,
-		organizationID: cmdOrganization,
-		verbose:        cmdVerbose,
+		apiEndpoint:         endpoint,
+		authToken:           token,
+		scheme:              scheme,
+		organizationID:      cmdOrganization,
+		verbose:             cmdVerbose,
+		awsAdminRole:        cmdAWSAdminRoleARN,
+		awsOperatorRole:     cmdAWSOperatorRoleARN,
+		azureClientID:       cmdAzureClientID,
+		azureSecretKey:      cmdAzureSecretKey,
+		azureSubscriptionID: cmdAzureSubscriptionID,
+		azureTenantID:       cmdAzureTenantID,
 	}
 }
 
@@ -143,6 +149,9 @@ func updateOrgSetCredentialsPreRunOutput(cmd *cobra.Command, cmdLineArgs []strin
 	case IsRequiredFlagMissingError(err):
 		headline = "Missing flag: " + err.Error()
 		subtext = "Please use --help to see details regarding the command's usage."
+	case IsConflictingFlagsError(err):
+		headline = "Conflicting flags"
+		subtext = "Please use only AWS or Azure related flags with this installation. See --help for details."
 	case IsOrganizationNotFoundError(err):
 		headline = fmt.Sprintf("Organization '%s' not found", args.organizationID)
 		subtext = "The specified organization does not exist, or you are not a member. Please check the exact upper-/lower case spelling."
@@ -191,25 +200,35 @@ func verifyUpdateOrgSetCredentialsPreconditions(args updateOrgSetCredentialsArgu
 	// check flags based on provider
 	{
 		if provider == "aws" {
-			if cmdAWSAdminRoleARN == "" {
+			if args.awsAdminRole == "" {
 				return microerror.Maskf(requiredFlagMissingError, "--aws-admin-role")
 			}
-			if cmdAWSOperatorRoleARN == "" {
+			if args.awsOperatorRole == "" {
 				return microerror.Maskf(requiredFlagMissingError, "--aws-operator-role")
+			}
+
+			// conflicts
+			if args.azureClientID != "" || args.azureSecretKey != "" || args.azureSubscriptionID != "" || args.azureTenantID != "" {
+				return microerror.Maskf(conflictingFlagsError, "Azure-related flags not allowed here")
 			}
 		}
 		if provider == "azure" {
-			if cmdAzureClientID == "" {
+			if args.azureClientID == "" {
 				return microerror.Maskf(requiredFlagMissingError, "--azure-client-id")
 			}
-			if cmdAzureSecretKey == "" {
+			if args.azureSecretKey == "" {
 				return microerror.Maskf(requiredFlagMissingError, "--azure-secret-key")
 			}
-			if cmdAzureSubscriptionID == "" {
+			if args.azureSubscriptionID == "" {
 				return microerror.Maskf(requiredFlagMissingError, "--azure-subscription-id")
 			}
-			if cmdAzureTenantID == "" {
+			if args.azureTenantID == "" {
 				return microerror.Maskf(requiredFlagMissingError, "--azure-tenant-id")
+			}
+
+			// conflicts
+			if args.awsAdminRole != "" || args.awsOperatorRole != "" {
+				return microerror.Maskf(conflictingFlagsError, "AWS-related flags not allowed here")
 			}
 		}
 	}
@@ -242,9 +261,11 @@ func verifyUpdateOrgSetCredentialsPreconditions(args updateOrgSetCredentialsArgu
 	return nil
 }
 
+// updateOrgSetCredentialsRunOutput calls the busniness function and produces
+// meanigful terminal output.
 func updateOrgSetCredentialsRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultUpdateOrgSetCredentialsArguments()
-	result, err := updateOrganizationSetCredentials(args)
+	result, err := updateOrgSetCredentials(args)
 
 	if err != nil {
 		handleCommonErrors(err)
@@ -276,7 +297,8 @@ func updateOrgSetCredentialsRunOutput(cmd *cobra.Command, cmdLineArgs []string) 
 	fmt.Printf("The credentials are stored with the unique ID '%s'.\n", result.credentialID)
 }
 
-func updateOrganizationSetCredentials(args updateOrgSetCredentialsArguments) (*updateOrgSetCredentialsResult, error) {
+// updateOrgSetCredentials performs the API call and provides a result.
+func updateOrgSetCredentials(args updateOrgSetCredentialsArguments) (*updateOrgSetCredentialsResult, error) {
 	// build request body based on provider
 	requestBody := &models.V4AddCredentialsRequest{Provider: &provider}
 	if provider == "aws" {
@@ -306,8 +328,9 @@ func updateOrganizationSetCredentials(args updateOrgSetCredentialsArguments) (*u
 
 	// Location header returned is in the format
 	// /v4/organizations/myorg/credentials/{credential_id}/
+	segments := strings.Split(response.Location, "/")
 	result := &updateOrgSetCredentialsResult{
-		credentialID: strings.Split(response.Location, "/")[5],
+		credentialID: segments[len(segments)-2],
 	}
 
 	return result, nil
