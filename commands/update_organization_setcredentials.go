@@ -177,6 +177,9 @@ func verifyUpdateOrgSetCredentialsPreconditions(args updateOrgSetCredentialsArgu
 	}
 
 	// get installation's provider (supported: aws, azure)
+	if args.verbose {
+		fmt.Println(color.WhiteString("Determining which provider this installation uses"))
+	}
 	auxParams := ClientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = updateOrgSetCredentialsActivityName
 	response, err := ClientV2.GetInfo(auxParams)
@@ -234,6 +237,9 @@ func verifyUpdateOrgSetCredentialsPreconditions(args updateOrgSetCredentialsArgu
 	}
 
 	// check organization membership and existence
+	if args.verbose {
+		fmt.Println(color.WhiteString("Verify organization membership"))
+	}
 	orgsResponse, err := ClientV2.GetOrganizations(auxParams)
 	{
 		if err != nil {
@@ -319,6 +325,9 @@ func updateOrgSetCredentials(args updateOrgSetCredentialsArguments) (*updateOrgS
 		}
 	}
 
+	if args.verbose {
+		fmt.Println(color.WhiteString("Sending API request to set credentials"))
+	}
 	auxParams := ClientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = updateOrgSetCredentialsActivityName
 	response, err := ClientV2.SetCredentials(args.organizationID, requestBody, auxParams)
