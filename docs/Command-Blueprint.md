@@ -61,6 +61,7 @@ type verbNounArguments struct {
 func defaultVerbNounArguments() verbNounArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	return verbNounArguments{
 		apiEndpoint:       endpoint,
