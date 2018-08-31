@@ -56,6 +56,7 @@ func Test_LoginValidPassword(t *testing.T) {
 		apiEndpoint: mockServer.URL,
 		email:       "email@example.com",
 		password:    "test password",
+		verbose:     true,
 	}
 
 	cmdAPIEndpoint = mockServer.URL

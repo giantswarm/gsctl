@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 
+	"github.com/fatih/color"
 	"github.com/giantswarm/microerror"
 
 	"github.com/giantswarm/gsctl/config"
@@ -28,7 +29,7 @@ func loginGiantSwarm(args loginArguments) (loginResult, error) {
 	if config.Config.Token != "" {
 
 		if args.verbose {
-			fmt.Println("Logging out using a a previously stored token")
+			fmt.Println(color.WhiteString("Logging out using a a previously stored token"))
 		}
 
 		result.loggedOutBefore = true
@@ -43,7 +44,7 @@ func loginGiantSwarm(args loginArguments) (loginResult, error) {
 	ap.ActivityName = loginActivityName
 
 	if args.verbose {
-		fmt.Printf("Submitting API call with email '%s', password '%s'.\n", args.email, args.password)
+		fmt.Println(color.WhiteString("Submitting API call to create an authentication token with email '%s'", args.email))
 	}
 
 	response, err := ClientV2.CreateAuthToken(args.email, args.password, ap)
@@ -57,6 +58,10 @@ func loginGiantSwarm(args loginArguments) (loginResult, error) {
 	result.email = args.email
 
 	// fetch installation name as alias
+	if args.verbose {
+		fmt.Println(color.WhiteString("Fetching installation details"))
+	}
+
 	alias, err := getAlias(args.apiEndpoint, "giantswarm", result.token)
 	if err != nil {
 		return result, microerror.Mask(err)
