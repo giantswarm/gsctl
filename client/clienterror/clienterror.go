@@ -251,7 +251,7 @@ func New(err error) *APIError {
 	if addCredentialsConflict, ok := err.(*organizations.AddCredentialsConflict); ok {
 		return &APIError{
 			ErrorMessage:   "The organization has credentials already",
-			ErrorDetails:   "Credentials are immutible and an organization can only have one credential set.",
+			ErrorDetails:   "Credentials are immutable and an organization can only have one credential set.",
 			HTTPStatusCode: http.StatusConflict,
 			OriginalError:  addCredentialsConflict,
 		}
@@ -259,7 +259,7 @@ func New(err error) *APIError {
 	if addCredentialsUnauthorized, ok := err.(*organizations.AddCredentialsUnauthorized); ok {
 		return &APIError{
 			ErrorMessage:   "Unauthorized",
-			ErrorDetails:   "You have no permission to set credentials for this organization.",
+			ErrorDetails:   "You do not have permission to set credentials for this organization.",
 			HTTPStatusCode: http.StatusUnauthorized,
 			OriginalError:  addCredentialsUnauthorized,
 		}

@@ -27,9 +27,9 @@ var (
 		Short:   "Set credentials of an organization",
 		Long: `Set the credentials used to create and operate the clusters of an organization.
 
-Setting credentials of an organization will result in all future cluster
+Setting credentials of an organization will result in all future clusters
 being run in the account/subscription referenced by the credentials. Once
-credentials are set for an organization, this cannot be undone.
+credentials are set for an organization, this currently cannot be undone.
 
 For details on how to prepare the account/subscription, consult the documentation at
 
@@ -50,18 +50,16 @@ For details on how to prepare the account/subscription, consult the documentatio
 `,
 
 		// PreRun checks a few general things, like authentication and flags
-		// plausibility.
+		// compatibility.
 		PreRun: updateOrgSetCredentialsPreRunOutput,
 
 		// Run calls the business function and prints results and errors.
 		Run: updateOrgSetCredentialsRunOutput,
 	}
 
-	// AWS operator role ARN as passed by the user via flags
+	// AWS role ARN flags
 	cmdAWSOperatorRoleARN string
-
-	// AWS admin role ARN as passed by the user via flags
-	cmdAWSAdminRoleARN string
+	cmdAWSAdminRoleARN    string
 
 	// Azure-related flags
 	cmdAzureSubscriptionID string
@@ -92,7 +90,7 @@ type updateOrgSetCredentialsResult struct {
 }
 
 func init() {
-	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&cmdOrganization, "organization", "o", "", "ID of the organization to set credentials for")
+	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&cmdOrganizationID, "organization", "o", "", "ID of the organization to set credentials for")
 	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&cmdAWSOperatorRoleARN, "aws-operator-role", "", "", "AWS ARN of the role to use for operating clusters")
 	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&cmdAWSAdminRoleARN, "aws-admin-role", "", "", "AWS ARN of the role to be used by Giant Swarm staff")
 	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&cmdAzureSubscriptionID, "azure-subscription-id", "", "", "ID of the Azure subscription to run clusters in")
@@ -112,7 +110,7 @@ func defaultUpdateOrgSetCredentialsArguments() updateOrgSetCredentialsArguments 
 		apiEndpoint:         endpoint,
 		authToken:           token,
 		scheme:              scheme,
-		organizationID:      cmdOrganization,
+		organizationID:      cmdOrganizationID,
 		verbose:             cmdVerbose,
 		awsAdminRole:        cmdAWSAdminRoleARN,
 		awsOperatorRole:     cmdAWSOperatorRoleARN,
@@ -154,7 +152,7 @@ func updateOrgSetCredentialsPreRunOutput(cmd *cobra.Command, cmdLineArgs []strin
 		subtext = "Please use only AWS or Azure related flags with this installation. See --help for details."
 	case IsOrganizationNotFoundError(err):
 		headline = fmt.Sprintf("Organization '%s' not found", args.organizationID)
-		subtext = "The specified organization does not exist, or you are not a member. Please check the exact upper-/lower case spelling."
+		subtext = "The specified organization does not exist, or you are not a member. Please check the exact upper/lower case spelling."
 		subtext += "\nUse 'gsctl list organizations' to list all organizations."
 	default:
 		headline = err.Error()

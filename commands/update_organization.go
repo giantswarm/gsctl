@@ -19,6 +19,6 @@ Examples:
 )
 
 func init() {
-	UpdateOrganizationCommand.Flags().StringVarP(&cmdOrganization, "organization", "o", "", "ID of the organization to modify")
+	UpdateOrganizationCommand.Flags().StringVarP(&cmdOrganizationID, "organization", "o", "", "ID of the organization to modify")
 	UpdateCommand.AddCommand(UpdateOrganizationCommand)
 }
