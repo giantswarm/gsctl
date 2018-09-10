@@ -42,11 +42,11 @@ Examples:
 
   gsctl create kubeconfig -c my0c3
 
-  gsctl create kubeconfig -c my0c3 --self-contained ./kubeconfig.yaml
+  gsctl create kubeconfig --self-contained ./kubeconfig.yaml -c my0c3
 
-  gsctl create kubeconfig -c my0c3 --ttl 3h -d "Key pair living for only 3 hours"
+  gsctl create kubeconfig --ttl 3h -d "Key pair living for only 3 hours" -c my0c3
 
-  gsctl create kubeconfig -c my0c3 --certificate-organizations system:masters
+  gsctl create kubeconfig --certificate-organizations system:masters -c my0c3
 `,
 		PreRun: createKubeconfigPreRunOutput,
 		Run:    createKubeconfigRunOutput,
