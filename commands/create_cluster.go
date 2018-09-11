@@ -177,8 +177,6 @@ func createClusterValidationOutput(cmd *cobra.Command, args []string) {
 		handleCommonErrors(err)
 
 		switch {
-		case err.Error() == "":
-			return
 		case IsConflictingFlagsError(err):
 			headline = "Conflicting flags used"
 			subtext = "When specifying a definition via a YAML file, certain flags must not be used."

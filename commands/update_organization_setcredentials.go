@@ -136,8 +136,6 @@ func updateOrgSetCredentialsPreRunOutput(cmd *cobra.Command, cmdLineArgs []strin
 	subtext := ""
 
 	switch {
-	case err.Error() == "":
-		return
 	case IsOrganizationNotSpecifiedError(err):
 		headline = "No organization given"
 		subtext = "Please specify the organization to set credentials for using the -o|--organization flag."
@@ -279,8 +277,6 @@ func updateOrgSetCredentialsRunOutput(cmd *cobra.Command, cmdLineArgs []string) 
 		subtext := ""
 
 		switch {
-		case err.Error() == "":
-			return
 		case IsCredentialsAlreadySetError(err):
 			headline = "Credentials already set"
 			subtext = fmt.Sprintf("Organization '%s' has credentials already. These cannot be overwritten.", args.organizationID)

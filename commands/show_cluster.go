@@ -158,6 +158,7 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		var headline = ""
 		var subtext = ""
 
+		// TODO: handle common and specific errors
 		switch {
 		case err.Error() == "":
 			return

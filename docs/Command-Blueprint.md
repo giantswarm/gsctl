@@ -102,8 +102,6 @@ func verbNounPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	subtext := ""
 
 	switch {
-	case err.Error() == "":
-		return
 	case IsVerySpecificError(err):
 		headline = "Some very specific error occurred."
 		subtext = "Something happened that can only happen in this command."
@@ -141,8 +139,6 @@ func verbNounRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		var subtext = ""
 
 		switch {
-		case err.Error() == "":
-			return
 		case IsVerySpecificError(err):
       headline = "Some very specific error occurred."
   		subtext = "Something happened that can only happen in this command."
