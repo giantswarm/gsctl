@@ -47,8 +47,6 @@ func selectEndpointPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	var subtext string
 
 	switch {
-	case err.Error() == "":
-		headline = "Unknown error."
 	case IsEndpointMissingError(err):
 		headline = "No endpoint specified."
 		subtext = "Please give an endpoint URL to use. Use --help for details."

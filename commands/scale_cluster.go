@@ -142,8 +142,6 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		var subtext = ""
 
 		switch {
-		case err.Error() == "":
-			return
 		case IsCommandAbortedError(err):
 			headline = "Scaling cancelled."
 		case IsCannotScaleBelowMinimumWorkersError(err):

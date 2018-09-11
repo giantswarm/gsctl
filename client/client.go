@@ -450,3 +450,19 @@ func (w *WrapperV2) GetOrganizations(p *AuxiliaryParams) (*organizations.GetOrga
 
 	return response, nil
 }
+
+// SetCredentials calls the API's addCredentials operation of an organization.
+func (w *WrapperV2) SetCredentials(organizationID string, addCredentialsRequest *models.V4AddCredentialsRequest, p *AuxiliaryParams) (*organizations.AddCredentialsCreated, error) {
+	params := organizations.NewAddCredentialsParams().WithOrganizationID(organizationID).WithBody(addCredentialsRequest)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Organizations.AddCredentials(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}

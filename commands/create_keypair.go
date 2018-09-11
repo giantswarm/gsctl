@@ -128,6 +128,7 @@ func createKeyPairPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	headline := ""
 	subtext := ""
 
+	// TODO: handle specific errors
 	switch {
 	case err.Error() == "":
 		return

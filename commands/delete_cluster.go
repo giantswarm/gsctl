@@ -89,8 +89,6 @@ func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
 		var subtext = ""
 
 		switch {
-		case err.Error() == "":
-			return
 		case IsCouldNotDeleteClusterError(err):
 			headline = "The cluster could not be deleted."
 			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."

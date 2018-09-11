@@ -100,8 +100,6 @@ func loginPreRunOutput(cmd *cobra.Command, positionalArgs []string) {
 	var subtext = ""
 
 	switch {
-	case err.Error() == "":
-		return
 	case IsNoEmailArgumentGivenError(err):
 		headline = "The email argument is required."
 		subtext = "Please execute the command as 'gsctl login <email>'. See 'gsctl login --help' for details."
@@ -187,8 +185,6 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 		var headline = ""
 		var subtext = ""
 		switch {
-		case err.Error() == "":
-			return
 		case IsEmptyPasswordError(err):
 			headline = "Empty password submitted"
 			subtext = "The API server complains about the password provided."

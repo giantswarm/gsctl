@@ -230,8 +230,6 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	var subtext string
 
 	switch {
-	case err.Error() == "":
-		return
 	case IsCommandAbortedError(err):
 		headline = "File not overwritten, no kubeconfig created."
 	case IsKubectlMissingError(err):

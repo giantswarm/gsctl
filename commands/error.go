@@ -59,6 +59,7 @@ func IsCommandAbortedError(err error) bool {
 // conflictingFlagsError means that the user combined command line options
 // that are incompatible
 var conflictingFlagsError = &microerror.Error{
+	Desc: "Some of the command line flags used cannot be combined.",
 	Kind: "conflictingFlagsError",
 }
 
@@ -207,6 +208,16 @@ var organizationNotFoundError = &microerror.Error{
 // IsOrganizationNotFoundError asserts organizationNotFoundError
 func IsOrganizationNotFoundError(err error) bool {
 	return microerror.Cause(err) == organizationNotFoundError
+}
+
+// organizationNotSpecifiedError means that the user has not specified an organization to work with
+var organizationNotSpecifiedError = &microerror.Error{
+	Kind: "organizationNotSpecifiedError",
+}
+
+// IsOrganizationNotSpecifiedError asserts organizationNotSpecifiedError
+func IsOrganizationNotSpecifiedError(err error) bool {
+	return microerror.Cause(err) == organizationNotSpecifiedError
 }
 
 // yamlFileNotReadableError means a YAML file was not readable
@@ -434,4 +445,36 @@ var ssoError = &microerror.Error{
 // IsSSOError asserts ssoError
 func IsSSOError(err error) bool {
 	return microerror.Cause(err) == ssoError
+}
+
+// providerNotSupportedError means that the intended action is not possible with
+// the installation's provider.
+var providerNotSupportedError = &microerror.Error{
+	Kind: "providerNotSupportedError",
+}
+
+// IsProviderNotSupportedError asserts providerNotSupportedError.
+func IsProviderNotSupportedError(err error) bool {
+	return microerror.Cause(err) == providerNotSupportedError
+}
+
+// requiredFlagMissingError means that a required flag has not been set by the user.
+var requiredFlagMissingError = &microerror.Error{
+	Kind: "requiredFlagMissingError",
+}
+
+// IsRequiredFlagMissingError asserts requiredFlagMissingError.
+func IsRequiredFlagMissingError(err error) bool {
+	return microerror.Cause(err) == requiredFlagMissingError
+}
+
+// credentialsAlreadySetError means the user tried setting credential to an org
+// that has credentials already.
+var credentialsAlreadySetError = &microerror.Error{
+	Kind: "credentialsAlreadySetError",
+}
+
+// IsCredentialsAlreadySetError asserts credentialsAlreadySetError.
+func IsCredentialsAlreadySetError(err error) bool {
+	return microerror.Cause(err) == credentialsAlreadySetError
 }
