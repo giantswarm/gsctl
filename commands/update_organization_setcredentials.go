@@ -20,7 +20,7 @@ const (
 
 var (
 
-	// UpdateOrgSetCredentialsCommand performs the "update organizatio set-credentials" function
+	// UpdateOrgSetCredentialsCommand performs the "update organization set-credentials" function
 	UpdateOrgSetCredentialsCommand = &cobra.Command{
 		Use:     "set-credentials",
 		Aliases: []string{"sc"},
