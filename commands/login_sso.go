@@ -20,7 +20,7 @@ func init() {
 func loginSSO(args loginArguments) (loginResult, error) {
 	numEndpointsBefore := config.Config.NumEndpoints()
 
-	pkceResponse, err := oidc.RunPKCE()
+	pkceResponse, err := oidc.RunPKCE(args.apiEndpoint)
 	if err != nil {
 		if args.verbose {
 			fmt.Println(color.WhiteString("Attempt to run the OAuth2 PKCE workflow with a local callback HTTP server failed."))
