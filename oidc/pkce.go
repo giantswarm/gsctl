@@ -24,7 +24,6 @@ var (
 )
 
 const (
-	audience             = "giantswarm-api"
 	scope                = "openid email profile user_metadata https://giantswarm.io offline_access"
 	clientID             = "zQiFLUnrTFQwrybYzeY53hWWfhOKWRAU"
 	tokenURL             = "https://giantswarm.eu.auth0.com/oauth/token"
@@ -49,7 +48,7 @@ type PKCEResponse struct {
 // 1. Craft the authorization URL and open the users browser.
 // 2. Starting a callback server to wait for the redirect with the code.
 // 3. Exchanging the code for an access token and id token.
-func RunPKCE() (PKCEResponse, error) {
+func RunPKCE(audience string) (PKCEResponse, error) {
 	// Construct the authorization url.
 	//    1. Generate and store a random codeVerifier.
 	codeVerifier := base64URLEncode(fmt.Sprint(rand.Int31()))
@@ -59,7 +58,7 @@ func RunPKCE() (PKCEResponse, error) {
 	codeChallenge := sha256.Sum256([]byte(codeVerifier))
 
 	//    3. Use the codeChallenge to make a authorizationURL
-	authorizationURL := authorizationURL(string(codeChallenge[:]))
+	authorizationURL := authorizationURL(string(codeChallenge[:]), audience)
 
 	// Open the authorization url in the user's browser, which will eventually
 	// redirect the user to the local webserver we'll create next.
@@ -118,7 +117,7 @@ func base64URLEncode(input string) string {
 // authorizationURL crafts the URL that we need to visit at Auth0.
 // It takes the hashed codeChallenge that starts off the authorization code grant
 // flow.
-func authorizationURL(codeChallenge string) string {
+func authorizationURL(codeChallenge string, audience string) string {
 	r := authorizationURLBase
 
 	params := url.Values{}
