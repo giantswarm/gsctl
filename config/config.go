@@ -12,7 +12,9 @@ import (
 	"strings"
 	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/oidc"
 	"github.com/giantswarm/microerror"
 
 	yaml "gopkg.in/yaml.v2"
@@ -94,6 +96,16 @@ type configStruct struct {
 	// SelectedEndpoint is the URL of the selected endpoint
 	SelectedEndpoint string `yaml:"selected_endpoint"`
 
+	// RefreshToken is the refresh token found for the selected endpoint. Might be empty.
+	// Not marshalled back to the config file, as it is contained in the
+	// endpoint's entry.
+	RefreshToken string `yaml:"-"`
+
+	// Scheme is the scheme found for the selected endpoint. Might be empty.
+	// Not marshalled back to the config file, as it is contained in the
+	// endpoint's entry.
+	Scheme string `yaml:"-"`
+
 	// Token is the token found for the selected endpoint. Might be empty.
 	// Not marshalled back to the config file, as it is contained in the
 	// endpoint's entry.
@@ -108,19 +120,25 @@ type configStruct struct {
 // endpointConfig is used to serialize/deserialize endpoint configuration
 // to/from a config file
 type endpointConfig struct {
+	// Alias is a friendly shortcut for the endpoint
+	Alias string `yaml:"alias,omitempty"`
+
 	// Email is the email address of the authenticated user.
 	Email string `yaml:"email"`
 
-	// Token is the session token of the authenticated user.
-	Token string `yaml:"token"`
+	// RefreshToken for acquiring a new token when using the bearer scheme.
+	RefreshToken string `yaml:"refresh_token,omitempty"`
 
-	// Alias is a friendly shortcut for the endpoint
-	Alias string `yaml:"alias,omitempty"`
+	// Scheme is the scheme to be used in the Authorization header.
+	Scheme string `yaml:"auth_scheme,omitempty"`
+
+	// Token is the session token of the authenticated user.
+	Token string `yaml:"token,omitempty"`
 }
 
 // StoreEndpointAuth adds an endpoint to the configStruct.Endpoints field
 // (if not yet there). This should only be done after successful authentication.
-func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email string, token string) error {
+func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email string, scheme string, token string, refreshToken string) error {
 	ep := normalizeEndpoint(endpointURL)
 
 	if email == "" || token == "" {
@@ -152,9 +170,11 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email
 	}
 
 	c.Endpoints[ep] = &endpointConfig{
-		Alias: aliasBefore,
-		Email: email,
-		Token: token,
+		Alias:        aliasBefore,
+		Email:        email,
+		RefreshToken: refreshToken,
+		Scheme:       scheme,
+		Token:        token,
 	}
 
 	if alias != "" && aliasBefore == "" {
@@ -196,7 +216,14 @@ func (c *configStruct) SelectEndpoint(endpointAliasOrURL string) error {
 		}
 	}
 
+	// Migrate empty scheme to 'giantswarm'
+	if c.Endpoints[ep].Scheme == "" {
+		c.Endpoints[ep].Scheme = "giantswarm"
+	}
+
 	c.SelectedEndpoint = ep
+	c.RefreshToken = c.Endpoints[ep].RefreshToken
+	c.Scheme = c.Endpoints[ep].Scheme
 	c.Token = c.Endpoints[ep].Token
 	c.Email = c.Endpoints[ep].Email
 
@@ -206,22 +233,28 @@ func (c *configStruct) SelectEndpoint(endpointAliasOrURL string) error {
 }
 
 // ChooseEndpoint makes a choice which should be the endpoint to use.
-// If the argument overridingEndpointURL is not empty, this will
-// be used as the returned endpoint URL.
-// Errors are only printed to inform users, but not returned, to simplify
-// usage of this function.
-func (c *configStruct) ChooseEndpoint(overridingEndpointURL string) string {
-	if overridingEndpointURL != "" {
-		ep := normalizeEndpoint(overridingEndpointURL)
+// If the argument overridingEndpointAliasOrURL is not empty, this will
+// be used to look up an alias to return an endpoint for. If there is none,
+// it will be the used endpoint URL.
+func (c *configStruct) ChooseEndpoint(overridingEndpointAliasOrURL string) string {
+
+	// if no local param is given, try the environment variable
+	if overridingEndpointAliasOrURL == "" {
+		overridingEndpointAliasOrURL = os.Getenv("GSCTL_ENDPOINT")
+	}
+
+	if overridingEndpointAliasOrURL != "" {
+		// check if overridingEndpointAliasOrURL is an alias
+		if c.HasEndpointAlias(overridingEndpointAliasOrURL) {
+			ep, _ := c.EndpointByAlias(overridingEndpointAliasOrURL)
+			return ep
+		}
+
+		ep := normalizeEndpoint(overridingEndpointAliasOrURL)
 		return ep
 	}
 
-	envEndpoint := os.Getenv("GSCTL_ENDPOINT")
-	if envEndpoint != "" {
-		ep := normalizeEndpoint(envEndpoint)
-		return ep
-	}
-
+	// as a last resort, return the currently selected endpoint
 	return c.SelectedEndpoint
 }
 
@@ -244,6 +277,27 @@ func (c *configStruct) ChooseToken(endpoint, overridingToken string) string {
 	}
 
 	return ""
+}
+
+// ChooseScheme chooses a scheme to use, according to a rule set.
+// - If the user is providing their own token via the --auth-token flag,
+//   then always return "giantswarm".
+// - If we have an auth scheme for the given endpoint, we return that.
+// - otherwise we return "giantswarm"
+func (c *configStruct) ChooseScheme(endpoint string, cmdToken string) string {
+	ep := normalizeEndpoint(endpoint)
+
+	if cmdToken != "" {
+		return "giantswarm"
+	}
+
+	if endpointStruct, ok := c.Endpoints[ep]; ok {
+		if endpointStruct != nil && endpointStruct.Scheme != "" {
+			return endpointStruct.Scheme
+		}
+	}
+
+	return "giantswarm"
 }
 
 // HasEndpointAlias returns whether the given alias is used for an endpoint
@@ -278,13 +332,86 @@ func (c *configStruct) Logout(endpointURL string) {
 
 	if ep == c.SelectedEndpoint {
 		c.Token = ""
+		c.Scheme = ""
 	}
 
 	if element, ok := c.Endpoints[ep]; ok {
+		element.RefreshToken = ""
 		element.Token = ""
+		element.Scheme = ""
 	}
 
 	WriteToFile()
+}
+
+// AuthHeaderGetter returns a function that can get the auth header for a given endpoint that the client can use.
+// The returned function will attempt to refresh the token in case the scheme is Bearer and the token is expired.
+func (c *configStruct) AuthHeaderGetter(endpoint string, overridingToken string) func() (authheader string, err error) {
+	return func() (string, error) {
+		token := c.ChooseToken(endpoint, overridingToken)
+		scheme := c.ChooseScheme(endpoint, overridingToken)
+
+		// If the scheme is Bearer, first verify that the token is valid.
+		// If it is expired, then try to refresh it.
+		if scheme == "Bearer" {
+			// Check if the endpoint we are accessing is even saved.
+			if _, ok := c.Endpoints[endpoint]; !ok {
+				return "", microerror.Mask(endpointNotDefinedError)
+			}
+
+			// Check if it has a refresh token.
+			refreshToken := c.Endpoints[endpoint].RefreshToken
+			if refreshToken == "" {
+				return "", microerror.Maskf(endpointNotDefinedError, "No refresh token saved in config file, unable to acquire new access token. Please login again.")
+			}
+
+			if !isTokenValid(token) {
+				// Get a new token.
+				refreshTokenResponse, err := oidc.RefreshToken(refreshToken)
+				if err != nil {
+					return "", microerror.Mask(err)
+				}
+
+				// Parse the ID Token for the email address.
+				idToken, err := oidc.ParseIDToken(refreshTokenResponse.IDToken)
+				if err != nil {
+					return "", microerror.Mask(err)
+				}
+
+				// Update the config file with the new access token.
+				if err := Config.StoreEndpointAuth(endpoint, c.Endpoints[endpoint].Alias, idToken.Email, "Bearer", refreshTokenResponse.AccessToken, refreshToken); err != nil {
+					return "", microerror.Maskf(err, "Error while attempting to store the token in the config file")
+				}
+
+				// Use the new access token.
+				return scheme + " " + refreshTokenResponse.AccessToken, nil
+			}
+			return scheme + " " + token, nil
+		}
+
+		// If the scheme is not Bearer, just return scheme and token as normal.
+		return scheme + " " + token, nil
+	}
+}
+
+// isTokenValid takes a JWT access token and returns true/false depending on
+// whether or not the access token is valid. Does not check if the signature is valid.
+// Only checkes time based claims.
+func isTokenValid(token string) (expired bool) {
+	// Parse token
+	claims := jwt.MapClaims{}
+
+	parsedToken, _, err := new(jwt.Parser).ParseUnverified(token, claims)
+	if err != nil {
+		return false
+	}
+
+	err = parsedToken.Claims.Valid()
+	if err != nil {
+		return false
+	}
+
+	return true
 }
 
 // init sets defaults and initializes config paths
@@ -490,31 +617,33 @@ func getKubeconfigPaths(homeDir string) []string {
 // @param activityName     Name of the activity calling this function (for tracking)
 // @param cmdLine          Command line content used to run the CLI (for tracking)
 // @param apiEndpoint      Endpoint URL
-func GetDefaultCluster(requestIDHeader, activityName, cmdLine, apiEndpoint string) (clusterID string, err error) {
+func GetDefaultCluster(activityName, apiEndpoint string) (clusterID string, err error) {
 	// Go through available orgs and clusters to find all clusters
 	if Config.Token == "" {
 		return "", errors.New("user not logged in")
 	}
 
-	clientConfig := client.Configuration{
-		Endpoint:  apiEndpoint,
-		Timeout:   10 * time.Second,
-		UserAgent: UserAgent(),
+	clientConfig := &client.Configuration{
+		AuthHeaderGetter: Config.AuthHeaderGetter(apiEndpoint, Config.Token),
+		Endpoint:         apiEndpoint,
+		Timeout:          10 * time.Second,
+		UserAgent:        UserAgent(),
 	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return "", microerror.Mask(clientErr)
+	apiClient, err := client.NewV2(clientConfig)
+	if err != nil {
+		return "", microerror.Mask(err)
 	}
 
-	authHeader := "giantswarm " + Config.Token
+	auxParams := apiClient.DefaultAuxiliaryParams()
+	auxParams.ActivityName = activityName
 
-	clustersResponse, _, err := apiClient.GetClusters(authHeader, requestIDHeader, activityName, cmdLine)
+	response, err := apiClient.GetClusters(auxParams)
 	if err != nil {
 		return "", err
 	}
 
-	if len(clustersResponse) == 1 {
-		return clustersResponse[0].Id, nil
+	if len(response.Payload) == 1 {
+		return response.Payload[0].ID, nil
 	}
 
 	return "", nil

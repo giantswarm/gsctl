@@ -6,42 +6,51 @@ import (
 	"testing"
 )
 
-func Test_ListOrganizations(t *testing.T) {
-	// mock service returning organizations the user is member of
-	orgsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`[
+// Test_ListOrganizationsSuccess tests the command with inputs that should succeed.
+func Test_ListOrganizationsSuccess(t *testing.T) {
+	testCases := []struct {
+		name         string
+		jsonResponse []byte
+	}{
+		{
+			name: "Normal output with organizations",
+			jsonResponse: []byte(`[
         {"id": "acme"},
 				{"id": "foo"},
 				{"id": "giantswarm"}
-      ]`))
-	}))
-	defer orgsMockServer.Close()
-
-	cmdAPIEndpoint = orgsMockServer.URL
-	_, err := orgsTable()
-	if err != nil {
-		t.Error(err)
+      ]`),
+		},
+		{
+			name:         "Empty list",
+			jsonResponse: []byte(`[]`),
+		},
 	}
 
-	listOrgs(ListOrgsCommand, []string{})
-}
+	for i, tc := range testCases {
+		t.Logf("Table test case %d: %s", i, tc.name)
+		orgsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(tc.jsonResponse)
+		}))
+		defer orgsMockServer.Close()
 
-func Test_ListOrganizationsEmpty(t *testing.T) {
-	// mock service returning key pairs
-	orgsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`[]`))
-	}))
-	defer orgsMockServer.Close()
+		cmdAPIEndpoint = orgsMockServer.URL
+		args := listOrgsArguments{
+			authToken:   "some-token",
+			apiEndpoint: orgsMockServer.URL,
+		}
+		initClient()
 
-	cmdAPIEndpoint = orgsMockServer.URL
-	_, err := orgsTable()
-	if err != nil {
-		t.Error(err)
+		err := verifyListOrgsPreconditions(args)
+		if err != nil {
+			t.Errorf("Table test case %d: Unexpected error in verifyListOrgsPreconditions: %#v", i, err)
+		}
+
+		_, err = orgsTable()
+		if err != nil {
+			t.Errorf("Table test case %d: Unexpected error in orgsTable: %#v", i, err)
+		}
+
 	}
-
-	listOrgs(ListOrgsCommand, []string{})
 }

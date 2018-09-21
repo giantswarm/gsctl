@@ -28,29 +28,29 @@ func Test_ListClusters(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		// return clusters for the organization
 		w.Write([]byte(`[
-			{
+      {
         "create_date": "2017-05-16T09:30:31.192170835Z",
         "id": "` + randomClusterID() + `",
         "name": "My dearest production cluster",
-				"owner": "acme"
+        "owner": "acme"
       },
-			{
+      {
         "create_date": "2017-04-16T09:30:31.192170835Z",
         "id": "` + randomClusterID() + `",
         "name": "Abandoned cluster from the early days",
-				"owner": "some_org"
+        "owner": "some_org"
       },
-			{
+      {
         "create_date": "2017-10-06T02:24:55.192170835Z",
         "id": "` + randomClusterID() + `",
         "name": "A fairly recent test cluster",
-				"owner": "acme"
+        "owner": "acme"
       },
-			{
+      {
         "create_date": "2017-10-10T07:24:55.192170835Z",
         "id": "` + randomClusterID() + `",
         "name": "That brand new development cluster",
-				"owner": "acme_dev"
+        "owner": "acme_dev"
       }
     ]`))
 	}))
@@ -60,6 +60,9 @@ func Test_ListClusters(t *testing.T) {
 		apiEndpoint: mockServer.URL,
 		authToken:   "testtoken",
 	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	err := verifyListClusterPreconditions(args)
 	if err != nil {
@@ -88,6 +91,9 @@ func Test_ListClustersEmpty(t *testing.T) {
 		authToken:   "testtoken",
 	}
 
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
 	err := verifyListClusterPreconditions(args)
 	if err != nil {
 		t.Error(err)
@@ -98,7 +104,35 @@ func Test_ListClustersEmpty(t *testing.T) {
 		t.Error(err)
 	}
 
-	if table != "" {
-		t.Errorf("Expected '', got '%s'", table)
+	if table != "No clusters" {
+		t.Errorf("Expected 'No clusters', got '%s'", table)
+	}
+}
+
+// Test_ListClustersUnauthorized tests listing clusters with a 401 response.
+func Test_ListClustersUnauthorized(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(`{"code": "PERMISSION_DENIED", "message": "Lorem ipsum"}`))
+	}))
+	defer mockServer.Close()
+
+	args := listClustersArguments{
+		apiEndpoint: mockServer.URL,
+		authToken:   "testtoken",
+	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
+	err := verifyListClusterPreconditions(args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = clustersTable(args)
+	if !IsNotAuthorizedError(err) {
+		t.Errorf("Expected notAuthorizedError, got %#v", err)
 	}
 }

@@ -9,15 +9,15 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fatih/color"
+	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/juju/errgo"
+	"github.com/spf13/cobra"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/fatih/color"
-	"github.com/giantswarm/gsclientgen"
-	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
-	"github.com/spf13/cobra"
 )
 
 // addClusterArguments contains all possible input parameter needed
@@ -29,9 +29,10 @@ type addClusterArguments struct {
 	inputYAMLFile           string
 	numWorkers              int
 	owner                   string
+	scheme                  string
 	token                   string
 	wokerAwsEc2InstanceType string
-	wokerAzureVmSize        string
+	wokerAzureVMSize        string
 	workerNumCPUs           int
 	workerMemorySizeGB      float32
 	workerStorageSizeGB     float32
@@ -42,6 +43,7 @@ type addClusterArguments struct {
 func defaultAddClusterArguments() addClusterArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 	return addClusterArguments{
 		apiEndpoint:             endpoint,
 		clusterName:             cmdClusterName,
@@ -49,10 +51,11 @@ func defaultAddClusterArguments() addClusterArguments {
 		inputYAMLFile:           cmdInputYAMLFile,
 		numWorkers:              cmdNumWorkers,
 		owner:                   cmdOwner,
+		scheme:                  scheme,
 		token:                   token,
 		releaseVersion:          cmdRelease,
 		wokerAwsEc2InstanceType: cmdWorkerAwsEc2InstanceType,
-		wokerAzureVmSize:        cmdWorkerAzureVMSize,
+		wokerAzureVMSize:        cmdWorkerAzureVMSize,
 		workerNumCPUs:           cmdWorkerNumCPUs,
 		workerMemorySizeGB:      cmdWorkerMemorySizeGB,
 		workerStorageSizeGB:     cmdWorkerStorageSizeGB,
@@ -172,8 +175,6 @@ func createClusterValidationOutput(cmd *cobra.Command, args []string) {
 		handleCommonErrors(err)
 
 		switch {
-		case err.Error() == "":
-			return
 		case IsConflictingFlagsError(err):
 			headline = "Conflicting flags used"
 			subtext = "When specifying a definition via a YAML file, certain flags must not be used."
@@ -277,7 +278,7 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 		fmt.Println("")
 		fmt.Printf("    %s", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s \n", result.id)))
 		fmt.Println("")
-		fmt.Println("Take into consideration all guest clusters have enabled RBAC and may you want to provide a correct organization for the certificates (like operators, testers, developer, ...)")
+		fmt.Println("Take into consideration all clusters have enabled RBAC and may you want to provide a correct organization for the certificates (like operators, testers, developer, ...)")
 		fmt.Println("")
 		fmt.Printf("    %s \n", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s --certificate-organizations system:masters", result.id)))
 		fmt.Println("")
@@ -296,11 +297,11 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 
 	// false flag combination?
 	if args.inputYAMLFile != "" {
-		if args.numWorkers != 0 || args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" || args.wokerAzureVmSize != "" {
+		if args.numWorkers != 0 || args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" || args.wokerAzureVMSize != "" {
 			return microerror.Mask(conflictingFlagsError)
 		}
 	} else {
-		if args.numWorkers == 0 && (args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" || args.wokerAzureVmSize != "") {
+		if args.numWorkers == 0 && (args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" || args.wokerAzureVMSize != "") {
 			return microerror.Mask(numWorkerNodesMissingError)
 		}
 	}
@@ -325,7 +326,7 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 		return microerror.Mask(notEnoughStoragePerWorkerError)
 	}
 
-	if args.wokerAwsEc2InstanceType != "" || args.wokerAzureVmSize != "" {
+	if args.wokerAwsEc2InstanceType != "" || args.wokerAzureVMSize != "" {
 		// check for incompatibilities
 		if args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 {
 			return microerror.Mask(incompatibleSettingsError)
@@ -410,8 +411,8 @@ func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 			}
 
 			// Azure
-			if args.wokerAzureVmSize != "" {
-				worker.Azure.VmSize = args.wokerAzureVmSize
+			if args.wokerAzureVMSize != "" {
+				worker.Azure.VMSize = args.wokerAzureVMSize
 			}
 
 			workers = append(workers, worker)
@@ -421,21 +422,21 @@ func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 	return def
 }
 
-// creates a gsclientgen.V4AddClusterRequest from clusterDefinition
-func createAddClusterBody(d clusterDefinition) gsclientgen.V4AddClusterRequest {
-	a := gsclientgen.V4AddClusterRequest{}
+// creates a models.V4AddClusterRequest from clusterDefinition
+func createAddClusterBody(d clusterDefinition) *models.V4AddClusterRequest {
+	a := &models.V4AddClusterRequest{}
 	a.Name = d.Name
-	a.Owner = d.Owner
+	a.Owner = &d.Owner
 	a.ReleaseVersion = d.ReleaseVersion
 
 	for _, dWorker := range d.Workers {
-		ndmWorker := gsclientgen.V4NodeDefinition{}
-		ndmWorker.Memory = gsclientgen.V4NodeDefinitionMemory{SizeGb: dWorker.Memory.SizeGB}
-		ndmWorker.Cpu = gsclientgen.V4NodeDefinitionCpu{Cores: int32(dWorker.CPU.Cores)}
-		ndmWorker.Storage = gsclientgen.V4NodeDefinitionStorage{SizeGb: dWorker.Storage.SizeGB}
+		ndmWorker := &models.V4AddClusterRequestWorkersItems{}
+		ndmWorker.Memory = &models.V4AddClusterRequestWorkersItemsMemory{SizeGb: float64(dWorker.Memory.SizeGB)}
+		ndmWorker.CPU = &models.V4AddClusterRequestWorkersItemsCPU{Cores: int64(dWorker.CPU.Cores)}
+		ndmWorker.Storage = &models.V4AddClusterRequestWorkersItemsStorage{SizeGb: float64(dWorker.Storage.SizeGB)}
 		ndmWorker.Labels = dWorker.Labels
-		ndmWorker.Aws = gsclientgen.V4NodeDefinitionAws{InstanceType: dWorker.AWS.InstanceType}
-		ndmWorker.Azure = gsclientgen.V4NodeDefinitionAzure{VmSize: dWorker.Azure.VmSize}
+		ndmWorker.Aws = &models.V4AddClusterRequestWorkersItemsAws{InstanceType: dWorker.AWS.InstanceType}
+		ndmWorker.Azure = &models.V4AddClusterRequestWorkersItemsAzure{VMSize: dWorker.Azure.VMSize}
 		a.Workers = append(a.Workers, ndmWorker)
 	}
 
@@ -495,41 +496,32 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 	if !args.dryRun {
 		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
 
+		auxParams := ClientV2.DefaultAuxiliaryParams()
+		auxParams.ActivityName = createClusterActivityName
+
 		// perform API call
-		authHeader := "giantswarm " + args.token
-		clientConfig := client.Configuration{
-			Endpoint:  args.apiEndpoint,
-			UserAgent: config.UserAgent(),
-		}
-		apiClient, clientErr := client.NewClient(clientConfig)
-		if clientErr != nil {
-			return result, microerror.Mask(couldNotCreateClientError)
-		}
-		responseBody, apiResponse, err := apiClient.AddCluster(authHeader, addClusterBody, requestIDHeader, createClusterActivityName, cmdLine)
+		response, err := ClientV2.CreateCluster(addClusterBody, auxParams)
 		if err != nil {
-			if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
-				return result, microerror.Mask(accessForbiddenError)
+			// create specific error types for cases we care about
+			if clientErr, ok := err.(*clienterror.APIError); ok {
+				if clientErr.HTTPStatusCode == http.StatusNotFound {
+					// owner org not existing
+					return result, microerror.Mask(organizationNotFoundError)
+				} else if clientErr.HTTPStatusCode == http.StatusUnauthorized {
+					// not authorized
+					return result, microerror.Mask(notAuthorizedError)
+				} else if clientErr.HTTPStatusCode == http.StatusBadRequest {
+					// bad request
+					return result, microerror.Mask(badRequestError)
+				}
 			}
-			// lower level connection problem
+
 			return result, microerror.Mask(err)
 		}
 
-		if apiResponse.StatusCode == 401 {
-			return result, microerror.Mask(notAuthorizedError)
-		} else if apiResponse.StatusCode == 404 {
-			// deal with non-existing org error
-			if strings.Contains(responseBody.Message, "organization") && strings.Contains(responseBody.Message, "not found") {
-				return result, microerror.Mask(organizationNotFoundError)
-			}
-		}
+		// success
 
-		// handle API result
-		if responseBody.Code != "RESOURCE_CREATED" {
-			return result, microerror.Maskf(couldNotCreateClusterError,
-				fmt.Sprintf("Error in API request to create cluster: %s (Code: %s, HTTP status: %d)",
-					responseBody.Message, responseBody.Code, apiResponse.StatusCode))
-		}
-		result.location = apiResponse.Header["Location"][0]
+		result.location = response.Location
 		result.id = strings.Split(result.location, "/")[3]
 	}
 

@@ -40,8 +40,12 @@ func TestShowAWSCluster(t *testing.T) {
 	testArgs := showClusterArguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "cluster-id",
+		scheme:      "giantswarm",
 		authToken:   "my-token",
 	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
@@ -49,13 +53,13 @@ func TestShowAWSCluster(t *testing.T) {
 	}
 
 	details, showErr := getClusterDetails(testArgs.clusterID,
-		testArgs.authToken, testArgs.apiEndpoint)
+		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
 	if showErr != nil {
 		t.Error(showErr)
 	}
 
-	if details.Id != testArgs.clusterID {
-		t.Errorf("Expected cluster ID '%s', got '%s'", testArgs.clusterID, details.Id)
+	if details.ID != testArgs.clusterID {
+		t.Errorf("Expected cluster ID '%s', got '%s'", testArgs.clusterID, details.ID)
 	}
 
 }
@@ -81,8 +85,12 @@ func TestShowClusterNotAuthorized(t *testing.T) {
 	testArgs := showClusterArguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "cluster-id",
+		scheme:      "giantswarm",
 		authToken:   "my-wrong-token",
 	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
@@ -90,7 +98,7 @@ func TestShowClusterNotAuthorized(t *testing.T) {
 	}
 
 	_, err = getClusterDetails(testArgs.clusterID,
-		testArgs.authToken, testArgs.apiEndpoint)
+		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
 
 	if err == nil {
 		t.Fatal("Expected notAuthorizedError, got nil")
@@ -122,8 +130,12 @@ func TestShowClusterNotFound(t *testing.T) {
 	testArgs := showClusterArguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "non-existing-cluster-id",
+		scheme:      "giantswarm",
 		authToken:   "my-token",
 	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
@@ -131,7 +143,7 @@ func TestShowClusterNotFound(t *testing.T) {
 	}
 
 	_, err = getClusterDetails(testArgs.clusterID,
-		testArgs.authToken, testArgs.apiEndpoint)
+		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
 
 	if err == nil {
 		t.Fatal("Expected clusterNotFoundError, got nil")
@@ -163,8 +175,12 @@ func TestShowClusterInternalServerError(t *testing.T) {
 	testArgs := showClusterArguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "non-existing-cluster-id",
+		scheme:      "giantswarm",
 		authToken:   "my-token",
 	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
@@ -172,7 +188,7 @@ func TestShowClusterInternalServerError(t *testing.T) {
 	}
 
 	_, err = getClusterDetails(testArgs.clusterID,
-		testArgs.authToken, testArgs.apiEndpoint)
+		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
 
 	if err == nil {
 		t.Fatal("Expected internalServerError, got nil")

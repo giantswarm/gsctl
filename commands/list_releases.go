@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
+	"sort"
 
-	"github.com/bradfitz/slice"
 	"github.com/coreos/go-semver/semver"
 	"github.com/fatih/color"
-	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -41,6 +40,7 @@ A release is a software bundle that constitutes a cluster. It is identified by i
 type listReleasesArguments struct {
 	apiEndpoint string
 	token       string
+	scheme      string
 }
 
 // defaultListReleasesArguments returns a new listReleasesArguments struct
@@ -48,16 +48,18 @@ type listReleasesArguments struct {
 func defaultListReleasesArguments() listReleasesArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	return listReleasesArguments{
 		apiEndpoint: endpoint,
 		token:       token,
+		scheme:      scheme,
 	}
 }
 
 // listReleasesResult is the data structure returned by the listReleases() function.
 type listReleasesResult struct {
-	releases []gsclientgen.V4ReleaseListItem
+	releases []*models.V4ReleaseListItem
 }
 
 func init() {
@@ -115,7 +117,7 @@ func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 
 		for _, release := range result.releases {
 
-			created := util.ParseDate(release.Timestamp)
+			created := util.ParseDate(*release.Timestamp)
 			active := "false"
 			if release.Active {
 				active = "true"
@@ -123,13 +125,13 @@ func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 
 			// YAML-style output of all release details
 			fmt.Println("---")
-			fmt.Printf("%s %s\n", color.YellowString("Version:"), release.Version)
+			fmt.Printf("%s %s\n", color.YellowString("Version:"), *release.Version)
 			fmt.Printf("%s %s\n", color.YellowString("Created:"), util.ShortDate(created))
 			fmt.Printf("%s %s\n", color.YellowString("Active:"), active)
 			fmt.Printf("%s\n", color.YellowString("Components:"))
 
 			for _, component := range release.Components {
-				fmt.Printf("  %s %s\n", color.YellowString(component.Name+":"), component.Version)
+				fmt.Printf("  %s %s\n", color.YellowString(*component.Name+":"), *component.Version)
 			}
 
 			fmt.Printf("%s\n", color.YellowString("Changelog:"))
@@ -146,37 +148,24 @@ func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 	result := listReleasesResult{}
 
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		Timeout:   10 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
+	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = listReleasesActivityName
 
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Mask(couldNotCreateClientError)
-	}
-	authHeader := "giantswarm " + args.token
-	releasesResponse, apiResponse, err := apiClient.GetReleases(authHeader,
-		requestIDHeader, listReleasesActivityName, cmdLine)
-
+	response, err := ClientV2.GetReleases(auxParams)
 	if err != nil {
-		if apiResponse == nil || apiResponse.Response == nil {
-			return result, microerror.Mask(noResponseError)
+		// create specific error types for cases we care about
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			if clientErr.HTTPStatusCode >= http.StatusInternalServerError {
+				return result, microerror.Maskf(internalServerError, err.Error())
+			} else if clientErr.HTTPStatusCode == http.StatusUnauthorized {
+				return result, microerror.Mask(notAuthorizedError)
+			}
 		}
-		if apiResponse.StatusCode >= 500 {
-			return result, microerror.Maskf(internalServerError, err.Error())
-		} else if apiResponse.StatusCode == http.StatusNotFound {
-			return result, microerror.Mask(clusterNotFoundError)
-		} else if apiResponse.StatusCode == http.StatusUnauthorized {
-			return result, microerror.Mask(notAuthorizedError)
-		}
+
 		return result, microerror.Mask(err)
 	}
 
-	if apiResponse.StatusCode != http.StatusOK {
-		return result, microerror.Mask(unknownError)
-	}
+	// success
 
 	// sort releases by version (descending)
 	if len(releasesResponse) > 1 {
@@ -188,22 +177,22 @@ func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 	}
 
 	// sort changelog and components by component name
-	for n := range releasesResponse {
-		slice.Sort(releasesResponse[n].Components[:], func(i, j int) bool {
-			if releasesResponse[n].Components[i].Name == "kubernetes" {
+	for n := range response.Payload {
+		sort.Slice(response.Payload[n].Components[:], func(i, j int) bool {
+			if *response.Payload[n].Components[i].Name == "kubernetes" {
 				return true
 			}
-			return releasesResponse[n].Components[i].Name < releasesResponse[n].Components[j].Name
+			return *response.Payload[n].Components[i].Name < *response.Payload[n].Components[j].Name
 		})
-		slice.Sort(releasesResponse[n].Changelog[:], func(i, j int) bool {
-			if releasesResponse[n].Changelog[i].Component == "kubernetes" {
+		sort.Slice(response.Payload[n].Changelog[:], func(i, j int) bool {
+			if response.Payload[n].Changelog[i].Component == "kubernetes" {
 				return true
 			}
-			return releasesResponse[n].Changelog[i].Component < releasesResponse[n].Changelog[j].Component
+			return response.Payload[n].Changelog[i].Component < response.Payload[n].Changelog[j].Component
 		})
 	}
 
-	result.releases = releasesResponse
+	result.releases = response.Payload
 
 	return result, nil
 }

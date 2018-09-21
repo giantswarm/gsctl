@@ -8,7 +8,7 @@ import (
 	"github.com/giantswarm/microerror"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/spf13/cobra"
 )
@@ -20,6 +20,8 @@ type deleteClusterArguments struct {
 	clusterID string
 	// don't prompt
 	force bool
+	// auth scheme
+	scheme string
 	// auth token
 	token string
 	// verbosity
@@ -29,10 +31,13 @@ type deleteClusterArguments struct {
 func defaultDeleteClusterArguments() deleteClusterArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+
 	return deleteClusterArguments{
 		apiEndpoint: endpoint,
 		clusterID:   cmdClusterID,
 		force:       cmdForce,
+		scheme:      scheme,
 		token:       token,
 		verbose:     cmdVerbose,
 	}
@@ -84,8 +89,6 @@ func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
 		var subtext = ""
 
 		switch {
-		case err.Error() == "":
-			return
 		case IsCouldNotDeleteClusterError(err):
 			headline = "The cluster could not be deleted."
 			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
@@ -150,33 +153,21 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		}
 	}
 
-	// prepare API client
-	authHeader := "giantswarm " + args.token
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return false, microerror.Mask(couldNotCreateClientError)
-	}
+	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = deleteClusterActivityName
 
 	// perform API call
-	responseBody, rawResponse, err := apiClient.DeleteCluster(authHeader,
-		args.clusterID, requestIDHeader, createClusterActivityName, cmdLine)
+	_, err := ClientV2.DeleteCluster(args.clusterID, auxParams)
 	if err != nil {
-		if rawResponse.Response != nil && rawResponse.Response.StatusCode == http.StatusForbidden {
-			return false, microerror.Mask(accessForbiddenError)
+		// create specific error types for cases we care about
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			if clientErr.HTTPStatusCode == http.StatusForbidden {
+				return false, microerror.Mask(accessForbiddenError)
+			}
 		}
-		return false, microerror.Mask(err)
+
+		return false, microerror.Maskf(couldNotDeleteClusterError, err.Error())
 	}
 
-	// handle API result
-	if responseBody.Code == "RESOURCE_DELETED" || responseBody.Code == "RESOURCE_DELETION_STARTED" {
-		return true, nil
-	}
-
-	return false, microerror.Maskf(couldNotDeleteClusterError,
-		fmt.Sprintf("Error in API request to create cluster: %s (Code: %s)",
-			responseBody.Message, responseBody.Code))
+	return true, nil
 }

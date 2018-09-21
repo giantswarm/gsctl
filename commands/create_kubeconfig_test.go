@@ -74,6 +74,9 @@ func Test_CreateKubeconfig(t *testing.T) {
 		contextName: "giantswarm-test-cluster-id",
 	}
 
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
 	if err != nil {
 		t.Error(err)
@@ -142,6 +145,9 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 		contextName:       "giantswarm-test-cluster-id",
 		selfContainedPath: tmpdir + string(os.PathSeparator) + "kubeconfig",
 	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
 	if err != nil {
@@ -218,6 +224,9 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 		contextName: "test-context",
 	}
 
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
 	if err != nil {
 		t.Error(err)
@@ -242,4 +251,39 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 	if !strings.Contains(string(content), "current-context: "+args.contextName) {
 		t.Error("Kubeconfig doesn't contain the expected context name")
 	}
+}
+
+// Test_CreateKubeconfigNoConnection tests what happens if there is no API connection
+func Test_CreateKubeconfigNoConnection(t *testing.T) {
+	// temporary kubeconfig file
+	kubeConfigPath, err := tempKubeconfig()
+	if err != nil {
+		t.Error(err)
+	}
+	os.Setenv("KUBECONFIG", kubeConfigPath)
+	defer os.Unsetenv("KUBECONFIG")
+
+	configDir, err := tempConfig("")
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.RemoveAll(configDir)
+
+	args := createKubeconfigArguments{
+		authToken:   "auth-token",
+		apiEndpoint: "http://0.0.0.0:12345",
+		clusterID:   "test-cluster-id",
+		contextName: "giantswarm-test-cluster-id",
+	}
+
+	err = verifyCreateKubeconfigPreconditions(args, []string{})
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = createKubeconfig(args)
+	if err == nil {
+		t.Error("Expected error (no connection, no response) didn't occur.")
+	}
+
 }

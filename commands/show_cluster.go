@@ -7,11 +7,11 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
+	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsclientgen"
-	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -44,6 +44,7 @@ const (
 type showClusterArguments struct {
 	apiEndpoint string
 	authToken   string
+	scheme      string
 	clusterID   string
 	verbose     bool
 }
@@ -51,10 +52,12 @@ type showClusterArguments struct {
 func defaultShowClusterArguments() showClusterArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	return showClusterArguments{
 		apiEndpoint: endpoint,
 		authToken:   token,
+		scheme:      scheme,
 		clusterID:   "",
 		verbose:     cmdVerbose,
 	}
@@ -90,60 +93,45 @@ func verifyShowClusterPreconditions(args showClusterArguments, cmdLineArgs []str
 }
 
 // getClusterDetails returns details for one cluster.
-func getClusterDetails(clusterID, token, endpoint string) (gsclientgen.V4ClusterDetailsModel, error) {
-	result := gsclientgen.V4ClusterDetailsModel{}
+func getClusterDetails(clusterID, scheme, token, endpoint string) (*models.V4ClusterDetailsResponse, error) {
 
 	// perform API call
-	authHeader := "giantswarm " + token
-	clientConfig := client.Configuration{
-		Endpoint:  endpoint,
-		UserAgent: config.UserAgent(),
-	}
+	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = showClusterActivityName
 
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Mask(couldNotCreateClientError)
-	}
-
-	clusterDetails, apiResp, err := apiClient.GetCluster(authHeader, clusterID,
-		requestIDHeader, showClusterActivityName, cmdLine)
-
+	response, err := ClientV2.GetCluster(clusterID, auxParams)
 	if err != nil {
-		if apiResp == nil || apiResp.Response == nil {
-			return result, microerror.Mask(noResponseError)
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			switch clientErr.HTTPStatusCode {
+			case http.StatusForbidden:
+				return nil, microerror.Mask(accessForbiddenError)
+			case http.StatusUnauthorized:
+				return nil, microerror.Mask(notAuthorizedError)
+			case http.StatusNotFound:
+				return nil, microerror.Mask(clusterNotFoundError)
+			case http.StatusInternalServerError:
+				return nil, microerror.Mask(internalServerError)
+			}
 		}
 
-		if apiResp.StatusCode == http.StatusForbidden {
-			return result, microerror.Mask(accessForbiddenError)
-		}
-
-		return result, microerror.Mask(err)
+		return nil, microerror.Mask(err)
 	}
 
-	switch apiResp.StatusCode {
-	case http.StatusUnauthorized:
-		return result, microerror.Mask(notAuthorizedError)
-	case http.StatusNotFound:
-		return result, microerror.Mask(clusterNotFoundError)
-	case http.StatusInternalServerError:
-		return result, microerror.Mask(internalServerError)
-	}
-
-	return *clusterDetails, nil
+	return response.Payload, nil
 }
 
 // sumWorkerCPUs adds up the worker's CPU cores
-func sumWorkerCPUs(workerDetails []gsclientgen.V4NodeDefinitionResponse) int32 {
-	sum := int32(0)
+func sumWorkerCPUs(workerDetails []*models.V4ClusterDetailsResponseWorkersItems) uint {
+	sum := uint(0)
 	for _, item := range workerDetails {
-		sum = sum + item.Cpu.Cores
+		sum = sum + uint(item.CPU.Cores)
 	}
 	return sum
 }
 
 // sumWorkerStorage adds up the worker's storage
-func sumWorkerStorage(workerDetails []gsclientgen.V4NodeDefinitionResponse) float32 {
-	sum := float32(0.0)
+func sumWorkerStorage(workerDetails []*models.V4ClusterDetailsResponseWorkersItems) float64 {
+	sum := float64(0.0)
 	for _, item := range workerDetails {
 		sum = sum + item.Storage.SizeGb
 	}
@@ -151,8 +139,8 @@ func sumWorkerStorage(workerDetails []gsclientgen.V4NodeDefinitionResponse) floa
 }
 
 // sumWorkerMemory adds up the worker's memory
-func sumWorkerMemory(workerDetails []gsclientgen.V4NodeDefinitionResponse) float32 {
-	sum := float32(0.0)
+func sumWorkerMemory(workerDetails []*models.V4ClusterDetailsResponseWorkersItems) float64 {
+	sum := float64(0.0)
 	for _, item := range workerDetails {
 		sum = sum + item.Memory.SizeGb
 	}
@@ -163,13 +151,14 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultShowClusterArguments()
 	args.clusterID = cmdLineArgs[0]
 
-	clusterDetails, err := getClusterDetails(args.clusterID,
+	clusterDetails, err := getClusterDetails(args.clusterID, args.scheme,
 		args.authToken, args.apiEndpoint)
 
 	if err != nil {
 		var headline = ""
 		var subtext = ""
 
+		// TODO: handle common and specific errors
 		switch {
 		case err.Error() == "":
 			return
@@ -190,7 +179,7 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	created := util.ParseDate(clusterDetails.CreateDate)
 
-	output = append(output, color.YellowString("ID:")+"|"+clusterDetails.Id)
+	output = append(output, color.YellowString("ID:")+"|"+clusterDetails.ID)
 
 	if clusterDetails.Name != "" {
 		output = append(output, color.YellowString("Name:")+"|"+clusterDetails.Name)
@@ -199,7 +188,7 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 	output = append(output, color.YellowString("Created:")+"|"+util.ShortDate(created))
 	output = append(output, color.YellowString("Organization:")+"|"+clusterDetails.Owner)
-	output = append(output, color.YellowString("Kubernetes API endpoint:")+"|"+clusterDetails.ApiEndpoint)
+	output = append(output, color.YellowString("Kubernetes API endpoint:")+"|"+clusterDetails.APIEndpoint)
 
 	if clusterDetails.ReleaseVersion != "" {
 		output = append(output, color.YellowString("Release version:")+"|"+clusterDetails.ReleaseVersion)
@@ -211,20 +200,23 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	// This assumes all nodes use the same instance type.
 	if len(clusterDetails.Workers) > 0 {
-		if clusterDetails.Workers[0].Aws.InstanceType != "" {
+		if clusterDetails.Workers[0].Aws != nil && clusterDetails.Workers[0].Aws.InstanceType != "" {
 			output = append(output, color.YellowString("Worker instance type:")+"|"+clusterDetails.Workers[0].Aws.InstanceType)
 		}
 
-		if clusterDetails.Workers[0].Azure.VmSize != "" {
-			output = append(output, color.YellowString("Worker VM size:")+"|"+clusterDetails.Workers[0].Azure.VmSize)
+		if clusterDetails.Workers[0].Azure != nil && clusterDetails.Workers[0].Azure.VMSize != "" {
+			output = append(output, color.YellowString("Worker VM size:")+"|"+clusterDetails.Workers[0].Azure.VMSize)
 		}
 	}
 
 	output = append(output, color.YellowString("CPU cores in workers:")+"|"+fmt.Sprintf("%d", sumWorkerCPUs(clusterDetails.Workers)))
 	output = append(output, color.YellowString("RAM in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerMemory(clusterDetails.Workers)))
-	output = append(output, color.YellowString("Storage in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerStorage(clusterDetails.Workers)))
 
-	if len(clusterDetails.Kvm.PortMappings) > 0 {
+	if clusterDetails.Kvm != nil {
+		output = append(output, color.YellowString("Storage in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerStorage(clusterDetails.Workers)))
+	}
+
+	if clusterDetails.Kvm != nil && len(clusterDetails.Kvm.PortMappings) > 0 {
 		for _, portMapping := range clusterDetails.Kvm.PortMappings {
 			output = append(output, color.YellowString(fmt.Sprintf("Ingress port for %s:", portMapping.Protocol))+"|"+fmt.Sprintf("%d", portMapping.Port))
 		}

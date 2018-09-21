@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
-	"time"
 
-	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -21,11 +20,12 @@ import (
 var (
 	// ListClustersCommand performs the "list clusters" function
 	ListClustersCommand = &cobra.Command{
-		Use:    "clusters",
-		Short:  "List clusters",
-		Long:   `Prints a list of all clusters you have access to`,
-		PreRun: listClusterPreRunOutput,
-		Run:    listClusterRunOutput,
+		Use:     "clusters",
+		Aliases: []string{"cluster"},
+		Short:   "List clusters",
+		Long:    `Prints a list of all clusters you have access to`,
+		PreRun:  listClusterPreRunOutput,
+		Run:     listClusterRunOutput,
 	}
 )
 
@@ -36,15 +36,18 @@ const (
 type listClustersArguments struct {
 	apiEndpoint string
 	authToken   string
+	scheme      string
 }
 
 func defaultListClustersArguments() listClustersArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	return listClustersArguments{
 		apiEndpoint: endpoint,
 		authToken:   token,
+		scheme:      scheme,
 	}
 }
 
@@ -82,9 +85,13 @@ func listClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	if err != nil {
 		handleCommonErrors(err)
 
-		fmt.Println(color.RedString("Error: %s", err))
-		if _, ok := err.(APIError); ok {
-			dumpAPIResponse((err).(APIError).APIResponse)
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			fmt.Println(color.RedString(clientErr.ErrorMessage))
+			if clientErr.ErrorDetails != "" {
+				fmt.Println(clientErr.ErrorDetails)
+			}
+		} else {
+			fmt.Println(color.RedString("Error: %s", err.Error()))
 		}
 		os.Exit(1)
 	}
@@ -96,28 +103,25 @@ func listClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 // clustersTable returns a table of clusters the user has access to
 func clustersTable(args listClustersArguments) (string, error) {
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		Timeout:   5 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return "", microerror.Mask(couldNotCreateClientError)
-	}
-	authHeader := "giantswarm " + args.authToken
+	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = listClustersActivityName
 
-	clusters, apiResponse, err := apiClient.GetClusters(authHeader,
-		requestIDHeader, listClustersActivityName, cmdLine)
+	response, err := ClientV2.GetClusters(auxParams)
 	if err != nil {
-		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
-			return "", microerror.Mask(accessForbiddenError)
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			switch clientErr.HTTPStatusCode {
+			case http.StatusUnauthorized:
+				return "", microerror.Mask(notAuthorizedError)
+			case http.StatusForbidden:
+				return "", microerror.Mask(accessForbiddenError)
+			}
 		}
-		return "", APIError{err.Error(), *apiResponse}
+
+		return "", microerror.Mask(err)
 	}
 
-	if len(clusters) == 0 {
-		return "", nil
+	if len(response.Payload) == 0 {
+		return color.YellowString("No clusters"), nil
 	}
 	// table headers
 	output := []string{strings.Join([]string{
@@ -129,11 +133,11 @@ func clustersTable(args listClustersArguments) (string, error) {
 	}, "|")}
 
 	// sort clusters by ID
-	slice.Sort(clusters[:], func(i, j int) bool {
-		return clusters[i].Id < clusters[j].Id
+	sort.Slice(response.Payload[:], func(i, j int) bool {
+		return response.Payload[i].ID < response.Payload[j].ID
 	})
 
-	for _, cluster := range clusters {
+	for _, cluster := range response.Payload {
 		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
 		releaseVersion := cluster.ReleaseVersion
 		if releaseVersion == "" {
@@ -141,7 +145,7 @@ func clustersTable(args listClustersArguments) (string, error) {
 		}
 
 		output = append(output, strings.Join([]string{
-			cluster.Id,
+			cluster.ID,
 			cluster.Owner,
 			cluster.Name,
 			releaseVersion,

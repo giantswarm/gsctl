@@ -10,6 +10,15 @@ import (
 	"github.com/giantswarm/microerror"
 )
 
+const (
+	// roughly the largest time.Duration values representable
+	maxDurationInHours  = 2562047
+	maxDurationInDays   = 106751
+	maxDurationInWeeks  = 15250
+	maxDurationInMonths = 3558
+	maxDurationInYears  = 292
+)
+
 // DurationPhrase creates a human-friendly phrase from a number of hours
 // expressing a duration, like "3 days, 2 hours". Precision of output
 // is limited in favour of readability.
@@ -101,17 +110,36 @@ func ParseDuration(durationString string) (time.Duration, error) {
 	number := int64(numberInt)
 
 	unit := match[2]
-	if unit == "h" {
+
+	//
+
+	switch unit {
+	case "h":
+		if number > maxDurationInHours {
+			return duration, microerror.Mask(durationExceededError)
+		}
 		duration = 3600 * time.Duration(number) * time.Second
-	} else if unit == "d" {
+	case "d":
+		if number > maxDurationInDays {
+			return duration, microerror.Mask(durationExceededError)
+		}
 		duration = 24 * 3600 * time.Duration(number) * time.Second
-	} else if unit == "w" {
+	case "w":
+		if number > maxDurationInWeeks {
+			return duration, microerror.Mask(durationExceededError)
+		}
 		duration = 7 * 24 * 3600 * time.Duration(number) * time.Second
-	} else if unit == "m" {
+	case "m":
+		if number > maxDurationInMonths {
+			return duration, microerror.Mask(durationExceededError)
+		}
 		duration = 30 * 24 * 3600 * time.Duration(number) * time.Second
-	} else if unit == "y" {
+	case "y":
+		if number > maxDurationInYears {
+			return duration, microerror.Mask(durationExceededError)
+		}
 		duration = 365 * 24 * 3600 * time.Duration(number) * time.Second
-	} else {
+	default:
 		return duration, microerror.Mask(InvalidDurationStringError)
 	}
 

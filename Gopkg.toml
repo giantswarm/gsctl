@@ -27,20 +27,12 @@
   branch = "master"
 
 [[constraint]]
-  name = "github.com/bradfitz/slice"
-  branch = "master"
-
-[[constraint]]
   name = "github.com/coreos/go-semver"
   version = "0.2.0"
 
 [[constraint]]
   name = "github.com/fatih/color"
   version = "1.1.0"
-
-[[constraint]]
-  name = "github.com/giantswarm/api-schema"
-  version = "0.7.1"
 
 [[constraint]]
   name = "github.com/giantswarm/columnize"

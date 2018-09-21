@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
-	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
-	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -42,6 +42,7 @@ type listKeypairsArguments struct {
 	clusterID   string
 	full        bool
 	token       string
+	scheme      string
 }
 
 // defaultListKeypairsArguments returns a new listKeypairsArguments struct
@@ -49,18 +50,20 @@ type listKeypairsArguments struct {
 func defaultListKeypairsArguments() listKeypairsArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	return listKeypairsArguments{
 		apiEndpoint: endpoint,
 		clusterID:   cmdClusterID,
 		full:        cmdFull,
 		token:       token,
+		scheme:      scheme,
 	}
 }
 
 // listKeypairsResult is the data structure returned by the listKeypairs() function.
 type listKeypairsResult struct {
-	keypairs []gsclientgen.KeyPairModel
+	keypairs []*models.V4GetKeyPairsResponseItems
 }
 
 func init() {
@@ -95,7 +98,7 @@ func listKeypairsValidate(args *listKeypairsArguments) error {
 	}
 	if args.clusterID == "" {
 		// use default cluster if possible
-		clusterID, _ := config.GetDefaultCluster(requestIDHeader, listKeypairsActivityName, cmdLine, cmdAPIEndpoint)
+		clusterID, _ := config.GetDefaultCluster(listKeypairsActivityName, cmdAPIEndpoint)
 		if clusterID != "" {
 			cmdClusterID = clusterID
 		} else {
@@ -152,14 +155,20 @@ func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
 		output = append(output, strings.Join(headers, "|"))
 
 		for _, keypair := range result.keypairs {
-			created := util.ParseDate(keypair.CreateDate)
-			expires := util.ParseDate(keypair.CreateDate).Add(time.Duration(keypair.TtlHours) * time.Hour)
+			createdTime := util.ParseDate(keypair.CreateDate)
+			expiryTime := createdTime.Add(time.Duration(keypair.TTLHours) * time.Hour)
+			expiryDuration := expiryTime.Sub(time.Now())
+			expires := util.ShortDate(expiryTime)
+
+			if expiryDuration < (24 * time.Hour) {
+				expires = color.YellowString(expires)
+			}
 
 			// Idea: skip if expired, or only display when verbose
 			row := []string{
-				util.ShortDate(created),
-				util.ShortDate(expires),
-				util.Truncate(util.CleanKeypairID(keypair.Id), 10, !args.full),
+				util.ShortDate(createdTime),
+				expires,
+				util.Truncate(util.CleanKeypairID(keypair.ID), 10, !args.full),
 				keypair.Description,
 				util.Truncate(keypair.CommonName, 24, !args.full),
 				keypair.CertificateOrganizations,
@@ -175,44 +184,32 @@ func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
 func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
 	result := listKeypairsResult{}
 
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		Timeout:   20 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
+	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = listKeypairsActivityName
 
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Mask(couldNotCreateClientError)
-	}
-	authHeader := "giantswarm " + args.token
-	keypairsResponse, apiResponse, err := apiClient.GetKeyPairs(authHeader,
-		cmdClusterID, requestIDHeader, listKeypairsActivityName, cmdLine)
-
+	response, err := ClientV2.GetKeyPairs(args.clusterID, auxParams)
 	if err != nil {
-
-		if apiResponse.StatusCode >= 500 {
-			return result, microerror.Maskf(internalServerError, err.Error())
-		} else if apiResponse.StatusCode == http.StatusNotFound {
-			return result, microerror.Mask(clusterNotFoundError)
-		} else if apiResponse.StatusCode == http.StatusUnauthorized {
-			return result, microerror.Mask(notAuthorizedError)
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			if clientErr.HTTPStatusCode >= http.StatusInternalServerError {
+				return result, microerror.Maskf(internalServerError, err.Error())
+			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
+				return result, microerror.Mask(clusterNotFoundError)
+			} else if clientErr.HTTPStatusCode == http.StatusUnauthorized {
+				return result, microerror.Mask(notAuthorizedError)
+			}
 		}
+
 		return result, microerror.Mask(err)
 	}
 
-	if apiResponse.StatusCode != http.StatusOK {
-		return result, microerror.Mask(unknownError)
-	}
-
 	// sort key pairs by create date (descending)
-	if len(keypairsResponse) > 1 {
-		slice.Sort(keypairsResponse[:], func(i, j int) bool {
-			return keypairsResponse[i].CreateDate < keypairsResponse[j].CreateDate
+	if len(response.Payload) > 1 {
+		sort.Slice(response.Payload[:], func(i, j int) bool {
+			return response.Payload[i].CreateDate < response.Payload[j].CreateDate
 		})
 	}
 
-	result.keypairs = keypairsResponse
+	result.keypairs = response.Payload
 
 	return result, nil
 }

@@ -7,8 +7,29 @@ import (
 	"os"
 	"testing"
 
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+
+	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 )
+
+// regularInfoResponse is a JSON snippet we use in several test cases
+var regularInfoResponse = []byte(`{
+	"general": {
+		"installation_name": "codename",
+		"provider": "aws"
+	},
+	"workers": {
+		"count_per_cluster": {
+			"max": 20,
+			"default": 3
+		},
+		"instance_type": {
+			"options": ["m3.large", "m4.xlarge"],
+			"default": "m3.large"
+		}
+	}
+}`)
 
 // Test_LoginValidPassword simulates a login with a valid email/password combination
 func Test_LoginValidPassword(t *testing.T) {
@@ -24,30 +45,9 @@ func Test_LoginValidPassword(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		if r.URL.String() == "/v4/info/" {
-			w.Write([]byte(`{
-			  "general": {
-			    "installation_name": "codename",
-			    "provider": "aws"
-			  },
-			  "workers": {
-			    "count_per_cluster": {
-			      "max": 20,
-			      "default": 3
-			    },
-			    "instance_type": {
-			      "options": ["m3.large", "m4.xlarge"],
-			      "default": "m3.large"
-			    }
-			  }
-			}`))
+			w.Write(regularInfoResponse)
 		} else {
-			w.Write([]byte(`{
-	      "status_code": 10000,
-	      "status_text": "Success",
-	      "data": {
-	        "Id": "some-test-session-token"
-	      }
-	    }`))
+			w.Write([]byte(`{"auth_token": "some-test-session-token"}`))
 		}
 	}))
 	defer mockServer.Close()
@@ -56,11 +56,15 @@ func Test_LoginValidPassword(t *testing.T) {
 		apiEndpoint: mockServer.URL,
 		email:       "email@example.com",
 		password:    "test password",
+		verbose:     true,
 	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	result, err := login(args)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("Unexpected error: %#v", err)
 	}
 	if result.email != args.email {
 		t.Errorf("Expected %q, got %q", args.email, result.email)
@@ -90,13 +94,12 @@ func Test_LoginInvalidPassword(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 
-	// this server will respond positively in any case
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte(`{
-      "status_code": 10008,
-      "status_text": "resource not found"
+      "code": "PERMISSION_DENIED",
+      "message": "Some bad credentials error message"
     }`))
 	}))
 	defer mockServer.Close()
@@ -107,9 +110,17 @@ func Test_LoginInvalidPassword(t *testing.T) {
 		password:    "bad password",
 	}
 
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
 	_, err = login(args)
-	if !IsInvalidCredentialsError(err) {
-		t.Errorf("Expected error %q, got %v", invalidCredentialsError, err)
+	convertedError, ok := err.(*clienterror.APIError)
+	if !ok {
+		t.Error("Error type assertion to *clienterror.APIError failed")
+	}
+
+	if convertedError.HTTPStatusCode != http.StatusUnauthorized {
+		t.Errorf("Expected error 401, got %#v", convertedError.HTTPStatusCode)
 	}
 }
 
@@ -120,13 +131,11 @@ func Test_LoginWhenUserLoggedInBefore(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{
-      "status_code": 10000,
-      "status_text": "Success",
-      "data": {
-        "Id": "another-test-session-token"
-      }
-    }`))
+		if r.URL.String() == "/v4/info/" {
+			w.Write(regularInfoResponse)
+		} else {
+			w.Write([]byte(`{"auth_token": "another-test-session-token"}`))
+		}
 	}))
 	defer mockServer.Close()
 
@@ -150,9 +159,12 @@ selected_endpoint: "` + mockServer.URL + `"
 		password:    "test password",
 	}
 
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
 	result, loginErr := login(args)
 	if loginErr != nil {
-		t.Error(err)
+		t.Errorf("Unexpected error: %#v", err)
 	}
 	if result.email != args.email {
 		t.Errorf("Expected %q, got %q", args.email, result.email)
@@ -180,12 +192,8 @@ func Test_LoginInactiveAccount(t *testing.T) {
 	// mock server responding with a 400 Bad request
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.URL.String() == "/v1/user/developer@giantswarm.io/login" {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(`{"status_code":10017,"status_text":"user account in-active"}`))
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-		}
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(`{"code": "ACCOUNT_EXPIRED", "message": "Lorem ipsum"}`))
 	}))
 	defer mockServer.Close()
 
@@ -195,11 +203,27 @@ func Test_LoginInactiveAccount(t *testing.T) {
 		password:    "test password",
 	}
 
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
+
 	_, err = login(args)
 	if err == nil {
 		t.Error("Expected error, got nil")
 	}
-	if !IsUserAccountInactiveError(err) {
-		t.Errorf("Expected userAccountInactiveError, got %q", err.Error())
+	convertedError, ok := err.(*clienterror.APIError)
+	if !ok {
+		t.Error("Error type assertion to *clienterror.APIError failed")
+	}
+
+	if convertedError.HTTPStatusCode != http.StatusUnauthorized {
+		t.Errorf("Expected error 401, got %#v", convertedError.HTTPStatusCode)
+	}
+
+	origErr, ok := convertedError.OriginalError.(*auth_tokens.CreateAuthTokenUnauthorized)
+	if !ok {
+		t.Error("Error type assertion to *auth_tokens.CreateAuthTokenUnauthorized failed")
+	}
+	if origErr.Payload.Code != "ACCOUNT_EXPIRED" {
+		t.Errorf("Expected 'ACCOUNT_EXPIRED', got %#v", origErr.Payload.Code)
 	}
 }

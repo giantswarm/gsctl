@@ -7,16 +7,14 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"time"
-
-	yaml "gopkg.in/yaml.v2"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/gsclientgen"
+	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
+	yaml "gopkg.in/yaml.v2"
 
-	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -70,6 +68,7 @@ const (
 // function and to the validation function
 type createKubeconfigArguments struct {
 	apiEndpoint       string
+	scheme            string
 	authToken         string
 	clusterID         string
 	description       string
@@ -86,6 +85,7 @@ type createKubeconfigArguments struct {
 func defaultCreateKubeconfigArguments() (createKubeconfigArguments, error) {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	description := cmdDescription
 	if description == "" {
@@ -98,12 +98,17 @@ func defaultCreateKubeconfigArguments() (createKubeconfigArguments, error) {
 	}
 
 	ttl, err := util.ParseDuration(cmdTTL)
-	if err != nil {
+	if IsInvalidDurationError(err) {
 		return createKubeconfigArguments{}, microerror.Mask(invalidDurationError)
+	} else if IsDurationExceededError(err) {
+		return createKubeconfigArguments{}, microerror.Mask(durationExceededError)
+	} else if err != nil {
+		return createKubeconfigArguments{}, microerror.Mask(err)
 	}
 
 	return createKubeconfigArguments{
 		apiEndpoint:       endpoint,
+		scheme:            scheme,
 		authToken:         token,
 		clusterID:         cmdClusterID,
 		description:       description,
@@ -119,8 +124,6 @@ func defaultCreateKubeconfigArguments() (createKubeconfigArguments, error) {
 type createKubeconfigResult struct {
 	// cluster's API endpoint
 	apiEndpoint string
-	// response body returned from a successful response
-	keypairResponse gsclientgen.V4AddKeyPairResponse
 	// path where we stored the CA file
 	caCertPath string
 	// path where we stored the client cert
@@ -131,6 +134,10 @@ type createKubeconfigResult struct {
 	selfContainedPath string
 	// the context name applied
 	contextName string
+	// key pair ID
+	id string
+	// TTL of the key pair in hours
+	ttlHours uint
 }
 
 // Kubeconfig is a struct used to create a kubectl configuration YAML file
@@ -202,6 +209,9 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		if IsInvalidDurationError(argsErr) {
 			fmt.Println(color.RedString("The value passed with --ttl is invalid."))
 			fmt.Println("Please provide a number and a unit, e. g. '10h', '1d', '1w'.")
+		} else if IsDurationExceededError(argsErr) {
+			fmt.Println(color.RedString("The expiration period passed with --ttl is too long."))
+			fmt.Println("The maximum possible value is the eqivalent of 292 years.")
 		} else {
 			fmt.Println(color.RedString(argsErr.Error()))
 		}
@@ -220,8 +230,6 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	var subtext string
 
 	switch {
-	case err.Error() == "":
-		return
 	case IsCommandAbortedError(err):
 		headline = "File not overwritten, no kubeconfig created."
 	case IsKubectlMissingError(err):
@@ -309,6 +317,10 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		case IsCouldNotWriteFileError(err):
 			headline = "Error: File could not be written"
 			subtext = fmt.Sprintf("Details: %s", err.Error())
+		case IsBadRequestError(err):
+			headline = "API Error 400: Bad Request"
+			subtext = "The key pair could not be created with the given parameters. Please try a shorter expiry period (--ttl)\n"
+			subtext += "and check the other arguments, too. Please contact the Giant Swarm support team if you need assistance."
 		default:
 			headline = err.Error()
 		}
@@ -324,8 +336,8 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	// Success output
 
 	msg := fmt.Sprintf("New key pair created with ID %s and expiry of %v",
-		util.Truncate(util.CleanKeypairID(result.keypairResponse.Id), 10, true),
-		util.DurationPhrase(int(result.keypairResponse.TtlHours)))
+		util.Truncate(util.CleanKeypairID(result.id), 10, true),
+		util.DurationPhrase(int(result.ttlHours)))
 	fmt.Println(color.GreenString(msg))
 
 	if result.selfContainedPath != "" {
@@ -356,86 +368,65 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, error) {
 	result := createKubeconfigResult{}
 
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		Timeout:   10 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Maskf(couldNotCreateClientError, clientErr.Error())
-	}
-
-	authHeader := "giantswarm " + args.authToken
+	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = createKubeconfigActivityName
 
 	// get cluster details
-	clusterDetailsResponse, apiResponse, err := apiClient.GetCluster(
-		authHeader,
-		args.clusterID,
-		requestIDHeader,
-		createKubeconfigActivityName,
-		cmdLine)
+
+	clusterDetailsResponse, err := ClientV2.GetCluster(args.clusterID, auxParams)
 	if err != nil {
-		var errorMessage string
-		if apiResponse != nil {
-			errorMessage = fmt.Sprintf("HTTP status: %d", apiResponse.StatusCode)
-		} else {
-			errorMessage = "No response received from the API"
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			return result, microerror.Maskf(clientErr,
+				fmt.Sprintf("HTTP Status: %d, %s", clientErr.HTTPStatusCode, clientErr.ErrorMessage))
 		}
-		return result, microerror.Maskf(err, errorMessage)
+
+		return result, microerror.Mask(err)
 	}
 
-	result.apiEndpoint = clusterDetailsResponse.ApiEndpoint
+	result.apiEndpoint = clusterDetailsResponse.Payload.APIEndpoint
 
-	addKeyPairBody := gsclientgen.V4AddKeyPairBody{
-		Description:              args.description,
-		TtlHours:                 args.ttlHours,
+	addKeyPairBody := &models.V4AddKeyPairRequest{
+		Description:              &args.description,
+		TTLHours:                 args.ttlHours,
 		CnPrefix:                 args.cnPrefix,
 		CertificateOrganizations: args.certOrgs,
 	}
 
-	clientConfig.Timeout = 60 * time.Second
-	apiClient, clientErr = client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Mask(couldNotCreateClientError)
-	}
-
-	keypairResponse, apiResponse, err := apiClient.AddKeyPair(authHeader,
-		args.clusterID, addKeyPairBody, requestIDHeader,
-		createKubeconfigActivityName, cmdLine)
+	response, err := ClientV2.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
 
 	if err != nil {
-		if apiResponse.Response != nil && apiResponse.Response.StatusCode == http.StatusForbidden {
-			return result, microerror.Mask(accessForbiddenError)
+		// create specific error types for cases we care about
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			if clientErr.HTTPStatusCode == http.StatusForbidden {
+				return result, microerror.Mask(accessForbiddenError)
+			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
+				return result, microerror.Mask(clusterNotFoundError)
+			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
+				return result, microerror.Mask(accessForbiddenError)
+			} else if clientErr.HTTPStatusCode == http.StatusBadRequest {
+				return result, microerror.Maskf(badRequestError, clientErr.ErrorDetails)
+			}
 		}
+
 		return result, microerror.Mask(err)
 	}
 
-	if apiResponse.StatusCode == http.StatusNotFound {
-		// cluster not found
-		return result, microerror.Mask(clusterNotFoundError)
-	} else if apiResponse.StatusCode == http.StatusForbidden {
-		return result, microerror.Mask(accessForbiddenError)
-	} else if apiResponse.StatusCode != http.StatusOK && apiResponse.StatusCode != 201 {
-		return result, microerror.Maskf(unknownError,
-			fmt.Sprintf("Unhandled response code: %v", apiResponse.StatusCode))
-	}
-
 	// success
-	result.keypairResponse = *keypairResponse
+	result.id = response.Payload.ID
+	result.ttlHours = uint(response.Payload.TTLHours)
 
 	if args.selfContainedPath == "" {
 		// modify the given kubeconfig file
 		result.caCertPath = util.StoreCaCertificate(config.CertsDirPath,
-			args.clusterID, keypairResponse.CertificateAuthorityData)
+			args.clusterID, response.Payload.CertificateAuthorityData)
 		result.clientCertPath = util.StoreClientCertificate(config.CertsDirPath,
-			args.clusterID, keypairResponse.Id, keypairResponse.ClientCertificateData)
+			args.clusterID, response.Payload.ID, response.Payload.ClientCertificateData)
 		result.clientKeyPath = util.StoreClientKey(config.CertsDirPath,
-			args.clusterID, keypairResponse.Id, keypairResponse.ClientKeyData)
+			args.clusterID, response.Payload.ID, response.Payload.ClientKeyData)
 		result.contextName = args.contextName
 
 		// edit kubectl config
-		if err := util.KubectlSetCluster(args.clusterID, clusterDetailsResponse.ApiEndpoint, result.caCertPath); err != nil {
+		if err := util.KubectlSetCluster(args.clusterID, result.apiEndpoint, result.caCertPath); err != nil {
 			return result, microerror.Mask(util.CouldNotSetKubectlClusterError)
 		}
 		if err := util.KubectlSetCredentials(args.clusterID, result.clientKeyPath, result.clientCertPath); err != nil {
@@ -454,16 +445,16 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 			Kind:           "Config",
 			CurrentContext: args.contextName,
 			Clusters: []KubeconfigNamedCluster{
-				KubeconfigNamedCluster{
+				{
 					Name: "giantswarm-" + args.clusterID,
 					Cluster: KubeconfigCluster{
 						Server: result.apiEndpoint,
-						CertificateAuthorityData: base64.StdEncoding.EncodeToString([]byte(keypairResponse.CertificateAuthorityData)),
+						CertificateAuthorityData: base64.StdEncoding.EncodeToString([]byte(response.Payload.CertificateAuthorityData)),
 					},
 				},
 			},
 			Contexts: []KubeconfigNamedContext{
-				KubeconfigNamedContext{
+				{
 					Name: args.contextName,
 					Context: KubeconfigContext{
 						Cluster: "giantswarm-" + args.clusterID,
@@ -472,11 +463,11 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 				},
 			},
 			Users: []KubeconfigUser{
-				KubeconfigUser{
+				{
 					Name: "giantswarm-" + args.clusterID + "-user",
 					User: KubeconfigUserKeyPair{
-						ClientCertificateData: base64.StdEncoding.EncodeToString([]byte(keypairResponse.ClientCertificateData)),
-						ClientKeyData:         base64.StdEncoding.EncodeToString([]byte(keypairResponse.ClientKeyData)),
+						ClientCertificateData: base64.StdEncoding.EncodeToString([]byte(response.Payload.ClientCertificateData)),
+						ClientKeyData:         base64.StdEncoding.EncodeToString([]byte(response.Payload.ClientKeyData)),
 					},
 				},
 			},

@@ -12,19 +12,22 @@ func TestDeleteClusterSuccess(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Log("mockServer request: ", r.Method, r.URL)
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusAccepted)
 		w.Write([]byte(`{"code": "RESOURCE_DELETION_STARTED", "message": "We'll soon nuke this cluster"}`))
 	}))
 	defer mockServer.Close()
 
 	var testCases = []deleteClusterArguments{
-		deleteClusterArguments{
+		{
 			apiEndpoint: mockServer.URL,
 			clusterID:   "somecluster",
 			token:       "fake token",
 			force:       true,
 		},
 	}
+
+	cmdAPIEndpoint = mockServer.URL
+	initClient()
 
 	for i, testCase := range testCases {
 		validateErr := validateDeleteClusterPreConditions(testCase)
@@ -47,14 +50,14 @@ type failTestCase struct {
 // TestDeleteClusterFailures runs test case that are supposed to fail
 func TestDeleteClusterFailures(t *testing.T) {
 	var failTestCases = []failTestCase{
-		failTestCase{
+		{
 			arguments: deleteClusterArguments{
 				clusterID: "somecluster",
 				token:     "",
 			},
 			expectedError: notLoggedInError,
 		},
-		failTestCase{
+		{
 			arguments: deleteClusterArguments{
 				clusterID: "",
 				token:     "some token",

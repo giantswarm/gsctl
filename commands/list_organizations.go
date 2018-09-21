@@ -1,19 +1,17 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
-	"time"
+	"sort"
 
-	"github.com/bradfitz/slice"
 	"github.com/fatih/color"
-	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/microerror"
 )
 
 var (
@@ -23,34 +21,70 @@ var (
 		Aliases: []string{"orgs", "organisations"},
 		Short:   "List organizations",
 		Long:    `Prints a list of the organizations you are a member of`,
-		PreRunE: checkListOrgs,
-		Run:     listOrgs,
+		PreRun:  listOrgsPreRunOutput,
+		Run:     listOrgsRunOutput,
 	}
 )
 
 const (
-	listOrganizationsActivityName = "list-organizations"
+	listOrgsActivityName = "list-organizations"
 )
+
+type listOrgsArguments struct {
+	apiEndpoint string
+	authToken   string
+	scheme      string
+}
+
+// defaultListOrgsArguments creates arguments based on command line flags and config
+func defaultListOrgsArguments() listOrgsArguments {
+	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+
+	return listOrgsArguments{
+		apiEndpoint: endpoint,
+		authToken:   token,
+		scheme:      scheme,
+	}
+}
 
 func init() {
 	ListCommand.AddCommand(ListOrgsCommand)
 }
 
-func checkListOrgs(cmd *cobra.Command, args []string) error {
-	if config.Config.Token == "" && cmdToken == "" {
-		return errors.New("You are not logged in.\nUse '" + config.ProgramName + " login' to login or '--auth-token' to pass a valid auth token.")
+func listOrgsPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+	args := defaultListOrgsArguments()
+	err := verifyListOrgsPreconditions(args)
+	if err == nil {
+		return
+	}
+
+	handleCommonErrors(err)
+}
+
+func verifyListOrgsPreconditions(args listOrgsArguments) error {
+	if config.Config.Token == "" && args.authToken == "" {
+		return microerror.Mask(notLoggedInError)
 	}
 	return nil
 }
 
-// listOrgs fetches a list organizations the user is member of
-// and prints it in tabular form
-func listOrgs(cmd *cobra.Command, args []string) {
+// listOrgsRunOutput fetches a list organizations the user is member of
+// and prints it in tabular form, or prints errors of they occur.
+//
+// TODO: Refactor so that this function calls the client, receives structured
+// data which can be tested, and creates user-friendly output.
+func listOrgsRunOutput(cmd *cobra.Command, args []string) {
 	output, err := orgsTable()
 	if err != nil {
-		fmt.Println(color.RedString("Error: %s", err))
-		if _, ok := err.(APIError); ok {
-			dumpAPIResponse((err).(APIError).APIResponse)
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			fmt.Println(color.RedString(clientErr.ErrorMessage))
+			if clientErr.ErrorDetails != "" {
+				fmt.Println(clientErr.ErrorDetails)
+			}
+		} else {
+			fmt.Println(color.RedString("Error: %s", err.Error()))
 		}
 		os.Exit(1)
 	}
@@ -58,43 +92,38 @@ func listOrgs(cmd *cobra.Command, args []string) {
 }
 
 // orgsTable fetches the organizations the user is a member of
-// and returns a table in string form
+// and returns a table in string form.
 func orgsTable() (string, error) {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
+	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = listOrgsActivityName
 
-	clientConfig := client.Configuration{
-		Endpoint:  endpoint,
-		Timeout:   5 * time.Second,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return "", microerror.Mask(couldNotCreateClientError)
-	}
-
-	authHeader := "giantswarm " + token
-	organizations, apiResponse, err := apiClient.GetUserOrganizations(authHeader, requestIDHeader, listOrganizationsActivityName, cmdLine)
+	response, err := ClientV2.GetOrganizations(auxParams)
 	if err != nil {
-		return "", APIError{err.Error(), *apiResponse}
-	}
-
-	if apiResponse.Response.StatusCode == http.StatusOK {
-		var output string
-		if len(organizations) == 0 {
-			output = color.YellowString("No organizations available\n")
-		} else {
-			// sort orgs by Id
-			slice.Sort(organizations[:], func(i, j int) bool {
-				return organizations[i].Id < organizations[j].Id
-			})
-
-			output = color.CyanString("ORGANIZATION") + "\n"
-			for _, org := range organizations {
-				output = output + org.Id + "\n"
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			if clientErr.HTTPStatusCode == http.StatusUnauthorized {
+				return "", microerror.Mask(notAuthorizedError)
+			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
+				return "", microerror.Mask(accessForbiddenError)
 			}
 		}
-		return output, nil
+
+		return "", microerror.Mask(err)
 	}
-	return "", APIError{fmt.Sprintf("Unhandled response code: %v", apiResponse.Response.StatusCode), *apiResponse}
+
+	var output string
+	if len(response.Payload) == 0 {
+		output = color.YellowString("No organizations available\n")
+	} else {
+		// sort orgs by Id
+		sort.Slice(response.Payload[:], func(i, j int) bool {
+			return response.Payload[i].ID < response.Payload[j].ID
+		})
+
+		output = color.CyanString("ORGANIZATION") + "\n"
+		for _, org := range response.Payload {
+			output = output + org.ID + "\n"
+		}
+	}
+
+	return output, nil
 }

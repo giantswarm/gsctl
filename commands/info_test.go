@@ -68,6 +68,7 @@ func Test_InfoWithTempDirAndToken(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 
+	cmdAPIEndpoint = ""
 	args := defaultInfoArguments()
 	args.token = "fake token"
 

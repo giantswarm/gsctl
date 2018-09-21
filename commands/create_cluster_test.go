@@ -1,15 +1,17 @@
 package commands
 
 import (
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/giantswarm/microerror"
 )
 
 // TestReadFiles tests the readDefinitionFromFile with all
-// YAML files in the testdata directory
+// YAML files in the testdata directory.
 func TestReadFiles(t *testing.T) {
 	basePath := "testdata"
 	files, _ := ioutil.ReadDir(basePath)
@@ -22,6 +24,7 @@ func TestReadFiles(t *testing.T) {
 	}
 }
 
+// Test_CreateFromYAML01 tests parsing a most simplistic YAML definition.
 func Test_CreateFromYAML01(t *testing.T) {
 	definition := clusterDefinition{}
 	data := []byte(`owner: myorg`)
@@ -34,6 +37,7 @@ func Test_CreateFromYAML01(t *testing.T) {
 	}
 }
 
+// Test_CreateFromYAML02 tests parsing a rather simplistic YAML definition.
 func Test_CreateFromYAML02(t *testing.T) {
 	definition := clusterDefinition{}
 	data := []byte(`owner: myorg
@@ -50,10 +54,11 @@ name: Minimal cluster spec`)
 	}
 }
 
-// Test_CreateFromYAML03 tests all the worker details
+// Test_CreateFromYAML03 tests all the worker details.
 func Test_CreateFromYAML03(t *testing.T) {
 	definition := clusterDefinition{}
-	data := []byte(`owner: littleco
+	data := []byte(`
+owner: littleco
 workers:
   - memory:
     size_gb: 2
@@ -84,7 +89,7 @@ workers:
 	}
 }
 
-// Test_CreateFromBadYAML01 tests how non-conforming YAML is treated
+// Test_CreateFromBadYAML01 tests how non-conforming YAML is treated.
 func Test_CreateFromBadYAML01(t *testing.T) {
 	definition := clusterDefinition{}
 	data := []byte(`o: myorg`)
@@ -97,19 +102,65 @@ func Test_CreateFromBadYAML01(t *testing.T) {
 	}
 }
 
-// Test_CreateClusterSuccessfully tests cluster creations that should succeed
+// Test_CreateClusterSuccessfully tests cluster creations that should succeed.
 func Test_CreateClusterSuccessfully(t *testing.T) {
-	// mock server always responding positively
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Log("mockServer request: ", r.Method, r.URL)
-		w.Header().Set("Content-Type", "application/json")
-		if r.Method == "POST" && r.URL.String() == "/v4/clusters/" {
-			w.Header().Set("Location", "/v4/clusters/f6e8r/")
-			w.WriteHeader(http.StatusCreated)
-			w.Write([]byte(`{"code": "RESOURCE_CREATED", "message": "Yeah!"}`))
-		} else if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`[
+	var testCases = []struct {
+		description string
+		inputArgs   *addClusterArguments
+	}{
+		{
+			description: "Minimal arguments",
+			inputArgs: &addClusterArguments{
+				owner: "acme",
+				token: "fake token",
+			},
+		},
+		{
+			description: "Extensive arguments",
+			inputArgs: &addClusterArguments{
+				clusterName:         "UnitTestCluster",
+				numWorkers:          4,
+				releaseVersion:      "0.3.0",
+				owner:               "acme",
+				token:               "fake token",
+				workerNumCPUs:       3,
+				workerMemorySizeGB:  4,
+				workerStorageSizeGB: 10,
+				verbose:             true,
+			},
+		},
+		{
+			description: "Definition from YAML file",
+			inputArgs: &addClusterArguments{
+				clusterName:   "Cluster Name from Args",
+				owner:         "acme",
+				token:         "fake token",
+				inputYAMLFile: "testdata/minimal.yaml",
+				verbose:       true,
+			},
+		},
+	}
+
+	var validateErr error
+	var executeErr error
+
+	for i, testCase := range testCases {
+		t.Logf("Case %d: %s", i, testCase.description)
+
+		// mock server always responding positively
+		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Log("mockServer request: ", r.Method, r.URL)
+			w.Header().Set("Content-Type", "application/json")
+			if !strings.Contains(r.Header.Get("Authorization"), testCase.inputArgs.token) {
+				t.Errorf("Authorization header incomplete: '%s'", r.Header.Get("Authorization"))
+			}
+			if r.Method == "POST" && r.URL.String() == "/v4/clusters/" {
+				w.Header().Set("Location", "/v4/clusters/f6e8r/")
+				w.WriteHeader(http.StatusCreated)
+				w.Write([]byte(`{"code": "RESOURCE_CREATED", "message": "Yeah!"}`))
+			} else if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`[
 			  {
 					"timestamp": "2017-10-15T12:00:00Z",
 			    "version": "0.3.0",
@@ -128,102 +179,111 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			    ]
 			  }
 			]`))
-		}
-	}))
-	defer mockServer.Close()
+			}
+		}))
+		defer mockServer.Close()
 
-	var testCases = []addClusterArguments{
-		// minimal arguments
-		addClusterArguments{
-			apiEndpoint: mockServer.URL,
-			owner:       "acme",
-			token:       "fake token",
-		},
-		// extensive arguments
-		addClusterArguments{
-			apiEndpoint:         mockServer.URL,
-			clusterName:         "UnitTestCluster",
-			numWorkers:          4,
-			releaseVersion:      "0.3.0",
-			owner:               "acme",
-			token:               "fake token",
-			workerNumCPUs:       3,
-			workerMemorySizeGB:  4,
-			workerStorageSizeGB: 10,
-			verbose:             true,
-		},
-		addClusterArguments{
-			apiEndpoint:   mockServer.URL,
-			clusterName:   "Cluster Name from Args",
-			owner:         "acme",
-			token:         "fake token",
-			inputYAMLFile: "testdata/minimal.yaml",
-			verbose:       true,
-		},
-	}
+		cmdAPIEndpoint = mockServer.URL
+		cmdToken = testCase.inputArgs.token
+		initClient()
 
-	validateErr := errors.New("")
-	executeErr := errors.New("")
-
-	for i, testCase := range testCases {
-		validateErr = validateCreateClusterPreConditions(testCase)
+		validateErr = validateCreateClusterPreConditions(*testCase.inputArgs)
 		if validateErr != nil {
-			t.Errorf("Validation error in testCase %v: %s", i, validateErr.Error())
+			t.Errorf("Validation error in testCase %d: %s", i, validateErr.Error())
 		}
-		_, executeErr = addCluster(testCase)
+		_, executeErr = addCluster(*testCase.inputArgs)
 		if executeErr != nil {
-			t.Errorf("Execution error in testCase %v: %s", i, executeErr.Error())
+			t.Errorf("Execution error in testCase %d: %s", i, executeErr.Error())
 		}
 	}
 }
 
-// Test_CreateClusterFailures tests for errors in cluster creations
-// (these attempts should never succeed)
-func Test_CreateClusterFailures(t *testing.T) {
-	// mock server always responding negatively
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Log("mockServer request: ", r.Method, r.URL)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"code": "BAD_REQUEST", "message": "Something was fishy"}`))
-	}))
-	defer mockServer.Close()
-
-	var testCases = []addClusterArguments{
-		// not authenticated
-		addClusterArguments{
-			apiEndpoint: mockServer.URL,
-			owner:       "owner",
-			token:       "",
+// Test_CreateClusterExecutionFailures tests for errors thrown in the
+// final execution of a cluster creations, which is the handling of the API call.
+func Test_CreateClusterExecutionFailures(t *testing.T) {
+	var testCases = []struct {
+		description        string
+		inputArgs          *addClusterArguments
+		responseStatus     int
+		serverResponseJSON []byte
+		errorMatcher       func(err error) bool
+	}{
+		{
+			description: "Unauthenticated request despite token being present",
+			inputArgs: &addClusterArguments{
+				owner: "owner",
+				token: "some-token",
+			},
+			serverResponseJSON: []byte(`{"code": "PERMISSION_DENIED", "message": "Lorem ipsum"}`),
+			responseStatus:     http.StatusUnauthorized,
+			errorMatcher:       IsNotAuthorizedError,
 		},
-		// extensive arguments (only a server error should let this fail)
-		addClusterArguments{
-			apiEndpoint:         mockServer.URL,
-			clusterName:         "UnitTestCluster",
-			numWorkers:          4,
-			releaseVersion:      "0.3.0",
-			owner:               "acme",
-			token:               "fake token",
-			workerNumCPUs:       3,
-			workerMemorySizeGB:  4,
-			workerStorageSizeGB: 10,
-			verbose:             true,
+		{
+			description: "Owner organization not existing",
+			inputArgs: &addClusterArguments{
+				owner: "non-existing-owner",
+				token: "some-token",
+			},
+			serverResponseJSON: []byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Lorem ipsum"}`),
+			responseStatus:     http.StatusNotFound,
+			errorMatcher:       IsOrganizationNotFoundError,
 		},
-		// file not readable
-		addClusterArguments{
-			apiEndpoint:   mockServer.URL,
-			token:         "fake token",
-			inputYAMLFile: "does/not/exist.yaml",
-			dryRun:        true,
+		{
+			description: "Server complains about a bad request",
+			inputArgs: &addClusterArguments{
+				owner:          "owner",
+				token:          "some-token",
+				releaseVersion: "100.200.300",
+			},
+			serverResponseJSON: []byte(`{"code": "INVALID_INPUT", "message": "Lorem ipsum"}`),
+			responseStatus:     http.StatusBadRequest,
+			errorMatcher:       IsBadRequestError,
+		},
+		{
+			description: "Non-existing YAML definition path",
+			inputArgs: &addClusterArguments{
+				owner:         "owner",
+				token:         "some-token",
+				inputYAMLFile: "does/not/exist.yaml",
+				dryRun:        true,
+			},
+			serverResponseJSON: []byte(``),
+			responseStatus:     0,
+			errorMatcher:       IsYAMLFileNotReadableError,
 		},
 	}
 
 	for i, testCase := range testCases {
-		validateErr := validateCreateClusterPreConditions(testCase)
-		if validateErr == nil {
-			_, execErr := addCluster(testCase)
-			if execErr == nil {
-				t.Errorf("Expected errors didn't occur in testCase %v", i)
+		t.Logf("Case %d: %s", i, testCase.description)
+
+		// mock server
+		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			//t.Log("mockServer request: ", r.Method, r.URL)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(testCase.responseStatus)
+			w.Write([]byte(testCase.serverResponseJSON))
+		}))
+		defer mockServer.Close()
+
+		// client
+		cmdAPIEndpoint = mockServer.URL // required to make initClient() work
+		testCase.inputArgs.apiEndpoint = mockServer.URL
+		err := initClient()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		validateErr := validateCreateClusterPreConditions(*testCase.inputArgs)
+		if validateErr != nil {
+			t.Errorf("Unexpected error in argument validation: %#v", validateErr)
+		} else {
+			_, err := addCluster(*testCase.inputArgs)
+			if err == nil {
+				t.Errorf("Test case %d did not yield an execution error.", i)
+			}
+			origErr := microerror.Cause(err)
+			if testCase.errorMatcher(origErr) == false {
+				t.Errorf("Test case %d did not yield the expected execution error, instead: %#v", i, err)
 			}
 		}
 	}

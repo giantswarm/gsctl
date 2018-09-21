@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/gsclientgen"
-	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 
 	"github.com/giantswarm/microerror"
@@ -57,6 +57,7 @@ type scaleClusterArguments struct {
 	verbose             bool
 	apiEndpoint         string
 	authToken           string
+	scheme              string
 	workerNumCPUs       int
 	workerMemorySizeGB  float32
 	workerStorageSizeGB float32
@@ -65,10 +66,12 @@ type scaleClusterArguments struct {
 func defaultScaleClusterArguments() scaleClusterArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	return scaleClusterArguments{
 		apiEndpoint:         endpoint,
 		authToken:           token,
+		scheme:              scheme,
 		clusterID:           cmdClusterID,
 		numWorkersDesired:   cmdNumWorkers,
 		workerNumCPUs:       cmdWorkerNumCPUs,
@@ -139,8 +142,6 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		var subtext = ""
 
 		switch {
-		case err.Error() == "":
-			return
 		case IsCommandAbortedError(err):
 			headline = "Scaling cancelled."
 		case IsCannotScaleBelowMinimumWorkersError(err):
@@ -200,7 +201,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	}
 
 	clusterDetails, err := getClusterDetails(args.clusterID,
-		args.authToken, args.apiEndpoint)
+		args.scheme, args.authToken, args.apiEndpoint)
 	if err != nil {
 		return results, microerror.Mask(err)
 	}
@@ -222,80 +223,47 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	}
 
 	// Preparing API call.
-	workers := []gsclientgen.V4NodeDefinition{}
+	reqBody := &models.V4ModifyClusterRequest{
+		Workers: []*models.V4ModifyClusterRequestWorkersItems{},
+	}
 	for i := 0; i < args.numWorkersDesired; i++ {
-		worker := gsclientgen.V4NodeDefinition{}
+		worker := &models.V4ModifyClusterRequestWorkersItems{}
 		// worker configuration is only needed in case of scaling up,
-		// but it doesn't hort otherwise.
+		// but it doesn't hurt otherwise.
 		if args.workerNumCPUs > 0 {
-			worker.Cpu.Cores = int32(args.workerNumCPUs)
+			worker.CPU.Cores = int64(args.workerNumCPUs)
 		}
 		if args.workerMemorySizeGB > 0 {
-			worker.Memory.SizeGb = args.workerMemorySizeGB
+			worker.Memory.SizeGb = float64(args.workerMemorySizeGB)
 		}
 		if args.workerStorageSizeGB > 0 {
-			worker.Storage.SizeGb = args.workerStorageSizeGB
+			worker.Storage.SizeGb = float64(args.workerStorageSizeGB)
 		}
-		workers = append(workers, worker)
+		reqBody.Workers = append(reqBody.Workers, worker)
 	}
-	reqBody := gsclientgen.V4ModifyClusterRequest{Workers: workers}
 
 	// perform API call
-	authHeader := "giantswarm " + config.Config.Token
-	if args.authToken != "" {
-		// command line flag overwrites
-		authHeader = "giantswarm " + args.authToken
-	}
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return results, microerror.Mask(couldNotCreateClientError)
-	}
-
 	if args.verbose {
 		fmt.Println("Sending API request to modify cluster")
 	}
-	scaleResult, rawResponse, err := apiClient.ModifyCluster(authHeader, args.clusterID, reqBody, requestIDHeader, scaleClusterActivityName, cmdLine)
+
+	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = scaleClusterActivityName
+
+	response, err := ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
 	if err != nil {
-		if rawResponse == nil || rawResponse.Response == nil {
-			return results, microerror.Mask(noResponseError)
-		}
-
-		if rawResponse.StatusCode == http.StatusForbidden {
-			return results, microerror.Mask(accessForbiddenError)
-		}
-
-		if rawResponse.StatusCode == http.StatusNotFound {
-			return results, microerror.Mask(clusterNotFoundError)
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			if clientErr.HTTPStatusCode == http.StatusForbidden {
+				return results, microerror.Mask(accessForbiddenError)
+			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
+				return results, microerror.Mask(clusterNotFoundError)
+			}
 		}
 
 		return results, microerror.Mask(err)
 	}
 
-	if rawResponse.Response.StatusCode != http.StatusOK {
-		// errors response with code/message body
-		genericResponse, err := client.ParseGenericResponse(rawResponse.Payload)
-		if err == nil {
-			if args.verbose {
-				fmt.Printf("\nError details:\n - Code: %s\n - Message: %s\n\n",
-					genericResponse.Code, genericResponse.Message)
-			}
-			return results, microerror.Mask(couldNotScaleClusterError)
-		}
-
-		// other response body format
-		if args.verbose {
-			fmt.Printf("\nError details:\n - HTTP status code: %d\n - Response body: %s\n\n",
-				rawResponse.Response.StatusCode,
-				string(rawResponse.Payload))
-		}
-		return results, microerror.Mask(couldNotScaleClusterError)
-	}
-
-	results.numWorkersAfter = len(scaleResult.Workers)
+	results.numWorkersAfter = len(response.Payload.Workers)
 
 	return results, nil
 }
