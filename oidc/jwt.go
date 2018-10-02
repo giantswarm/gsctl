@@ -2,7 +2,9 @@ package oidc
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/cenkalti/backoff"
 	jwt "github.com/dgrijalva/jwt-go"
@@ -41,6 +43,8 @@ func ParseIDToken(tokenString string) (token *IDToken, err error) {
 		// handle some validation errors specifically
 		valErr, valErrOK := err.(*jwt.ValidationError)
 		if valErrOK && valErr.Errors == jwt.ValidationErrorIssuedAt {
+			fmt.Printf("Issued at: %d\n", int64(t.Claims.(jwt.MapClaims)["iat"].(float64)))
+			fmt.Printf("Now:       %d\n\n", time.Now().Unix())
 			return nil, microerror.Maskf(tokenIssuedAtError, valErr.Error())
 		}
 
