@@ -43,8 +43,25 @@ func ParseIDToken(tokenString string) (token *IDToken, err error) {
 		// handle some validation errors specifically
 		valErr, valErrOK := err.(*jwt.ValidationError)
 		if valErrOK && valErr.Errors == jwt.ValidationErrorIssuedAt {
-			fmt.Printf("Issued at: %d\n", int64(t.Claims.(jwt.MapClaims)["iat"].(float64)))
-			fmt.Printf("Now:       %d\n\n", time.Now().Unix())
+			claims, ok := t.Claims.(jwt.MapClaims)
+			if !ok {
+				return nil, microerror.Maskf(tokenIssuedAtError, valErr.Error())
+			}
+
+			iatClaim, ok := claims["iat"]
+			if !ok {
+				return nil, microerror.Maskf(tokenIssuedAtError, valErr.Error())
+			}
+
+			iatFloat, ok := iatClaim.(float64)
+			if !ok {
+				return nil, microerror.Maskf(tokenIssuedAtError, valErr.Error())
+			}
+
+			iat := int64(iatFloat)
+			fmt.Printf("Issued at:  %d\n", iat)
+			fmt.Printf("Now:        %d\n", time.Now().Unix())
+			fmt.Printf("Difference: %d seconds\n\n", iat-time.Now().Unix())
 			return nil, microerror.Maskf(tokenIssuedAtError, valErr.Error())
 		}
 
