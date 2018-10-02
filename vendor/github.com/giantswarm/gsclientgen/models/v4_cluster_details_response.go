@@ -27,9 +27,6 @@ type V4ClusterDetailsResponse struct {
 	// Unique cluster identifier
 	ID string `json:"id,omitempty"`
 
-	// Deprecated. Will be removed in a future API version.
-	KubernetesVersion string `json:"kubernetes_version,omitempty"`
-
 	// kvm
 	Kvm *V4ClusterDetailsResponseKvm `json:"kvm,omitempty"`
 

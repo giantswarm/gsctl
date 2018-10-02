@@ -56,7 +56,6 @@ func TestScaleCluster(t *testing.T) {
 				"api_endpoint": "",
 				"create_date": "2017-05-16T09:30:31.192170835Z",
 				"owner": "acmeorg",
-				"kubernetes_version": "",
 				"workers": [
 					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
 					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
@@ -87,7 +86,6 @@ func TestScaleCluster(t *testing.T) {
 				"api_endpoint": "",
 				"create_date": "2017-05-16T09:30:31.192170835Z",
 				"owner": "acmeorg",
-				"kubernetes_version": "",
 				"workers": [
 					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
 					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
