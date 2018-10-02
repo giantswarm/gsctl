@@ -96,11 +96,10 @@ type nodeDefinition struct {
 }
 
 type clusterDefinition struct {
-	Name              string           `yaml:"name,omitempty"`
-	Owner             string           `yaml:"owner,omitempty"`
-	ReleaseVersion    string           `yaml:"release_version,omitempty"`
-	KubernetesVersion string           `yaml:"kubernetes_version,omitempty"`
-	Workers           []nodeDefinition `yaml:"workers,omitempty"`
+	Name           string           `yaml:"name,omitempty"`
+	Owner          string           `yaml:"owner,omitempty"`
+	ReleaseVersion string           `yaml:"release_version,omitempty"`
+	Workers        []nodeDefinition `yaml:"workers,omitempty"`
 }
 
 func init() {
