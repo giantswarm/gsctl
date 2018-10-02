@@ -56,7 +56,7 @@
   version = "v2.0.2"
 
 [[projects]]
-  branch = "master"
+  branch = "teemow-remove-kubernetes-version"
   name = "github.com/giantswarm/gsclientgen"
   packages = [
     "client",
@@ -69,7 +69,7 @@
     "client/users",
     "models"
   ]
-  revision = "fa3388260426ae8598b25f9432d2c40e82d70c53"
+  revision = "f8c9b3042f1e58469aa73bffaebd621ce906d63a"
 
 [[projects]]
   branch = "master"
@@ -302,6 +302,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b2ad617d28c855d744ddfbaf55cec3b908c647fb00683232c365b88488debd2f"
+  inputs-digest = "5ca40abb4b1f76582f61ed6ffc19e4f5552576eebc17bd0349265d0dd7c0c46c"
   solver-name = "gps-cdcl"
   solver-version = 1

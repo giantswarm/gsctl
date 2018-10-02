@@ -19,11 +19,6 @@ import (
 // swagger:model v4AddClusterRequest
 type V4AddClusterRequest struct {
 
-	// Kubernetes version number (deprecated). Doesn't have any effect.
-	// This attribute is going to be removed in future API versions.
-	//
-	KubernetesVersion string `json:"kubernetes_version,omitempty"`
-
 	// Cluster name
 	Name string `json:"name,omitempty"`
 

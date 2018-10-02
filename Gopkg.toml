@@ -39,7 +39,7 @@
   version = "=2.0.2"
 
 [[constraint]]
-  branch = "master"
+  branch = "teemow-remove-kubernetes-version"
   name = "github.com/giantswarm/gsclientgen"
 
 [[constraint]]
