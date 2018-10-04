@@ -119,11 +119,11 @@ func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 	output := []string{strings.Join([]string{
 		color.CyanString("VERSION"),
 		color.CyanString("STATUS"),
+		color.CyanString("CREATED"),
 		color.CyanString("KUBERNETES"),
 		color.CyanString("CONTAINERLINUX"),
 		color.CyanString("COREDNS"),
 		color.CyanString("CALICO"),
-		color.CyanString("CREATED"),
 	}, "|")}
 
 	var major int64
@@ -138,9 +138,9 @@ func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 		coredns_version := "n/a"
 		calico_version := "n/a"
 
-		// as long as the status information is not specific in the API
+		// As long as the status information is not specific in the API
 		// we start with deprecated, find the active one and then switch
-		// to "wip" for each major version
+		// to "wip" for each major version.
 		version, err := semver.NewVersion(*release.Version)
 
 		if err == nil {
@@ -179,21 +179,21 @@ func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 			output = append(output, strings.Join([]string{
 				color.YellowString(*release.Version),
 				color.YellowString(status),
+				color.YellowString(created),
 				color.YellowString(kubernetes_version),
 				color.YellowString(container_linux_version),
 				color.YellowString(coredns_version),
 				color.YellowString(calico_version),
-				color.YellowString(created),
 			}, "|"))
 		} else {
 			output = append(output, strings.Join([]string{
 				*release.Version,
 				status,
+				created,
 				kubernetes_version,
 				container_linux_version,
 				coredns_version,
 				calico_version,
-				created,
 			}, "|"))
 		}
 	}
