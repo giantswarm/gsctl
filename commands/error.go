@@ -109,7 +109,7 @@ func IsReleaseVersionMissingError(err error) bool {
 	return microerror.Cause(err) == releaseVersionMissingError
 }
 
-// ReleaseNotFoundError means that a given release does not exist
+// releaseNotFoundError means that a given release does not exist.
 var releaseNotFoundError = &microerror.Error{
 	Kind: "releaseNotFoundError",
 }
