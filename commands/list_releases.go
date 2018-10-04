@@ -131,7 +131,7 @@ func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 	major = 0
 	status = "deprecated"
 
-	for _, release := range releases {
+	for i, release := range releases {
 		created := util.ShortDate(util.ParseDate(*release.Timestamp))
 		kubernetes_version := "n/a"
 		container_linux_version := "n/a"
@@ -145,8 +145,17 @@ func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 
 		if err == nil {
 			if version.Major() > major {
+				// Found new major release.
 				major = version.Major()
-				status = "deprecated"
+
+				// If this is a new major version and the last release
+				// likelihood is high that this is a wip release and
+				// not deprecated.
+				if i == len(releases)-1 {
+					status = "wip"
+				} else {
+					status = "deprecated"
+				}
 			}
 
 			if release.Active {
