@@ -8,9 +8,9 @@ import (
 
 	"github.com/coreos/go-semver/semver"
 	"github.com/fatih/color"
+	"github.com/giantswarm/gsclientgen/models"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsclientgen"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/microerror"
@@ -197,7 +197,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	result := upgradeClusterResult{}
 
 	// fetch current cluster details
-	details, detailsErr := getClusterDetails(args.clusterID, args.authToken, args.apiEndpoint)
+	details, detailsErr := getClusterDetails(args.clusterID, upgradeClusterActivityName)
 	if detailsErr != nil {
 		return result, microerror.Mask(detailsErr)
 	}
@@ -212,7 +212,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	}
 	releaseVersions := []string{}
 	for _, r := range releasesResult.releases {
-		releaseVersions = append(releaseVersions, r.Version)
+		releaseVersions = append(releaseVersions, *r.Version)
 	}
 
 	// define the target version to upgrade to
@@ -221,10 +221,10 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 		return result, microerror.Mask(noUpgradeAvailableError)
 	}
 
-	var targetRelease gsclientgen.V4ReleaseListItem
+	var targetRelease models.V4ReleaseListItem
 	for _, rel := range releasesResult.releases {
-		if rel.Version == targetVersion {
-			targetRelease = rel
+		if *rel.Version == targetVersion {
+			targetRelease = *rel
 		}
 	}
 
@@ -270,28 +270,15 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	result.clusterID = args.clusterID
 	result.versionBefore = details.ReleaseVersion
 
-	// create API client
-	authHeader := "giantswarm " + config.Config.Token
-	if args.authToken != "" {
-		// command line flag overwrites
-		authHeader = "giantswarm " + args.authToken
-	}
-	clientConfig := client.Configuration{
-		Endpoint:  args.apiEndpoint,
-		UserAgent: config.UserAgent(),
-	}
-	apiClient, clientErr := client.NewClient(clientConfig)
-	if clientErr != nil {
-		return result, microerror.Mask(couldNotCreateClientError)
-	}
-
 	// request body
-	reqBody := gsclientgen.V4ModifyClusterRequest{
+	reqBody := &models.V4ModifyClusterRequest{
 		ReleaseVersion: targetVersion,
 	}
 
 	// perform API call
-	_, rawResponse, err := apiClient.ModifyCluster(authHeader, args.clusterID, reqBody, requestIDHeader, upgradeClusterActivityName, cmdLine)
+	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = upgradeClusterActivityName
+	response, err := ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}

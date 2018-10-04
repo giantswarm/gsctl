@@ -168,10 +168,10 @@ func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 	// success
 
 	// sort releases by version (descending)
-	if len(releasesResponse) > 1 {
-		slice.Sort(releasesResponse[:], func(i, j int) bool {
-			vi := semver.New(releasesResponse[i].Version)
-			vj := semver.New(releasesResponse[j].Version)
+	if len(response.Payload) > 1 {
+		sort.Slice(response.Payload[:], func(i, j int) bool {
+			vi := semver.New(*response.Payload[i].Version)
+			vj := semver.New(*response.Payload[j].Version)
 			return vi.LessThan(*vj)
 		})
 	}

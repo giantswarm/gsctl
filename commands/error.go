@@ -1,6 +1,8 @@
 package commands
 
-import "github.com/giantswarm/microerror"
+import (
+	"github.com/giantswarm/microerror"
+)
 
 // Common errors and matcher functions for the "commands" package.
 
@@ -419,18 +421,24 @@ func IsUnspecifiedAPIError(err error) bool {
 
 // noUpgradeAvailableError means that the user wanted to start an upgrade, but
 // there is no newer version available for the given cluster
-var noUpgradeAvailableError = errgo.New("no upgrade available")
+var noUpgradeAvailableError = &microerror.Error{
+	Kind: "noUpgradeAvailableError",
+	Desc: "no upgrade available for the current version",
+}
 
 // IsNoUpgradeAvailableError asserts noUpgradeAvailableError
 func IsNoUpgradeAvailableError(err error) bool {
-	return errgo.Cause(err) == noUpgradeAvailableError
+	return microerror.Cause(err) == noUpgradeAvailableError
 }
 
-var couldNotUpgradeClusterError = errgo.New("could not upgrade cluster")
+var couldNotUpgradeClusterError = &microerror.Error{
+	Kind: "couldNotUpgradeClusterError",
+	Desc: "could not upgrade cluster",
+}
 
 // IsCouldNotUpgradeClusterError asserts couldNotUpgradeClusterError
 func IsCouldNotUpgradeClusterError(err error) bool {
-	return errgo.Cause(err) == couldNotUpgradeClusterError
+	return microerror.Cause(err) == couldNotUpgradeClusterError
 }
 
 // invalidDurationError means that a user-provided duration string could not be parsed

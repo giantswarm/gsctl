@@ -56,6 +56,9 @@ var (
 	// organization ID as passed by the user as a flag
 	cmdOrganizationID string
 
+	// cmdRelease sets a release to use, provided as a command line flag
+	cmdRelease string
+
 	// number of CPUs per worker as required via flag on execution
 	cmdWorkerNumCPUs int
 
