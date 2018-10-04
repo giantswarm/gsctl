@@ -16,126 +16,126 @@ func TestShowRelease(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`[
 		  {
-				"timestamp": "2017-10-15T12:00:00Z",
-		    "version": "0.1.0",
-		    "active": true,
-		    "changelog": [
-		      {
-		        "component": "vault",
-		        "description": "Vault version updated."
-		      },
-		      {
-		        "component": "flannel",
-		        "description": "Flannel version updated."
-		      }
-		    ],
-		    "components": [
-		      {
-		        "name": "vault",
-		        "version": "0.7.2"
-		      },
-		      {
-		        "name": "flannel",
-		        "version": "0.8.0"
-		      },
-		      {
-		        "name": "calico",
-		        "version": "2.6.1"
-		      },
-		      {
-		        "name": "docker",
-		        "version": "1.12.5"
-		      },
-		      {
-		        "name": "etcd",
-		        "version": "3.2.2"
-		      },
-		      {
-		        "name": "kubedns",
-		        "version": "1.14.4"
-		      },
-		      {
-		        "name": "kubernetes",
-		        "version": "1.8.0"
-		      },
-		      {
-		        "name": "nginx-ingress-controller",
-		        "version": "0.8.0"
-		      }
-		    ]
+			"timestamp":"2017-10-15T12:00:00Z",
+			"version":"0.1.0",
+			"active":true,
+			"changelog":[
+			  {
+				"component":"vault",
+				"description":"Vault version updated."
+			  },
+			  {
+				"component":"flannel",
+				"description":"Flannel version updated."
+			  }
+			],
+			"components":[
+			  {
+				"name":"vault",
+				"version":"0.7.2"
+			  },
+			  {
+				"name":"flannel",
+				"version":"0.8.0"
+			  },
+			  {
+				"name":"calico",
+				"version":"2.6.1"
+			  },
+			  {
+				"name":"docker",
+				"version":"1.12.5"
+			  },
+			  {
+				"name":"etcd",
+				"version":"3.2.2"
+			  },
+			  {
+				"name":"kubedns",
+				"version":"1.14.4"
+			  },
+			  {
+				"name":"kubernetes",
+				"version":"1.8.0"
+			  },
+			  {
+				"name":"nginx-ingress-controller",
+				"version":"0.8.0"
+			  }
+			]
 		  },
-			{
-				"timestamp": "2017-10-27T16:21:00Z",
-		    "version": "0.10.0",
-		    "active": true,
-		    "changelog": [
-		      {
-		        "component": "vault",
-		        "description": "Vault version updated."
-		      },
-		      {
-		        "component": "flannel",
-		        "description": "Flannel version updated."
-		      },
-		      {
-		        "component": "calico",
-		        "description": "Calico version updated."
-		      },
-		      {
-		        "component": "docker",
-		        "description": "Docker version updated."
-		      },
-		      {
-		        "component": "etcd",
-		        "description": "Etcd version updated."
-		      },
-		      {
-		        "component": "kubedns",
-		        "description": "KubeDNS version updated."
-		      },
-		      {
-		        "component": "kubernetes",
-		        "description": "Kubernetes version updated."
-		      },
-		      {
-		        "component": "nginx-ingress-controller",
-		        "description": "Nginx-ingress-controller version updated."
-		      }
-		    ],
-		    "components": [
-		      {
-		        "name": "vault",
-		        "version": "0.7.3"
-		      },
-		      {
-		        "name": "flannel",
-		        "version": "0.9.0"
-		      },
-		      {
-		        "name": "calico",
-		        "version": "2.6.2"
-		      },
-		      {
-		        "name": "docker",
-		        "version": "1.12.6"
-		      },
-		      {
-		        "name": "etcd",
-		        "version": "3.2.7"
-		      },
-		      {
-		        "name": "kubedns",
-		        "version": "1.14.5"
-		      },
-		      {
-		        "name": "kubernetes",
-		        "version": "1.8.1"
-		      },
-		      {
-		        "name": "nginx-ingress-controller",
-		        "version": "0.9.0"
-		      }
-		    ]
+		  {
+			"timestamp":"2017-10-27T16:21:00Z",
+			"version":"0.10.0",
+			"active":true,
+			"changelog":[
+			  {
+				"component":"vault",
+				"description":"Vault version updated."
+			  },
+			  {
+				"component":"flannel",
+				"description":"Flannel version updated."
+			  },
+			  {
+				"component":"calico",
+				"description":"Calico version updated."
+			  },
+			  {
+				"component":"docker",
+				"description":"Docker version updated."
+			  },
+			  {
+				"component":"etcd",
+				"description":"Etcd version updated."
+			  },
+			  {
+				"component":"kubedns",
+				"description":"KubeDNS version updated."
+			  },
+			  {
+				"component":"kubernetes",
+				"description":"Kubernetes version updated."
+			  },
+			  {
+				"component":"nginx-ingress-controller",
+				"description":"Nginx-ingress-controller version updated."
+			  }
+			],
+			"components":[
+			  {
+				"name":"vault",
+				"version":"0.7.3"
+			  },
+			  {
+				"name":"flannel",
+				"version":"0.9.0"
+			  },
+			  {
+				"name":"calico",
+				"version":"2.6.2"
+			  },
+			  {
+				"name":"docker",
+				"version":"1.12.6"
+			  },
+			  {
+				"name":"etcd",
+				"version":"3.2.7"
+			  },
+			  {
+				"name":"kubedns",
+				"version":"1.14.5"
+			  },
+			  {
+				"name":"kubernetes",
+				"version":"1.8.1"
+			  },
+			  {
+				"name":"nginx-ingress-controller",
+				"version":"0.9.0"
+			  }
+			]
 		  }
 		]`))
 	}))
@@ -179,9 +179,9 @@ func TestShowReleaseNotAuthorized(t *testing.T) {
 		w.WriteHeader(http.StatusUnauthorized)
 		if r.Method == "GET" {
 			w.Write([]byte(`{
-				"code":"INVALID_CREDENTIALS",
-				"message":"The requested resource cannot be accessed using the provided credentials. (token not found: unauthenticated)"
-			}`))
+    "code":"INVALID_CREDENTIALS",
+    "message":"The requested resource cannot be accessed using the provided credentials. (token not found: unauthenticated)"
+   }`))
 		}
 	}))
 	defer releasesMockServer.Close()
@@ -224,21 +224,21 @@ func TestShowReleaseNotFound(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`[
 		  {
-			"timestamp": "2017-10-27T16:21:00Z",
-		    "version": "0.10.0",
-		    "active": true,
-		    "changelog": [
-		   	  {
-		        "component": "nginx-ingress-controller",
-		        "description": "Nginx-ingress-controller version updated."
-		      }
-		    ],
-		    "components": [
-		      {
-		        "name": "kubernetes",
-		        "version": "1.8.1"
-		      }
-		    ]
+			"timestamp":"2017-10-27T16:21:00Z",
+			"version":"0.10.0",
+			"active":true,
+			"changelog":[
+			  {
+				"component":"nginx-ingress-controller",
+				"description":"Nginx-ingress-controller version updated."
+			  }
+			],
+			"components":[
+			  {
+				"name":"kubernetes",
+				"version":"1.8.1"
+			  }
+			]
 		  }
 		]`))
 	}))
@@ -284,7 +284,7 @@ func TestShowReleaseInternalServerError(t *testing.T) {
 			w.Write([]byte(`{
 				"code":"INTERNAL_ERROR",
 				"message":"An unexpected error occurred. Sorry for the inconvenience."
-		}`))
+			  }`))
 		}
 	}))
 	defer releasesMockServer.Close()
