@@ -129,7 +129,7 @@ func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 	var major int64
 	var status string
 	major = 0
-	status = "-"
+	status = "deprecated"
 
 	for _, release := range releases {
 		created := util.ShortDate(util.ParseDate(*release.Timestamp))
