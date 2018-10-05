@@ -3,7 +3,7 @@
 # This script creates a scoop app manifest for the Windows binary release
 # and pushes it to the repository "scoop-bucket"
 
-SCOOP_REPO=https://github.com/giantswarm/scoop-bucket.git
+SCOOP_REPO=git@github.com:giantswarm/scoop-bucket.git
 
 # Our version number
 VERSION=$(cat VERSION)
