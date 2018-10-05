@@ -13,17 +13,17 @@
 
 ## Authenticating for the AWS CLI
 
-We'll use a specific profile for the CLI called `gsctl-release`. To create this
+We'll use a specific profile for the CLI called `giantswarm`. To create this
 profile, run
 
 ```
-aws configure --profile gsctl-release
+aws configure --profile giantswarm
 ```
 
 and set the access key ID and the secret key to values matching your IAM account.
 
 Then, if you have ever made a release before, you'll likely have to clean `~/.aws/credentials`
-to remove any existing `aws_session_token` entry from the `gsctl-release` profile.
+to remove any existing `aws_session_token` entry from the `giantswarm` profile.
 
 The use of multi factor authentication (MFA) requires us to create short-lived
 credentials for AWS client. Have your MFA device and it's ARN (from the web
@@ -38,7 +38,7 @@ Next, get your current MFA token and use it like here (yes, you have to be swift
 ```bash
 ARN="arn:aws:iam::084190472784:mfa/marian@giantswarm.io"
 MFA_TOKEN=123456
-CREDENTIALS=$(aws --profile gsctl-release \
+CREDENTIALS=$(aws --profile giantswarm \
   sts get-session-token \
   --duration-seconds 20000 \
   --serial-number $ARN \
@@ -46,7 +46,7 @@ CREDENTIALS=$(aws --profile gsctl-release \
 ```
 
 Now take the output of the following command and place it in the
-credentials file `~/.aws/credentials` at the `[gsctl-release]` entry.
+credentials file `~/.aws/credentials` at the `[giantswarm]` entry.
 
 ```bash
 echo "aws_access_key_id = $(echo $CREDENTIALS | jq -r .AccessKeyId )" && \
@@ -57,7 +57,7 @@ echo "aws_access_key_id = $(echo $CREDENTIALS | jq -r .AccessKeyId )" && \
 Test your credentials like this:
 
 ```nohighlight
-aws --profile gsctl-release s3 ls s3://downloads.giantswarm.io/gsctl/
+aws --profile giantswarm s3 ls s3://downloads.giantswarm.io/gsctl/
 ```
 
 If this lists the gsctl versions released so far, this step is done.
