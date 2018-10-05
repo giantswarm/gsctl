@@ -38,11 +38,11 @@ func Test_ListReleases_Empty(t *testing.T) {
 		t.Error(err)
 	}
 
-	result, listErr := listReleases(args)
+	releases, listErr := listReleases(args)
 	if listErr != nil {
 		t.Error(listErr)
 	}
-	if len(result.releases) > 0 {
+	if len(releases) > 0 {
 		t.Error("Got releases where we expected none.")
 	}
 }
@@ -201,16 +201,16 @@ func Test_ListReleases_Nonempty(t *testing.T) {
 		t.Error(err)
 	}
 
-	result, listErr := listReleases(args)
+	releases, listErr := listReleases(args)
 	if listErr != nil {
 		t.Error(listErr)
 	}
 
-	if len(result.releases) != 2 {
-		t.Errorf("We expected 2 releases, got %d", len(result.releases))
+	if len(releases) != 2 {
+		t.Errorf("We expected 2 releases, got %d", len(releases))
 	}
 
-	if *result.releases[0].Version != "0.10.0" || *result.releases[1].Version != "0.1.0" {
+	if *(releases[1].Version) != "0.10.0" || *(releases[0].Version) != "0.1.0" {
 		t.Error("Releases returned were not in the expected order.")
 	}
 }
