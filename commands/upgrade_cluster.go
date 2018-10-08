@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"sort"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/microerror"
 )
@@ -278,29 +276,9 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	// perform API call
 	auxParams := ClientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = upgradeClusterActivityName
-	response, err := ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
+	_, err := ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
 	if err != nil {
-		return result, microerror.Mask(err)
-	}
-
-	if rawResponse.Response.StatusCode != http.StatusOK {
-		// error response with code/message body
-		genericResponse, err := client.ParseGenericResponse(rawResponse.Payload)
-		if err == nil {
-			if args.verbose {
-				fmt.Printf("\nError details:\n - Code: %s\n - Message: %s\n\n",
-					genericResponse.Code, genericResponse.Message)
-			}
-			return result, microerror.Mask(couldNotUpgradeClusterError)
-		}
-
-		// other response body format
-		if args.verbose {
-			fmt.Printf("\nError details:\n - HTTP status code: %d\n - Response body: %s\n\n",
-				rawResponse.Response.StatusCode,
-				string(rawResponse.Payload))
-		}
-		return result, microerror.Mask(couldNotUpgradeClusterError)
+		return result, microerror.Maskf(couldNotUpgradeClusterError, err.Error())
 	}
 
 	result.versionAfter = targetVersion
