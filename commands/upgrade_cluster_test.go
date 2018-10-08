@@ -131,6 +131,9 @@ func TestUpgradeCluster(t *testing.T) {
 		t.Error(err)
 	}
 
+	cmdAPIEndpoint = testArgs.apiEndpoint
+	initClient()
+
 	results, upgradeErr := upgradeCluster(testArgs)
 	if upgradeErr != nil {
 		t.Error(upgradeErr)

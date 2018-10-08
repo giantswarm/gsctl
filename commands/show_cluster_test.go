@@ -51,8 +51,7 @@ func TestShowAWSCluster(t *testing.T) {
 		t.Error(err)
 	}
 
-	details, showErr := getClusterDetails(testArgs.clusterID,
-		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
+	details, showErr := getClusterDetails(testArgs.clusterID, showClusterActivityName)
 	if showErr != nil {
 		t.Error(showErr)
 	}
@@ -96,8 +95,7 @@ func TestShowClusterNotAuthorized(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = getClusterDetails(testArgs.clusterID,
-		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
+	_, err = getClusterDetails(testArgs.clusterID, showClusterActivityName)
 
 	if err == nil {
 		t.Fatal("Expected notAuthorizedError, got nil")
@@ -141,8 +139,7 @@ func TestShowClusterNotFound(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = getClusterDetails(testArgs.clusterID,
-		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
+	_, err = getClusterDetails(testArgs.clusterID, showClusterActivityName)
 
 	if err == nil {
 		t.Fatal("Expected clusterNotFoundError, got nil")
@@ -186,8 +183,7 @@ func TestShowClusterInternalServerError(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = getClusterDetails(testArgs.clusterID,
-		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
+	_, err = getClusterDetails(testArgs.clusterID, showClusterActivityName)
 
 	if err == nil {
 		t.Fatal("Expected internalServerError, got nil")
