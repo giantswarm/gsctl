@@ -208,8 +208,9 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	if releasesErr != nil {
 		return result, microerror.Mask(releasesErr)
 	}
+
 	releaseVersions := []string{}
-	for _, r := range releasesResult.releases {
+	for _, r := range releasesResult {
 		releaseVersions = append(releaseVersions, *r.Version)
 	}
 
@@ -220,7 +221,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	}
 
 	var targetRelease models.V4ReleaseListItem
-	for _, rel := range releasesResult.releases {
+	for _, rel := range releasesResult {
 		if *rel.Version == targetVersion {
 			targetRelease = *rel
 		}
