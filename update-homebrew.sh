@@ -32,7 +32,7 @@ EOF
 
 # commit and push formula to our Homebrew tap
 cd bin-dist
-git clone https://github.com/giantswarm/homebrew-giantswarm.git
+git clone git@github.com:giantswarm/homebrew-giantswarm.git
 mv ../gsctl.rb homebrew-giantswarm/Formula/
 cd homebrew-giantswarm
 git add Formula/gsctl.rb && git commit -m "Updated gsctl to ${VERSION}" && git push origin master

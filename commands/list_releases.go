@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strings"
 
-	"github.com/coreos/go-semver/semver"
+	"github.com/Masterminds/semver"
 	"github.com/fatih/color"
+	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
@@ -57,11 +59,6 @@ func defaultListReleasesArguments() listReleasesArguments {
 	}
 }
 
-// listReleasesResult is the data structure returned by the listReleases() function.
-type listReleasesResult struct {
-	releases []*models.V4ReleaseListItem
-}
-
 func init() {
 	ListCommand.AddCommand(ListReleasesCommand)
 }
@@ -96,58 +93,125 @@ func listReleasesPreconditions(args *listReleasesArguments) error {
 // errors in case they happen
 func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 	args := defaultListReleasesArguments()
-	result, err := listReleases(args)
+	releases, err := listReleases(args)
 
-	// error output
 	if err != nil {
 		handleCommonErrors(err)
 
-		var headline = err.Error()
-
-		fmt.Println(color.RedString(headline))
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			fmt.Println(color.RedString(clientErr.ErrorMessage))
+			if clientErr.ErrorDetails != "" {
+				fmt.Println(clientErr.ErrorDetails)
+			}
+		} else {
+			fmt.Println(color.RedString("Error: %s", err.Error()))
+		}
 		os.Exit(1)
 	}
 
-	// success output
-	if len(result.releases) == 0 {
+	// success
+	if len(releases) == 0 {
 		fmt.Println(color.RedString("No releases available."))
 		fmt.Println("We cannot find any releases. Please contact the Giant Swarm support team to find out if there is a problem to be solved.")
-		os.Exit(1)
-	} else {
+	}
 
-		for _, release := range result.releases {
+	// table headers
+	output := []string{strings.Join([]string{
+		color.CyanString("VERSION"),
+		color.CyanString("STATUS"),
+		color.CyanString("CREATED"),
+		color.CyanString("KUBERNETES"),
+		color.CyanString("CONTAINERLINUX"),
+		color.CyanString("COREDNS"),
+		color.CyanString("CALICO"),
+	}, "|")}
 
-			created := util.ParseDate(*release.Timestamp)
-			active := "false"
+	var major int64
+	var status string
+	major = 0
+	status = "deprecated"
+
+	for i, release := range releases {
+		created := util.ShortDate(util.ParseDate(*release.Timestamp))
+		kubernetes_version := "n/a"
+		container_linux_version := "n/a"
+		coredns_version := "n/a"
+		calico_version := "n/a"
+
+		// As long as the status information is not specific in the API
+		// we start with deprecated, find the active one and then switch
+		// to "wip" for each major version.
+		version, err := semver.NewVersion(*release.Version)
+
+		if err == nil {
+			if version.Major() > major {
+				// Found new major release.
+				major = version.Major()
+
+				// If this is a new major version and the last release
+				// likelihood is high that this is a wip release and
+				// not deprecated.
+				if i == len(releases)-1 {
+					status = "wip"
+				} else {
+					status = "deprecated"
+				}
+			}
+
 			if release.Active {
-				active = "true"
+				status = "active"
+			} else if status == "active" {
+				status = "wip"
 			}
+		} else {
+			// release version couldn't be parsed
+			major = 0
+			status = "-"
+		}
 
-			// YAML-style output of all release details
-			fmt.Println("---")
-			fmt.Printf("%s %s\n", color.YellowString("Version:"), *release.Version)
-			fmt.Printf("%s %s\n", color.YellowString("Created:"), util.ShortDate(created))
-			fmt.Printf("%s %s\n", color.YellowString("Active:"), active)
-			fmt.Printf("%s\n", color.YellowString("Components:"))
-
-			for _, component := range release.Components {
-				fmt.Printf("  %s %s\n", color.YellowString(*component.Name+":"), *component.Version)
+		for _, component := range release.Components {
+			if *component.Name == "kubernetes" {
+				kubernetes_version = *component.Version
 			}
-
-			fmt.Printf("%s\n", color.YellowString("Changelog:"))
-
-			for _, change := range release.Changelog {
-				fmt.Printf("  %s %s\n", color.YellowString(change.Component+":"), change.Description)
+			if *component.Name == "containerlinux" {
+				container_linux_version = *component.Version
 			}
+			if *component.Name == "coredns" {
+				coredns_version = *component.Version
+			}
+			if *component.Name == "calico" {
+				calico_version = *component.Version
+			}
+		}
 
+		if status == "active" {
+			output = append(output, strings.Join([]string{
+				color.YellowString(*release.Version),
+				color.YellowString(status),
+				color.YellowString(created),
+				color.YellowString(kubernetes_version),
+				color.YellowString(container_linux_version),
+				color.YellowString(coredns_version),
+				color.YellowString(calico_version),
+			}, "|"))
+		} else {
+			output = append(output, strings.Join([]string{
+				*release.Version,
+				status,
+				created,
+				kubernetes_version,
+				container_linux_version,
+				coredns_version,
+				calico_version,
+			}, "|"))
 		}
 	}
+
+	fmt.Println(columnize.SimpleFormat(output))
 }
 
 // listReleases fetches releases and returns them as a structured result.
-func listReleases(args listReleasesArguments) (listReleasesResult, error) {
-	result := listReleasesResult{}
-
+func listReleases(args listReleasesArguments) ([]*models.V4ReleaseListItem, error) {
 	auxParams := ClientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = listReleasesActivityName
 
@@ -156,43 +220,28 @@ func listReleases(args listReleasesArguments) (listReleasesResult, error) {
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode >= http.StatusInternalServerError {
-				return result, microerror.Maskf(internalServerError, err.Error())
+				return nil, microerror.Maskf(internalServerError, err.Error())
 			} else if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-				return result, microerror.Mask(notAuthorizedError)
+				return nil, microerror.Mask(notAuthorizedError)
 			}
 		}
 
-		return result, microerror.Mask(err)
+		return nil, microerror.Mask(err)
 	}
 
-	// success
+	// sort releases by version (ascending)
+	sort.Slice(response.Payload[:], func(i, j int) bool {
+		vi, err := semver.NewVersion(*response.Payload[i].Version)
+		if err != nil {
+			return false
+		}
+		vj, err := semver.NewVersion(*response.Payload[j].Version)
+		if err != nil {
+			return true
+		}
 
-	// sort releases by version (descending)
-	if len(response.Payload) > 1 {
-		sort.Slice(response.Payload[:], func(i, j int) bool {
-			vi := semver.New(*response.Payload[i].Version)
-			vj := semver.New(*response.Payload[j].Version)
-			return vi.LessThan(*vj)
-		})
-	}
+		return vj.GreaterThan(vi)
+	})
 
-	// sort changelog and components by component name
-	for n := range response.Payload {
-		sort.Slice(response.Payload[n].Components[:], func(i, j int) bool {
-			if *response.Payload[n].Components[i].Name == "kubernetes" {
-				return true
-			}
-			return *response.Payload[n].Components[i].Name < *response.Payload[n].Components[j].Name
-		})
-		sort.Slice(response.Payload[n].Changelog[:], func(i, j int) bool {
-			if response.Payload[n].Changelog[i].Component == "kubernetes" {
-				return true
-			}
-			return response.Payload[n].Changelog[i].Component < response.Payload[n].Changelog[j].Component
-		})
-	}
-
-	result.releases = response.Payload
-
-	return result, nil
+	return response.Payload, nil
 }

@@ -101,6 +101,26 @@ func IsClusterNotFoundError(err error) bool {
 	return microerror.Cause(err) == clusterNotFoundError
 }
 
+// releaseVersionMissingError means the required release version argument is missing
+var releaseVersionMissingError = &microerror.Error{
+	Kind: "releaseVersionMissingError",
+}
+
+// IsReleaseVersionMissingError asserts releaseVersionMissingError.
+func IsReleaseVersionMissingError(err error) bool {
+	return microerror.Cause(err) == releaseVersionMissingError
+}
+
+// releaseNotFoundError means that a given release does not exist.
+var releaseNotFoundError = &microerror.Error{
+	Kind: "releaseNotFoundError",
+}
+
+// IsReleaseNotFoundError asserts releaseNotFoundError.
+func IsReleaseNotFoundError(err error) bool {
+	return microerror.Cause(err) == releaseNotFoundError
+}
+
 // internalServerError should only be used in case of server communication
 // being responded to with a response status >= 500.
 // See also: unknownError

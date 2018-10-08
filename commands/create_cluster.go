@@ -125,8 +125,6 @@ Examples:
 	cmdInputYAMLFile string
 	// cluster name set via flag on execution
 	cmdClusterName string
-	// Kubernetes version number required via flag on execution (deprecated)
-	cmdKubernetesVersion string
 	// owner organization of the cluster as set via flag on execution
 	cmdOwner string
 	// number of workers required via flag on execution
@@ -142,7 +140,6 @@ Examples:
 func init() {
 	CreateClusterCommand.Flags().StringVarP(&cmdInputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file")
 	CreateClusterCommand.Flags().StringVarP(&cmdClusterName, "name", "n", "", "Cluster name")
-	CreateClusterCommand.Flags().StringVarP(&cmdKubernetesVersion, "kubernetes-version", "", "", "Kubernetes version of the cluster")
 	CreateClusterCommand.Flags().StringVarP(&cmdOwner, "owner", "o", "", "Organization to own the cluster")
 	CreateClusterCommand.Flags().StringVarP(&cmdRelease, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
 	CreateClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "", 0, "Number of worker nodes. Can't be used with -f|--file.")

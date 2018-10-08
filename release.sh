@@ -8,7 +8,7 @@ VERSION=$(cat ./VERSION)
 
 # test if this version is already released
 echo "Checking if this release already exists"
-aws --profile gsctl-release s3 ls s3://downloads.giantswarm.io/${PROJECT}/ \
+aws --profile giantswarm s3 ls s3://downloads.giantswarm.io/${PROJECT}/ \
   | grep ${VERSION} \
   && echo "Error: A release for this version already exists in S3" \
   && exit 1
@@ -51,9 +51,9 @@ cd ..
 
 
 echo "Uploading release to S3 bucket downloads.giantswarm.io"
-aws --profile gsctl-release s3 cp bin-dist s3://downloads.giantswarm.io/${PROJECT}/${VERSION}/ --recursive --exclude="*" --include="*.tar.gz" --acl=public-read
-aws --profile gsctl-release s3 cp bin-dist s3://downloads.giantswarm.io/${PROJECT}/${VERSION}/ --recursive --exclude="*" --include="*.zip" --acl=public-read
-aws --profile gsctl-release s3 cp VERSION s3://downloads.giantswarm.io/${PROJECT}/VERSION --acl=public-read
+aws --profile giantswarm s3 cp bin-dist s3://downloads.giantswarm.io/${PROJECT}/${VERSION}/ --recursive --exclude="*" --include="*.tar.gz" --acl=public-read
+aws --profile giantswarm s3 cp bin-dist s3://downloads.giantswarm.io/${PROJECT}/${VERSION}/ --recursive --exclude="*" --include="*.zip" --acl=public-read
+aws --profile giantswarm s3 cp VERSION s3://downloads.giantswarm.io/${PROJECT}/VERSION --acl=public-read
 
 echo "Done. The release is now prepared, but not yet published."
 echo "You can now edit your release description here:"

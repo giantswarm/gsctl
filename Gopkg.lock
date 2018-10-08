@@ -8,6 +8,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  name = "github.com/Masterminds/semver"
+  packages = ["."]
+  revision = "c7af12943936e8c39859482e61f0574c2fd7fc75"
+  version = "v1.4.2"
+
+[[projects]]
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
   revision = "0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4"
@@ -69,7 +75,7 @@
     "client/users",
     "models"
   ]
-  revision = "fa3388260426ae8598b25f9432d2c40e82d70c53"
+  revision = "4d23930c3bde56ef7890bdad6c19960a16f8eb97"
 
 [[projects]]
   branch = "master"
@@ -302,6 +308,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b2ad617d28c855d744ddfbaf55cec3b908c647fb00683232c365b88488debd2f"
+  inputs-digest = "4d81f2d77c27aeacaa5fb7b9662f47def847bc207ac11af6aa0bc4088da49271"
   solver-name = "gps-cdcl"
   solver-version = 1
