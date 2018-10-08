@@ -25,6 +25,9 @@ type IDToken struct {
 // struct with only the email claim in it. Since that is all that gsctl cares about
 // for now.
 func ParseIDToken(tokenString string) (token *IDToken, err error) {
+	// Wait a bit of the tokens IAT is ahead of current time.
+	waitIfNeeded(tokenString)
+
 	// Parse takes the token string and a function for looking up the key. The latter is especially
 	// useful if you use multiple keys for your application.  The standard is to use 'kid' in the
 	// head of the token to identify which key to use, but the parsed token (head and claims) is provided
@@ -88,6 +91,40 @@ func ParseIDToken(tokenString string) (token *IDToken, err error) {
 	}
 
 	return resultToken, nil
+}
+
+func waitIfNeeded(tokenString string) error {
+	parser := jwt.Parser{}
+	claims := jwt.MapClaims{}
+	_, _, err := parser.ParseUnverified(tokenString, claims)
+	if err != nil {
+		return microerror.Mask(tokenIssuedAtError)
+	}
+
+	iatClaim, ok := claims["iat"]
+	if !ok {
+		return microerror.Mask(tokenIssuedAtError)
+	}
+
+	iatFloat, ok := iatClaim.(float64)
+	if !ok {
+		return microerror.Mask(tokenIssuedAtError)
+	}
+
+	iat := int64(iatFloat)
+	now := time.Now().Unix()
+	difference := iat - now
+
+	if difference > 0 {
+		fmt.Printf("\nYour computer's clock appears to be a bit behind.\n")
+		fmt.Printf("Issued at:  %d\n", iat)
+		fmt.Printf("Now:        %d\n", now)
+		fmt.Printf("Difference: %d seconds\n\n", difference)
+		fmt.Printf("Waiting...\n\n")
+		time.Sleep(time.Duration(difference) * time.Second)
+	}
+
+	return nil
 }
 
 // Jwks holds JSON web keys.

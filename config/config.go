@@ -398,6 +398,7 @@ func (c *configStruct) AuthHeaderGetter(endpoint string, overridingToken string)
 // whether or not the access token is valid. Does not check if the signature is valid.
 // Only checkes time based claims.
 func isTokenValid(token string) (expired bool) {
+	return false
 	// Parse token
 	claims := jwt.MapClaims{}
 
