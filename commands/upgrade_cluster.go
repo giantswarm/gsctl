@@ -17,8 +17,6 @@ import (
 const (
 	// upgradeClusterActivityName assigns API requests to named activities
 	upgradeClusterActivityName = "upgrade-cluster"
-
-	upgradeDocsURL = "https://docs.giantswarm.io/reference/cluster-upgrades/"
 )
 
 var (
@@ -40,12 +38,8 @@ To find out what is the subsequent version, list all available versions using
 
     gsctl list releases
 
-Make sure to know our in-depth article on cluster upgrades before you perform
-a first upgrade.
-
-    %s
-
-`, upgradeDocsURL),
+When in doubt, please contact the Giant Swarm support team before upgrading.
+`),
 
 		// We use PreRun for general input validation, authentication etc.
 		// If something is bad/missing, that function has to exit with a
