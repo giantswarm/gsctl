@@ -246,10 +246,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 
 	fmt.Println("")
 	fmt.Println("NOTE: Upgrading may impact your running workloads and will make the cluster's")
-	fmt.Println("Kubernetes API unavailable temporarily. Before upgrading, please acknowledge the")
-	fmt.Println("details described in")
-	fmt.Println("")
-	fmt.Printf("    %s\n", upgradeDocsURL)
+	fmt.Println("Kubernetes API unavailable temporarily.")
 	fmt.Println("")
 
 	// Confirmation
