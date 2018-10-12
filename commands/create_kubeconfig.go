@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
 	"runtime"
 
 	"github.com/fatih/color"
@@ -242,6 +243,9 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		} else if runtime.GOOS == "windows" {
 			subtext = fmt.Sprintf("Please visit %s to download a recent kubectl binary.", kubectlWindowsInstallURL)
 		}
+	case IsInvalidCNPrefixError(err):
+		headline = "Bad characters in CN prefix (--cn-prefix)"
+		subtext = "Please use the characters a-z, 0-9, or - only."
 	default:
 		headline = err.Error()
 	}
@@ -266,6 +270,14 @@ func verifyCreateKubeconfigPreconditions(args createKubeconfigArguments, cmdLine
 	}
 	if args.clusterID == "" {
 		return microerror.Mask(clusterIDMissingError)
+	}
+
+	// validate CN prefix character set
+	if args.cnPrefix != "" {
+		cnPrefixRE := regexp.MustCompile("^[a-z0-9][a-z0-9-]*[a-z0-9]$")
+		if !cnPrefixRE.MatchString(args.cnPrefix) {
+			return microerror.Mask(invalidCNPrefixError)
+		}
 	}
 
 	kubectlOkay := util.CheckKubectl()
