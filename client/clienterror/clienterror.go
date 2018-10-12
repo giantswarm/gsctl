@@ -313,6 +313,16 @@ func New(err error) *APIError {
 			HTTPMethod:    urlError.Op,
 		}
 
+		// Timeout / context deadline exceeded
+		if urlError.Err == context.DeadlineExceeded {
+			ae.IsTimeout = true
+			ae.IsTemporary = true
+			ae.ErrorMessage = "Request timed out"
+			ae.ErrorDetails = "Something took longer than expected. Please try again."
+
+			return ae
+		}
+
 		// is net.OpError
 		if netOpError, netOpErrorOK := urlError.Err.(*net.OpError); netOpErrorOK {
 			ae.OriginalError = netOpError
