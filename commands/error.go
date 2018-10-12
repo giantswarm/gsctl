@@ -437,6 +437,16 @@ func IsUnspecifiedAPIError(err error) bool {
 	return microerror.Cause(err) == unspecifiedAPIError
 }
 
+// invalidCNPrefixError means the user has used bad characters in the CN prefix argument
+var invalidCNPrefixError = &microerror.Error{
+	Kind: "invalidCNPrefixError",
+}
+
+// IsInvalidCNPrefixError asserts invalidCNPrefixError
+func IsInvalidCNPrefixError(err error) bool {
+	return microerror.Cause(err) == invalidCNPrefixError
+}
+
 // invalidDurationError means that a user-provided duration string could not be parsed
 var invalidDurationError = &microerror.Error{
 	Kind: "invalidDurationError",
