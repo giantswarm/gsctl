@@ -459,6 +459,15 @@ var couldNotUpgradeClusterError = &microerror.Error{
 // IsCouldNotUpgradeClusterError asserts couldNotUpgradeClusterError
 func IsCouldNotUpgradeClusterError(err error) bool {
 	return microerror.Cause(err) == couldNotUpgradeClusterError
+
+// invalidCNPrefixError means the user has used bad characters in the CN prefix argument
+var invalidCNPrefixError = &microerror.Error{
+	Kind: "invalidCNPrefixError",
+}
+
+// IsInvalidCNPrefixError asserts invalidCNPrefixError
+func IsInvalidCNPrefixError(err error) bool {
+	return microerror.Cause(err) == invalidCNPrefixError
 }
 
 // invalidDurationError means that a user-provided duration string could not be parsed

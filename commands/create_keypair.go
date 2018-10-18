@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen/models"
@@ -132,6 +133,9 @@ func createKeyPairPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	switch {
 	case err.Error() == "":
 		return
+	case IsInvalidCNPrefixError(err):
+		headline = "Bad characters in CN prefix (--cn-prefix)"
+		subtext = "Please use the characters a-z, 0-9, or - only."
 	default:
 		headline = err.Error()
 	}
@@ -153,6 +157,14 @@ func verifyCreateKeypairPreconditions(args createKeypairArguments) error {
 	}
 	if args.clusterID == "" {
 		return microerror.Mask(clusterIDMissingError)
+	}
+
+	// validate CN prefix character set
+	if args.commonNamePrefix != "" {
+		cnPrefixRE := regexp.MustCompile("^[a-z0-9][a-z0-9-]*[a-z0-9]$")
+		if !cnPrefixRE.MatchString(args.commonNamePrefix) {
+			return microerror.Mask(invalidCNPrefixError)
+		}
 	}
 
 	return nil
