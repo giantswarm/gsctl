@@ -133,7 +133,7 @@ func getOrgCredentials(orgName, credentialID, activityName string) (*models.V4Ge
 			case http.StatusUnauthorized:
 				return nil, microerror.Mask(notAuthorizedError)
 			case http.StatusNotFound:
-				return nil, microerror.Mask(clusterNotFoundError)
+				return nil, microerror.Mask(credentialNotFoundError)
 			case http.StatusInternalServerError:
 				return nil, microerror.Mask(internalServerError)
 			}
@@ -193,11 +193,18 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	if err != nil {
+		handleCommonErrors(err)
+
 		var headline = ""
 		var subtext = ""
 
-		// TODO: handle common and specific errors
 		switch {
+		case IsClusterNotFoundError(err):
+			headline = "Cluster not found"
+			subtext = "The cluster with this ID could not be found. Please use 'gsctl list clusters' to list all available clusters."
+		case IsCredentialNotFoundError(err):
+			headline = "Credential not found"
+			subtext = "Credentials with the given ID could not be found."
 		case err.Error() == "":
 			return
 		default:

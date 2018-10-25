@@ -242,6 +242,16 @@ func IsOrganizationNotSpecifiedError(err error) bool {
 	return microerror.Cause(err) == organizationNotSpecifiedError
 }
 
+// credentialNotFoundError means that the specified credential could not be found
+var credentialNotFoundError = &microerror.Error{
+	Kind: "credentialNotFoundError",
+}
+
+// IsCredentialNotFoundError asserts credentialNotFoundError
+func IsCredentialNotFoundError(err error) bool {
+	return microerror.Cause(err) == credentialNotFoundError
+}
+
 // yamlFileNotReadableError means a YAML file was not readable
 var yamlFileNotReadableError = &microerror.Error{
 	Kind: "yamlFileNotReadableError",

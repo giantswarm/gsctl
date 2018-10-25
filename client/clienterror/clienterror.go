@@ -272,6 +272,15 @@ func New(err error) *APIError {
 		}
 	}
 
+	// get credential
+	if myerr, ok := err.(*organizations.GetCredentialDefault); ok {
+		return &APIError{
+			ErrorMessage:   myerr.Error(),
+			HTTPStatusCode: myerr.Code(),
+			OriginalError:  myerr,
+		}
+	}
+
 	// HTTP level error cases
 	if runtimeAPIError, ok := err.(*runtime.APIError); ok {
 		ae := &APIError{
