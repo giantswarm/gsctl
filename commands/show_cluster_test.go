@@ -244,14 +244,41 @@ func TestShowAWSBYOCCluster(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{
 				"id": "cluster-id",
-				"name": "BYOC cluster",
-				"api_endpoint": "https://api.foo.bar",
-				"create_date": "2018-01-01T12:00:00.000000Z",
+				"create_date": "2018-10-25T18:29:34Z",
+				"api_endpoint": "https://api.nh9t2.g8s.fra-1.giantswarm.io",
 				"owner": "acmeorg",
-				"release_version": "1.0.0",
+				"name": "test-cluster",
+				"release_version": "4.2.0",
 				"credential_id": "credential-id",
 				"workers": [
-					{"aws": {"instance_type": "m4.large"}, "memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}}
+					{
+						"cpu": {
+							"cores": 2
+						},
+						"memory": {
+							"size_gb": 7.5
+						},
+						"storage": {
+							"size_gb": 32
+						},
+						"aws": {
+							"instance_type": "m3.large"
+						}
+					},
+					{
+						"cpu": {
+							"cores": 2
+						},
+						"memory": {
+							"size_gb": 7.5
+						},
+						"storage": {
+							"size_gb": 32
+						},
+						"aws": {
+							"instance_type": "m3.large"
+						}
+					}
 				]
 			}`))
 		} else if r.Method == "GET" && r.URL.Path == "/v4/organizations/acmeorg/credentials/credential-id/" {
@@ -301,8 +328,11 @@ func TestShowAWSBYOCCluster(t *testing.T) {
 	}
 
 	credentialDetails, err := getOrgCredentials(details.Owner, details.CredentialID, showClusterActivityName)
+	if err != nil {
+		t.Error(err)
+	}
 
-	if credentialDetails.Aws.Roles.Awsoperator == "" {
+	if credentialDetails != nil && credentialDetails.Aws != nil && credentialDetails.Aws.Roles != nil && credentialDetails.Aws.Roles.Awsoperator == "" {
 		t.Error("AWS operator role ARN is empty, should not be.")
 	}
 
