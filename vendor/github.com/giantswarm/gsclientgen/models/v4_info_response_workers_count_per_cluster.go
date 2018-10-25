@@ -18,7 +18,7 @@ type V4InfoResponseWorkersCountPerCluster struct {
 	// Default number of workers in a new cluster will have, if not specifiec otherwise
 	Default float64 `json:"default,omitempty"`
 
-	// Maximum number of worker a cluster can have
+	// Maximum number of worker a cluster can have. Might be null when unknown.
 	Max float64 `json:"max,omitempty"`
 }
 

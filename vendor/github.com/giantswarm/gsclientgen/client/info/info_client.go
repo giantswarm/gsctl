@@ -44,7 +44,7 @@ prevent creating clusters with more worker nodes than possible.
   },
   "workers": {
     "count_per_cluster": {
-      "max": 20,
+      "max": null,
       "default": 3
     },
     "instance_type": {

@@ -22,6 +22,7 @@ func TestShowAWSCluster(t *testing.T) {
 				"create_date": "2017-11-20T12:00:00.000000Z",
 				"owner": "acmeorg",
 				"release_version": "0.3.0",
+				"credential_id": "",
 				"workers": [
 					{"aws": {"instance_type": "m3.large"}, "memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
 					{"aws": {"instance_type": "m3.large"}, "memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},

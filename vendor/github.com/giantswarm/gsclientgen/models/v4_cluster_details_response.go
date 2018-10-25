@@ -24,6 +24,11 @@ type V4ClusterDetailsResponse struct {
 	// Date/time of cluster creation
 	CreateDate string `json:"create_date,omitempty"`
 
+	// ID of the credentials used to operate the cluster (only on AWS and
+	// Azure). See [Set credentials](#operation/addCredentials) for details.
+	//
+	CredentialID string `json:"credential_id,omitempty"`
+
 	// Unique cluster identifier
 	ID string `json:"id,omitempty"`
 
