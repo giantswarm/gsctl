@@ -245,7 +245,7 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		}
 	case IsInvalidCNPrefixError(err):
 		headline = "Bad characters in CN prefix (--cn-prefix)"
-		subtext = "Please use the characters a-z, 0-9, or - only."
+		subtext = "Please use these characters only: a-z A-Z 0-9 . @ -"
 	default:
 		headline = err.Error()
 	}
@@ -274,7 +274,7 @@ func verifyCreateKubeconfigPreconditions(args createKubeconfigArguments, cmdLine
 
 	// validate CN prefix character set
 	if args.cnPrefix != "" {
-		cnPrefixRE := regexp.MustCompile("^[a-z0-9][a-z0-9-]*[a-z0-9]$")
+		cnPrefixRE := regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9@\\.-]*[a-zA-Z0-9]$")
 		if !cnPrefixRE.MatchString(args.cnPrefix) {
 			return microerror.Mask(invalidCNPrefixError)
 		}

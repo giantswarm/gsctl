@@ -135,7 +135,7 @@ func createKeyPairPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		return
 	case IsInvalidCNPrefixError(err):
 		headline = "Bad characters in CN prefix (--cn-prefix)"
-		subtext = "Please use the characters a-z, 0-9, or - only."
+		subtext = "Please use these characters only: a-z A-Z 0-9 . @ -"
 	default:
 		headline = err.Error()
 	}
@@ -161,7 +161,7 @@ func verifyCreateKeypairPreconditions(args createKeypairArguments) error {
 
 	// validate CN prefix character set
 	if args.commonNamePrefix != "" {
-		cnPrefixRE := regexp.MustCompile("^[a-z0-9][a-z0-9-]*[a-z0-9]$")
+		cnPrefixRE := regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9@\\.-]*[a-zA-Z0-9]$")
 		if !cnPrefixRE.MatchString(args.commonNamePrefix) {
 			return microerror.Mask(invalidCNPrefixError)
 		}
