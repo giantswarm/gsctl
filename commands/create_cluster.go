@@ -133,8 +133,6 @@ Examples:
 	cmdWorkerAwsEc2InstanceType string
 	// Azure VmSize to use, provided as a command line flag
 	cmdWorkerAzureVMSize string
-	// cmdRelease sets a release to use, provided as a command line flag
-	cmdRelease string
 	// dry run command line flag
 	cmdDryRun bool
 )

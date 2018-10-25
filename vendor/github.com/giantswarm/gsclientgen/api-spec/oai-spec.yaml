@@ -1,0 +1,813 @@
+---
+swagger: "2.0"
+host: api.giantswarm.io
+schemes:
+  - https
+info:
+  title: Giant Swarm legacy API
+  version: "legacy"
+  description: |
+    Caution: This is an incomplete description of some legacy API functions.
+consumes:
+  - application/json
+produces:
+  - application/json
+
+paths:
+  /v1/user/{email}/login:
+    post:
+      operationId: userLogin
+      summary: Log in as a user
+      description: |
+        This method takes email and password of a user and returns a new session
+        token. The token can be found in the `data.Id` field of the response
+        object.
+      externalDocs:
+        description: More information
+        url: "http://firstgen-docs.giantswarm.io/reference/api/v1\
+          /#password-authentication"
+      parameters:
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+        - name: email
+          in: path
+          type: string
+          required: true
+          description: User email address
+        - name: payload
+          in: body
+          required: true
+          description: base64 encoded password
+          schema:
+            $ref: '#/definitions/LoginBodyModel'
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/LoginResponseModel'
+        "400":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+        default:
+          description: Unknown error
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+  /v1/token/logout:
+    post:
+      operationId: userLogout
+      summary: Expire the currently used auth token
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+      produces:
+        - application/json
+        - text/plain
+      responses:
+        "200":
+          description: |
+            Success. A `response_code=10007` indicates that the token has been
+            deleted.
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/EmptyObjectModel'
+        default:
+          description: Unknown error
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+
+  /v4/organizations/:
+    get:
+      operationId: getUserOrganizations
+      summary: Get organizations for user
+      description: |
+        This operation allows to fetch a list of organizations the user is a
+        member of. In the case of an admin user, the result includes all
+        existing organizations.
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+      responses:
+        "200":
+          description: Success
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/V4OrganizationListItem"
+          examples:
+            application/json:
+              [
+                {"id": "acme"},
+                {"id": "giantswarm"},
+                {"id": "testorg"}
+              ]
+        default:
+          description: Unknown error
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+
+  /v4/clusters/{cluster_id}/key-pairs/:
+    get:
+      operationId: getKeyPairs
+      summary: Get key-pairs for cluster
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+        - name: cluster_id
+          in: path
+          required: true
+          type: string
+      responses:
+        "200":
+          description: Success
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/KeyPairModel'
+        default:
+          description: Unknown error
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+    post:
+      operationId: addKeyPair
+      summary: Add key-pair for cluster
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+        - name: cluster_id
+          in: path
+          required: true
+          type: string
+          description: ID of the cluster to create the key-pair for
+        - name: body
+          in: body
+          required: true
+          description: Description and expiry time for the new key-pair
+          schema:
+            $ref: '#/definitions/V4AddKeyPairBody'
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/V4AddKeyPairResponse'
+        default:
+          description: Unknown error
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+
+  /v4/clusters/:
+    get:
+      operationId: getClusters
+      summary: Get clusters
+      description: |
+        This operation fetches a list of clusters.
+        The result depends on the permissions of the user.
+        A normal user will get all the clusters the user has access
+        to, via organization membership.
+
+        A user with admin permission will receive a list of all existing
+        clusters.
+
+        The result array items are sparse representations of the cluster
+        objects.
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+      responses:
+        "200":
+          description: Success
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/V4ClusterListItem"
+          examples:
+            application/json:
+              [
+                {
+                  "id": "g8s3o",
+                  "create_date": "2017-06-08T12:31:47.215Z",
+                  "name": "Staging Cluster",
+                  "owner": "acme"
+                },
+                {
+                  "id": "3dkr6",
+                  "create_date": "2017-05-22T13:58:02.024Z",
+                  "name": "Test Cluster",
+                  "owner": "testorg"
+                }
+              ]
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/GenericResponseModel'
+    post:
+      operationId: addCluster
+      summary: Create cluster
+      description: >-
+        This operation is used to create a new Kubernetes cluster for an
+        organization. The desired configuration can be specified using the
+        __cluster definition format__ (see
+        [external documentation](https://github.com/giantswarm/api-spec/blob/
+        master/details/CLUSTER_DEFINITION.md) for details).
+
+        The cluster definition format allows to set a number of optional
+        configuration details, like memory size and number of CPU cores.
+        However, one attribute is __mandatory__ upon creation: The `owner`
+        attribute must carry the name of the organization the cluster will
+        belong to. Note that the acting user must be a member of that
+        organization in order to create a cluster.
+
+        It is *recommended* to also specify the `name` attribute to give the
+        cluster a friendly name, like e. g. "Development Cluster".
+
+        Additional definition attributes can be used. Where attributes are
+        ommitted, default configuration values will be applied. For example, if
+        no `kubernetes_version` is specified, the latest version tested and
+        provided by Giant Swarm is used.
+
+        The `workers` attribute, if present, must contain an array of node
+        definition objects. The number of objects given determines the number
+        of workers created. For example, requesting three worker nodes with
+        default configuration can be achieved by submitting an array of three
+        empty objects:
+
+        ```"workers": [{}, {}, {}]```
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+        - name: body
+          in: body
+          required: true
+          description: New cluster definition
+          schema:
+            $ref: '#/definitions/V4AddClusterRequest'
+      responses:
+        "201":
+          description: Cluster created
+          headers:
+            Location:
+              type: string
+              description: |
+                URI to obtain details on the new cluster using the
+                [getCluster](#operation/getCluster) operation
+          schema:
+            $ref: '#/definitions/V4GenericResponse'
+          examples:
+            application/json:
+              {
+                "code": "RESOURCE_CREATED",
+                "message": "A new cluster has been created with ID 'wqtlq'"
+              }
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/V4GenericResponse'
+
+
+  /v4/clusters/{cluster_id}/:
+    get:
+      operationId: getCluster
+      summary: Get cluster details
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+        - $ref: '#/parameters/RequiredClusterIdPathParameter'
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/V4ClusterDetailsModel'
+        default:
+          description: Unknown error
+          schema:
+            $ref: '#/definitions/V4GenericResponse'
+    patch:
+      operationId: modifyCluster
+      summary: Modify cluster
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+        - $ref: '#/parameters/RequiredClusterIdPathParameter'
+        - name: body
+          in: body
+          required: true
+          description: Modified cluster definition (JSON merge-patch)
+          schema:
+            $ref: '#/definitions/V4ModifyClusterRequest'
+      responses:
+        "200":
+          description: Cluster modified
+          schema:
+            $ref: '#/definitions/V4ClusterDetailsModel'
+        default:
+          description: error
+          schema:
+            $ref: '#/definitions/V4GenericResponse'
+    delete:
+      operationId: deleteCluster
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+        - $ref: '#/parameters/RequiredClusterIdPathParameter'
+      summary: Delete cluster
+      description: |
+        This operation allows to delete a cluster.
+
+        __Caution:__ Deleting a cluster causes the termination of all workloads
+        running on the cluster. Data stored on the worker nodes will be lost.
+        There is no way to undo this operation.
+
+        The response is sent as soon as the request is validated. At that point,
+        workloads might still be running on the cluster and may be accessible
+        for a little wile, until the cluster is actually deleted.
+      responses:
+        "202":
+          description: Deleting cluster
+          schema:
+            $ref: '#/definitions/V4GenericResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/V4GenericResponse'
+
+
+  /v4/releases/:
+    get:
+      operationId: getReleases
+      summary: Get releases
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+      responses:
+        "200":
+          description: Releases
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/V4ReleaseListItem'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/V4GenericResponse'
+
+  /v4/info/:
+    get:
+      operationId: getInfo
+      summary: Get information on the installation
+      description: See https://docs.giantswarm.io/api/#operation/getInfo
+      parameters:
+        - $ref: '#/parameters/RequiredAuthorizationHeader'
+        - $ref: '#/parameters/XRequestIDHeader'
+        - $ref: '#/parameters/XGiantSwarmActivityHeader'
+        - $ref: '#/parameters/XGiantSwarmCmdLineHeader'
+      responses:
+        "200":
+          description: Information
+          schema:
+            $ref: "#/definitions/V4InfoResponse"
+        default:
+          description: Error
+          schema:
+            $ref: "#/definitions/V4GenericResponse"
+
+definitions:
+
+  GenericResponseModel:
+    type: object
+    required: ["status_code", "status_text"]
+    properties:
+      status_code:
+        type: integer
+      status_text:
+        type: string
+
+  V4GenericResponse:
+    type: object
+    required: ["code", "message"]
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+
+  LoginResponseModel:
+    type: object
+    required: ["data", "status_code", "status_text"]
+    properties:
+      data:
+        type: object
+        required: ["Id"]
+        properties:
+          Id:
+            type: string
+            description: New session token
+      status_code:
+        type: integer
+      status_text:
+        type: string
+
+  UserOrganizationsResponseModel:
+    type: object
+    required: ["data", "status_code", "status_text"]
+    properties:
+      data:
+        type: array
+        items:
+          type: string
+      status_code:
+        type: integer
+      status_text:
+        type: string
+
+  V4ClusterDetailsModel:
+    type: object
+    required: ["id"]
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      api_endpoint:
+        type: string
+      create_date:
+        type: string
+      owner:
+        type: string
+      kubernetes_version:
+        type: string
+      release_version:
+        type: string
+      workers:
+        type: array
+        items:
+          $ref: '#/definitions/V4NodeDefinitionResponse'
+
+  KeyPairModel:
+    type: object
+    required: ["id", "description", "ttl_hours"]
+    properties:
+      id:
+        type: string
+      description:
+        type: string
+      ttl_hours:
+        type: integer
+      create_date:
+        type: string
+      certificate_authority_data:
+        type: string
+      client_key_data:
+        type: string
+      client_certificate_data:
+        type: string
+      common_name:
+        type: string
+      certificate_organizations:
+        type: string
+
+  V4AddKeyPairBody:
+    type: object
+    required: ["description"]
+    properties:
+      description:
+        type: string
+      ttl_hours:
+        type: integer
+        format: int32
+      cn_prefix:
+        type: string
+      certificate_organizations:
+        type: string
+
+  V4AddKeyPairResponse:
+    type: object
+    required: ["id"]
+    properties:
+      id:
+        type: string
+      description:
+        type: string
+      ttl_hours:
+        type: integer
+      create_date:
+        type: string
+      certificate_authority_data:
+        type: string
+      client_key_data:
+        type: string
+      client_certificate_data:
+        type: string
+
+  LoginBodyModel:
+    type: object
+    required: ["password"]
+    properties:
+      password:
+        type: string
+        description: base64 encoded password
+
+  # Request to create a new cluster
+  V4AddClusterRequest:
+    type: object
+    required:
+      - owner
+    description: Request model for creating a new cluster
+    properties:
+      owner:
+        type: string
+        description: Name of the organization owning the cluster
+      name:
+        type: string
+        description: Cluster name
+      release_version:
+        type: string
+        description: Release version number
+      kubernetes_version:
+        type: string
+        description: Kubernetes version number
+      workers:
+        type: array
+        items:
+          $ref: '#/definitions/V4NodeDefinition'
+
+  # Request to modify a cluster
+  V4ModifyClusterRequest:
+    type: object
+    properties:
+      workers:
+        type: array
+        items:
+          $ref: '#/definitions/V4NodeDefinition'
+      owner:
+        type: string
+      name:
+        type: string
+      release_version:
+        type: string
+
+  # Definition of a cluster node
+  V4NodeDefinition:
+    type: object
+    properties:
+      memory:
+        type: object
+        properties:
+          size_gb:
+            type: number
+            description: RAM size in GB
+      storage:
+        type: object
+        properties:
+          size_gb:
+            type: number
+            description: Node storage size in GB
+      cpu:
+        type: object
+        properties:
+          cores:
+            type: integer
+            description: Number of CPU cores
+      labels:
+        type: object
+        additionalProperties: true
+      aws:
+        type: object
+        properties:
+          instance_type:
+            type: string
+
+  # Definition of a cluster node
+  # only for the purpose of fetching cluster details
+  #
+  V4NodeDefinitionResponse:
+    type: object
+    properties:
+      aws:
+        type: object
+        properties:
+          instance_type:
+            type: string
+      memory:
+        type: object
+        properties:
+          size_gb:
+            type: number
+            description: RAM size in GB
+      storage:
+        type: object
+        properties:
+          size_gb:
+            type: number
+            description: Node storage size in GB
+      cpu:
+        type: object
+        properties:
+          cores:
+            type: integer
+            description: Number of CPU cores
+      labels:
+        type: object
+        additionalProperties: true
+
+  V4OrganizationListItem:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique name/identifier of the organization
+
+  EmptyObjectModel:
+    type: object
+    properties:
+      none:
+        type: string
+
+  # A cluster array item, as return by getClusters
+  V4ClusterListItem:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique cluster identifier
+      create_date:
+        type: string
+        description: Date/time of cluster creation
+      name:
+        type: string
+        description: Cluster name
+      owner:
+        type: string
+        description: Name of the organization owning the cluster
+
+  V4ReleaseChangelogItem:
+    type: object
+    properties:
+      component:
+        type: string
+        description: |
+          If the changed item was a component, this attribute is the
+          name of the component.
+      description:
+        type: string
+        description: Human-friendly description of the change
+
+  V4ReleaseComponent:
+    type: object
+    required: ["name", "version"]
+    properties:
+      name:
+        type: string
+        description: Name of the component
+      version:
+        type: string
+        description: Version number of the component
+
+  V4ReleaseListItem:
+    type: object
+    required: ["version", "timestamp", "changelog", "components"]
+    properties:
+      version:
+        type: string
+        description: The semantic version number
+      timestamp:
+        type: string
+        description: Date and time of the release creation
+      active:
+        type: boolean
+        description: |
+          If true, the version is available for new clusters and cluster
+          upgrades. Older versions become unavailable and thus have the
+          value `false` here.
+      changelog:
+        description: |
+          Structured list of changes in this release, in comparison to the
+          previous version, with respect to the contained components.
+        type: array
+        items:
+          $ref: '#/definitions/V4ReleaseChangelogItem'
+      components:
+        description: |
+          List of components and their version contained in the release
+        type: array
+        items:
+          $ref: '#/definitions/V4ReleaseComponent'
+
+  # Info resposne
+  V4InfoResponse:
+    type: object
+    properties:
+      general:
+        type: object
+        properties:
+          installation_name:
+            type: string
+          provider:
+            type: string
+          datacenter:
+            type: string
+      workers:
+        type: object
+        properties:
+          count_per_cluster:
+            type: object
+            properties:
+              max:
+                type: number
+              default:
+                type: number
+          instance_type:
+            type: object
+            properties:
+              options:
+                type: array
+                items:
+                  type: string
+              default:
+                type: string
+          cpu_cores:
+            type: object
+            properties:
+              min:
+                type: number
+              max:
+                type: number
+              default:
+                type: number
+          ram_size_gb:
+            type: object
+            properties:
+              min:
+                type: number
+              max:
+                type: number
+              default:
+                type: number
+          storage_size_gb:
+            type: object
+            properties:
+              max:
+                type: number
+              default:
+                type: number
+
+parameters:
+  RequiredAuthorizationHeader:
+    name: Authorization
+    in: header
+    type: string
+    required: true
+    description: |
+      Header to pass an authorization token. The value has to be in the form
+      `giantswarm <token>`.
+  RequiredClusterIdPathParameter:
+    name: cluster_id
+    in: path
+    required: true
+    type: string
+    description: Cluster ID
+  XRequestIDHeader:
+    name: X-Request-ID
+    in: header
+    type: string
+    required: false
+    description: |
+      A randomly generated key that can be used to track a request throughout
+      services of Giant Swarm
+  XGiantSwarmActivityHeader:
+    name: X-Giant-Swarm-Activity
+    in: header
+    type: string
+    required: false
+    description: Name of an activity to track, like "list-clusters"
+  XGiantSwarmCmdLineHeader:
+    name: X-Giant-Swarm-CmdLine
+    in: header
+    type: string
+    required: false
+    description: |
+      If activity has been issued by a CLI, this header can contain the
+      command line

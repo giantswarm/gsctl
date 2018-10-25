@@ -93,11 +93,11 @@ func verifyShowClusterPreconditions(args showClusterArguments, cmdLineArgs []str
 }
 
 // getClusterDetails returns details for one cluster.
-func getClusterDetails(clusterID, scheme, token, endpoint string) (*models.V4ClusterDetailsResponse, error) {
+func getClusterDetails(clusterID, activityName string) (*models.V4ClusterDetailsResponse, error) {
 
 	// perform API call
 	auxParams := ClientV2.DefaultAuxiliaryParams()
-	auxParams.ActivityName = showClusterActivityName
+	auxParams.ActivityName = activityName
 
 	response, err := ClientV2.GetCluster(clusterID, auxParams)
 	if err != nil {
@@ -151,8 +151,7 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultShowClusterArguments()
 	args.clusterID = cmdLineArgs[0]
 
-	clusterDetails, err := getClusterDetails(args.clusterID, args.scheme,
-		args.authToken, args.apiEndpoint)
+	clusterDetails, err := getClusterDetails(args.clusterID, showClusterActivityName)
 
 	if err != nil {
 		var headline = ""

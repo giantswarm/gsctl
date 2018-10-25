@@ -1,6 +1,8 @@
 package commands
 
-import "github.com/giantswarm/microerror"
+import (
+	"github.com/giantswarm/microerror"
+)
 
 // Common errors and matcher functions for the "commands" package.
 
@@ -435,6 +437,28 @@ var unspecifiedAPIError = &microerror.Error{
 // IsUnspecifiedAPIError asserts unspecifiedAPIError
 func IsUnspecifiedAPIError(err error) bool {
 	return microerror.Cause(err) == unspecifiedAPIError
+}
+
+// noUpgradeAvailableError means that the user wanted to start an upgrade, but
+// there is no newer version available for the given cluster
+var noUpgradeAvailableError = &microerror.Error{
+	Kind: "noUpgradeAvailableError",
+	Desc: "no upgrade available for the current version",
+}
+
+// IsNoUpgradeAvailableError asserts noUpgradeAvailableError
+func IsNoUpgradeAvailableError(err error) bool {
+	return microerror.Cause(err) == noUpgradeAvailableError
+}
+
+var couldNotUpgradeClusterError = &microerror.Error{
+	Kind: "couldNotUpgradeClusterError",
+	Desc: "could not upgrade cluster",
+}
+
+// IsCouldNotUpgradeClusterError asserts couldNotUpgradeClusterError
+func IsCouldNotUpgradeClusterError(err error) bool {
+	return microerror.Cause(err) == couldNotUpgradeClusterError
 }
 
 // invalidCNPrefixError means the user has used bad characters in the CN prefix argument

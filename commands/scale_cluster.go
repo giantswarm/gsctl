@@ -200,8 +200,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 		return results, microerror.Mask(cannotScaleBelowMinimumWorkersError)
 	}
 
-	clusterDetails, err := getClusterDetails(args.clusterID,
-		args.scheme, args.authToken, args.apiEndpoint)
+	clusterDetails, err := getClusterDetails(args.clusterID, scaleClusterActivityName)
 	if err != nil {
 		return results, microerror.Mask(err)
 	}
