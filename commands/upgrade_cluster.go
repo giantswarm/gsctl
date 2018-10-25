@@ -17,6 +17,8 @@ import (
 const (
 	// upgradeClusterActivityName assigns API requests to named activities
 	upgradeClusterActivityName = "upgrade-cluster"
+
+	upgradeDocsURL = "https://docs.giantswarm.io/reference/cluster-upgrades/"
 )
 
 var (
@@ -27,7 +29,9 @@ var (
 		Long: fmt.Sprintf(`Upgrades a cluster to a newer release version.
 
 Upgrades mean the stepwise replacement of the workers, the master and other
-building blocks of a cluster with newer versions.
+building blocks of a cluster with newer versions. See details at
+
+    ` + upgradeDocsURL + `
 
 A cluster will always be upgraded to the subsequent release. To find out what
 release version is used currently, use
@@ -246,7 +250,10 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 
 	fmt.Println("")
 	fmt.Println("NOTE: Upgrading may impact your running workloads and will make the cluster's")
-	fmt.Println("Kubernetes API unavailable temporarily.")
+	fmt.Println("Kubernetes API unavailable temporarily. Before upgrading, please acknowledge the")
+	fmt.Println("details described in")
+	fmt.Println("")
+	fmt.Printf("    %s\n", upgradeDocsURL)
 	fmt.Println("")
 
 	// Confirmation
@@ -280,8 +287,12 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 
 // successorReleaseVersion returns the lowest version number from a slice
 // that is still higher than the comparison version.
-// If no successor is found, returns an empty string.
+// If the current version is empty or no successor is found, returns an empty string.
 func successorReleaseVersion(version string, versions []string) string {
+	if version == "" {
+		return ""
+	}
+
 	// sort versions by semver number
 	sort.Slice(versions, func(i, j int) bool {
 		vi := semver.New(versions[i])
