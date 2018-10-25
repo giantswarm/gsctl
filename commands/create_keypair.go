@@ -135,7 +135,7 @@ func createKeyPairPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		return
 	case IsInvalidCNPrefixError(err):
 		headline = "Bad characters in CN prefix (--cn-prefix)"
-		subtext = "Please use the characters a-z, 0-9, or . @ - only."
+		subtext = "Please use thes characters only: a-z A-Z 0-9 . @ -"
 	default:
 		headline = err.Error()
 	}
