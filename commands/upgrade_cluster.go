@@ -43,6 +43,9 @@ To find out what is the subsequent version, list all available versions using
     gsctl list releases
 
 When in doubt, please contact the Giant Swarm support team before upgrading.
+
+Example:
+  gsctl upgrade cluster 6iec4
 `),
 
 		// We use PreRun for general input validation, authentication etc.
