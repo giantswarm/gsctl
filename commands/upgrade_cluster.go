@@ -212,6 +212,11 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 
 	releaseVersions := []string{}
 	for _, r := range releasesResult {
+		// filter out non-active releases
+		if !r.Active {
+			continue
+		}
+
 		releaseVersions = append(releaseVersions, *r.Version)
 	}
 
