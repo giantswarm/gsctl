@@ -186,8 +186,8 @@ func upgradeClusterExecutionOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	fmt.Println(color.GreenString("Starting to upgrade cluster '%s' to release version %s",
-		color.CyanString(result.clusterID),
-		color.CyanString(result.versionAfter)))
+		result.clusterID,
+		result.versionAfter))
 }
 
 // upgradeCluster performs our actual function. It usually creates an API client,
@@ -212,6 +212,11 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 
 	releaseVersions := []string{}
 	for _, r := range releasesResult {
+		// filter out non-active releases
+		if !r.Active {
+			continue
+		}
+
 		releaseVersions = append(releaseVersions, *r.Version)
 	}
 
