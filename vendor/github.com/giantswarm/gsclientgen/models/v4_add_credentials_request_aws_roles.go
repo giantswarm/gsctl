@@ -13,7 +13,7 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// V4AddCredentialsRequestAwsRoles v4 add credentials request aws roles
+// V4AddCredentialsRequestAwsRoles IAM roles to assume by certain entities
 // swagger:model v4AddCredentialsRequestAwsRoles
 type V4AddCredentialsRequestAwsRoles struct {
 

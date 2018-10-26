@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
@@ -94,7 +95,6 @@ func verifyShowClusterPreconditions(args showClusterArguments, cmdLineArgs []str
 
 // getClusterDetails returns details for one cluster.
 func getClusterDetails(clusterID, activityName string) (*models.V4ClusterDetailsResponse, error) {
-
 	// perform API call
 	auxParams := ClientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
@@ -109,6 +109,31 @@ func getClusterDetails(clusterID, activityName string) (*models.V4ClusterDetails
 				return nil, microerror.Mask(notAuthorizedError)
 			case http.StatusNotFound:
 				return nil, microerror.Mask(clusterNotFoundError)
+			case http.StatusInternalServerError:
+				return nil, microerror.Mask(internalServerError)
+			}
+		}
+
+		return nil, microerror.Mask(err)
+	}
+
+	return response.Payload, nil
+}
+
+func getOrgCredentials(orgName, credentialID, activityName string) (*models.V4GetCredentialResponse, error) {
+	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = activityName
+
+	response, err := ClientV2.GetCredential(orgName, credentialID, auxParams)
+	if err != nil {
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			switch clientErr.HTTPStatusCode {
+			case http.StatusForbidden:
+				return nil, microerror.Mask(accessForbiddenError)
+			case http.StatusUnauthorized:
+				return nil, microerror.Mask(notAuthorizedError)
+			case http.StatusNotFound:
+				return nil, microerror.Mask(credentialNotFoundError)
 			case http.StatusInternalServerError:
 				return nil, microerror.Mask(internalServerError)
 			}
@@ -151,14 +176,35 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultShowClusterArguments()
 	args.clusterID = cmdLineArgs[0]
 
+	if args.verbose {
+		fmt.Println(color.WhiteString("Fetching details for cluster %s", args.clusterID))
+	}
+
 	clusterDetails, err := getClusterDetails(args.clusterID, showClusterActivityName)
 
+	var credentialDetails *models.V4GetCredentialResponse
+
+	if err == nil && clusterDetails.CredentialID != "" {
+		if args.verbose {
+			fmt.Println(color.WhiteString("Fetching details for credential %s", clusterDetails.CredentialID))
+		}
+
+		credentialDetails, err = getOrgCredentials(clusterDetails.Owner, clusterDetails.CredentialID, showClusterActivityName)
+	}
+
 	if err != nil {
+		handleCommonErrors(err)
+
 		var headline = ""
 		var subtext = ""
 
-		// TODO: handle common and specific errors
 		switch {
+		case IsClusterNotFoundError(err):
+			headline = "Cluster not found"
+			subtext = "The cluster with this ID could not be found. Please use 'gsctl list clusters' to list all available clusters."
+		case IsCredentialNotFoundError(err):
+			headline = "Credential not found"
+			subtext = "Credentials with the given ID could not be found."
 		case err.Error() == "":
 			return
 		default:
@@ -187,6 +233,21 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 	output = append(output, color.YellowString("Created:")+"|"+util.ShortDate(created))
 	output = append(output, color.YellowString("Organization:")+"|"+clusterDetails.Owner)
+
+	if credentialDetails != nil && credentialDetails.ID != "" {
+		if credentialDetails.Aws != nil {
+			parts := strings.Split(credentialDetails.Aws.Roles.Awsoperator, ":")
+			if len(parts) > 3 {
+				output = append(output, color.YellowString("AWS account:")+"|"+parts[4])
+			} else {
+				output = append(output, color.YellowString("AWS account:")+"|n/a")
+			}
+		} else if credentialDetails.Azure != nil {
+			output = append(output, color.YellowString("Azure subscription:")+"|"+credentialDetails.Azure.Credential.SubscriptionID)
+			output = append(output, color.YellowString("Azure tenant:")+"|"+credentialDetails.Azure.Credential.TenantID)
+		}
+	}
+
 	output = append(output, color.YellowString("Kubernetes API endpoint:")+"|"+clusterDetails.APIEndpoint)
 
 	if clusterDetails.ReleaseVersion != "" {

@@ -162,6 +162,143 @@ func (a *Client) DeleteOrganization(params *DeleteOrganizationParams, authInfo r
 }
 
 /*
+GetCredential gets credential details
+
+Returns details for a particular set of credentials, identified by its
+ID. The returned data does not contain any secrets (i. e.
+passphrase, secret key). For more information on credentials, see
+[Set credentials](#operation/addCredentials).
+
+### Example response body for AWS
+
+```json
+{
+  "id": "a1b2c3",
+  "provider": "aws",
+  "aws": {
+    "roles": {
+      "admin": "arn:aws:iam::123456789012:role/GiantSwarmAdmin",
+      "awsoperator": "arn:aws:iam::123456789012:role/GiantSwarmAWSOperator"
+    }
+  }
+}
+```
+
+### Example response body for Azure
+
+```json
+{
+  "id": "a1b2c3",
+  "provider": "azure",
+  "azure": {
+    "credential": {
+      "client_id": "c93bf55e-5bf7-4966-ad2b-e6f6e7721d50",
+      "subscription_id": "b388b7c7-4479-4040-9ac5-1e13edd6b1cd",
+      "tenant_id": "3dd2e94a-92ba-434c-99be-32bb65864a99"
+    }
+  }
+}
+```
+
+*/
+func (a *Client) GetCredential(params *GetCredentialParams, authInfo runtime.ClientAuthInfoWriter) (*GetCredentialOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetCredentialParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "getCredential",
+		Method:             "GET",
+		PathPattern:        "/v4/organizations/{organization_id}/credentials/{credential_id}/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &GetCredentialReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetCredentialOK), nil
+
+}
+
+/*
+GetCredentials gets credentials
+
+Returns credentials for an organization, if available.
+For more information on credentials,
+see [Set credentials](#operation/addCredentials).
+
+Here is another paragraph.
+
+### Example response body for AWS
+
+```json
+[
+  {
+    "id": "a1b2c3",
+    "provider": "aws",
+    "aws": {
+      "roles": {
+        "admin": "arn:aws:iam::123456789012:role/GiantSwarmAdmin",
+        "awsoperator": "arn:aws:iam::123456789012:role/GiantSwarmAWSOperator"
+      }
+    }
+  }
+]
+```
+
+### Example response body for Azure
+
+```json
+[
+  {
+    "id": "a1b2c3",
+    "provider": "azure",
+    "azure": {
+      "credential": {
+        "client_id": "c93bf55e-5bf7-4966-ad2b-e6f6e7721d50",
+        "subscription_id": "b388b7c7-4479-4040-9ac5-1e13edd6b1cd",
+        "tenant_id": "3dd2e94a-92ba-434c-99be-32bb65864a99"
+      }
+    }
+  }
+]
+```
+
+*/
+func (a *Client) GetCredentials(params *GetCredentialsParams, authInfo runtime.ClientAuthInfoWriter) (*GetCredentialsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetCredentialsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "getCredentials",
+		Method:             "GET",
+		PathPattern:        "/v4/organizations/{organization_id}/credentials/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &GetCredentialsReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetCredentialsOK), nil
+
+}
+
+/*
 GetOrganization gets organization details
 
 This operation fetches organization details.

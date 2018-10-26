@@ -13,7 +13,7 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// V4AddCredentialsRequestAzureCredential v4 add credentials request azure credential
+// V4AddCredentialsRequestAzureCredential Service principal credential
 // swagger:model v4AddCredentialsRequestAzureCredential
 type V4AddCredentialsRequestAzureCredential struct {
 

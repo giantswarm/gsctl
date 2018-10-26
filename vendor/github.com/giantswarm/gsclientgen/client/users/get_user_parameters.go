@@ -65,6 +65,7 @@ type GetUserParams struct {
 	/*Authorization
 	  As described in the [authentication](#section/Authentication) section
 
+
 	*/
 	Authorization string
 	/*XGiantSwarmActivity
