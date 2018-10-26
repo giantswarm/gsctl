@@ -29,6 +29,7 @@ _testmain.go
 # Generated files
 bin-dist
 build
+/go-build-cache
 release
 /gsctl
 /gsctl.exe

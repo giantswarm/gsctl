@@ -36,43 +36,59 @@ crosscompile: build/bin/$(BIN)-darwin-amd64 build/bin/$(BIN)-linux-amd64 build/b
 # platform-specific build
 build/bin/$(BIN)-darwin-amd64: $(SOURCE)
 	@mkdir -p build/bin
-	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+	@mkdir -p go-build-cache
+	docker run --rm \
+		-v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		-v $(shell pwd)/go-build-cache:/.cache \
 		-e GOPATH=/go -e GOOS=darwin -e GOARCH=amd64 -e CGO_ENABLED=0 \
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		--user ${USERID}:${GROUPID} \
 		golang:$(GOVERSION)-alpine go build -a -installsuffix cgo -o build/bin/$(BIN)-darwin-amd64 \
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
+	rm -rf go-build-cache
 
 # platform-specific build for linux-amd64
 # - here we have CGO_ENABLED=1
 build/bin/$(BIN)-linux-amd64: $(SOURCE)
 	@mkdir -p build/bin
-	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+	@mkdir -p go-build-cache
+	docker run --rm \
+		-v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		-v $(shell pwd)/go-build-cache:/.cache \
 		-e GOPATH=/go -e GOOS=linux -e GOARCH=amd64 -e CGO_ENABLED=1 \
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		--user ${USERID}:${GROUPID} \
 		golang:$(GOVERSION)-stretch go build -a -installsuffix cgo -o build/bin/$(BIN)-linux-amd64 \
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
+	rm -rf go-build-cache
 
 # platform-specific build
 build/bin/$(BIN)-windows-386: $(SOURCE)
 	@mkdir -p build/bin
-	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+	@mkdir -p go-build-cache
+	docker run --rm \
+		-v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		-v $(shell pwd)/go-build-cache:/.cache \
 		-e GOPATH=/go -e GOOS=windows -e GOARCH=386 -e CGO_ENABLED=0 \
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		--user ${USERID}:${GROUPID} \
 		golang:$(GOVERSION)-alpine go build -a -installsuffix cgo -o build/bin/$(BIN)-windows-386 \
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
+	rm -rf go-build-cache
 
 # platform-specific build
 build/bin/$(BIN)-windows-amd64: $(SOURCE)
 	@mkdir -p build/bin
-	docker run --rm -v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+	@mkdir -p go-build-cache
+	docker run --rm \
+		-v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		-v $(shell pwd)/go-build-cache:/.cache \
 		-e GOPATH=/go -e GOOS=windows -e GOARCH=amd64 -e CGO_ENABLED=0 \
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		--user ${USERID}:${GROUPID} \
 		golang:$(GOVERSION)-alpine go build -a -installsuffix cgo -o build/bin/$(BIN)-windows-amd64 \
 		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
+	rm -rf go-build-cache
 
 gotest:
 	go test -cover ./...
@@ -145,4 +161,4 @@ bin-dist: crosscompile
 
 # remove generated stuff
 clean:
-	rm -rf bin-dist build release ./gsctl
+	rm -rf bin-dist build go-build-cache release ./gsctl
