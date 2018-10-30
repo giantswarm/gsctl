@@ -460,7 +460,7 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 				{
 					Name: "giantswarm-" + args.clusterID,
 					Cluster: KubeconfigCluster{
-						Server: result.apiEndpoint,
+						Server:                   result.apiEndpoint,
 						CertificateAuthorityData: base64.StdEncoding.EncodeToString([]byte(response.Payload.CertificateAuthorityData)),
 					},
 				},
