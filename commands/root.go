@@ -57,9 +57,9 @@ func initClient() error {
 
 	ClientConfig = &client.Configuration{
 		AuthHeaderGetter: config.Config.AuthHeaderGetter(endpoint, cmdToken),
-		Endpoint:   endpoint,
-		Timeout:    10 * time.Second,
-		UserAgent:  config.UserAgent(),
+		Endpoint:         endpoint,
+		Timeout:          20 * time.Second,
+		UserAgent:        config.UserAgent(),
 	}
 
 	var err error
