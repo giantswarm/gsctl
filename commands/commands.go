@@ -99,10 +99,10 @@ type nodeDefinition struct {
 }
 
 type clusterDefinition struct {
-	AvailabilityZones int              `yaml:"availability_zones,omitempty"`
 	Name              string           `yaml:"name,omitempty"`
 	Owner             string           `yaml:"owner,omitempty"`
 	ReleaseVersion    string           `yaml:"release_version,omitempty"`
+	AvailabilityZones int              `yaml:"availability_zones,omitempty"`
 	Workers           []nodeDefinition `yaml:"workers,omitempty"`
 }
 
