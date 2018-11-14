@@ -140,7 +140,7 @@ Examples:
 )
 
 func init() {
-	CreateClusterCommand.Flags().IntVarP(&cmdAvailabilityZones, "availability-zones", "", 0, "Number of Availability Zones")
+	CreateClusterCommand.Flags().IntVarP(&cmdAvailabilityZones, "availability-zones", "", 0, "Number of availability zones to use on AWS. Default is 1.")
 	CreateClusterCommand.Flags().StringVarP(&cmdInputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file")
 	CreateClusterCommand.Flags().StringVarP(&cmdClusterName, "name", "n", "", "Cluster name")
 	CreateClusterCommand.Flags().StringVarP(&cmdOwner, "owner", "o", "", "Organization to own the cluster")
