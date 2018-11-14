@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // V4InfoResponse v4 info response
@@ -17,7 +18,8 @@ import (
 type V4InfoResponse struct {
 
 	// general
-	General *V4InfoResponseGeneral `json:"general,omitempty"`
+	// Required: true
+	General *V4InfoResponseGeneral `json:"general"`
 
 	// workers
 	Workers *V4InfoResponseWorkers `json:"workers,omitempty"`
@@ -43,8 +45,8 @@ func (m *V4InfoResponse) Validate(formats strfmt.Registry) error {
 
 func (m *V4InfoResponse) validateGeneral(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.General) { // not required
-		return nil
+	if err := validate.Required("general", "body", m.General); err != nil {
+		return err
 	}
 
 	if m.General != nil {

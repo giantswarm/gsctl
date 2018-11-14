@@ -40,7 +40,11 @@ prevent creating clusters with more worker nodes than possible.
   "general": {
     "installation_name": "shire",
     "provider": "aws",
-    "datacenter": "eu-central-1"
+    "datacenter": "eu-central-1",
+    "availability_zones": {
+      "max": 3,
+      "default": 1,
+    }
   },
   "workers": {
     "count_per_cluster": {
@@ -64,7 +68,11 @@ prevent creating clusters with more worker nodes than possible.
   "general": {
     "installation_name": "isengard",
     "provider": "kvm",
-    "datacenter": "string"
+    "datacenter": "string",
+    "availability_zones": {
+      "max": 1,
+      "default": 1,
+    }
   },
   "workers": {
     "count_per_cluster": {
