@@ -3,6 +3,7 @@
 name: Complete cluster spec
 owner: giantswarm
 release_version: 1.2.3
+availability_zones: 1
 workers:
   - memory:
       size_gb: 2
