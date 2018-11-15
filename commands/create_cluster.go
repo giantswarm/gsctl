@@ -432,7 +432,7 @@ func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 // creates a models.V4AddClusterRequest from clusterDefinition
 func createAddClusterBody(d clusterDefinition) *models.V4AddClusterRequest {
 	a := &models.V4AddClusterRequest{}
-	a.AvailabilityZones = float64(d.AvailabilityZones)
+	a.AvailabilityZones = int64(d.AvailabilityZones)
 	a.Name = d.Name
 	a.Owner = &d.Owner
 	a.ReleaseVersion = d.ReleaseVersion

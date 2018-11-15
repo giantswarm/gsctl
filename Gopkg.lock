@@ -62,7 +62,7 @@
   version = "v2.0.2"
 
 [[projects]]
-  branch = "add-multiAZ"
+  branch = "master"
   name = "github.com/giantswarm/gsclientgen"
   packages = [
     "client",
@@ -75,7 +75,7 @@
     "client/users",
     "models"
   ]
-  revision = "448af27e660580cd06bf881128e7a0e376c8673d"
+  revision = "3d1443d71a82d5fc6b62bf32f6a16b4b3fa204eb"
 
 [[projects]]
   branch = "master"
@@ -307,6 +307,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a49ce7196166361759e89ac47953c04ff90ba7461b15533674a3c367c2a32a28"
+  inputs-digest = "4d81f2d77c27aeacaa5fb7b9662f47def847bc207ac11af6aa0bc4088da49271"
   solver-name = "gps-cdcl"
   solver-version = 1

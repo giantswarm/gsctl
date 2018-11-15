@@ -19,11 +19,11 @@ type V4InfoResponseGeneralAvailabilityZones struct {
 
 	// Default number of availability zones for a cluster.
 	// Required: true
-	Default *float64 `json:"default"`
+	Default *int64 `json:"default"`
 
 	// Number of availability zones in the region of this installation.
 	// Required: true
-	Max *float64 `json:"max"`
+	Max *int64 `json:"max"`
 }
 
 // Validate validates this v4 info response general availability zones
