@@ -518,9 +518,6 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 				} else if clientErr.HTTPStatusCode == http.StatusUnauthorized {
 					// not authorized
 					return result, microerror.Mask(notAuthorizedError)
-				} else if clientErr.HTTPStatusCode == http.StatusBadRequest {
-					// bad request
-					return result, microerror.Mask(badRequestError)
 				}
 			}
 

@@ -229,17 +229,6 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 			errorMatcher:       IsOrganizationNotFoundError,
 		},
 		{
-			description: "Server complains about a bad request",
-			inputArgs: &addClusterArguments{
-				owner:          "owner",
-				token:          "some-token",
-				releaseVersion: "100.200.300",
-			},
-			serverResponseJSON: []byte(`{"code": "INVALID_INPUT", "message": "Lorem ipsum"}`),
-			responseStatus:     http.StatusBadRequest,
-			errorMatcher:       IsBadRequestError,
-		},
-		{
 			description: "Non-existing YAML definition path",
 			inputArgs: &addClusterArguments{
 				owner:         "owner",
