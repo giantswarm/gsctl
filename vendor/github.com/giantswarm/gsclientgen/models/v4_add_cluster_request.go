@@ -19,6 +19,9 @@ import (
 // swagger:model v4AddClusterRequest
 type V4AddClusterRequest struct {
 
+	// Number of availability zones a cluster should be spread across. The default is provided via the [info](#operation/getInfo) endpoint.
+	AvailabilityZones int64 `json:"availability_zones,omitempty"`
+
 	// Cluster name
 	Name string `json:"name,omitempty"`
 

@@ -8,12 +8,18 @@ package models
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // V4InfoResponseGeneral General information
 // swagger:model v4InfoResponseGeneral
 type V4InfoResponseGeneral struct {
+
+	// availability zones
+	// Required: true
+	AvailabilityZones *V4InfoResponseGeneralAvailabilityZones `json:"availability_zones"`
 
 	// Identifier of the datacenter or cloud provider region, e. g. "eu-west-1"
 	Datacenter string `json:"datacenter,omitempty"`
@@ -27,6 +33,33 @@ type V4InfoResponseGeneral struct {
 
 // Validate validates this v4 info response general
 func (m *V4InfoResponseGeneral) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateAvailabilityZones(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *V4InfoResponseGeneral) validateAvailabilityZones(formats strfmt.Registry) error {
+
+	if err := validate.Required("availability_zones", "body", m.AvailabilityZones); err != nil {
+		return err
+	}
+
+	if m.AvailabilityZones != nil {
+		if err := m.AvailabilityZones.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("availability_zones")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 

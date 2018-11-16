@@ -24,6 +24,7 @@ import (
 // (and optionally available) for creating a cluster
 type addClusterArguments struct {
 	apiEndpoint             string
+	availabilityZones       int
 	clusterName             string
 	dryRun                  bool
 	inputYAMLFile           string
@@ -46,6 +47,7 @@ func defaultAddClusterArguments() addClusterArguments {
 	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 	return addClusterArguments{
 		apiEndpoint:             endpoint,
+		availabilityZones:       cmdAvailabilityZones,
 		clusterName:             cmdClusterName,
 		dryRun:                  cmdDryRun,
 		inputYAMLFile:           cmdInputYAMLFile,
@@ -120,7 +122,7 @@ Examples:
 		PreRun: createClusterValidationOutput,
 		Run:    createClusterExecutionOutput,
 	}
-
+	cmdAvailabilityZones int
 	// path to the input file used optionally as cluster definition
 	cmdInputYAMLFile string
 	// cluster name set via flag on execution
@@ -138,6 +140,7 @@ Examples:
 )
 
 func init() {
+	CreateClusterCommand.Flags().IntVarP(&cmdAvailabilityZones, "availability-zones", "", 0, "Number of availability zones to use on AWS. Default is 1.")
 	CreateClusterCommand.Flags().StringVarP(&cmdInputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file")
 	CreateClusterCommand.Flags().StringVarP(&cmdClusterName, "name", "n", "", "Cluster name")
 	CreateClusterCommand.Flags().StringVarP(&cmdOwner, "owner", "o", "", "Organization to own the cluster")
@@ -356,6 +359,9 @@ func unmarshalDefinition(data []byte, myDef clusterDefinition) (clusterDefinitio
 // overwrites some settings given via flags.
 // Note that only a few attributes can be overridden by flags.
 func enhanceDefinitionWithFlags(def *clusterDefinition, args addClusterArguments) {
+	if args.availabilityZones != 0 {
+		def.AvailabilityZones = args.availabilityZones
+	}
 	if args.clusterName != "" {
 		def.Name = args.clusterName
 	}
@@ -371,6 +377,10 @@ func enhanceDefinitionWithFlags(def *clusterDefinition, args addClusterArguments
 // flags/arguments the user has given
 func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 	def := clusterDefinition{}
+
+	if args.availabilityZones != 0 {
+		def.AvailabilityZones = args.availabilityZones
+	}
 
 	if args.clusterName != "" {
 		def.Name = args.clusterName
@@ -422,6 +432,7 @@ func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 // creates a models.V4AddClusterRequest from clusterDefinition
 func createAddClusterBody(d clusterDefinition) *models.V4AddClusterRequest {
 	a := &models.V4AddClusterRequest{}
+	a.AvailabilityZones = int64(d.AvailabilityZones)
 	a.Name = d.Name
 	a.Owner = &d.Owner
 	a.ReleaseVersion = d.ReleaseVersion
@@ -507,9 +518,6 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 				} else if clientErr.HTTPStatusCode == http.StatusUnauthorized {
 					// not authorized
 					return result, microerror.Mask(notAuthorizedError)
-				} else if clientErr.HTTPStatusCode == http.StatusBadRequest {
-					// bad request
-					return result, microerror.Mask(badRequestError)
 				}
 			}
 

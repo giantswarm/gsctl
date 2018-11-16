@@ -47,6 +47,30 @@ Additional definition attributes can be used. Where attributes are
 omitted, default configuration values will be applied. For example, if
 no `release_version` is specified, the most recent version is used.
 
+The number of `availability_zones` affects the total number of nodes
+that can be created in the cluster. The number of availability zones
+splits the IP range that can be used for the cluster in multiple smaller
+IP ranges. The [getInfo](#operation/getInfo) endpoint provides more
+details about the cluster IP range.
+
+IP range example:
+
+If a cluster gets a `/22` range (1022 hosts) and the cluster should be
+spawned across 3 availability zones, the range will then be split up
+into four `/24` (254 hosts) that can be assigned to four different
+availability zones. One range will stay unused because network
+addresses must be powers of two. See [CIDR addressing](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).
+Each of the `/24` will then be split into two `/25` (126 hosts) for
+public and private subnets. The private subnet is used for nodes and
+internal loadbalancer (only if you create them within Kubernetes). The
+public subnet will be used by the public loadbalancers. Tenant cluster
+come with two public loadbalancers by default. One for the Kubernetes API
+and one for Ingress.
+
+__Note:__ AWS ELBs can take up to 8 IP addresses due to the way how
+they scale. In addition to this, every AWS subnet has four first
+addresses (.1-.4) reserved for internal use.
+
 The `workers` attribute, if present, must contain an array of node
 definition objects. The number of objects given determines the number
 of workers created.
@@ -258,6 +282,7 @@ added.
 ### Limitations
 
 - As of now, existing worker nodes cannot be modified.
+- The number of availability zones cannot be modified afterwards.
 - When removing nodes (scaling down), it is not possible to determine
 which nodes will be removed.
 - On AWS based clusters, all worker nodes must use the same EC2 instance
