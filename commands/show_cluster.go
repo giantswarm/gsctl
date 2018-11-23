@@ -253,7 +253,7 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	if len(clusterDetails.AvailabilityZones) > 0 {
 		sort.Strings(clusterDetails.AvailabilityZones)
-		output = append(output, color.YellowString("Availability Zones:")+"|"+strings.Join(clusterDetails.AvailabilityZones, ","))
+		output = append(output, color.YellowString("Availability Zones:")+"|"+strings.Join(clusterDetails.AvailabilityZones, ", "))
 	}
 
 	if clusterDetails.ReleaseVersion != "" {
