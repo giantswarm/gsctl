@@ -82,8 +82,8 @@
   version = "v2.0.2"
 
 [[projects]]
-  branch = "add-az-status"
-  digest = "1:86dd7c07d52fdc3489b330f0b466c46b5da2a1dfcbe6aea800a889ad79d4f4b5"
+  branch = "master"
+  digest = "1:4b38298e8997fb9433db0c7061ca9cc71d7b2ed6869bd5314517826da55c6cd0"
   name = "github.com/giantswarm/gsclientgen"
   packages = [
     "client",
@@ -97,7 +97,7 @@
     "models",
   ]
   pruneopts = "UT"
-  revision = "baa9eaf0f91a6a3aeb6cadcec184cce7dbb1cb0b"
+  revision = "7b7603e92b4b4b10c13cf7e3046f8cbb8358220c"
 
 [[projects]]
   branch = "master"

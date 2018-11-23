@@ -15,9 +15,6 @@ import (
 // swagger:model v4ClusterListItem
 type V4ClusterListItem struct {
 
-	// List of availability zones a cluster is spread across.
-	AvailabilityZones []string `json:"availability_zones"`
-
 	// Date/time of cluster creation
 	CreateDate string `json:"create_date,omitempty"`
 
