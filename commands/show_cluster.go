@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/fatih/color"
@@ -249,6 +250,11 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	output = append(output, color.YellowString("Kubernetes API endpoint:")+"|"+clusterDetails.APIEndpoint)
+
+	if len(clusterDetails.AvailabilityZones) > 0 {
+		sort.Strings(clusterDetails.AvailabilityZones)
+		output = append(output, color.YellowString("Availability Zones:")+"|"+strings.Join(clusterDetails.AvailabilityZones, ", "))
+	}
 
 	if clusterDetails.ReleaseVersion != "" {
 		output = append(output, color.YellowString("Release version:")+"|"+clusterDetails.ReleaseVersion)

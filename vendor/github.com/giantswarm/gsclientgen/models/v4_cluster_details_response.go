@@ -21,8 +21,8 @@ type V4ClusterDetailsResponse struct {
 	// URI of the Kubernetes API endpoint
 	APIEndpoint string `json:"api_endpoint,omitempty"`
 
-	// Number of availability zones a cluster is spread across.
-	AvailabilityZones int64 `json:"availability_zones,omitempty"`
+	// List of availability zones a cluster is spread across.
+	AvailabilityZones []string `json:"availability_zones"`
 
 	// Date/time of cluster creation
 	CreateDate string `json:"create_date,omitempty"`
