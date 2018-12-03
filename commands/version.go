@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -79,20 +78,28 @@ func printVersion(cmd *cobra.Command, args []string) {
 
 // latestVersion returns the latest available version as semver.Version
 func latestVersion(url string) (*semver.Version, error) {
-	// to be unobstructive, we timeout quickly.
-	timeout := time.Duration(updateCheckTimeout)
-	client := http.Client{Timeout: timeout}
+	// an HTTP client that doesn't follow redirects and timeouts quickly
+	// in order to not let the user wait too long
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Timeout: time.Duration(updateCheckTimeout),
+	}
+
 	resp, err := client.Get(url)
 	if err != nil {
-		return semver.New("0.0.0"), microerror.Mask(err)
+		return nil, microerror.Mask(err)
 	}
 	defer resp.Body.Close()
-	contentBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return semver.New("0.0.0"), microerror.Mask(err)
+
+	location := resp.Header.Get("Location")
+	if location == "" {
+		return nil, microerror.Mask(updateCheckFailed)
 	}
-	content := strings.TrimSpace(string(contentBytes))
-	return semver.New(content), nil
+
+	parts := strings.Split(location, "/")
+	return semver.New(parts[len(parts)-1]), nil
 }
 
 // currentVersion returns the current gsctl version as semver.Version.
