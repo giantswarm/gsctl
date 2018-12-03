@@ -542,3 +542,13 @@ var credentialsAlreadySetError = &microerror.Error{
 func IsCredentialsAlreadySetError(err error) bool {
 	return microerror.Cause(err) == credentialsAlreadySetError
 }
+
+// updateCheckFailed means that checking for a newer gsctl version failed.
+var updateCheckFailed = &microerror.Error{
+	Kind: "updateCheckFailed",
+}
+
+// IsUpdateCheckFailed asserts updateCheckFailed.
+func IsUpdateCheckFailed(err error) bool {
+	return microerror.Cause(err) == updateCheckFailed
+}

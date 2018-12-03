@@ -34,7 +34,7 @@ const (
 	ProgramName = "gsctl"
 
 	// VersionCheckURL is the URL telling us what the latest gsctl version is
-	VersionCheckURL = "https://downloads.giantswarm.io/gsctl/VERSION"
+	VersionCheckURL = "https://github.com/giantswarm/gsctl/releases/latest"
 
 	// VersionCheckInterval is the minimum time to wait between two version checks
 	VersionCheckInterval = time.Hour * 24
