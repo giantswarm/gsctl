@@ -91,6 +91,7 @@ func latestVersion(url string) (*semver.Version, error) {
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
+	defer resp.Body.Close()
 
 	location := resp.Header.Get("Location")
 	if location == "" {
