@@ -40,8 +40,8 @@ end
 EOF
 
 git config credential.helper 'cache --timeout=120'
-git config user.email "${TAYLORBOT_EMAIL}"
-git config user.name "Taylor Bot"
+git config user.email "${GITHUB_USER_EMAIL}"
+git config user.name "${GITHUB_USER_NAME}"
 git add gsctl.rb
 git commit -m "Update gsctl to ${VERSION}"
 

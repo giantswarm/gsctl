@@ -12,10 +12,14 @@ CircleCI must be set up with certain environment variables:
   - [giantswarm/gsctl](https://github.com/giantswarm/gsctl/)
   - [giantswarm/scoop-bucket](https://github.com/giantswarm/scoop-bucket)
   - [giantswarm/homebrew-giantswarm](https://github.com/giantswarm/homebrew-giantswarm)
+- `GITHUB_USER_EMAIL` - Email address of the github user owning the personal token above
+- `GITHUB_USER_NAME` - Username of the above github user
 
-## Create and push a new release tag
+## Create and push a new release
 
-Replace `<MAJOR.MINOR.PATCH>` with the actual version number you want to publish.
+All you have to do is create and push a new tag.
+
+In the command below, replace `<MAJOR.MINOR.PATCH>` with the actual version number you want to publish.
 
 ```
 export VERSION=<MAJOR.MINOR.PATCH>

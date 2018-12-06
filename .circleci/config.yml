@@ -36,9 +36,7 @@ jobs:
       - checkout
       - run:
           name: Create VERSION file
-          #command: echo $CIRCLE_TAG > ./VERSION
-          # TODO: revert this testing code
-          command: echo "1.2.3" > ./VERSION
+          command: echo $CIRCLE_TAG > ./VERSION
       - run:
           name: Store code signing certificate
           command: |
@@ -62,7 +60,6 @@ workflows:
   build:
     jobs:
       - build
-      - dist
   release:
     jobs:
       - dist:
