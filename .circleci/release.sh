@@ -1,60 +1,77 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-# Script to publish a release
+set -o errexit
+set -o nounset
+set -o pipefail
 
-PROJECT=gsctl
+readonly PROJECT="gsctl"
+readonly TAG=$1
+readonly GITHUB_TOKEN=$2
 
-VERSION=$(cat ./VERSION)
+main() {
+  if ! id=$(release_github "${PROJECT}" "${TAG}" "${GITHUB_TOKEN}"); then
+    log_error "GitHub Release could not get created."
+    exit 1
+  fi
 
-# test if this version is already released
-echo "Checking if this release already exists"
-aws --profile giantswarm s3 ls s3://downloads.giantswarm.io/${PROJECT}/ \
-  | grep ${VERSION} \
-  && echo "Error: A release for this version already exists in S3" \
-  && exit 1
-
-# test if bin-dist folder is there
-test -d bin-dist || $(echo "Error: please run 'make bin-dist' first" && exit 2)
-
-# Github personal access token of Github user
-GITHUB_TOKEN=$(cat ~/.github-token)
-
-echo "Creating Github release ${PROJECT} v${VERSION}"
-release_output=$(curl -s \
-    -X POST \
-    -H "Authorization: token ${GITHUB_TOKEN}" \
-    -H "Content-Type: application/json" \
-    -d "{
-        \"tag_name\": \"${VERSION}\",
-        \"name\": \"${PROJECT} v${VERSION}\",
-        \"body\": \"### New features\\n\\n### Minor changes\\n\\n### Bugfixes\\n\\n\",
-        \"draft\": true,
-        \"prerelease\": false
-    }" \
-    https://api.github.com/repos/giantswarm/${PROJECT}/releases
-)
-
-# fetch the release id for the upload
-RELEASE_ID=$(echo $release_output | jq '.id')
-
-echo "Upload binary to GitHub Release"
-cd bin-dist
-for FILENAME in *.zip *.tar.gz; do
-    [ -f "$FILENAME" ] || break
-    curl \
-      -H "Authorization: token ${GITHUB_TOKEN}" \
-      -H "Content-Type: application/octet-stream" \
-      --data-binary @${FILENAME} \
-        https://uploads.github.com/repos/giantswarm/${PROJECT}/releases/${RELEASE_ID}/assets?name=${FILENAME}
-done
-cd ..
+  for filepath in ./bin-dist/*; do
+    [ -f "$filepath" ] || continue
+    if ! upload_asset "${PROJECT}" "${TAG}" "${GITHUB_TOKEN}" "${id}" "${filepath}"; then
+      log_error "Asset ${filepath} could not be uploaded to GitHub."
+      exit 1
+    fi
+  done
+  
+}
 
 
-echo "Uploading release to S3 bucket downloads.giantswarm.io"
-aws --profile giantswarm s3 cp bin-dist s3://downloads.giantswarm.io/${PROJECT}/${VERSION}/ --recursive --exclude="*" --include="*.tar.gz" --acl=public-read
-aws --profile giantswarm s3 cp bin-dist s3://downloads.giantswarm.io/${PROJECT}/${VERSION}/ --recursive --exclude="*" --include="*.zip" --acl=public-read
-aws --profile giantswarm s3 cp VERSION s3://downloads.giantswarm.io/${PROJECT}/VERSION --acl=public-read
+release_github() {
+  local project="${1?Specify project}"
+  local version="${2?Specify version}"
+  local token="${3?Specify Github Token}"
 
-echo "Done. The release is now prepared, but not yet published."
-echo "You can now edit your release description here:"
-echo "https://github.com/giantswarm/${PROJECT}/releases/"
+  # echo "Creating Github release ${version} draft"
+  release_output=$(curl -s \
+      -X POST \
+      -H "Authorization: token ${token}" \
+      -H "Content-Type: application/json" \
+      -d "{
+          \"tag_name\": \"${version}\",
+          \"name\": \"${version}\",
+          \"body\": \"### New features\\n\\n### Minor changes\\n\\n### Bugfixes\\n\\n\",
+          \"draft\": true,
+          \"prerelease\": false
+      }" \
+      "https://api.github.com/repos/giantswarm/${project}/releases"
+  )
+
+  # Return release id for the asset upload
+  release_id=$(echo "${release_output}" | jq '.id')
+  echo "${release_id}"
+  return 0
+}
+
+upload_asset(){
+  local project="${1?Specify project}"
+  local version="${2?Specify version}"
+  local token="${3?Specify GitHub token}"
+  local release_id="${4?Specify release Id}"
+  local file_path="${5?Specify file path}"
+
+  echo "Upload chart ${chart} to GitHub Release"
+  upload_output=$(curl -s \
+        -H "Authorization: token ${token}" \
+        -H "Content-Type: application/octet-stream" \
+        --data-binary "@${file_path}" \
+          "https://uploads.github.com/repos/giantswarm/${project}/releases/${release_id}/assets?name=${chart}"
+  )
+
+  echo "${upload_output}"
+  exit 0
+}
+
+log_error() {
+    printf '\e[31mERROR: %s\n\e[39m' "$1" >&2
+}
+
+main
