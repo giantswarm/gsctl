@@ -58,12 +58,14 @@ upload_asset(){
   local release_id="${4?Specify release Id}"
   local file_path="${5?Specify file path}"
 
-  echo "Upload chart ${chart} to GitHub Release"
+  file_name=$(basename "${file_path}")
+
+  echo "Upload file ${file_name} to GitHub Release"
   upload_output=$(curl -s \
         -H "Authorization: token ${token}" \
         -H "Content-Type: application/octet-stream" \
         --data-binary "@${file_path}" \
-          "https://uploads.github.com/repos/giantswarm/${project}/releases/${release_id}/assets?name=${chart}"
+          "https://uploads.github.com/repos/giantswarm/${project}/releases/${release_id}/assets?name=${file_name}"
   )
 
   echo "${upload_output}"
