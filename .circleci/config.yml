@@ -49,7 +49,7 @@ jobs:
           command: make bin-dist
       - run:
           name: Create GitHub release
-          command: ~/.circleci/release.sh $CIRCLE_TAG $RELEASE_TOKEN
+          command: ./.circleci/release.sh $CIRCLE_TAG $RELEASE_TOKEN
 
 workflows:
   version: 2
