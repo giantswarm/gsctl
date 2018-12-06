@@ -54,8 +54,9 @@ workflows:
   build:
     jobs:
       - build
-        requires:
-          - dist
+      - dist
+          requires:
+            - build
   release:
     jobs:
       - release:
