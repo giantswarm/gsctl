@@ -41,7 +41,7 @@ jobs:
           name: Store code signing certificate
           command: |
             mkdir -p certs
-            echo $CODE_SIGNING_CERT_BUNDLE_BASE64 | base64 -D > certs/code-signing.p12
+            echo $CODE_SIGNING_CERT_BUNDLE_BASE64 | base64 -d > certs/code-signing.p12
       - run:
           name: Create binary distribution for all platforms
           command: make bin-dist
