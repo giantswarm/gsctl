@@ -22,6 +22,7 @@ main() {
     fi
   done
   
+  echo "Please edit the release draft in https://github.com/giantswarm/gsctl/releases/"
 }
 
 
@@ -37,7 +38,7 @@ release_github() {
       -H "Content-Type: application/json" \
       -d "{
           \"tag_name\": \"${version}\",
-          \"name\": \"${version}\",
+          \"name\": \"gsctl v${version}\",
           \"body\": \"### New features\\n\\n### Minor changes\\n\\n### Bugfixes\\n\\n\",
           \"draft\": true,
           \"prerelease\": false

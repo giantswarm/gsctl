@@ -50,6 +50,12 @@ jobs:
       - run:
           name: Create GitHub release
           command: ./.circleci/release.sh $CIRCLE_TAG $RELEASE_TOKEN
+      - run:
+          name: Update Homebrew tap
+          command: ./.circleci/update-homebrew.sh
+      - run:
+          name: Update scoop bucket
+          command: ./.circleci/update-scoop.sh
 
 workflows:
   version: 2

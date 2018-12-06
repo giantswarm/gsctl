@@ -3,14 +3,21 @@
 # This script creates a scoop app manifest for the Windows binary release
 # and pushes it to the repository "scoop-bucket"
 
-SCOOP_REPO=git@github.com:giantswarm/scoop-bucket.git
+set -o errexit
+set -o nounset
+set -o pipefail
 
 # Our version number
-VERSION=$(cat VERSION)
+VERSION=$1
+
+REPO_URL="https://${RELEASE_TOKEN}@github.com/giantswarm/scoop-bucket.git"
 
 # SHA256 hashs of the ZIP files
 SHA256_64BIT=$(openssl dgst -sha256 bin-dist/gsctl-$VERSION-windows-amd64.zip|awk '{print $2}')
 SHA256_32BIT=$(openssl dgst -sha256 bin-dist/gsctl-$VERSION-windows-386.zip|awk '{print $2}')
+
+git clone --depth 1 $REPO_URL
+cd scoop-bucket
 
 # Dump manifest JSON
 cat > gsctl.json << EOF
@@ -34,10 +41,11 @@ cat > gsctl.json << EOF
 }
 EOF
 
-# commit and push formula to our Homebrew tap
-cd bin-dist
-git clone $SCOOP_REPO
-mv ../gsctl.json scoop-bucket/
-cd scoop-bucket
-git add ./gsctl.json && git commit -m "Updated gsctl to ${VERSION}" && git push origin master
-rm -rf bin-dist/scoop-bucket
+git config credential.helper 'cache --timeout=120'
+git config user.email "${TAYLORBOT_EMAIL}"
+git config user.name "Taylor Bot"
+git add gsctl.rb
+git commit -m "Update gsctl to ${VERSION}"
+
+# Push quietly with -q to prevent showing the token in log
+git push -q $REPO_URL master
