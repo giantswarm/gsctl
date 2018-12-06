@@ -33,6 +33,7 @@ jobs:
   dist:
     machine: true
     steps:
+      - checkout
       - run:
           name: Create binary distribution for all platforms
           command: make bin-dist
