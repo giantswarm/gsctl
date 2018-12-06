@@ -30,3 +30,25 @@ jobs:
           command: |
             bash ./test_coverage.sh
             bash <(curl -s https://codecov.io/bash)
+  dist:
+    machine: true
+    steps:
+      - run:
+          name: Create binary distribution for all platforms
+          command: make bin-dist
+      - run:
+          name: Create GitHub release
+          command: ~/.circleci/release.sh $CIRCLE_TAG $RELEASE_TOKEN
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+  release:
+    jobs:
+      - release:
+          filters:
+            tags:
+              only: /^[0-9]+\.[0-9]+\.[0-9]+$/
+            branches:
+              ignore: /.*/
