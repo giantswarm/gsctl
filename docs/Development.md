@@ -51,7 +51,7 @@ $ go build && ./gsctl info
 To build a binary for your platform like the release build would do, do this:
 
 ```nohighlight
-& make clean
+$ make clean
 $ make
 $ make install
 ```
