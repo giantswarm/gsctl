@@ -1,122 +1,38 @@
 # How to publish a release
 
+TL;DR: Releases are published automatically whenever a new tag of the format X.Y.Z is pushed to the GitHub repository.
+
 ## Prerequisites
 
-- GNU Make
-- Docker environment
-- AWS CLI (`aws` command line utility, see http://docs.aws.amazon.com/cli/latest/userguide/installing.html)
-- AWS S3 create/upload permissions for `downloads.giantswarm.io`
-- `git` command line utility
-- Push permissions for https://github.com/giantswarm/gsctl,  https://github.com/giantswarm/homebrew-giantswarm, https://github.com/giantswarm/scoop-bucket
-- Code signing certificate from keePass
-- `CODE_SIGNING_CERT_BUNDLE_PASSWORD` environment variable set to code signing PKCS#12 encryption password (from keePass)
+CircleCI must be set up with certain environment variables:
 
-## Authenticating for the AWS CLI
+- `CODE_SIGNING_CERT_BUNDLE_BASE64` - Base64 encoded PKCS#12 key/cert bundle used for signing Windows binaries
+- `CODE_SIGNING_CERT_BUNDLE_PASSWORD` - Password for the above bundle
+- `RELEASE_TOKEN` - A GitHub token with the permission to write to repositories
+  - [giantswarm/gsctl](https://github.com/giantswarm/gsctl/)
+  - [giantswarm/scoop-bucket](https://github.com/giantswarm/scoop-bucket)
+  - [giantswarm/homebrew-giantswarm](https://github.com/giantswarm/homebrew-giantswarm)
+- `GITHUB_USER_EMAIL` - Email address of the github user owning the personal token above
+- `GITHUB_USER_NAME` - Username of the above github user
 
-We'll use a specific profile for the CLI called `giantswarm`. To create this
-profile, run
+## Create and push a new release
 
-```
-aws configure --profile giantswarm
-```
+All you have to do is create and push a new tag.
 
-and set the access key ID and the secret key to values matching your IAM account.
-
-Then, if you have ever made a release before, you'll likely have to clean `~/.aws/credentials`
-to remove any existing `aws_session_token` entry from the `giantswarm` profile.
-
-The use of multi factor authentication (MFA) requires us to create short-lived
-credentials for AWS client. Have your MFA device and it's ARN (from the web
-console) ready.
-
-The ARN looks similar to this:
-
-    arn:aws:iam::084190472784:mfa/marian@giantswarm.io
-
-Next, get your current MFA token and use it like here (yes, you have to be swift):
-
-```bash
-ARN="arn:aws:iam::084190472784:mfa/marian@giantswarm.io"
-MFA_TOKEN=123456
-CREDENTIALS=$(aws --profile giantswarm \
-  sts get-session-token \
-  --duration-seconds 20000 \
-  --serial-number $ARN \
-  --token-code $MFA_TOKEN | jq .Credentials)
-```
-
-Now take the output of the following command and place it in the
-credentials file `~/.aws/credentials` at the `[giantswarm]` entry.
-
-```bash
-echo "aws_access_key_id = $(echo $CREDENTIALS | jq -r .AccessKeyId )" && \
-  echo "aws_secret_access_key = $(echo $CREDENTIALS | jq -r .SecretAccessKey )" && \
-  echo "aws_session_token = $(echo $CREDENTIALS | jq -r .SessionToken )"
-```
-
-Test your credentials like this:
-
-```nohighlight
-aws --profile giantswarm s3 ls s3://downloads.giantswarm.io/gsctl/
-```
-
-If this lists the gsctl versions released so far, this step is done.
-
-## Test the binary locally
-
-We first build a binary for the current platform and test it.
-
-```nohighlight
-make
-make test
-make clean
-```
-
-## Prepare signing of Windows binaries
-
-Create the folder `certs` inside the repo, if not there, and place the file `code-signing.p12` from keePass (code signing certificate) there.
-
-Set the environment variable `$CODE_SIGNING_CERT_BUNDLE_PASSWORD` to the PKCS#12 encryption password you find in keePass.
-
-## Set the release version
-
-Replace `<MAJOR.MINOR.PATCH>` with the actual version number.
+In the command below, replace `<MAJOR.MINOR.PATCH>` with the actual version number you want to publish.
 
 ```
 export VERSION=<MAJOR.MINOR.PATCH>
 git checkout master
-echo -n "${VERSION}" > ./VERSION
-git commit -m "Version bump to ${VERSION}" ./VERSION
-git push origin master
+git pull
 git tag -a ${VERSION} -m "Release version ${VERSION}"
 git push origin ${VERSION}
 ```
 
-## Create binaries for distribution
+Follow CircleCI's progress in https://circleci.com/gh/giantswarm/gsctl/.
 
-```nohighlight
-make bin-dist
-```
-
-## Publish the release
-
-```
-./release.sh
-```
+## Edit and publish the release
 
 Open the [release draft](https://github.com/giantswarm/gsctl/releases/) on Github.
 
 Edit the description to inform about what has changed since the last release. Save and publish the release.
-
-## Update os-specific distribution channels
-
-Once the release info is published, update homebrew and scoop:
-
-```nohighlight
-./update-homebrew.sh
-./update-scoop.sh
-```
-
-## Cleaning up
-
-When everything went fine, do another `make clean`.

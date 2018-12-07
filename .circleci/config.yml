@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.10
+      - image: circleci/golang:1.11
     working_directory: /go/src/github.com/giantswarm/gsctl
     steps:
       - checkout
@@ -30,3 +30,41 @@ jobs:
           command: |
             bash ./test_coverage.sh
             bash <(curl -s https://codecov.io/bash)
+  dist:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Create VERSION file
+          command: echo $CIRCLE_TAG > ./VERSION
+      - run:
+          name: Store code signing certificate
+          command: |
+            mkdir -p certs
+            echo $CODE_SIGNING_CERT_BUNDLE_BASE64 | base64 -d > certs/code-signing.p12
+      - run:
+          name: Create binary distribution for all platforms
+          command: make bin-dist
+      - run:
+          name: Create GitHub release
+          command: ./.circleci/release.sh $CIRCLE_TAG $RELEASE_TOKEN
+      - run:
+          name: Update Homebrew tap
+          command: ./.circleci/update-homebrew.sh
+      - run:
+          name: Update scoop bucket
+          command: ./.circleci/update-scoop.sh
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+  release:
+    jobs:
+      - dist:
+          filters:
+            tags:
+              only: /^[0-9]+\.[0-9]+\.[0-9]+$/
+            branches:
+              ignore: /.*/
