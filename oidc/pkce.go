@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	templates = packr.NewBox("../html")
+	templates = packr.NewBox("html")
 )
 
 const (
