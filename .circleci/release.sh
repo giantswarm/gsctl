@@ -9,15 +9,20 @@ readonly GITHUB_TOKEN=$2
 
 main() {
   echo "Creating GitHub release draft for version ${TAG}..."
-  if ! id=$(release_github "${TAG}" "${GITHUB_TOKEN}"); then
-    log_error "GitHub Release could not get created."
+  if ! id=$(release_github $TAG $GITHUB_TOKEN); then
+    log_error "GitHub release could not get created."
     exit 1
   fi
   echo "Created new GitHub release draft with ID ${id}"
 
+  echo "Uploading assets"
+  find ./bin-dist -type f
+
   for filepath in ./bin-dist/*; do
     [ -f "$filepath" ] || continue
-    if [ "$(upload_asset ${TAG}" "${GITHUB_TOKEN}" "${id}" "${filepath}")" == "uploaded" ]; then
+
+    upload_result=$(upload_asset $TAG $GITHUB_TOKEN $id $filepath)
+    if [ "${upload_result}" == "uploaded" ]; then
       echo "File ${filepath} uploaded successfully"
     else
       log_error "Asset ${filepath} could not be uploaded"
@@ -25,13 +30,15 @@ main() {
     fi
   done
   
+  echo "Done."
+  echo ""
   echo "Please edit the release draft in https://github.com/giantswarm/gsctl/releases/"
 }
 
 
 release_github() {
-  local version="${2?Specify version}"
-  local token="${3?Specify Github Token}"
+  local version="${1?Specify version}"
+  local token="${2?Specify Github Token}"
 
   release_output=$(curl -s \
       -X POST \
@@ -54,14 +61,13 @@ release_github() {
 }
 
 upload_asset() {
-  local version="${2?Specify version}"
-  local token="${3?Specify GitHub token}"
-  local release_id="${4?Specify release Id}"
-  local file_path="${5?Specify file path}"
+  local version="${1?Specify version}"
+  local token="${2?Specify GitHub token}"
+  local release_id="${3?Specify release Id}"
+  local file_path="${4?Specify file path}"
 
   file_name=$(basename "${file_path}")
 
-  echo "Upload file ${file_name} to GitHub Release"
   upload_output=$(curl -s \
         -H "Authorization: token ${token}" \
         -H "Content-Type: application/octet-stream" \
@@ -69,7 +75,7 @@ upload_asset() {
           "https://uploads.github.com/repos/giantswarm/gsctl/releases/${release_id}/assets?name=${file_name}"
   )
 
-  echo "${upload_output}" | jq .state
+  echo "${upload_output}" | jq -r .state
   exit 0
 }
 
