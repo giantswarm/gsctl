@@ -16,6 +16,7 @@ import (
 )
 
 var (
+	// ShowReleaseCommand is the cobra command for 'gsctl show release'
 	ShowReleaseCommand = &cobra.Command{
 		Use:   "release",
 		Short: "Show release details",
