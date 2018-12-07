@@ -39,6 +39,9 @@ Dependencies are managed using [`go dep`](https://github.com/golang/dep).
 One option is to execute the program via `go run`, like in this example:
 
 ```nohighlight
+# ensure packr binary is up-to-date
+$ packr
+
 $ go run main.go info
 ```
 
@@ -71,6 +74,17 @@ To quickly run a number of commands:
 ```nohighlight
 make test
 ```
+
+## Embedded HTML files (packr)
+
+For the `sso` command, gsctl needs to run a local webserver and show nicely formated
+html to the user. These html files are found in this folder.
+
+The files get compiled into a binary file in the `oidc` package
+by running the `packr` command.
+
+To learn more about `packr`, visit: https://github.com/gobuffalo/packr
+
 
 ## Coding Style
 
