@@ -23,15 +23,19 @@ TESTBIN := build/bin/${BIN}-${GOOS}-${GOARCH}
 
 all: build
 
+prebuild:
+	go get -u github.com/gobuffalo/packr/packr
+	packr
+
 # build binary for current platform
-build: build/bin/$(BIN)-$(GOOS)-$(GOARCH)
+build: prebuild build/bin/$(BIN)-$(GOOS)-$(GOARCH)
 
 # install binary for current platform (not expected to work on Win)
 install: build
 	cp build/bin/$(BIN)-$(GOOS)-$(GOARCH) /usr/local/bin/$(BIN)
 
 # build for all platforms
-crosscompile: build/bin/$(BIN)-darwin-amd64 build/bin/$(BIN)-linux-amd64 build/bin/$(BIN)-windows-386 build/bin/$(BIN)-windows-amd64
+crosscompile: prebuild build/bin/$(BIN)-darwin-amd64 build/bin/$(BIN)-linux-amd64 build/bin/$(BIN)-windows-386 build/bin/$(BIN)-windows-amd64
 
 # platform-specific build
 build/bin/$(BIN)-darwin-amd64: $(SOURCE)
