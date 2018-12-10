@@ -28,7 +28,7 @@ require "formula"
 class Gsctl < Formula
   desc "Controls things on Giant Swarm"
   homepage "https://github.com/giantswarm/gsctl"
-  url "http://downloads.giantswarm.io/gsctl/$VERSION/gsctl-$VERSION-darwin-amd64.tar.gz"
+  url "https://github.com/giantswarm/gsctl/releases/download/$VERSION/gsctl-$VERSION-darwin-amd64.tar.gz"
   version "$VERSION"
   # openssl dgst -sha256 <file>
   sha256 "$SHA256"
