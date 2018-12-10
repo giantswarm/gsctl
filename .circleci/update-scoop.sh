@@ -44,7 +44,7 @@ EOF
 git config credential.helper 'cache --timeout=120'
 git config user.email "${GITHUB_USER_EMAIL}"
 git config user.name "${GITHUB_USER_NAME}"
-git add gsctl.rb
+git add gsctl.json
 git commit -m "Update gsctl to ${VERSION}"
 
 # Push quietly with -q to prevent showing the token in log
