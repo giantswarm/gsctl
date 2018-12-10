@@ -28,12 +28,12 @@ cat > gsctl.json << EOF
   "license": "APACHE-2.0",
   "architecture": {
     "64bit": {
-      "url": "https://downloads.giantswarm.io/gsctl/$VERSION/gsctl-$VERSION-windows-amd64.zip",
+      "url": "https://github.com/giantswarm/gsctl/releases/download/$VERSION/gsctl-$VERSION-windows-amd64.zip",
       "hash": "$SHA256_64BIT",
       "extract_dir": "gsctl-$VERSION-windows-amd64"
     },
     "32bit": {
-      "url": "https://downloads.giantswarm.io/gsctl/$VERSION/gsctl-$VERSION-windows-386.zip",
+      "url": "https://github.com/giantswarm/gsctl/releases/download/$VERSION/gsctl-$VERSION-windows-386.zip",
       "hash": "$SHA256_32BIT",
       "extract_dir": "gsctl-$VERSION-windows-386"
     }
