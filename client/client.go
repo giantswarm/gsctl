@@ -3,6 +3,9 @@ package client
 import (
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -72,6 +75,23 @@ type WrapperV2 struct {
 
 	// commandLine is the command line use to execute gsctl, can be overridden.
 	commandLine string
+
+	// rawClient is a client used to make simple, authenticated HTTP requests
+	// against the Giant Swarm API using Go's net/http API.
+	rawClient *http.Client
+}
+
+// ClusterStatus is a type we use to unmarshal a cluster status JSON response
+// from the API. Note: this is scarce, leaving out many available details.
+type ClusterStatus struct {
+	Cluster ClusterStatusCluster `json:"cluster"`
+}
+type ClusterStatusCluster struct {
+	Nodes []ClusterStatusClusterNode `json:"nodes"`
+}
+type ClusterStatusClusterNode struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
 }
 
 // NewV2 creates a client based on the latest gsclientgen version.
@@ -104,11 +124,17 @@ func NewV2(conf *Configuration) (*WrapperV2, error) {
 	}
 	transport.Transport = setUserAgent(transport.Transport, conf.UserAgent)
 
+	rawClient := &http.Client{
+		Transport: transport.Transport,
+		Timeout:   conf.Timeout,
+	}
+
 	return &WrapperV2{
 		conf:        conf,
 		gsclient:    gsclient.New(transport, strfmt.Default),
 		requestID:   randomRequestID(),
 		commandLine: getCommandLine(),
+		rawClient:   rawClient,
 	}, nil
 }
 
@@ -339,7 +365,7 @@ func (w *WrapperV2) DeleteCluster(clusterID string, p *AuxiliaryParams) (*cluste
 	return response, nil
 }
 
-// GetClusters fetches details on a cluster using the V2 client.
+// GetClusters fetches a list of clusters using the V2 client.
 func (w *WrapperV2) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, error) {
 	params := clusters.NewGetClustersParams()
 	err := setParamsWithAuthorization(p, w, params)
@@ -369,6 +395,45 @@ func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.
 	}
 
 	return response, nil
+}
+
+// GetClusterStatus fetches status details from the
+// status endpoint (/v4/clusters/{clusterid}/status/).
+// Only a few details are returned.
+func (w *WrapperV2) GetClusterStatus(clusterID string) (*ClusterStatus, *http.Response, error) {
+	url := w.conf.Endpoint + fmt.Sprintf("/v4/clusters/%s/status/", clusterID)
+	fmt.Printf("URL: %s\n", url)
+
+	request, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, nil, microerror.Mask(err)
+	}
+	authHeader, err := w.conf.AuthHeaderGetter()
+	if err != nil {
+		return nil, nil, microerror.Mask(err)
+	}
+	request.Header.Add("Authorization", authHeader)
+
+	response, err := w.rawClient.Do(request)
+	if err != nil {
+		return nil, nil, microerror.Mask(err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		return nil, response, nil
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	responseObject := &ClusterStatus{}
+	err = json.Unmarshal(body, responseObject)
+	if err != nil {
+		return nil, response, microerror.Mask(err)
+	}
+
+	fmt.Printf("Response: %#v\n", responseObject)
+
+	return responseObject, response, nil
 }
 
 // CreateKeyPair calls the addKeyPair API operation using the V2 client.
