@@ -402,7 +402,6 @@ func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.
 // Only a few details are returned.
 func (w *WrapperV2) GetClusterStatus(clusterID string) (*ClusterStatus, *http.Response, error) {
 	url := w.conf.Endpoint + fmt.Sprintf("/v4/clusters/%s/status/", clusterID)
-	fmt.Printf("URL: %s\n", url)
 
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -425,15 +424,13 @@ func (w *WrapperV2) GetClusterStatus(clusterID string) (*ClusterStatus, *http.Re
 	}
 
 	body, err := ioutil.ReadAll(response.Body)
-	responseObject := &ClusterStatus{}
-	err = json.Unmarshal(body, responseObject)
+	status := &ClusterStatus{}
+	err = json.Unmarshal(body, status)
 	if err != nil {
 		return nil, response, microerror.Mask(err)
 	}
 
-	fmt.Printf("Response: %#v\n", responseObject)
-
-	return responseObject, response, nil
+	return status, response, nil
 }
 
 // CreateKeyPair calls the addKeyPair API operation using the V2 client.
