@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
@@ -121,6 +122,31 @@ func getClusterDetails(clusterID, activityName string) (*models.V4ClusterDetails
 	return response.Payload, nil
 }
 
+// getClusterStatus returns the current status of a cluster.
+func getClusterStatus(clusterID string) (*client.ClusterStatus, error) {
+	status, rawResponse, err := ClientV2.GetClusterStatus(clusterID)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	if status == nil {
+		switch rawResponse.StatusCode {
+		case http.StatusForbidden:
+			return nil, microerror.Mask(accessForbiddenError)
+		case http.StatusUnauthorized:
+			return nil, microerror.Mask(notAuthorizedError)
+		case http.StatusNotFound:
+			return nil, microerror.Mask(clusterNotFoundError)
+		case http.StatusInternalServerError:
+			return nil, microerror.Mask(internalServerError)
+		default:
+			return nil, microerror.Mask(unknownError)
+		}
+	}
+
+	return status, nil
+}
+
 func getOrgCredentials(orgName, credentialID, activityName string) (*models.V4GetCredentialResponse, error) {
 	auxParams := ClientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
@@ -173,6 +199,8 @@ func sumWorkerMemory(workerDetails []*models.V4ClusterDetailsResponseWorkersItem
 	return sum
 }
 
+// showClusterRunOutput fetches cluster info from the API, which involves
+// several API calls, and prints the output.
 func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultShowClusterArguments()
 	args.clusterID = cmdLineArgs[0]
@@ -181,35 +209,52 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println(color.WhiteString("Fetching details for cluster %s", args.clusterID))
 	}
 
-	clusterDetails, err := getClusterDetails(args.clusterID, showClusterActivityName)
+	clusterDetailsChan := make(chan *models.V4ClusterDetailsResponse)
+	clusterDetailsErrChan := make(chan error)
 
-	var credentialDetails *models.V4GetCredentialResponse
+	go func(chan *models.V4ClusterDetailsResponse, chan error) {
+		clusterDetails, err := getClusterDetails(args.clusterID, showClusterActivityName)
+		clusterDetailsChan <- clusterDetails
+		clusterDetailsErrChan <- err
+	}(clusterDetailsChan, clusterDetailsErrChan)
 
-	if err == nil && clusterDetails.CredentialID != "" {
-		if args.verbose {
-			fmt.Println(color.WhiteString("Fetching details for credential %s", clusterDetails.CredentialID))
-		}
+	clusterStatusChan := make(chan *client.ClusterStatus)
+	clusterStatusErrChan := make(chan error)
 
-		credentialDetails, err = getOrgCredentials(clusterDetails.Owner, clusterDetails.CredentialID, showClusterActivityName)
+	go func(chan *client.ClusterStatus, chan error) {
+		status, err := getClusterStatus(args.clusterID)
+		clusterStatusChan <- status
+		clusterStatusErrChan <- err
+	}(clusterStatusChan, clusterStatusErrChan)
+
+	clusterDetails := <-clusterDetailsChan
+	clusterDetailsErr := <-clusterDetailsErrChan
+	clusterStatus := <-clusterStatusChan
+	clusterStatusErr := <-clusterStatusErrChan
+
+	// Cluster status isn't crucual, so we inform about problems, but don't exit.
+	if clusterStatusErr != nil {
+		fmt.Println(color.RedString("Error: Could not fetch cluster status."))
+		fmt.Println("The worker node count displayed might derive from the actual number.")
 	}
 
-	if err != nil {
-		handleCommonErrors(err)
+	if clusterDetailsErr != nil {
+		handleCommonErrors(clusterDetailsErr)
 
 		var headline = ""
 		var subtext = ""
 
 		switch {
-		case IsClusterNotFoundError(err):
+		case IsClusterNotFoundError(clusterDetailsErr):
 			headline = "Cluster not found"
 			subtext = "The cluster with this ID could not be found. Please use 'gsctl list clusters' to list all available clusters."
-		case IsCredentialNotFoundError(err):
+		case IsCredentialNotFoundError(clusterDetailsErr):
 			headline = "Credential not found"
 			subtext = "Credentials with the given ID could not be found."
-		case err.Error() == "":
+		case clusterDetailsErr.Error() == "":
 			return
 		default:
-			headline = err.Error()
+			headline = clusterDetailsErr.Error()
 		}
 
 		// Print error output
@@ -218,6 +263,23 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			fmt.Println(subtext)
 		}
 		os.Exit(1)
+	}
+
+	var credentialDetails *models.V4GetCredentialResponse
+	//var credentialDetailsErr error
+	if clusterDetailsErr == nil && clusterDetails.CredentialID != "" {
+		if args.verbose {
+			fmt.Println(color.WhiteString("Fetching details for credential %s", clusterDetails.CredentialID))
+		}
+
+		credentialDetails, _ = getOrgCredentials(clusterDetails.Owner, clusterDetails.CredentialID, showClusterActivityName)
+	}
+
+	// Calculate worker count: if status info contains Cluster.Nodes, we use that.
+	// Otherwise fall back to old style workers slice.
+	numWorkers := len(clusterDetails.Workers)
+	if clusterStatus != nil && clusterStatus.Cluster != nil && clusterStatus.Cluster.Nodes != nil {
+		numWorkers = len(clusterStatus.Cluster.Nodes) - 1 // assuming one master node to subtract
 	}
 
 	// print table
@@ -262,7 +324,7 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		output = append(output, color.YellowString("Release version:")+"|n/a")
 	}
 
-	output = append(output, color.YellowString("Workers:")+"|"+fmt.Sprintf("%d", len(clusterDetails.Workers)))
+	output = append(output, color.YellowString("Workers:")+"|"+fmt.Sprintf("%d", numWorkers))
 
 	// This assumes all nodes use the same instance type.
 	if len(clusterDetails.Workers) > 0 {
