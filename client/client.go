@@ -84,10 +84,10 @@ type WrapperV2 struct {
 // ClusterStatus is a type we use to unmarshal a cluster status JSON response
 // from the API. Note: this is scarce, leaving out many available details.
 type ClusterStatus struct {
-	Cluster ClusterStatusCluster `json:"cluster"`
+	Cluster *ClusterStatusCluster `json:"cluster,omitempty"`
 }
 type ClusterStatusCluster struct {
-	Nodes []ClusterStatusClusterNode `json:"nodes"`
+	Nodes []*ClusterStatusClusterNode `json:"nodes,omitempty"`
 }
 type ClusterStatusClusterNode struct {
 	Name    string `json:"name"`
