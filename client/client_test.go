@@ -405,7 +405,7 @@ func TestGetClusterStatus(t *testing.T) {
 	}
 
 	if len(status.Cluster.Nodes) != 2 {
-		t.Errorf("Expected status.Cluster.Nodes to have length 2. status: %#v", status)
+		t.Errorf("Expected status.Nodes to have length 2. status: %#v", status)
 	}
 }
 
@@ -436,6 +436,6 @@ func TestGetClusterStatusEmpty(t *testing.T) {
 	}
 
 	if len(status.Cluster.Nodes) != 0 {
-		t.Errorf("Expected status.Cluster.Nodes to have length 0. Has length %d", len(status.Cluster.Nodes))
+		t.Errorf("Expected status.Nodes to have length 0. Has length %d", len(status.Cluster.Nodes))
 	}
 }

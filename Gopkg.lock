@@ -74,6 +74,14 @@
   version = "v1.7.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:7024641b2fecc0da5105919f30cb0e954102e0a12ffc6dc9d21dc466986f92cc"
+  name = "github.com/giantswarm/apiextensions"
+  packages = ["pkg/apis/provider/v1alpha1"]
+  pruneopts = "UT"
+  revision = "f6f902443c1891eba281cbea6e137cfbe2c2f9ac"
+
+[[projects]]
   digest = "1:bb4b8d3907c58fa0f09f1a254c2b6acfbeaf307255bc8076e8f578609c0ece56"
   name = "github.com/giantswarm/columnize"
   packages = ["."]
@@ -219,6 +227,33 @@
   version = "v1.13.7"
 
 [[projects]]
+  digest = "1:b402bb9a24d108a9405a6f34675091b036c8b056aac843bf6ef2389a65c5cf48"
+  name = "github.com/gogo/protobuf"
+  packages = [
+    "proto",
+    "sortkeys",
+  ]
+  pruneopts = "UT"
+  revision = "4cbf7e384e768b4e01799441fdf2a706a5635ae7"
+  version = "v1.2.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:1ba1d79f2810270045c328ae5d674321db34e3aae468eb4233883b473c5c0467"
+  name = "github.com/golang/glog"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
+
+[[projects]]
+  branch = "master"
+  digest = "1:3ee90c0d94da31b442dde97c99635aaafec68d0b8a3c12ee2075c6bdabeec6bb"
+  name = "github.com/google/gofuzz"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "24818f796faf91cd76ec7bddd72458fbced7a6c1"
+
+[[projects]]
   branch = "master"
   digest = "1:45aad874d3c7d5e8610427c81870fb54970b981692930ec2a319ce4cb89d7a00"
   name = "github.com/hashicorp/go-rootcerts"
@@ -336,10 +371,13 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:465a33526e2f67923b633d1ff67999c13a41d5226ee8ae78ddc22bc41c5ec4b3"
+  digest = "1:b41f13f4d5dbbd63abe9bf646575e4f83d2637ca243b97ea79b7807242518e8c"
   name = "golang.org/x/net"
   packages = [
     "context",
+    "http/httpguts",
+    "http2",
+    "http2/hpack",
     "idna",
   ]
   pruneopts = "UT"
@@ -381,12 +419,61 @@
   version = "v0.3.0"
 
 [[projects]]
+  digest = "1:2d1fbdc6777e5408cabeb02bf336305e724b925ff4546ded0fa8715a7267922a"
+  name = "gopkg.in/inf.v0"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "d2d2541c53f18d2a059457998ce2876cc8e67cbf"
+  version = "v0.9.1"
+
+[[projects]]
   digest = "1:342378ac4dcb378a5448dd723f0784ae519383532f5e70ade24132c4c8693202"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   pruneopts = "UT"
   revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
   version = "v2.2.1"
+
+[[projects]]
+  digest = "1:833ebb2edb2dc569170027794c7a20a5e7062467a3587accdf6d81a4031c7ef9"
+  name = "k8s.io/apiextensions-apiserver"
+  packages = [
+    "pkg/apis/apiextensions",
+    "pkg/apis/apiextensions/v1beta1",
+  ]
+  pruneopts = "UT"
+  revision = "8e7f43002fec5394a8d96ebca781aa9d4b37aaef"
+  version = "kubernetes-1.10.4"
+
+[[projects]]
+  digest = "1:523526df0bc4e5cecdb4547597e7a64b769ca335a32419f970ef659dc4e59816"
+  name = "k8s.io/apimachinery"
+  packages = [
+    "pkg/api/resource",
+    "pkg/apis/meta/v1",
+    "pkg/conversion",
+    "pkg/conversion/queryparams",
+    "pkg/fields",
+    "pkg/labels",
+    "pkg/runtime",
+    "pkg/runtime/schema",
+    "pkg/selection",
+    "pkg/types",
+    "pkg/util/errors",
+    "pkg/util/intstr",
+    "pkg/util/json",
+    "pkg/util/net",
+    "pkg/util/runtime",
+    "pkg/util/sets",
+    "pkg/util/validation",
+    "pkg/util/validation/field",
+    "pkg/util/wait",
+    "pkg/watch",
+    "third_party/forked/golang/reflect",
+  ]
+  pruneopts = "UT"
+  revision = "17529ec7eadb8de8e7dc835201455f53571f655a"
+  version = "kubernetes-1.10.4"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -398,6 +485,7 @@
     "github.com/coreos/go-semver/semver",
     "github.com/dgrijalva/jwt-go",
     "github.com/fatih/color",
+    "github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1",
     "github.com/giantswarm/columnize",
     "github.com/giantswarm/gsclientgen/client",
     "github.com/giantswarm/gsclientgen/client/auth_tokens",

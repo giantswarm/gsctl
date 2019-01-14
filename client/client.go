@@ -17,6 +17,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	rootcerts "github.com/hashicorp/go-rootcerts"
 
+	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
 	gsclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 	"github.com/giantswarm/gsclientgen/client/clusters"
@@ -84,14 +85,7 @@ type WrapperV2 struct {
 // ClusterStatus is a type we use to unmarshal a cluster status JSON response
 // from the API. Note: this is scarce, leaving out many available details.
 type ClusterStatus struct {
-	Cluster *ClusterStatusCluster `json:"cluster,omitempty"`
-}
-type ClusterStatusCluster struct {
-	Nodes []*ClusterStatusClusterNode `json:"nodes,omitempty"`
-}
-type ClusterStatusClusterNode struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
+	Cluster *v1alpha1.StatusCluster `json:"cluster,omitempty"`
 }
 
 // NewV2 creates a client based on the latest gsclientgen version.
