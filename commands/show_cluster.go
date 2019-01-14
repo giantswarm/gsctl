@@ -279,7 +279,13 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	// Otherwise fall back to old style workers slice.
 	numWorkers := len(clusterDetails.Workers)
 	if clusterStatus != nil && clusterStatus.Cluster != nil && clusterStatus.Cluster.Nodes != nil {
-		numWorkers = len(clusterStatus.Cluster.Nodes) - 1 // assuming one master node to subtract
+		numWorkers = len(clusterStatus.Cluster.Nodes)
+
+		// subtract master node
+		// TODO: change as soon as node role labels are available
+		if numWorkers > 0 {
+			numWorkers--
+		}
 	}
 
 	// print table
