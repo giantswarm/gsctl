@@ -49,7 +49,10 @@ type V4ClusterDetailsResponse struct {
 	//
 	ReleaseVersion string `json:"release_version,omitempty"`
 
-	// workers
+	// scaling
+	Scaling *V4ClusterDetailsResponseScaling `json:"scaling,omitempty"`
+
+	// Information about worker nodes in the cluster (deprecated)
 	Workers []*V4ClusterDetailsResponseWorkersItems `json:"workers"`
 }
 
@@ -58,6 +61,10 @@ func (m *V4ClusterDetailsResponse) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateKvm(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateScaling(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -81,6 +88,24 @@ func (m *V4ClusterDetailsResponse) validateKvm(formats strfmt.Registry) error {
 		if err := m.Kvm.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("kvm")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V4ClusterDetailsResponse) validateScaling(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Scaling) { // not required
+		return nil
+	}
+
+	if m.Scaling != nil {
+		if err := m.Scaling.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("scaling")
 			}
 			return err
 		}
