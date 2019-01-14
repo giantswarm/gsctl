@@ -401,7 +401,7 @@ func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.
 // status endpoint (/v4/clusters/{clusterid}/status/).
 // Only a few details are returned.
 func (w *WrapperV2) GetClusterStatus(clusterID string) (*ClusterStatus, *http.Response, error) {
-	url := w.conf.Endpoint + fmt.Sprintf("/v4/clusters/%s/status/", clusterID)
+	url := fmt.Sprintf("%s/v4/clusters/%s/status/", w.conf.Endpoint, clusterID)
 
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
