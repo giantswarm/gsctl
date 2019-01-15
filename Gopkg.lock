@@ -90,8 +90,8 @@
   version = "v2.0.2"
 
 [[projects]]
-  branch = "master"
-  digest = "1:4b38298e8997fb9433db0c7061ca9cc71d7b2ed6869bd5314517826da55c6cd0"
+  branch = "feature-auto-scaling"
+  digest = "1:6cb6c5050bb5e594953e06780c6f4f1f641af4028fdac1a2e4764e50cf02dd9b"
   name = "github.com/giantswarm/gsclientgen"
   packages = [
     "client",
@@ -105,7 +105,7 @@
     "models",
   ]
   pruneopts = "UT"
-  revision = "7b7603e92b4b4b10c13cf7e3046f8cbb8358220c"
+  revision = "ecb144f27d7b6a462fb74d2e30dd7b4c7b319f7e"
 
 [[projects]]
   branch = "master"

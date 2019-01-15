@@ -33,6 +33,8 @@ __cluster definition format__ (see
 [external documentation](https://github.com/giantswarm/api-spec/blob/master/details/CLUSTER_DEFINITION.md)
 for details).
 
+### Cluster definition
+
 The cluster definition format allows to set a number of optional
 configuration details, like memory size and number of CPU cores.
 However, one attribute is __mandatory__ upon creation: The `owner`
@@ -47,13 +49,21 @@ Additional definition attributes can be used. Where attributes are
 omitted, default configuration values will be applied. For example, if
 no `release_version` is specified, the most recent version is used.
 
+The specification of worker nodes, for example the instance type on AWS,
+can be provided via the `workers` array. Here, the first item of the
+array is used as a specification for all worker nodes. For any missing
+specification attribute, defaults are assumed. Check out the
+[getInfo](#operation/getInfo) operation for more info about defaults.
+
+### Availability Zones (AWS only)
+
 The number of `availability_zones` affects the total number of nodes
 that can be created in the cluster. The number of availability zones
 splits the IP range that can be used for the cluster in multiple smaller
 IP ranges. The [getInfo](#operation/getInfo) endpoint provides more
 details about the cluster IP range.
 
-IP range example:
+__IP range example:__
 
 If a cluster gets a `/22` range (1022 hosts) and the cluster should be
 spawned across 3 availability zones, the range will then be split up
@@ -71,16 +81,35 @@ __Note:__ AWS ELBs can take up to 8 IP addresses due to the way how
 they scale. In addition to this, every AWS subnet has four first
 addresses (.1-.4) reserved for internal use.
 
-The `workers` attribute, if present, must contain an array of node
-definition objects. The number of objects given determines the number
-of workers created.
+### Initial cluster size and autoscaling
 
-For example, requesting three worker nodes with default configuration
-can be achieved by submitting an array of three empty objects:
+The API allows to define the cluster size on creation using the
+`scaling` attribute, setting a minimum and maximum worker node count.
 
-```"workers": [{}, {}, {}]```
+For releases starting from 6.2.0 (on AWS), the cluster size is controlled
+by the [Kubernetes Autoscaler](https://github.com/kubernetes/autoscaler)
+within the limits defined by the `scaling` setting. This setting can
+also be modified any time later in the cluster lifecycle.
 
-For clusters on AWS, note that all worker nodes must use the same instance type.
+By setting both the minimum and maximum to the same value, autoscaling
+is effectively disabled. This is also the default behaviour when no
+initial cluster size is given, or when clusters are upgraded from
+releases before 6.2.0.
+
+Until autoscaling is available on providers other than AWS, for Azure
+and KVM (on-premises) the `min` and `max` scaling value must be
+identical. The same is true for tenant clusters using a release
+before 6.2.0 on AWS.
+
+### Backward compatibility note
+
+Before the introduction of autoscaling and the `scaling` attribute, the
+number of worker nodes could be determined via the number of items
+contained in the `workers` array. This behaviour will be still accepted
+for a transition period, but only if the `scaling` attribute is _not_
+provided in the request. In this case, a `workers` array length of 5,
+for example, will be translated to a scaling where both `min` and `max`
+are set to 5, which effectively turns off autoscaling.
 
 */
 func (a *Client) AddCluster(params *AddClusterParams, authInfo runtime.ClientAuthInfoWriter) (*AddClusterCreated, error) {
@@ -149,7 +178,13 @@ func (a *Client) DeleteCluster(params *DeleteClusterParams, authInfo runtime.Cli
 /*
 GetCluster gets cluster details
 
-This operation allows to obtain all available details on a particular cluster.
+This operation allows to obtain most available details on a particular
+cluster.
+
+__Deprecation note:__ The `workers` attribute will be removed by
+from this operation's response in the near future. Please use the
+[getClusterStatus](#operation/getClusterStatus) operation instead to
+get up-to-date details on the workers nodes in a cluster.
 
 */
 func (a *Client) GetCluster(params *GetClusterParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterOK, error) {
@@ -179,6 +214,48 @@ func (a *Client) GetCluster(params *GetClusterParams, authInfo runtime.ClientAut
 }
 
 /*
+GetClusterStatus gets cluster status
+
+Returns an object about a cluster's current state and past status transitions.
+
+This endpoint exposes the status content of the Kubernetes resources representing
+a cluster in the corresponding custom resource. That is, depending on the provider:
+
+- [awsconfig.provider.giantswarm.io](https://godoc.org/github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1#AWSConfig)
+- [azureconfig.provider.giantswarm.io](https://godoc.org/github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1#AzureConfig)
+- [kvmconfig.provider.giantswarm.io](https://godoc.org/github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1#KVMConfig)
+
+Note that structure and style differ from the rest of the v4 API. Also note that
+the structure depends on the release version and changes can be expected frequently.
+
+*/
+func (a *Client) GetClusterStatus(params *GetClusterStatusParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterStatusOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterStatusParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "getClusterStatus",
+		Method:             "GET",
+		PathPattern:        "/v4/clusters/{cluster_id}/status/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &GetClusterStatusReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetClusterStatusOK), nil
+
+}
+
+/*
 GetClusters gets clusters
 
 This operation fetches a list of clusters.
@@ -190,8 +267,9 @@ A user with admin permission will receive a list of all existing
 clusters.
 
 The result array items are sparse representations of the cluster objects.
-To fetch more details on a cluster, use the [getCluster](#operation/getCluster)
-operation.
+To fetch more details on a cluster, use the
+[getCluster](#operation/getCluster) and
+[getClusterStatus](#operation/getClusterStatus) operations.
 
 */
 func (a *Client) GetClusters(params *GetClustersParams, authInfo runtime.ClientAuthInfoWriter) (*GetClustersOK, error) {
@@ -244,51 +322,26 @@ request has to be a member of both organizations.
 cluster to a newer
 [release](https://docs.giantswarm.io/api/#tag/releases).
 
-- `workers`: By modifying the array of workers, nodes can be added to
-increase the cluster's capacity. See details below.
+- `scaling`: Adjust the cluster node limits to make use of auto scaling
+or to have full control over the node count. The latter can be
+achieved by setting `min` and `max` to the same values. Note that
+setting `min` and `max` to different values (effectively enabling
+autoscaling) is only available on AWS with releases from 6.2.0.
 
-### Adding and Removing Worker Nodes (Scaling)
-
-Adding worker nodes to a cluster or removing worker nodes from a cluster
-works by submitting the `workers` attribute, which contains a (sparse)
-array of worker node defintions.
-
-_Sparse_ here means that all configuration details are optional. In the
-case that worker nodes are added to a cluster, wherever a configuration
-detail is missing, defaults will be applied. See
-[Creating a cluster](#operation/addCluster) for details.
-
-When modifying the cluster resource, you describe the desired state.
-For scaling, this means that the worker node array submitted must
-contain as many elements as the cluster should have worker nodes.
-If your cluster currently has five nodes and you submit a workers
-array with four elements, this means that one worker node will be removed.
-If your submitted workers array has six elements, this means one will
-be added.
-
-As an example, this request body could be used to scale a cluster to
-three worker nodes:
-
-```json
-{
-  "workers": [{}, {}, {}]
-}
-```
-
-If the scaled cluster had four worker nodes before, one would be removed.
-If it had two worker nodes before, one with default settings would be
-added.
+- `workers` (deprecated): For backward compatibility reasons, it is
+possible to provide this attribute as an array, where the number of
+items contained in the array determines the intended number of worker
+nodes in the cluster. The item count will be applied as both `min` and
+`max` value of the scaling limits, effectively disabling autoscaling.
+This requires the `scaling` attribute must not be present in the same
+request.
 
 ### Limitations
 
 - As of now, existing worker nodes cannot be modified.
-- The number of availability zones cannot be modified afterwards.
+- The number of availability zones cannot be modified.
 - When removing nodes (scaling down), it is not possible to determine
 which nodes will be removed.
-- On AWS based clusters, all worker nodes must use the same EC2 instance
-type (`instance_type` node attribute). By not setting an `instance_type`
-when submitting a PATCH request, you ensure that the right instance type
-is used automatically.
 
 */
 func (a *Client) ModifyCluster(params *ModifyClusterParams, authInfo runtime.ClientAuthInfoWriter) (*ModifyClusterOK, error) {

@@ -34,7 +34,12 @@ type V4AddClusterRequest struct {
 	//
 	ReleaseVersion string `json:"release_version,omitempty"`
 
-	// workers
+	// scaling
+	Scaling *V4AddClusterRequestScaling `json:"scaling,omitempty"`
+
+	// Worker node definition. If present, the first item of the array is
+	// expected to contain the specification for all worker nodes.
+	//
 	Workers []*V4AddClusterRequestWorkersItems `json:"workers"`
 }
 
@@ -43,6 +48,10 @@ func (m *V4AddClusterRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateOwner(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateScaling(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -60,6 +69,24 @@ func (m *V4AddClusterRequest) validateOwner(formats strfmt.Registry) error {
 
 	if err := validate.Required("owner", "body", m.Owner); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *V4AddClusterRequest) validateScaling(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Scaling) { // not required
+		return nil
+	}
+
+	if m.Scaling != nil {
+		if err := m.Scaling.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("scaling")
+			}
+			return err
+		}
 	}
 
 	return nil
