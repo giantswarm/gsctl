@@ -30,6 +30,7 @@ type addClusterArguments struct {
 	inputYAMLFile           string
 	numWorkers              int
 	owner                   string
+	releaseVersion          string
 	scheme                  string
 	token                   string
 	wokerAwsEc2InstanceType string
@@ -37,7 +38,8 @@ type addClusterArguments struct {
 	workerNumCPUs           int
 	workerMemorySizeGB      float32
 	workerStorageSizeGB     float32
-	releaseVersion          string
+	workersMax              int64
+	workersMin              int64
 	verbose                 bool
 }
 
@@ -53,14 +55,16 @@ func defaultAddClusterArguments() addClusterArguments {
 		inputYAMLFile:           cmdInputYAMLFile,
 		numWorkers:              cmdNumWorkers,
 		owner:                   cmdOwner,
+		releaseVersion:          cmdRelease,
 		scheme:                  scheme,
 		token:                   token,
-		releaseVersion:          cmdRelease,
 		wokerAwsEc2InstanceType: cmdWorkerAwsEc2InstanceType,
 		wokerAzureVMSize:        cmdWorkerAzureVMSize,
 		workerNumCPUs:           cmdWorkerNumCPUs,
 		workerMemorySizeGB:      cmdWorkerMemorySizeGB,
 		workerStorageSizeGB:     cmdWorkerStorageSizeGB,
+		workersMax:              cmdWorkersMax,
+		workersMin:              cmdWorkersMin,
 		verbose:                 cmdVerbose,
 	}
 }
@@ -110,13 +114,13 @@ Examples:
 
 	gsctl create cluster -o myorg -n "My Cluster" --num-workers 5 --num-cpus 2
 
-	gsctl create cluster -o myorg -n "My AWS Cluster" --num-workers 2 --aws-instance-type m3.medium
+	gsctl create cluster -o myorg -n "My AWS Cluster" --workers-min 2 --aws-instance-type m3.medium
 
-	gsctl create cluster -o myorg -n "My Azure Cluster" --num-workers 2 --azure-vm-size Standard_D2s_v3
+	gsctl create cluster -o myorg -n "My Azure Cluster" --workers-max 2 --azure-vm-size Standard_D2s_v3
 
 	gsctl create cluster -o myorg -n "Cluster using specifc version" -r 1.2.3
 
-	gsctl create cluster -o myorg --num-workers 3 --dry-run --verbose
+	gsctl create cluster -o myorg --workers-min 3 --dry-run --verbose
 
 	`,
 		PreRun: createClusterValidationOutput,
@@ -135,6 +139,10 @@ Examples:
 	cmdWorkerAwsEc2InstanceType string
 	// Azure VmSize to use, provided as a command line flag
 	cmdWorkerAzureVMSize string
+	// cmdWorkersMin is the minimum number of workers created for the cluster.
+	cmdWorkersMin int64
+	// cmdWorkersMax is the minimum number of workers created for the cluster.
+	cmdWorkersMax int64
 	// dry run command line flag
 	cmdDryRun bool
 )
@@ -146,6 +154,8 @@ func init() {
 	CreateClusterCommand.Flags().StringVarP(&cmdOwner, "owner", "o", "", "Organization to own the cluster")
 	CreateClusterCommand.Flags().StringVarP(&cmdRelease, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
 	CreateClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "", 0, "Number of worker nodes. Can't be used with -f|--file.")
+	CreateClusterCommand.Flags().Int64VarP(&cmdWorkersMin, "workers-min", "", 0, "Minimum number of worker nodes. Can't be used with -f|--file.")
+	CreateClusterCommand.Flags().Int64VarP(&cmdWorkersMax, "workers-max", "", 0, "Maximum number of worker nodes. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
 	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAzureVMSize, "azure-vm-size", "", "", "VmSize to use for workers (Azure only), e. g. 'Standard_D2s_v3'")
 	CreateClusterCommand.Flags().IntVarP(&cmdWorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
@@ -155,6 +165,7 @@ func init() {
 
 	// kubernetes-version never had any effect, and is deprecated now on the API side, too
 	CreateClusterCommand.Flags().MarkDeprecated("kubernetes-version", "please use --release to specify a release to use")
+	CreateClusterCommand.Flags().MarkDeprecated("num-workers", "please use --workers-min and --workers-max to specify the node count to use")
 
 	CreateClusterCommand.MarkFlagRequired("owner")
 
@@ -178,6 +189,12 @@ func createClusterValidationOutput(cmd *cobra.Command, args []string) {
 		case IsConflictingFlagsError(err):
 			headline = "Conflicting flags used"
 			subtext = "When specifying a definition via a YAML file, certain flags must not be used."
+		case IsConflictingWorkerFlagsUsed(err):
+			headline = "Conflicting flags used"
+			subtext = "When specifying --num-workers, neither --workers-max nor --workers-min must be used."
+		case IsWorkersMinMaxInvalid(err):
+			headline = "Number of worker nodes invalid"
+			subtext = "Node count flag --workers-min must not be higher than --workers-max."
 		case IsNumWorkerNodesMissingError(err):
 			headline = "Number of worker nodes required"
 			subtext = "When specifying worker node details, you must also specify the number of worker nodes."
@@ -307,8 +324,20 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 	}
 
 	// validate number of workers specified by flag
+	if args.numWorkers > 0 && (args.workersMax > 0 || args.workersMin > 0) {
+		return microerror.Mask(conflictingWorkerFlagsUsedError)
+	}
 	if args.numWorkers > 0 && args.numWorkers < minimumNumWorkers {
 		return microerror.Mask(notEnoughWorkerNodesError)
+	}
+	if args.workersMax > 0 && args.workersMax < int64(minimumNumWorkers) {
+		return microerror.Mask(notEnoughWorkerNodesError)
+	}
+	if args.workersMin > 0 && args.workersMin < int64(minimumNumWorkers) {
+		return microerror.Mask(notEnoughWorkerNodesError)
+	}
+	if args.workersMin > 0 && args.workersMax > 0 && args.workersMin > args.workersMax {
+		return microerror.Mask(workersMinMaxInvalidError)
 	}
 
 	// validate number of CPUs specified by flag
@@ -390,14 +419,29 @@ func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 		def.ReleaseVersion = args.releaseVersion
 	}
 
+	if args.workersMax > 0 {
+		def.Scaling.Max = args.workersMax
+		args.numWorkers = 1
+		if args.workersMin == 0 {
+			def.Scaling.Min = def.Scaling.Max
+		}
+	}
+	if args.workersMin > 0 {
+		def.Scaling.Min = args.workersMin
+		args.numWorkers = 1
+		if args.workersMax == 0 {
+			def.Scaling.Max = def.Scaling.Min
+		}
+	}
+
 	if args.owner != "" {
 		def.Owner = args.owner
 	}
 
 	if args.numWorkers != 0 {
 		workers := []nodeDefinition{}
-		for i := 0; i < args.numWorkers; i++ {
 
+		for i := 0; i < args.numWorkers; i++ {
 			worker := nodeDefinition{}
 
 			if args.workerNumCPUs != 0 {
@@ -424,8 +468,14 @@ func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 
 			workers = append(workers, worker)
 		}
+
 		def.Workers = workers
+		if def.Scaling.Min == 0 && def.Scaling.Max == 0 {
+			def.Scaling.Min = int64(len(def.Workers))
+			def.Scaling.Max = int64(len(def.Workers))
+		}
 	}
+
 	return def
 }
 
@@ -436,6 +486,10 @@ func createAddClusterBody(d clusterDefinition) *models.V4AddClusterRequest {
 	a.Name = d.Name
 	a.Owner = &d.Owner
 	a.ReleaseVersion = d.ReleaseVersion
+	a.Scaling = &models.V4AddClusterRequestScaling{
+		Min: d.Scaling.Min,
+		Max: d.Scaling.Max,
+	}
 
 	for _, dWorker := range d.Workers {
 		ndmWorker := &models.V4AddClusterRequestWorkersItems{}
