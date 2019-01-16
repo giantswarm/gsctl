@@ -99,11 +99,17 @@ type nodeDefinition struct {
 }
 
 type clusterDefinition struct {
-	Name              string           `yaml:"name,omitempty"`
-	Owner             string           `yaml:"owner,omitempty"`
-	ReleaseVersion    string           `yaml:"release_version,omitempty"`
-	AvailabilityZones int              `yaml:"availability_zones,omitempty"`
-	Workers           []nodeDefinition `yaml:"workers,omitempty"`
+	Name              string            `yaml:"name,omitempty"`
+	Owner             string            `yaml:"owner,omitempty"`
+	ReleaseVersion    string            `yaml:"release_version,omitempty"`
+	AvailabilityZones int               `yaml:"availability_zones,omitempty"`
+	Scaling           scalingDefinition `yaml:"scaling,omitempty"`
+	Workers           []nodeDefinition  `yaml:"workers,omitempty"`
+}
+
+type scalingDefinition struct {
+	Min int64 `yaml:"min,omitempty"`
+	Max int64 `yaml:"max,omitempty"`
 }
 
 func init() {

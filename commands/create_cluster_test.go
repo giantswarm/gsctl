@@ -130,6 +130,40 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			},
 		},
 		{
+			description: "Max workers",
+			inputArgs: &addClusterArguments{
+				owner:      "acme",
+				workersMax: 4,
+				token:      "fake token",
+			},
+		},
+		{
+			description: "Min workers",
+			inputArgs: &addClusterArguments{
+				owner:      "acme",
+				workersMin: 4,
+				token:      "fake token",
+			},
+		},
+		{
+			description: "Min workers and max workers same",
+			inputArgs: &addClusterArguments{
+				owner:      "acme",
+				workersMin: 4,
+				workersMax: 4,
+				token:      "fake token",
+			},
+		},
+		{
+			description: "Min workers and max workers different",
+			inputArgs: &addClusterArguments{
+				owner:      "acme",
+				workersMin: 2,
+				workersMax: 4,
+				token:      "fake token",
+			},
+		},
+		{
 			description: "Definition from YAML file",
 			inputArgs: &addClusterArguments{
 				clusterName:   "Cluster Name from Args",
@@ -140,9 +174,6 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			},
 		},
 	}
-
-	var validateErr error
-	var executeErr error
 
 	for i, testCase := range testCases {
 		t.Logf("Case %d: %s", i, testCase.description)
@@ -187,13 +218,13 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		cmdToken = testCase.inputArgs.token
 		initClient()
 
-		validateErr = validateCreateClusterPreConditions(*testCase.inputArgs)
-		if validateErr != nil {
-			t.Errorf("Validation error in testCase %d: %s", i, validateErr.Error())
+		err := validateCreateClusterPreConditions(*testCase.inputArgs)
+		if err != nil {
+			t.Errorf("Validation error in testCase %d: %s", i, err.Error())
 		}
-		_, executeErr = addCluster(*testCase.inputArgs)
-		if executeErr != nil {
-			t.Errorf("Execution error in testCase %d: %s", i, executeErr.Error())
+		_, err = addCluster(*testCase.inputArgs)
+		if err != nil {
+			t.Errorf("Execution error in testCase %d: %s", i, err.Error())
 		}
 	}
 }
@@ -262,9 +293,9 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		validateErr := validateCreateClusterPreConditions(*testCase.inputArgs)
-		if validateErr != nil {
-			t.Errorf("Unexpected error in argument validation: %#v", validateErr)
+		err = validateCreateClusterPreConditions(*testCase.inputArgs)
+		if err != nil {
+			t.Errorf("Unexpected error in argument validation: %#v", err)
 		} else {
 			_, err := addCluster(*testCase.inputArgs)
 			if err == nil {
@@ -275,5 +306,72 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 				t.Errorf("Test case %d did not yield the expected execution error, instead: %#v", i, err)
 			}
 		}
+	}
+}
+
+func Test_CreateCluster_ValidationFailures(t *testing.T) {
+	var testCases = []struct {
+		name         string
+		inputArgs    *addClusterArguments
+		errorMatcher func(err error) bool
+	}{
+		{
+			name: "case 0 workers min is higher than max",
+			inputArgs: &addClusterArguments{
+				owner:      "owner",
+				token:      "some-token",
+				workersMin: 4,
+				workersMax: 2,
+			},
+			errorMatcher: IsWorkersMinMaxInvalid,
+		},
+		{
+			name: "case 1 workers min and max with legacy num workers",
+			inputArgs: &addClusterArguments{
+				owner:      "owner",
+				token:      "some-token",
+				workersMin: 4,
+				workersMax: 2,
+				numWorkers: 2,
+			},
+			errorMatcher: IsConflictingWorkerFlagsUsed,
+		},
+		{
+			name: "case 2 workers min with legacy num workers",
+			inputArgs: &addClusterArguments{
+				owner:      "owner",
+				token:      "some-token",
+				workersMin: 4,
+				numWorkers: 2,
+			},
+			errorMatcher: IsConflictingWorkerFlagsUsed,
+		},
+		{
+			name: "case 3 workers max with legacy num workers",
+			inputArgs: &addClusterArguments{
+				owner:      "owner",
+				token:      "some-token",
+				workersMax: 2,
+				numWorkers: 2,
+			},
+			errorMatcher: IsConflictingWorkerFlagsUsed,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateCreateClusterPreConditions(*tc.inputArgs)
+
+			switch {
+			case err == nil && tc.errorMatcher == nil:
+				// correct; carry on
+			case err != nil && tc.errorMatcher == nil:
+				t.Fatalf("error == %#v, want nil", err)
+			case err == nil && tc.errorMatcher != nil:
+				t.Fatalf("error == nil, want non-nil")
+			case !tc.errorMatcher(err):
+				t.Fatalf("error == %#v, want matching", err)
+			}
+		})
 	}
 }
