@@ -440,8 +440,8 @@ func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 
 	if args.numWorkers != 0 {
 		workers := []nodeDefinition{}
-		for i := 0; i < args.numWorkers; i++ {
 
+		for i := 0; i < args.numWorkers; i++ {
 			worker := nodeDefinition{}
 
 			if args.workerNumCPUs != 0 {
@@ -468,8 +468,14 @@ func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 
 			workers = append(workers, worker)
 		}
+
 		def.Workers = workers
+		if def.Scaling.Min == 0 && def.Scaling.Max == 0 {
+			def.Scaling.Min = int64(len(def.Workers))
+			def.Scaling.Max = int64(len(def.Workers))
+		}
 	}
+
 	return def
 }
 
