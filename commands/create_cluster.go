@@ -167,8 +167,6 @@ func init() {
 	CreateClusterCommand.Flags().MarkDeprecated("kubernetes-version", "please use --release to specify a release to use")
 	CreateClusterCommand.Flags().MarkDeprecated("num-workers", "please use --workers-min and --workers-max to specify the node count to use")
 
-	CreateClusterCommand.MarkFlagRequired("owner")
-
 	CreateCommand.AddCommand(CreateClusterCommand)
 }
 
@@ -366,47 +364,25 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 }
 
 // readDefinitionFromFile reads a cluster definition from a YAML config file
-func readDefinitionFromFile(filePath string) (clusterDefinition, error) {
-	myDef := clusterDefinition{}
-	data, readErr := ioutil.ReadFile(filePath)
-	if readErr != nil {
-		return myDef, readErr
-	}
-	return unmarshalDefinition(data, myDef)
-}
+func readDefinitionFromFile(path string) (clusterDefinition, error) {
+	def := clusterDefinition{}
 
-// unmarshalDefinition takes YAML input and returns it as a clusterDefinition
-func unmarshalDefinition(data []byte, myDef clusterDefinition) (clusterDefinition, error) {
-	yamlErr := yaml.Unmarshal(data, &myDef)
-	if yamlErr != nil {
-		return myDef, yamlErr
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return clusterDefinition{}, microerror.Mask(err)
 	}
-	return myDef, nil
-}
 
-// enhanceDefinitionWithFlags takes a definition specified by file and
-// overwrites some settings given via flags.
-// Note that only a few attributes can be overridden by flags.
-func enhanceDefinitionWithFlags(def *clusterDefinition, args addClusterArguments) {
-	if args.availabilityZones != 0 {
-		def.AvailabilityZones = args.availabilityZones
+	err = yaml.Unmarshal(data, &def)
+	if err != nil {
+		return clusterDefinition{}, microerror.Mask(err)
 	}
-	if args.clusterName != "" {
-		def.Name = args.clusterName
-	}
-	if args.releaseVersion != "" {
-		def.ReleaseVersion = args.releaseVersion
-	}
-	if args.owner != "" {
-		def.Owner = args.owner
-	}
+
+	return def, nil
 }
 
 // createDefinitionFromFlags creates a clusterDefinition based on the
 // flags/arguments the user has given
-func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
-	def := clusterDefinition{}
-
+func definitionFromFlags(def clusterDefinition, args addClusterArguments) clusterDefinition {
 	if args.availabilityZones != 0 {
 		def.AvailabilityZones = args.availabilityZones
 	}
@@ -417,6 +393,13 @@ func createDefinitionFromFlags(args addClusterArguments) clusterDefinition {
 
 	if args.releaseVersion != "" {
 		def.ReleaseVersion = args.releaseVersion
+	}
+
+	if def.Scaling.Min > 0 && args.workersMin == 0 {
+		args.workersMin = def.Scaling.Min
+	}
+	if def.Scaling.Max > 0 && args.workersMax == 0 {
+		args.workersMax = def.Scaling.Max
 	}
 
 	if args.workersMax > 0 {
@@ -517,15 +500,15 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		if err != nil {
 			return addClusterResult{}, microerror.Maskf(yamlFileNotReadableError, err.Error())
 		}
-		enhanceDefinitionWithFlags(&result.definition, args)
+		result.definition = definitionFromFlags(result.definition, args)
 	} else {
 		// definition from flags only
-		result.definition = createDefinitionFromFlags(args)
+		result.definition = definitionFromFlags(clusterDefinition{}, args)
 	}
 
 	// Validate definition
 	if result.definition.Owner == "" {
-		return result, microerror.Mask(clusterOwnerMissingError)
+		return addClusterResult{}, microerror.Mask(clusterOwnerMissingError)
 	}
 
 	// Validations based on definition file.
@@ -533,7 +516,7 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 	if args.inputYAMLFile != "" {
 		// number of workers
 		if len(result.definition.Workers) > 0 && len(result.definition.Workers) < minimumNumWorkers {
-			return result, microerror.Mask(notEnoughWorkerNodesError)
+			return addClusterResult{}, microerror.Mask(notEnoughWorkerNodesError)
 		}
 	}
 
