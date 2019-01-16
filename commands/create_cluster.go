@@ -135,6 +135,10 @@ Examples:
 	cmdWorkerAwsEc2InstanceType string
 	// Azure VmSize to use, provided as a command line flag
 	cmdWorkerAzureVMSize string
+	// cmdWorkersMin is the minimum number of workers created for the cluster.
+	cmdWorkersMin int64
+	// cmdWorkersMax is the minimum number of workers created for the cluster.
+	cmdWorkersMax int64
 	// dry run command line flag
 	cmdDryRun bool
 )

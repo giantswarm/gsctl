@@ -552,3 +552,27 @@ var updateCheckFailed = &microerror.Error{
 func IsUpdateCheckFailed(err error) bool {
 	return microerror.Cause(err) == updateCheckFailed
 }
+
+// conflictingWorkerFlagsUsedError is raised when the deprecated --num-workers
+// flag is used together with the new node count flags --workers-min and
+// --workers-max.
+var conflictingWorkerFlagsUsedError = &microerror.Error{
+	Kind: "conflictingWorkerFlagsUsedError",
+}
+
+// IsConflictingWorkerFlagsUsed asserts conflictingWorkerFlagsUsedError.
+func IsConflictingWorkerFlagsUsed(err error) bool {
+	return microerror.Cause(err) == conflictingWorkerFlagsUsedError
+}
+
+// workersMinMaxInvalidError is raised when the value of the node count flag
+// --workers-min is higher than the value of the node count flag --workers-max.
+var workersMinMaxInvalidError = &microerror.Error{
+	Kind: "workersMinMaxInvalidError",
+	Desc: "min must not be higher than max",
+}
+
+// IsWorkersMinMaxInvalid asserts workersMinMaxInvalidError.
+func IsWorkersMinMaxInvalid(err error) bool {
+	return microerror.Cause(err) == workersMinMaxInvalidError
+}

@@ -33,7 +33,7 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 	cmdAPIEndpoint = mockServer.URL
 	initClient()
 
-	err := verifyScaleClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := validateScaleClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if !IsNotLoggedInError(err) {
 		t.Error("Expected notLoggedInError, got", err)
 	}
@@ -108,7 +108,7 @@ func TestScaleCluster(t *testing.T) {
 	cmdAPIEndpoint = mockServer.URL
 	initClient()
 
-	err := verifyScaleClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := validateScaleClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
 		t.Error(err)
 	}
