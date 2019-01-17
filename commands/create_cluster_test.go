@@ -36,7 +36,7 @@ func Test_CreateFromYAML01(t *testing.T) {
 	}
 
 	if def.Owner != "myorg" {
-		t.Error("Expected owner 'myorg', got: ", def.Owner)
+		t.Error("expected owner 'myorg', got: ", def.Owner)
 	}
 }
 
@@ -54,10 +54,10 @@ name: Minimal cluster spec
 	}
 
 	if def.Owner != "myorg" {
-		t.Error("Expected owner 'myorg', got: ", def.Owner)
+		t.Error("expected owner 'myorg', got: ", def.Owner)
 	}
 	if def.Name != "Minimal cluster spec" {
-		t.Error("Expected name 'Minimal cluster spec', got: ", def.Name)
+		t.Error("expected name 'Minimal cluster spec', got: ", def.Name)
 	}
 }
 
@@ -85,16 +85,16 @@ workers:
 	}
 
 	if len(def.Workers) != 2 {
-		t.Error("Expected 2 workers, got: ", len(def.Workers))
+		t.Error("expected 2 workers, got: ", len(def.Workers))
 	}
 	if def.Workers[1].CPU.Cores != 2 {
-		t.Error("Expected def.Workers[1].CPU.Cores to be 2, got: ", def.Workers[1].CPU.Cores)
+		t.Error("expected def.Workers[1].CPU.Cores to be 2, got: ", def.Workers[1].CPU.Cores)
 	}
 	if def.Workers[1].Memory.SizeGB != 5.5 {
-		t.Error("Expected def.Workers[1].Memory.SizeGB to be 5.5, got: ", def.Workers[1].Memory.SizeGB)
+		t.Error("expected def.Workers[1].Memory.SizeGB to be 5.5, got: ", def.Workers[1].Memory.SizeGB)
 	}
 	if def.Workers[1].Storage.SizeGB != 13.0 {
-		t.Error("Expected def.Workers[1].Storage.SizeGB to be 13, got: ", def.Workers[1].Storage.SizeGB)
+		t.Error("expected def.Workers[1].Storage.SizeGB to be 13, got: ", def.Workers[1].Storage.SizeGB)
 	}
 }
 
