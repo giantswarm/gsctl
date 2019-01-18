@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/giantswarm/microerror"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // TestReadFiles tests the readDefinitionFromFile with all
@@ -26,37 +27,43 @@ func TestReadFiles(t *testing.T) {
 
 // Test_CreateFromYAML01 tests parsing a most simplistic YAML definition.
 func Test_CreateFromYAML01(t *testing.T) {
-	definition := clusterDefinition{}
+	def := clusterDefinition{}
 	data := []byte(`owner: myorg`)
-	myDef, err := unmarshalDefinition(data, definition)
+
+	err := yaml.Unmarshal(data, &def)
 	if err != nil {
-		t.Error("Unmarshalling minimal cluster definition YAML failed: ", err)
+		t.Fatalf("expected error to be empty, got %#v", err)
 	}
-	if myDef.Owner != "myorg" {
-		t.Error("Expected owner 'myorg', got: ", myDef.Owner)
+
+	if def.Owner != "myorg" {
+		t.Error("expected owner 'myorg', got: ", def.Owner)
 	}
 }
 
 // Test_CreateFromYAML02 tests parsing a rather simplistic YAML definition.
 func Test_CreateFromYAML02(t *testing.T) {
-	definition := clusterDefinition{}
-	data := []byte(`owner: myorg
-name: Minimal cluster spec`)
-	myDef, err := unmarshalDefinition(data, definition)
+	def := clusterDefinition{}
+	data := []byte(`
+owner: myorg
+name: Minimal cluster spec
+`)
+
+	err := yaml.Unmarshal(data, &def)
 	if err != nil {
-		t.Error("Unmarshalling minimal cluster definition YAML failed: ", err)
+		t.Fatalf("expected error to be empty, got %#v", err)
 	}
-	if myDef.Owner != "myorg" {
-		t.Error("Expected owner 'myorg', got: ", myDef.Owner)
+
+	if def.Owner != "myorg" {
+		t.Error("expected owner 'myorg', got: ", def.Owner)
 	}
-	if myDef.Name != "Minimal cluster spec" {
-		t.Error("Expected name 'Minimal cluster spec', got: ", myDef.Name)
+	if def.Name != "Minimal cluster spec" {
+		t.Error("expected name 'Minimal cluster spec', got: ", def.Name)
 	}
 }
 
 // Test_CreateFromYAML03 tests all the worker details.
 func Test_CreateFromYAML03(t *testing.T) {
-	definition := clusterDefinition{}
+	def := clusterDefinition{}
 	data := []byte(`
 owner: littleco
 workers:
@@ -71,34 +78,38 @@ workers:
     labels:
       foo: bar
 `)
-	myDef, err := unmarshalDefinition(data, definition)
+
+	err := yaml.Unmarshal(data, &def)
 	if err != nil {
-		t.Error("Unmarshalling minimal cluster definition YAML failed: ", err)
+		t.Fatalf("expected error to be empty, got %#v", err)
 	}
-	if len(myDef.Workers) != 2 {
-		t.Error("Expected 2 workers, got: ", len(myDef.Workers))
+
+	if len(def.Workers) != 2 {
+		t.Error("expected 2 workers, got: ", len(def.Workers))
 	}
-	if myDef.Workers[1].CPU.Cores != 2 {
-		t.Error("Expected myDef.Workers[1].CPU.Cores to be 2, got: ", myDef.Workers[1].CPU.Cores)
+	if def.Workers[1].CPU.Cores != 2 {
+		t.Error("expected def.Workers[1].CPU.Cores to be 2, got: ", def.Workers[1].CPU.Cores)
 	}
-	if myDef.Workers[1].Memory.SizeGB != 5.5 {
-		t.Error("Expected myDef.Workers[1].Memory.SizeGB to be 5.5, got: ", myDef.Workers[1].Memory.SizeGB)
+	if def.Workers[1].Memory.SizeGB != 5.5 {
+		t.Error("expected def.Workers[1].Memory.SizeGB to be 5.5, got: ", def.Workers[1].Memory.SizeGB)
 	}
-	if myDef.Workers[1].Storage.SizeGB != 13.0 {
-		t.Error("Expected myDef.Workers[1].Storage.SizeGB to be 13, got: ", myDef.Workers[1].Storage.SizeGB)
+	if def.Workers[1].Storage.SizeGB != 13.0 {
+		t.Error("expected def.Workers[1].Storage.SizeGB to be 13, got: ", def.Workers[1].Storage.SizeGB)
 	}
 }
 
 // Test_CreateFromBadYAML01 tests how non-conforming YAML is treated.
 func Test_CreateFromBadYAML01(t *testing.T) {
-	definition := clusterDefinition{}
 	data := []byte(`o: myorg`)
-	myDef, err := unmarshalDefinition(data, definition)
+	def := clusterDefinition{}
+
+	err := yaml.Unmarshal(data, &def)
 	if err != nil {
-		t.Error("Unmarshalling minimal cluster definition YAML failed: ", err)
+		t.Fatalf("expected error to be empty, got %#v", err)
 	}
-	if myDef.Owner != "" {
-		t.Error("Expected owner to be empty, got: ", myDef.Owner)
+
+	if def.Owner != "" {
+		t.Fatalf("expected owner to be empty, got %q", def.Owner)
 	}
 }
 
