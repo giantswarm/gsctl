@@ -330,7 +330,19 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		output = append(output, color.YellowString("Release version:")+"|n/a")
 	}
 
-	output = append(output, color.YellowString("Workers:")+"|"+fmt.Sprintf("%d", numWorkers))
+	// scaling info
+	scalingInfo := "unknown"
+	if clusterDetails.Scaling != nil {
+		if clusterDetails.Scaling.Min == clusterDetails.Scaling.Max {
+			scalingInfo = fmt.Sprintf("pinned at %d", clusterDetails.Scaling.Min)
+		} else {
+			scalingInfo = fmt.Sprintf("autoscaling between %d and %d", clusterDetails.Scaling.Min, clusterDetails.Scaling.Max)
+		}
+	}
+	output = append(output, color.YellowString("Worker nodes scaling:")+"|"+scalingInfo)
+
+	// current number of workers
+	output = append(output, color.YellowString("Worker nodes:")+"|"+fmt.Sprintf("%d", numWorkers))
 
 	// This assumes all nodes use the same instance type.
 	if len(clusterDetails.Workers) > 0 {
