@@ -1,11 +1,13 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
@@ -48,6 +50,10 @@ Examples:
 const (
 	scaleClusterActivityName = "scale-cluster"
 )
+
+type ClusterStatus struct {
+	Cluster *v1alpha1.StatusCluster `json:"cluster,omitempty"`
+}
 
 type scaleClusterArguments struct {
 	clusterID           string
@@ -178,7 +184,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultScaleClusterArguments()
 	args.clusterID = cmdLineArgs[0]
 
-	result, err := scaleCluster(args)
+	_, err := scaleCluster(args)
 	if err != nil {
 		handleCommonErrors(err)
 
@@ -248,11 +254,11 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	if err != nil {
 		return results, microerror.Mask(err)
 	}
-	clusterStatus, err := getClusterStatus(args.clusterID, scaleClusterActivityName)
+	desiredCapacity, err := getDesiredCapacity(args.clusterID, scaleClusterActivityName)
 	if err != nil {
 		return results, microerror.Mask(err)
 	}
-	currentWorkers := clusterStatus
+	currentWorkers := desiredCapacity
 	results.workersMaxBefore = clusterDetails.Scaling.Max
 	results.workersMinBefore = clusterDetails.Scaling.Min
 
@@ -261,13 +267,13 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	}
 
 	// confirmation in case of scaling down
-	/*if !args.oppressConfirmation && results.numWorkersToAdd < 0 {
+	if !args.oppressConfirmation && currentWorkers > args.workersMax {
 		confirmed := askForConfirmation(fmt.Sprintf("Do you really want to reduce the worker nodes for cluster '%s' to %d?",
 			args.clusterID, args.numWorkersDesired))
 		if !confirmed {
 			return results, microerror.Mask(commandAbortedError)
 		}
-	}*/
+	}
 
 	// Preparing API call.
 	reqBody := &models.V4ModifyClusterRequest{
@@ -285,7 +291,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	auxParams := ClientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = scaleClusterActivityName
 
-	response, err := ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
+	_, err = ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusForbidden {
@@ -302,7 +308,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 }
 
 // getClusterStatus returns status for one cluster.
-func getClusterStatus(clusterID, activityName string) (*models.V4GetClusterStatusResponse, error) {
+func getDesiredCapacity(clusterID, activityName string) (int64, error) {
 	// perform API call
 	auxParams := ClientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
@@ -312,18 +318,35 @@ func getClusterStatus(clusterID, activityName string) (*models.V4GetClusterStatu
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			switch clientErr.HTTPStatusCode {
 			case http.StatusForbidden:
-				return nil, microerror.Mask(accessForbiddenError)
+				return 0, microerror.Mask(accessForbiddenError)
 			case http.StatusUnauthorized:
-				return nil, microerror.Mask(notAuthorizedError)
+				return 0, microerror.Mask(notAuthorizedError)
 			case http.StatusNotFound:
-				return nil, microerror.Mask(clusterNotFoundError)
+				return 0, microerror.Mask(clusterNotFoundError)
 			case http.StatusInternalServerError:
-				return nil, microerror.Mask(internalServerError)
+				return 0, microerror.Mask(internalServerError)
 			}
 		}
 
-		return nil, microerror.Mask(err)
+		return 0, microerror.Mask(err)
 	}
 
-	return &response.Payload, nil
+	status, ok := response.Payload.(map[string]interface{})
+	if !ok {
+		return 0, microerror.Mask(internalServerError)
+	}
+	scaling, ok := status["scaling"].(map[string]interface{})
+	if !ok {
+		return 0, microerror.Mask(internalServerError)
+	}
+	desiredCapacityNumber, ok := scaling["desiredCapacity"].(json.Number)
+	if !ok {
+		return 0, microerror.Mask(internalServerError)
+	}
+	desiredCapacity, err := desiredCapacityNumber.Int64()
+	if err != nil {
+		return 0, microerror.Mask(internalServerError)
+	}
+
+	return desiredCapacity, nil
 }
