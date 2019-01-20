@@ -116,7 +116,7 @@ func init() {
 	ScaleCommand.AddCommand(ScaleClusterCommand)
 }
 
-// scaleClusterPreRunOutput calls a pre-check function. In case anything is missing,
+// scaleClusterValidationOutput calls a pre-check function. In case anything is missing,
 // displays the error and exits with code 1.
 func scaleClusterValidationOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultScaleClusterArguments()
@@ -124,7 +124,7 @@ func scaleClusterValidationOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	headline := ""
 	subtext := ""
 
-	err := validateScaleClusterPreconditions(args, cmdLineArgs)
+	err := validateScaleCluster(args, cmdLineArgs)
 	if err != nil {
 		handleCommonErrors(err)
 
@@ -151,8 +151,8 @@ func scaleClusterValidationOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 }
 
-// verifyScaleClusterPreconditions does a few general checks and returns an error in case something is missing.
-func validateScaleClusterPreconditions(args scaleClusterArguments, cmdLineArgs []string) error {
+// validatyScaleCluster does a few general checks and returns an error in case something is missing.
+func validateScaleCluster(args scaleClusterArguments, cmdLineArgs []string) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(notLoggedInError)
 	}
@@ -216,39 +216,11 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		os.Exit(1)
 	}
 
-	/* Print success output
-	workerWordTotal := "workers"
-	if result.numWorkersAfter == 1 {
-		workerWordTotal = "worker"
-	}
-	workerWordDiff := "workers"
-	if math.Abs(float64(result.numWorkersToAdd)) == 1 {
-		workerWordDiff = "worker"
-	}
-
-	if result.numWorkersToAdd > 0 {
-		// scaling up
-		fmt.Println(color.GreenString("The cluster is being scaled up"))
-		fmt.Printf("Adding %d %s to the cluster for a total of %d %s.\n",
-			result.numWorkersToAdd, workerWordDiff,
-			result.numWorkersAfter, workerWordTotal)
-	} else {
-		// scaling down
-		fmt.Println(color.GreenString("The cluster is being scaled down"))
-		fmt.Printf("Removing %d %s from the cluster for a total of %d %s.\n",
-			int(math.Abs(float64(result.numWorkersToAdd))), workerWordDiff,
-			result.numWorkersAfter, workerWordTotal)
-	}*/
 }
 
 // scaleCluster is the actual function submitting the API call and handling the response.
 func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	results := scaleClusterResults{}
-
-	if args.numWorkersDesired == 0 {
-		// here we enforce a minimum workers count of 1
-		return results, microerror.Mask(cannotScaleBelowMinimumWorkersError)
-	}
 
 	clusterDetails, err := getClusterDetails(args.clusterID, scaleClusterActivityName)
 	if err != nil {
@@ -278,8 +250,8 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	// Preparing API call.
 	reqBody := &models.V4ModifyClusterRequest{
 		Scaling: &models.V4ModifyClusterRequestScaling{
-			Max: 0,
-			Min: 0,
+			Max: args.workersMax,
+			Min: args.workersMin,
 		},
 	}
 

@@ -33,7 +33,7 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 	cmdAPIEndpoint = mockServer.URL
 	initClient()
 
-	err := validateScaleClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := validateScaleCluster(testArgs, []string{testArgs.clusterID})
 	if !IsNotLoggedInError(err) {
 		t.Error("Expected notLoggedInError, got", err)
 	}
@@ -43,7 +43,6 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 // TestScaleCluster tests scaling a cluster under normal conditions:
 // user logged in.
 func TestScaleCluster(t *testing.T) {
-	var numWorkersDesired = 5
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -57,8 +56,8 @@ func TestScaleCluster(t *testing.T) {
 				"create_date": "2017-05-16T09:30:31.192170835Z",
 				"owner": "acmeorg",
 				"scaling": {
-					"max":5,
-					"min":5
+					"max":3,
+					"min":3
 				},
 				"workers": [
 					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
@@ -79,10 +78,6 @@ func TestScaleCluster(t *testing.T) {
 			if !patch.Exists("workers") {
 				t.Error("Patch request body does not contain 'workers' key.")
 			}
-			workers, _ := patch.S("workers").Children()
-			if len(workers) != numWorkersDesired {
-				t.Error("Patch request contains", len(workers), "workers, expected 5")
-			}
 
 			w.Write([]byte(`{
 				"id": "cluster-id",
@@ -102,7 +97,7 @@ func TestScaleCluster(t *testing.T) {
 
 			w.Write([]byte(`{
 				"scaling": {
-					"desiredCapacity": 5
+					"desiredCapacity": 3
 				}
 			}`))
 		}
@@ -110,16 +105,17 @@ func TestScaleCluster(t *testing.T) {
 	defer mockServer.Close()
 
 	testArgs := scaleClusterArguments{
-		apiEndpoint:       mockServer.URL,
-		clusterID:         "cluster-id",
-		numWorkersDesired: numWorkersDesired,
+		apiEndpoint: mockServer.URL,
+		clusterID:   "cluster-id",
+		workersMax:  5,
+		workersMin:  5,
 	}
 	config.Config.Token = "my-token"
 
 	cmdAPIEndpoint = mockServer.URL
 	initClient()
 
-	err := validateScaleClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := validateScaleCluster(testArgs, []string{testArgs.clusterID})
 	if err != nil {
 		t.Error(err)
 	}
