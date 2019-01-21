@@ -279,12 +279,16 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	// Otherwise fall back to old style workers slice.
 	numWorkers := len(clusterDetails.Workers)
 	if clusterStatus != nil && clusterStatus.Cluster != nil && clusterStatus.Cluster.Nodes != nil {
-		numWorkers = len(clusterStatus.Cluster.Nodes)
+		numWorkers = 0
 
-		// subtract master node
-		// TODO: change as soon as node role labels are available
-		if numWorkers > 0 {
-			numWorkers--
+		// Count all nodes as workers which are not explicitly marked as master.
+		for _, node := range clusterStatus.Cluster.Nodes {
+			val, ok := node.Labels["role"]
+			if ok && val == "master" {
+				// don't count this
+			} else {
+				numWorkers++
+			}
 		}
 	}
 
