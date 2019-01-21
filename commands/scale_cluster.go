@@ -226,7 +226,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	if err != nil {
 		return results, microerror.Mask(err)
 	}
-	status, err := getDesiredCapacity(args.clusterID, scaleClusterActivityName)
+	status, err := getClusterStatus(args.clusterID, scaleClusterActivityName)
 	if err != nil {
 		return results, microerror.Mask(err)
 	}
@@ -279,7 +279,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 }
 
 // getClusterStatus returns status for one cluster.
-func getDesiredCapacity(clusterID, activityName string) (*v1alpha1.StatusCluster, error) {
+func getClusterStatus(clusterID, activityName string) (*v1alpha1.StatusCluster, error) {
 	// perform API call
 	auxParams := ClientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
