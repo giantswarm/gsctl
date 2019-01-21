@@ -226,11 +226,10 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	if err != nil {
 		return results, microerror.Mask(err)
 	}
-	desiredCapacity, err := getDesiredCapacity(args.clusterID, scaleClusterActivityName)
+	status, err := getDesiredCapacity(args.clusterID, scaleClusterActivityName)
 	if err != nil {
 		return results, microerror.Mask(err)
 	}
-	currentWorkers := desiredCapacity
 	results.workersMaxBefore = clusterDetails.Scaling.Max
 	results.workersMinBefore = clusterDetails.Scaling.Min
 
@@ -239,7 +238,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 	}
 
 	// confirmation in case of scaling down
-	if !args.oppressConfirmation && currentWorkers > args.workersMax {
+	if !args.oppressConfirmation && int64(status.Scaling.DesiredCapacity) > args.workersMax {
 		confirmed := askForConfirmation(fmt.Sprintf("Do you really want to reduce the worker nodes for cluster '%s' to %d?",
 			args.clusterID, args.numWorkersDesired))
 		if !confirmed {
@@ -280,7 +279,7 @@ func scaleCluster(args scaleClusterArguments) (scaleClusterResults, error) {
 }
 
 // getClusterStatus returns status for one cluster.
-func getDesiredCapacity(clusterID, activityName string) (int64, error) {
+func getDesiredCapacity(clusterID, activityName string) (*v1alpha1.StatusCluster, error) {
 	// perform API call
 	auxParams := ClientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
@@ -290,35 +289,29 @@ func getDesiredCapacity(clusterID, activityName string) (int64, error) {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			switch clientErr.HTTPStatusCode {
 			case http.StatusForbidden:
-				return 0, microerror.Mask(accessForbiddenError)
+				return nil, microerror.Mask(accessForbiddenError)
 			case http.StatusUnauthorized:
-				return 0, microerror.Mask(notAuthorizedError)
+				return nil, microerror.Mask(notAuthorizedError)
 			case http.StatusNotFound:
-				return 0, microerror.Mask(clusterNotFoundError)
+				return nil, microerror.Mask(clusterNotFoundError)
 			case http.StatusInternalServerError:
-				return 0, microerror.Mask(internalServerError)
+				return nil, microerror.Mask(internalServerError)
 			}
 		}
 
-		return 0, microerror.Mask(err)
+		return nil, microerror.Mask(err)
 	}
-
-	status, ok := response.Payload.(map[string]interface{})
-	if !ok {
-		return 0, microerror.Mask(internalServerError)
-	}
-	scaling, ok := status["scaling"].(map[string]interface{})
-	if !ok {
-		return 0, microerror.Mask(internalServerError)
-	}
-	desiredCapacityNumber, ok := scaling["desiredCapacity"].(json.Number)
-	if !ok {
-		return 0, microerror.Mask(internalServerError)
-	}
-	desiredCapacity, err := desiredCapacityNumber.Int64()
+	m, err := json.Marshal(response.Payload)
 	if err != nil {
-		return 0, microerror.Mask(internalServerError)
+		return nil, err
 	}
 
-	return desiredCapacity, nil
+	var status v1alpha1.StatusCluster
+
+	err = json.Unmarshal(m, &status)
+	if err != nil {
+		return nil, err
+	}
+
+	return &status, nil
 }
