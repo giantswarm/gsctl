@@ -33,7 +33,7 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 	cmdAPIEndpoint = mockServer.URL
 	initClient()
 
-	err := validateScaleCluster(testArgs, []string{testArgs.clusterID})
+	err := validateScaleCluster(testArgs, []string{testArgs.clusterID}, 5, 5, 5)
 	if !IsNotLoggedInError(err) {
 		t.Error("Expected notLoggedInError, got", err)
 	}
@@ -107,25 +107,21 @@ func TestScaleCluster(t *testing.T) {
 	testArgs := scaleClusterArguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "cluster-id",
-		workersMax:  5,
-		workersMin:  5,
+		workersMax:  int64(5),
+		workersMin:  int64(5),
 	}
 	config.Config.Token = "my-token"
 
 	cmdAPIEndpoint = mockServer.URL
 	initClient()
 
-	err := validateScaleCluster(testArgs, []string{testArgs.clusterID})
+	err := validateScaleCluster(testArgs, []string{testArgs.clusterID}, 3, 3, 3)
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, scaleErr := scaleCluster(testArgs)
+	scaleErr := scaleCluster(testArgs)
 	if scaleErr != nil {
 		t.Error(scaleErr)
 	}
-	/*if results.numWorkersAfter != testArgs.numWorkersDesired {
-		t.Error("Got", results.numWorkersAfter, "workers after scaling, expected", testArgs.numWorkersDesired)
-	}*/
-
 }
