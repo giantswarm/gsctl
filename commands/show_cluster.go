@@ -351,7 +351,7 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	// This assumes all nodes use the same instance type.
 	if len(clusterDetails.Workers) > 0 {
 		if clusterDetails.Workers[0].Aws != nil && clusterDetails.Workers[0].Aws.InstanceType != "" {
-			output = append(output, color.YellowString("Worker instance type:")+"|"+clusterDetails.Workers[0].Aws.InstanceType)
+			output = append(output, color.YellowString("Worker EC2 instance type:")+"|"+clusterDetails.Workers[0].Aws.InstanceType)
 		}
 
 		if clusterDetails.Workers[0].Azure != nil && clusterDetails.Workers[0].Azure.VMSize != "" {
