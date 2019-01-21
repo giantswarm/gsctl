@@ -346,7 +346,7 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	output = append(output, color.YellowString("Worker nodes scaling:")+"|"+scalingInfo)
 
 	// current number of workers
-	output = append(output, color.YellowString("Worker nodes:")+"|"+fmt.Sprintf("%d", numWorkers))
+	output = append(output, color.YellowString("Worker nodes running:")+"|"+fmt.Sprintf("%d", numWorkers))
 
 	// This assumes all nodes use the same instance type.
 	if len(clusterDetails.Workers) > 0 {
