@@ -345,6 +345,9 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 	output = append(output, color.YellowString("Worker nodes scaling:")+"|"+scalingInfo)
 
+	// what the autoscaler tries to reach as a target
+	output = append(output, color.YellowString("Desired worker node count:")+"|"+fmt.Sprintf("%d", clusterStatus.Cluster.Scaling.DesiredCapacity))
+
 	// current number of workers
 	output = append(output, color.YellowString("Worker nodes running:")+"|"+fmt.Sprintf("%d", numWorkers))
 
