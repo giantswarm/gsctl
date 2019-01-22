@@ -343,10 +343,12 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			scalingInfo = fmt.Sprintf("autoscaling between %d and %d", clusterDetails.Scaling.Min, clusterDetails.Scaling.Max)
 		}
 	}
-	output = append(output, color.YellowString("Worker nodes scaling:")+"|"+scalingInfo)
+	output = append(output, color.YellowString("Worker node scaling:")+"|"+scalingInfo)
 
-	// what the autoscaler tries to reach as a target
-	output = append(output, color.YellowString("Desired worker node count:")+"|"+fmt.Sprintf("%d", clusterStatus.Cluster.Scaling.DesiredCapacity))
+	// what the autoscaler tries to reach as a target (only interesting if not pinned)
+	if clusterDetails.Scaling != nil && clusterDetails.Scaling.Min != clusterDetails.Scaling.Max {
+		output = append(output, color.YellowString("Desired worker node count:")+"|"+fmt.Sprintf("%d", clusterStatus.Cluster.Scaling.DesiredCapacity))
+	}
 
 	// current number of workers
 	output = append(output, color.YellowString("Worker nodes running:")+"|"+fmt.Sprintf("%d", numWorkers))
