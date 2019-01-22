@@ -315,10 +315,6 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 		if args.numWorkers != 0 || args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" || args.wokerAzureVMSize != "" {
 			return microerror.Mask(conflictingFlagsError)
 		}
-	} else {
-		if args.numWorkers == 0 && (args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" || args.wokerAzureVMSize != "") {
-			return microerror.Mask(numWorkerNodesMissingError)
-		}
 	}
 
 	// validate number of workers specified by flag
