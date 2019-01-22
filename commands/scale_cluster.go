@@ -46,9 +46,8 @@ Examples:
 	cmdWorkersMinName            = "workers-min"
 	cmdWorkersMaxName            = "workers-max"
 	cmdWorkerNumCPUsName         = "num-cpus"
-	cmdKVMWorkerNumCPUsName      = "kvm-num-cpus"
 	cmdWorkerMemorySizeGBName    = "memory-gb"
-	cmdKVMWorkerMemorySizeGBName = "kvm-memory-gb"
+	cmdWorkerStorageSizeGBName    = "storage-gb"
 )
 
 const (
@@ -63,11 +62,6 @@ type scaleClusterArguments struct {
 	apiEndpoint           string
 	authToken             string
 	scheme                string
-	workerNumCPUs         int
-	workerMemorySizeGB    float32
-	workerKVMNumCPUs      int
-	workerKVMMemorySizeGB float32
-	workerStorageSizeGB   float32
 	workersMax            int64
 	workersMin            int64
 }
@@ -76,17 +70,16 @@ func init() {
 	ScaleClusterCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, no confirmation is required when reducing the number of workers.")
 	ScaleClusterCommand.Flags().Int64VarP(&cmdWorkersMin, cmdWorkersMinName, "", 0, "Minimum number of worker nodes to have after scaling.")
 	ScaleClusterCommand.Flags().Int64VarP(&cmdWorkersMax, cmdWorkersMaxName, "", 0, "Maximum number of worker nodes to have after scaling.")
-	ScaleClusterCommand.Flags().Float32VarP(&cmdKVMWorkerMemorySizeGB, cmdKVMWorkerMemorySizeGBName, "", 0, "RAM per added worker node.")
-	ScaleClusterCommand.Flags().Float32VarP(&cmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per added worker node.")
-	ScaleClusterCommand.Flags().IntVarP(&cmdKVMWorkerNumCPUs, cmdKVMWorkerNumCPUsName, "", 0, "Number of CPU cores per added worker node.")
 
+	ScaleClusterCommand.Flags().Float32VarP(&cmdWorkerStorageSizeGB, cmdWorkerStorageSizeGBName, "", 0, "Local storage size per added worker node.")
 	ScaleClusterCommand.Flags().IntVarP(&cmdWorkerNumCPUs, cmdWorkerNumCPUsName, "", 0, "Number of CPU cores per added worker node.")
 	ScaleClusterCommand.Flags().Float32VarP(&cmdWorkerMemorySizeGB, cmdWorkerMemorySizeGBName, "", 0, "RAM per added worker node.")
 	ScaleClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "w", 0, "Number of worker nodes to have after scaling.")
 
 	ScaleClusterCommand.Flags().MarkDeprecated("num-workers", "Please use --workers-min and --workers-max to specify the node count to use.")
-	ScaleClusterCommand.Flags().MarkDeprecated(cmdWorkerNumCPUsName, "Please use --kvm-num-cpus to specify the cpu number for kvm to use.")
-	ScaleClusterCommand.Flags().MarkDeprecated(cmdWorkerMemorySizeGBName, "Please use --kvm-num-memory-gb to specify the amount of memory for kvm to use.")
+	ScaleClusterCommand.Flags().MarkDeprecated(cmdWorkerMemorySizeGBName, "Changing the amount of Memory is no longer supported while scaling.")
+	ScaleClusterCommand.Flags().MarkDeprecated(cmdWorkerNumCPUsName, "Changing the number of CPUs is no longer supported while scaling.")
+	ScaleClusterCommand.Flags().MarkDeprecated(cmdWorkerStorageSizeGBName, "Changing the amount of Storage is no longer supported while scaling.")
 
 	ScaleCommand.AddCommand(ScaleClusterCommand)
 }
@@ -102,11 +95,6 @@ func defaultScaleClusterArguments(cmd *cobra.Command, clusterId string, maxBefor
 		scheme:                scheme,
 		clusterID:             clusterId,
 		numWorkersDesired:     cmdNumWorkers,
-		workerKVMNumCPUs:      cmdKVMWorkerNumCPUs,
-		workerKVMMemorySizeGB: cmdKVMWorkerMemorySizeGB,
-		workerNumCPUs:         cmdWorkerNumCPUs,
-		workerMemorySizeGB:    cmdWorkerMemorySizeGB,
-		workerStorageSizeGB:   cmdWorkerStorageSizeGB,
 		workersMax:            cmdWorkersMax,
 		workersMin:            cmdWorkersMin,
 		oppressConfirmation:   cmdForce,
@@ -117,24 +105,18 @@ func defaultScaleClusterArguments(cmd *cobra.Command, clusterId string, maxBefor
 		scaleArgs.workersMin = minBefore
 	}
 	if !cmd.Flags().Changed(cmdWorkersMaxName) {
-		scaleArgs.workersMin = maxBefore
+		scaleArgs.workersMax = maxBefore
 	}
 	if !cmd.Flags().Changed(cmdWorkersMaxName) && !cmd.Flags().Changed(cmdWorkersMinName) && cmd.Flags().Changed("num-workers") {
 		scaleArgs.workersMax = int64(scaleArgs.numWorkersDesired)
 		scaleArgs.workersMin = int64(scaleArgs.numWorkersDesired)
-	}
-	if cmd.Flags().Changed(cmdWorkerMemorySizeGBName) && !cmd.Flags().Changed(cmdKVMWorkerMemorySizeGBName) {
-		scaleArgs.workerKVMMemorySizeGB = cmdWorkerMemorySizeGB
-	}
-	if cmd.Flags().Changed(cmdWorkerNumCPUsName) && !cmd.Flags().Changed(cmdKVMWorkerNumCPUsName) {
-		scaleArgs.workerKVMNumCPUs = cmdWorkerNumCPUs
 	}
 
 	return scaleArgs
 }
 
 // validatyScaleCluster does a few general checks and returns an error in case something is missing.
-func validateScaleCluster(args scaleClusterArguments, cmdLineArgs []string, maxBefore int64, minBefore int64, desiredCapacity int) error {
+func validateScaleCluster(args scaleClusterArguments, cmdLineArgs []string, maxBefore int64, minBefore int64, desiredCapacity int64) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(notLoggedInError)
 	}
@@ -146,12 +128,6 @@ func validateScaleCluster(args scaleClusterArguments, cmdLineArgs []string, maxB
 	// flag conflicts.
 	if args.numWorkersDesired > 0 && (args.workersMax > 0 || args.workersMin > 0) {
 		return microerror.Mask(conflictingWorkerFlagsUsedError)
-	}
-	if args.workerNumCPUs > 0 && args.workerKVMNumCPUs > 0 && args.workerNumCPUs != args.workerKVMNumCPUs {
-		return microerror.Mask(conflictingFlagsError)
-	}
-	if args.workerMemorySizeGB > 0 && args.workerKVMMemorySizeGB > 0 && args.workerMemorySizeGB != args.workerKVMMemorySizeGB {
-		return microerror.Mask(conflictingFlagsError)
 	}
 
 	if args.numWorkersDesired > 0 && args.numWorkersDesired < minimumNumWorkers {
@@ -170,13 +146,27 @@ func validateScaleCluster(args scaleClusterArguments, cmdLineArgs []string, maxB
 	return nil
 }
 
-func confirmScaleCluster(args scaleClusterArguments, maxBefore int64, minBefore int64, desiredCapacity int) error {
-	fmt.Printf("Do you really want to reduce the worker nodes for cluster '%s' to %d?",
-		args.clusterID, args.numWorkersDesired)
-	// confirmation in case of scaling down
-	if !args.oppressConfirmation && int64(desiredCapacity) > args.workersMax {
-		confirmed := askForConfirmation(fmt.Sprintf("Do you really want to reduce the worker nodes for cluster '%s' to %d?",
-			args.clusterID, args.numWorkersDesired))
+func confirmScaleCluster(args scaleClusterArguments, maxBefore int64, minBefore int64, desiredCapacity int64) error {
+	if maxBefore == minBefore && args.workersMax == args.workersMin {
+		confirmed := askForConfirmation(fmt.Sprintf("The cluster size is currently pinned to %d.\nDo you want to pin the number of worker nodes to %d?", minBefore, args.workersMin))
+		if !confirmed {
+			return microerror.Mask(commandAbortedError)
+		}
+	}
+	if maxBefore != minBefore && args.workersMax == args.workersMin {
+		confirmed := askForConfirmation(fmt.Sprintf("The cluster is autoscaling between %d and %d worker nodes, with %d worker nodes currently desired.\nDo you want to pin the number of worker nodes to %d?", minBefore, maxBefore, desiredCapacity, args.workersMin))
+		if !confirmed {
+			return microerror.Mask(commandAbortedError)
+		}
+	}
+	if maxBefore == minBefore && args.workersMax != args.workersMin {
+		confirmed := askForConfirmation(fmt.Sprintf("The cluster size is currently pinned to %d.\nDo you want to change the limits to be min=%d, max=%d?", minBefore, args.workersMin, args.workersMax))
+		if !confirmed {
+			return microerror.Mask(commandAbortedError)
+		}
+	}
+	if maxBefore != minBefore && args.workersMax != args.workersMin {
+		confirmed := askForConfirmation(fmt.Sprintf("The cluster is autoscaling between %d and %d worker nodes, with %d worker nodes currently up.\nDo you want to change the limits to be min=%d, max=%d?", minBefore, maxBefore, desiredCapacity, args.workersMin, args.workersMax))
 		if !confirmed {
 			return microerror.Mask(commandAbortedError)
 		}
@@ -206,12 +196,30 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		os.Exit(1)
 	}
 
-	args := defaultScaleClusterArguments(cmd, cmdLineArgs[0], clusterDetails.Scaling.Max, clusterDetails.Scaling.Min)
+	var maxBefore int64
+	var minBefore int64
+	var desiredCapacity int64
+
+	if clusterDetails.Scaling.Max == 0 && clusterDetails.Scaling.Min == 0 && len(clusterDetails.Workers) != 0{
+		maxBefore = int64(len(clusterDetails.Workers))
+		minBefore = int64(len(clusterDetails.Workers))
+	} else {
+		maxBefore = clusterDetails.Scaling.Max
+		minBefore = clusterDetails.Scaling.Min
+	}
+
+	if status.Scaling.DesiredCapacity == 0 && len(clusterDetails.Workers) != 0{
+		desiredCapacity = int64(len(clusterDetails.Workers))
+	} else {
+		desiredCapacity = int64(status.Scaling.DesiredCapacity)
+	}
+
+	args := defaultScaleClusterArguments(cmd, cmdLineArgs[0], maxBefore, minBefore)
 
 	headline := ""
 	subtext := ""
 
-	err = validateScaleCluster(args, cmdLineArgs, clusterDetails.Scaling.Max, clusterDetails.Scaling.Min, status.Scaling.DesiredCapacity)
+	err = validateScaleCluster(args, cmdLineArgs, maxBefore, minBefore, desiredCapacity)
 	if err != nil {
 		handleCommonErrors(err)
 
@@ -237,7 +245,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		os.Exit(1)
 	}
 
-	err = confirmScaleCluster(args, clusterDetails.Scaling.Max, clusterDetails.Scaling.Min, status.Scaling.DesiredCapacity)
+	err = confirmScaleCluster(args, maxBefore, minBefore, desiredCapacity)
 	if err != nil {
 		handleCommonErrors(err)
 		fmt.Println(color.RedString(err.Error()))
