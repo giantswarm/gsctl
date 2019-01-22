@@ -62,14 +62,8 @@ var (
 	// number of CPUs per worker as required via flag on execution
 	cmdWorkerNumCPUs int
 
-	// number of CPUs per KVM worker as required via flag on execution
-	cmdKVMWorkerNumCPUs int
-
 	// RAM size per worker node in GB per worker as required via flag on execution
 	cmdWorkerMemorySizeGB float32
-
-	// RAM size per KVM worker node in GB per worker as required via flag on execution
-	cmdKVMWorkerMemorySizeGB float32
 
 	// Local storage per worker node in GB per worker as required via flag on execution
 	cmdWorkerStorageSizeGB float32
