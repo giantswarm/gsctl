@@ -470,15 +470,17 @@ func createAddClusterBody(d clusterDefinition) *models.V4AddClusterRequest {
 		Max: d.Scaling.Max,
 	}
 
-	for _, dWorker := range d.Workers {
+	if len(d.Workers) >= 1 {
 		ndmWorker := &models.V4AddClusterRequestWorkersItems{}
-		ndmWorker.Memory = &models.V4AddClusterRequestWorkersItemsMemory{SizeGb: float64(dWorker.Memory.SizeGB)}
-		ndmWorker.CPU = &models.V4AddClusterRequestWorkersItemsCPU{Cores: int64(dWorker.CPU.Cores)}
-		ndmWorker.Storage = &models.V4AddClusterRequestWorkersItemsStorage{SizeGb: float64(dWorker.Storage.SizeGB)}
-		ndmWorker.Labels = dWorker.Labels
-		ndmWorker.Aws = &models.V4AddClusterRequestWorkersItemsAws{InstanceType: dWorker.AWS.InstanceType}
-		ndmWorker.Azure = &models.V4AddClusterRequestWorkersItemsAzure{VMSize: dWorker.Azure.VMSize}
+		ndmWorker.Memory = &models.V4AddClusterRequestWorkersItemsMemory{SizeGb: float64(d.Workers[0].Memory.SizeGB)}
+		ndmWorker.CPU = &models.V4AddClusterRequestWorkersItemsCPU{Cores: int64(d.Workers[0].CPU.Cores)}
+		ndmWorker.Storage = &models.V4AddClusterRequestWorkersItemsStorage{SizeGb: float64(d.Workers[0].Storage.SizeGB)}
+		ndmWorker.Labels = d.Workers[0].Labels
+		ndmWorker.Aws = &models.V4AddClusterRequestWorkersItemsAws{InstanceType: d.Workers[0].AWS.InstanceType}
+		ndmWorker.Azure = &models.V4AddClusterRequestWorkersItemsAzure{VMSize: d.Workers[0].Azure.VMSize}
 		a.Workers = append(a.Workers, ndmWorker)
+	} else {
+		a.Workers = append(a.Workers, &models.V4AddClusterRequestWorkersItems{})
 	}
 
 	return a
