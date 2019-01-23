@@ -157,16 +157,19 @@ func getClusterStatus(clusterID, activityName string) (*v1alpha1.StatusCluster, 
 
 	response, err := ClientV2.GetClusterStatus(clusterID, auxParams)
 	if err != nil {
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			switch clientErr.HTTPStatusCode {
-			case http.StatusForbidden:
-				return nil, microerror.Mask(accessForbiddenError)
-			case http.StatusUnauthorized:
-				return nil, microerror.Mask(notAuthorizedError)
-			case http.StatusNotFound:
-				return nil, microerror.Mask(clusterNotFoundError)
-			case http.StatusInternalServerError:
-				return nil, microerror.Mask(internalServerError)
+		if IsAPIError(err) {
+			clientErr, ok := err.(*clienterror.APIError)
+			if ok {
+				switch clientErr.HTTPStatusCode {
+				case http.StatusForbidden:
+					return nil, microerror.Mask(accessForbiddenError)
+				case http.StatusUnauthorized:
+					return nil, microerror.Mask(notAuthorizedError)
+				case http.StatusNotFound:
+					return nil, microerror.Mask(clusterNotFoundError)
+				case http.StatusInternalServerError:
+					return nil, microerror.Mask(internalServerError)
+				}
 			}
 		}
 
@@ -211,11 +214,19 @@ func scaleCluster(args scaleClusterArguments) error {
 
 	_, err := ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
 	if err != nil {
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return microerror.Mask(accessForbiddenError)
-			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
-				return microerror.Mask(clusterNotFoundError)
+		if IsAPIError(err) {
+			clientErr, ok := err.(*clienterror.APIError)
+			if ok {
+				switch clientErr.HTTPStatusCode {
+				case http.StatusForbidden:
+					return microerror.Mask(accessForbiddenError)
+				case http.StatusUnauthorized:
+					return microerror.Mask(notAuthorizedError)
+				case http.StatusNotFound:
+					return microerror.Mask(clusterNotFoundError)
+				case http.StatusInternalServerError:
+					return microerror.Mask(internalServerError)
+				}
 			}
 		}
 
