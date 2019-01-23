@@ -43,12 +43,12 @@ Examples:
 	}
 
 	//Flag names.
-	cmdWorkersMaxName            = "workers-max"
-	cmdWorkersMinName            = "workers-min"
+	cmdWorkersMaxName = "workers-max"
+	cmdWorkersMinName = "workers-min"
 
-	cmdWorkerMemorySizeGBName    = "memory-gb"
-	cmdWorkerNumCPUsName         = "num-cpus"
-	cmdWorkerStorageSizeGBName    = "storage-gb"
+	cmdWorkerMemorySizeGBName  = "memory-gb"
+	cmdWorkerNumCPUsName       = "num-cpus"
+	cmdWorkerStorageSizeGBName = "storage-gb"
 )
 
 const (
@@ -56,15 +56,15 @@ const (
 )
 
 type scaleClusterArguments struct {
-	apiEndpoint           string
-	authToken             string
-	clusterID             string
-	numWorkersDesired     int
-	oppressConfirmation   bool
-	scheme                string
-	verbose               bool
-	workersMax            int64
-	workersMin            int64
+	apiEndpoint         string
+	authToken           string
+	clusterID           string
+	numWorkersDesired   int
+	oppressConfirmation bool
+	scheme              string
+	verbose             bool
+	workersMax          int64
+	workersMin          int64
 }
 
 func init() {
@@ -123,15 +123,15 @@ func defaultScaleClusterArguments(cmd *cobra.Command, clusterId string, maxBefor
 	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
 	scaleArgs := scaleClusterArguments{
-		apiEndpoint:           endpoint,
-		authToken:             token,
-		clusterID:             clusterId,
-		numWorkersDesired:     cmdNumWorkers,
-		oppressConfirmation:   cmdForce,
-		scheme:                scheme,
-		verbose:               cmdVerbose,
-		workersMax:            cmdWorkersMax,
-		workersMin:            cmdWorkersMin,
+		apiEndpoint:         endpoint,
+		authToken:           token,
+		clusterID:           clusterId,
+		numWorkersDesired:   cmdNumWorkers,
+		oppressConfirmation: cmdForce,
+		scheme:              scheme,
+		verbose:             cmdVerbose,
+		workersMax:          cmdWorkersMax,
+		workersMin:          cmdWorkersMin,
 	}
 
 	if !cmd.Flags().Changed(cmdWorkersMinName) {
@@ -249,14 +249,14 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	var minBefore int64
 	var desiredCapacity int64
 	// Older clusters without scaling shouldn't have scaling values but have a workers array instead.
-	if clusterDetails.Scaling.Max == 0 && clusterDetails.Scaling.Min == 0 && len(clusterDetails.Workers) != 0{
+	if clusterDetails.Scaling.Max == 0 && clusterDetails.Scaling.Min == 0 && len(clusterDetails.Workers) != 0 {
 		maxBefore = int64(len(clusterDetails.Workers))
 		minBefore = int64(len(clusterDetails.Workers))
 	} else {
 		maxBefore = clusterDetails.Scaling.Max
 		minBefore = clusterDetails.Scaling.Min
 	}
-	if status.Scaling.DesiredCapacity == 0 && len(clusterDetails.Workers) != 0{
+	if status.Scaling.DesiredCapacity == 0 && len(clusterDetails.Workers) != 0 {
 		desiredCapacity = int64(len(clusterDetails.Workers))
 	} else {
 		desiredCapacity = int64(status.Scaling.DesiredCapacity)
