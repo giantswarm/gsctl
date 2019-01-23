@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"strings"
 
@@ -16,7 +15,6 @@ import (
 	"github.com/spf13/cobra"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 )
 
@@ -417,43 +415,34 @@ func definitionFromFlags(def clusterDefinition, args addClusterArguments) cluste
 		def.Owner = args.owner
 	}
 
-	if args.numWorkers != 0 {
-		workers := []nodeDefinition{}
-
-		for i := 0; i < args.numWorkers; i++ {
-			worker := nodeDefinition{}
-
-			if args.workerNumCPUs != 0 {
-				worker.CPU = cpuDefinition{Cores: args.workerNumCPUs}
-			}
-
-			if args.workerStorageSizeGB != 0 {
-				worker.Storage = storageDefinition{SizeGB: args.workerStorageSizeGB}
-			}
-
-			if args.workerMemorySizeGB != 0 {
-				worker.Memory = memoryDefinition{SizeGB: args.workerMemorySizeGB}
-			}
-
-			// AWS-specific
-			if args.wokerAwsEc2InstanceType != "" {
-				worker.AWS.InstanceType = args.wokerAwsEc2InstanceType
-			}
-
-			// Azure
-			if args.wokerAzureVMSize != "" {
-				worker.Azure.VMSize = args.wokerAzureVMSize
-			}
-
-			workers = append(workers, worker)
-		}
-
-		def.Workers = workers
-		if def.Scaling.Min == 0 && def.Scaling.Max == 0 {
-			def.Scaling.Min = int64(len(def.Workers))
-			def.Scaling.Max = int64(len(def.Workers))
-		}
+	if def.Scaling.Min == 0 && def.Scaling.Max == 0 {
+		def.Scaling.Min = int64(len(def.Workers))
+		def.Scaling.Max = int64(len(def.Workers))
 	}
+
+	workers := []nodeDefinition{}
+
+	worker := nodeDefinition{}
+	if args.workerNumCPUs != 0 {
+		worker.CPU = cpuDefinition{Cores: args.workerNumCPUs}
+	}
+	if args.workerStorageSizeGB != 0 {
+		worker.Storage = storageDefinition{SizeGB: args.workerStorageSizeGB}
+	}
+	if args.workerMemorySizeGB != 0 {
+		worker.Memory = memoryDefinition{SizeGB: args.workerMemorySizeGB}
+	}
+	// AWS-specific
+	if args.wokerAwsEc2InstanceType != "" {
+		worker.AWS.InstanceType = args.wokerAwsEc2InstanceType
+	}
+	// Azure
+	if args.wokerAzureVMSize != "" {
+		worker.Azure.VMSize = args.wokerAzureVMSize
+	}
+	workers = append(workers, worker)
+
+	def.Workers = workers
 
 	return def
 }
@@ -470,7 +459,7 @@ func createAddClusterBody(d clusterDefinition) *models.V4AddClusterRequest {
 		Max: d.Scaling.Max,
 	}
 
-	if len(d.Workers) >= 1 {
+	if len(d.Workers) == 1 {
 		ndmWorker := &models.V4AddClusterRequestWorkersItems{}
 		ndmWorker.Memory = &models.V4AddClusterRequestWorkersItemsMemory{SizeGb: float64(d.Workers[0].Memory.SizeGB)}
 		ndmWorker.CPU = &models.V4AddClusterRequestWorkersItemsCPU{Cores: int64(d.Workers[0].CPU.Cores)}
@@ -538,29 +527,14 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 
 	if !args.dryRun {
 		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
-
 		auxParams := ClientV2.DefaultAuxiliaryParams()
 		auxParams.ActivityName = createClusterActivityName
-
 		// perform API call
 		response, err := ClientV2.CreateCluster(addClusterBody, auxParams)
 		if err != nil {
-			// create specific error types for cases we care about
-			if clientErr, ok := err.(*clienterror.APIError); ok {
-				if clientErr.HTTPStatusCode == http.StatusNotFound {
-					// owner org not existing
-					return result, microerror.Mask(organizationNotFoundError)
-				} else if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-					// not authorized
-					return result, microerror.Mask(notAuthorizedError)
-				}
-			}
-
 			return result, microerror.Mask(err)
 		}
-
 		// success
-
 		result.location = response.Location
 		result.id = strings.Split(result.location, "/")[3]
 	}
