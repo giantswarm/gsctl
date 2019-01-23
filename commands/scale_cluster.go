@@ -45,6 +45,7 @@ Examples:
 	//Flag names.
 	cmdWorkersMaxName = "workers-max"
 	cmdWorkersMinName = "workers-min"
+	cmdWorkersNumName = "num-workers"
 
 	cmdWorkerMemorySizeGBName  = "memory-gb"
 	cmdWorkerNumCPUsName       = "num-cpus"
@@ -75,9 +76,9 @@ func init() {
 	ScaleClusterCommand.Flags().Float32VarP(&cmdWorkerStorageSizeGB, cmdWorkerStorageSizeGBName, "", 0, "Local storage size per added worker node.")
 	ScaleClusterCommand.Flags().IntVarP(&cmdWorkerNumCPUs, cmdWorkerNumCPUsName, "", 0, "Number of CPU cores per added worker node.")
 	ScaleClusterCommand.Flags().Float32VarP(&cmdWorkerMemorySizeGB, cmdWorkerMemorySizeGBName, "", 0, "RAM per added worker node.")
-	ScaleClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "w", 0, "Number of worker nodes to have after scaling.")
+	ScaleClusterCommand.Flags().IntVarP(&cmdNumWorkers, cmdWorkersNumName, "w", 0, "Number of worker nodes to have after scaling.")
 
-	ScaleClusterCommand.Flags().MarkDeprecated("num-workers", "Please use --workers-min and --workers-max to specify the node count to use.")
+	ScaleClusterCommand.Flags().MarkDeprecated(cmdWorkersNumName, "Please use --workers-min and --workers-max to specify the node count to use.")
 	ScaleClusterCommand.Flags().MarkDeprecated(cmdWorkerMemorySizeGBName, "Changing the amount of Memory is no longer supported while scaling.")
 	ScaleClusterCommand.Flags().MarkDeprecated(cmdWorkerNumCPUsName, "Changing the number of CPUs is no longer supported while scaling.")
 	ScaleClusterCommand.Flags().MarkDeprecated(cmdWorkerStorageSizeGBName, "Changing the amount of Storage is no longer supported while scaling.")
@@ -140,7 +141,7 @@ func defaultScaleClusterArguments(cmd *cobra.Command, clusterId string, maxBefor
 	if !cmd.Flags().Changed(cmdWorkersMaxName) {
 		scaleArgs.workersMax = maxBefore
 	}
-	if !cmd.Flags().Changed(cmdWorkersMaxName) && !cmd.Flags().Changed(cmdWorkersMinName) && cmd.Flags().Changed("num-workers") {
+	if !cmd.Flags().Changed(cmdWorkersMaxName) && !cmd.Flags().Changed(cmdWorkersMinName) && cmd.Flags().Changed(cmdWorkersNumName) {
 		scaleArgs.workersMax = int64(scaleArgs.numWorkersDesired)
 		scaleArgs.workersMin = int64(scaleArgs.numWorkersDesired)
 	}
@@ -276,10 +277,10 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		switch {
 		case IsConflictingWorkerFlagsUsed(err):
 			headline = "Conflicting flags used"
-			subtext = "When specifying --num-workers, neither --workers-max nor --workers-min must be used."
+			subtext = fmt.Sprintf("When specifying --%s, neither --%s nor --%s must be used.", cmdWorkersNumName, cmdWorkersMaxName, cmdWorkersMinName)
 		case IsWorkersMinMaxInvalid(err):
 			headline = "Number of worker nodes invalid"
-			subtext = "Node count flag --workers-min must not be higher than --workers-max."
+			subtext = fmt.Sprintf("Node count flag --%s must not be higher than --%s.", cmdWorkersMinName, cmdWorkersMaxName)
 		case IsCannotScaleBelowMinimumWorkersError(err):
 			headline = "Not enough worker nodes specified"
 			subtext = fmt.Sprintf("You'll need at least %v worker nodes for a useful cluster.", minimumNumWorkers)
@@ -315,7 +316,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			headline = "Scaling cancelled."
 		case IsCannotScaleBelowMinimumWorkersError(err):
 			headline = "Desired worker node count is too low."
-			subtext = "Please set the -w|--num-workers flag to a value greater than 0."
+			subtext = fmt.Sprintf("Please set the -w|--%s or --%s flag to a value greater than 0.", cmdWorkersNumName, cmdWorkersMinName)
 		case IsDesiredEqualsCurrentStateError(err):
 			headline = "Desired worker node count equals the current one."
 			subtext = "No worker nodes have been added or removed."
