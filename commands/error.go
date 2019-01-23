@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"net/http"
+
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/microerror"
 )
@@ -99,7 +101,16 @@ var clusterNotFoundError = &microerror.Error{
 
 // IsClusterNotFoundError asserts clusterNotFoundError.
 func IsClusterNotFoundError(err error) bool {
-	return microerror.Cause(err) == clusterNotFoundError
+	c := microerror.Cause(err)
+	clientErr, ok := c.(*clienterror.APIError)
+	if ok && clientErr.HTTPStatusCode == http.StatusNotFound {
+		return true
+	}
+	if c == clusterNotFoundError {
+		return true
+	}
+
+	return false
 }
 
 // releaseVersionMissingError means the required release version argument is missing
@@ -131,7 +142,16 @@ var internalServerError = &microerror.Error{
 
 // IsInternalServerError asserts internalServerError.
 func IsInternalServerError(err error) bool {
-	return microerror.Cause(err) == internalServerError
+	c := microerror.Cause(err)
+	clientErr, ok := c.(*clienterror.APIError)
+	if ok && clientErr.HTTPStatusCode == http.StatusInternalServerError {
+		return true
+	}
+	if c == internalServerError {
+		return true
+	}
+
+	return false
 }
 
 // server side has not returned a response
@@ -152,7 +172,16 @@ var notAuthorizedError = &microerror.Error{
 
 // IsNotAuthorizedError asserts notAuthorizedError.
 func IsNotAuthorizedError(err error) bool {
-	return microerror.Cause(err) == notAuthorizedError
+	c := microerror.Cause(err)
+	clientErr, ok := c.(*clienterror.APIError)
+	if ok && clientErr.HTTPStatusCode == http.StatusUnauthorized {
+		return true
+	}
+	if c == notAuthorizedError {
+		return true
+	}
+
+	return false
 }
 
 // Errors for cluster creation
@@ -423,7 +452,16 @@ var accessForbiddenError = &microerror.Error{
 
 // IsAccessForbiddenError asserts accessForbiddenError
 func IsAccessForbiddenError(err error) bool {
-	return microerror.Cause(err) == accessForbiddenError
+	c := microerror.Cause(err)
+	clientErr, ok := c.(*clienterror.APIError)
+	if ok && clientErr.HTTPStatusCode == http.StatusForbidden {
+		return true
+	}
+	if c == accessForbiddenError {
+		return true
+	}
+
+	return false
 }
 
 // invalidCredentialsError means the user's credentials could not be verified
