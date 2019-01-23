@@ -81,7 +81,7 @@ type addClusterResult struct {
 const (
 	// TODO: These settings should come from the API.
 	// See https://github.com/giantswarm/gsctl/issues/155
-	minimumNumWorkers          int     = 1
+	minimumNumWorkers          int     = 0
 	minimumWorkerNumCPUs       int     = 1
 	minimumWorkerMemorySizeGB  float32 = 1
 	minimumWorkerStorageSizeGB float32 = 1

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/microerror"
 )
 
@@ -320,6 +321,24 @@ var couldNotScaleClusterError = &microerror.Error{
 // IsCouldNotScaleClusterError asserts couldNotScaleClusterError.
 func IsCouldNotScaleClusterError(err error) bool {
 	return microerror.Cause(err) == couldNotScaleClusterError
+}
+
+var apiError = &microerror.Error{
+	Kind: "apiError",
+}
+
+// IsAIPError asserts apiError.
+func IsAPIError(err error) bool {
+	c := microerror.Cause(err)
+	_, ok := c.(*clienterror.APIError)
+	if ok {
+		return true
+	}
+	if c == apiError {
+		return true
+	}
+
+	return false
 }
 
 // cannotScaleBelowMinimumWorkersError means the user tries to scale to less
