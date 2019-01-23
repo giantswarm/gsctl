@@ -259,7 +259,16 @@ var organizationNotFoundError = &microerror.Error{
 
 // IsOrganizationNotFoundError asserts organizationNotFoundError
 func IsOrganizationNotFoundError(err error) bool {
-	return microerror.Cause(err) == organizationNotFoundError
+	c := microerror.Cause(err)
+	clientErr, ok := c.(*clienterror.APIError)
+	if ok && clientErr.HTTPStatusCode == http.StatusNotFound {
+		return true
+	}
+	if c == organizationNotFoundError {
+		return true
+	}
+
+	return false
 }
 
 // organizationNotSpecifiedError means that the user has not specified an organization to work with
