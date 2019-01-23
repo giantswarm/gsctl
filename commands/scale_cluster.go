@@ -11,6 +11,7 @@ import (
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/util"
 
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
@@ -257,21 +258,32 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		os.Exit(1)
 	}
 
+	var autoScalingEnabled bool
+	{
+		n, err := util.CompareVersions(clusterDetails.ReleaseVersion, "6.3.0")
+		if err != nil {
+			fmt.Println(color.RedString(err.Error()))
+			os.Exit(1)
+		}
+		if n == 0 || n == 1 {
+			autoScalingEnabled = true
+		} else {
+			autoScalingEnabled = false
+		}
+	}
+
 	var maxBefore int64
 	var minBefore int64
 	var desiredCapacity int64
-	// Older clusters without scaling shouldn't have scaling values but have a workers array instead.
-	if clusterDetails.Scaling.Max == 0 && clusterDetails.Scaling.Min == 0 && len(clusterDetails.Workers) != 0 {
-		maxBefore = int64(len(clusterDetails.Workers))
-		minBefore = int64(len(clusterDetails.Workers))
-	} else {
+
+	if autoScalingEnabled {
 		maxBefore = clusterDetails.Scaling.Max
 		minBefore = clusterDetails.Scaling.Min
-	}
-	if status.Scaling.DesiredCapacity == 0 && len(clusterDetails.Workers) != 0 {
-		desiredCapacity = int64(len(clusterDetails.Workers))
-	} else {
 		desiredCapacity = int64(status.Scaling.DesiredCapacity)
+	} else {
+		maxBefore = int64(len(clusterDetails.Workers))
+		minBefore = int64(len(clusterDetails.Workers))
+		desiredCapacity = int64(len(clusterDetails.Workers))
 	}
 
 	// Default all necessary information from flags.
