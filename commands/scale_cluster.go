@@ -3,18 +3,16 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
 	"github.com/giantswarm/gsclientgen/models"
-	"github.com/giantswarm/gsctl/client/clienterror"
-	"github.com/giantswarm/gsctl/config"
-	"github.com/giantswarm/gsctl/util"
-
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/util"
 )
 
 var (
@@ -157,23 +155,7 @@ func getClusterStatus(clusterID, activityName string) (*v1alpha1.StatusCluster, 
 	auxParams.ActivityName = activityName
 
 	response, err := ClientV2.GetClusterStatus(clusterID, auxParams)
-	if err != nil {
-		if IsAPIError(err) {
-			clientErr, ok := err.(*clienterror.APIError)
-			if ok {
-				switch clientErr.HTTPStatusCode {
-				case http.StatusForbidden:
-					return nil, microerror.Mask(accessForbiddenError)
-				case http.StatusUnauthorized:
-					return nil, microerror.Mask(notAuthorizedError)
-				case http.StatusNotFound:
-					return nil, microerror.Mask(clusterNotFoundError)
-				case http.StatusInternalServerError:
-					return nil, microerror.Mask(internalServerError)
-				}
-			}
-		}
-
+ 	if err != nil{
 		return nil, microerror.Mask(err)
 	}
 
@@ -214,24 +196,8 @@ func scaleCluster(args scaleClusterArguments) error {
 	auxParams.ActivityName = scaleClusterActivityName
 
 	_, err := ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
-	if err != nil {
-		if IsAPIError(err) {
-			clientErr, ok := err.(*clienterror.APIError)
-			if ok {
-				switch clientErr.HTTPStatusCode {
-				case http.StatusForbidden:
-					return microerror.Mask(accessForbiddenError)
-				case http.StatusUnauthorized:
-					return microerror.Mask(notAuthorizedError)
-				case http.StatusNotFound:
-					return microerror.Mask(clusterNotFoundError)
-				case http.StatusInternalServerError:
-					return microerror.Mask(internalServerError)
-				}
-			}
-		}
-
-		return microerror.Mask(err)
+	if err != nil{
+		return  microerror.Mask(err)
 	}
 
 	return nil
