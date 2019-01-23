@@ -155,16 +155,7 @@ func getClusterStatus(clusterID, activityName string) (*v1alpha1.StatusCluster, 
 	auxParams.ActivityName = activityName
 
 	response, err := ClientV2.GetClusterStatus(clusterID, auxParams)
-
-	if IsAccessForbiddenError(err) {
-		return nil, microerror.Mask(accessForbiddenError)
-	} else if IsNotAuthorizedError(err) {
-		return nil, microerror.Mask(notAuthorizedError)
-	} else if IsClusterNotFoundError(err) {
-		return nil, microerror.Mask(clusterNotFoundError)
-	} else if IsInternalServerError(err) {
-		return nil, microerror.Mask(internalServerError)
-	} else if err != nil{
+ 	if err != nil{
 		return nil, microerror.Mask(err)
 	}
 
@@ -205,15 +196,7 @@ func scaleCluster(args scaleClusterArguments) error {
 	auxParams.ActivityName = scaleClusterActivityName
 
 	_, err := ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
-	if IsAccessForbiddenError(err) {
-		return  microerror.Mask(accessForbiddenError)
-	} else if IsNotAuthorizedError(err) {
-		return  microerror.Mask(notAuthorizedError)
-	} else if IsClusterNotFoundError(err) {
-		return  microerror.Mask(clusterNotFoundError)
-	} else if IsInternalServerError(err) {
-		return  microerror.Mask(internalServerError)
-	} else if err != nil{
+	if err != nil{
 		return  microerror.Mask(err)
 	}
 
