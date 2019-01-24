@@ -226,8 +226,6 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		}
 		if n == 0 || n == 1 {
 			autoScalingEnabled = true
-		} else {
-			autoScalingEnabled = false
 		}
 	}
 
