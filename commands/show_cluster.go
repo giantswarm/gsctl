@@ -335,7 +335,7 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	// scaling info
-	scalingInfo := "unknown"
+	scalingInfo := "n/a"
 	if clusterDetails.Scaling != nil {
 		if clusterDetails.Scaling.Min == clusterDetails.Scaling.Max {
 			scalingInfo = fmt.Sprintf("pinned at %d", clusterDetails.Scaling.Min)
