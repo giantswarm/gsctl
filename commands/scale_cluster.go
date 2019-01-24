@@ -155,7 +155,7 @@ func getClusterStatus(clusterID, activityName string) (*v1alpha1.StatusCluster, 
 	auxParams.ActivityName = activityName
 
 	response, err := ClientV2.GetClusterStatus(clusterID, auxParams)
- 	if err != nil{
+	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
@@ -196,8 +196,8 @@ func scaleCluster(args scaleClusterArguments) error {
 	auxParams.ActivityName = scaleClusterActivityName
 
 	_, err := ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
-	if err != nil{
-		return  microerror.Mask(err)
+	if err != nil {
+		return microerror.Mask(err)
 	}
 
 	return nil
@@ -212,13 +212,6 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	clusterDetails, err := getClusterDetails(cmdLineArgs[0], scaleClusterActivityName)
 	if err != nil {
 		fmt.Println(color.RedString("Error getting cluster details!"))
-		handleCommonErrors(err)
-		fmt.Println(color.RedString(err.Error()))
-		os.Exit(1)
-	}
-	status, err := getClusterStatus(cmdLineArgs[0], scaleClusterActivityName)
-	if err != nil {
-		fmt.Println(color.RedString("Error getting cluster status!"))
 		handleCommonErrors(err)
 		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
@@ -243,10 +236,23 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	var desiredCapacity int64
 
 	if autoScalingEnabled {
+		// We only need the status if autoscaling is enabled, because we are only
+		// interested in the DesiredCapacity.
+		status, err := getClusterStatus(cmdLineArgs[0], scaleClusterActivityName)
+		if err != nil {
+			fmt.Println(color.RedString("Error getting cluster status!"))
+			handleCommonErrors(err)
+			fmt.Println(color.RedString(err.Error()))
+			os.Exit(1)
+		}
 		maxBefore = clusterDetails.Scaling.Max
 		minBefore = clusterDetails.Scaling.Min
 		desiredCapacity = int64(status.Scaling.DesiredCapacity)
+
 	} else {
+		// Default to the length of the workers array. We don't know how old the
+		// cluster is and the workers array should be a reliable source of truth for
+		// older clusters.
 		maxBefore = int64(len(clusterDetails.Workers))
 		minBefore = int64(len(clusterDetails.Workers))
 		desiredCapacity = int64(len(clusterDetails.Workers))
