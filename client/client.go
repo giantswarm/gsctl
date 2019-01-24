@@ -3,9 +3,6 @@ package client
 import (
 	"crypto/tls"
 	"encoding/base64"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -503,7 +500,7 @@ func (w *WrapperV2) SetCredentials(organizationID string, addCredentialsRequest 
 	return response, nil
 }
 
-// GetCluster fetches details on a cluster using the V2 client.
+// GetClusterStatus fetches details on a cluster using the V2 client.
 func (w *WrapperV2) GetClusterStatus(clusterID string, p *AuxiliaryParams) (*clusters.GetClusterStatusOK, error) {
 	params := clusters.NewGetClusterStatusParams().WithClusterID(clusterID)
 	err := setParamsWithAuthorization(p, w, params)
