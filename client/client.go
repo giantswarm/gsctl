@@ -391,42 +391,6 @@ func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.
 	return response, nil
 }
 
-// GetClusterStatus fetches status details from the
-// status endpoint (/v4/clusters/{clusterid}/status/).
-// Only a few details are returned.
-func (w *WrapperV2) GetClusterStatus(clusterID string) (*ClusterStatus, *http.Response, error) {
-	url := fmt.Sprintf("%s/v4/clusters/%s/status/", w.conf.Endpoint, clusterID)
-
-	request, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, nil, microerror.Mask(err)
-	}
-	authHeader, err := w.conf.AuthHeaderGetter()
-	if err != nil {
-		return nil, nil, microerror.Mask(err)
-	}
-	request.Header.Add("Authorization", authHeader)
-
-	response, err := w.rawClient.Do(request)
-	if err != nil {
-		return nil, nil, microerror.Mask(err)
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		return nil, response, nil
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-	status := &ClusterStatus{}
-	err = json.Unmarshal(body, status)
-	if err != nil {
-		return nil, response, microerror.Mask(err)
-	}
-
-	return status, response, nil
-}
-
 // CreateKeyPair calls the addKeyPair API operation using the V2 client.
 func (w *WrapperV2) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4AddKeyPairRequest, p *AuxiliaryParams) (*key_pairs.AddKeyPairOK, error) {
 	params := key_pairs.NewAddKeyPairParams().WithClusterID(clusterID).WithBody(addKeyPairRequest)
