@@ -33,7 +33,7 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 	cmdAPIEndpoint = mockServer.URL
 	initClient()
 
-	err := verifyScaleClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := validateScaleCluster(testArgs, []string{testArgs.clusterID}, 5, 5, 5)
 	if !IsNotLoggedInError(err) {
 		t.Error("Expected notLoggedInError, got", err)
 	}
@@ -43,12 +43,11 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 // TestScaleCluster tests scaling a cluster under normal conditions:
 // user logged in.
 func TestScaleCluster(t *testing.T) {
-	var numWorkersDesired = 5
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		if r.Method == "GET" {
+		if r.Method == "GET" && r.URL.String() == "/v4/clusters/cluster-id/" {
 			// cluster details before the patch
 			w.Write([]byte(`{
 				"id": "cluster-id",
@@ -56,13 +55,17 @@ func TestScaleCluster(t *testing.T) {
 				"api_endpoint": "",
 				"create_date": "2017-05-16T09:30:31.192170835Z",
 				"owner": "acmeorg",
+				"scaling": {
+					"max":3,
+					"min":3
+				},
 				"workers": [
 					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
 					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
 					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}}
 				]
 			}`))
-		} else if r.Method == "PATCH" {
+		} else if r.Method == "PATCH" && r.URL.String() == "/v4/clusters/cluster-id/" {
 			// inspect PATCH request body
 			patchBytes, readErr := ioutil.ReadAll(r.Body)
 			if readErr != nil {
@@ -75,10 +78,6 @@ func TestScaleCluster(t *testing.T) {
 			if !patch.Exists("workers") {
 				t.Error("Patch request body does not contain 'workers' key.")
 			}
-			workers, _ := patch.S("workers").Children()
-			if len(workers) != numWorkersDesired {
-				t.Error("Patch request contains", len(workers), "workers, expected 5")
-			}
 
 			w.Write([]byte(`{
 				"id": "cluster-id",
@@ -94,31 +93,35 @@ func TestScaleCluster(t *testing.T) {
 					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}}
 				]
 			}`))
+		} else if r.Method == "GET" && r.URL.String() == "/v4/clusters/cluster-id/status/" {
+
+			w.Write([]byte(`{
+				"scaling": {
+					"desiredCapacity": 3
+				}
+			}`))
 		}
 	}))
 	defer mockServer.Close()
 
 	testArgs := scaleClusterArguments{
-		apiEndpoint:       mockServer.URL,
-		clusterID:         "cluster-id",
-		numWorkersDesired: numWorkersDesired,
+		apiEndpoint: mockServer.URL,
+		clusterID:   "cluster-id",
+		workersMax:  int64(5),
+		workersMin:  int64(5),
 	}
 	config.Config.Token = "my-token"
 
 	cmdAPIEndpoint = mockServer.URL
 	initClient()
 
-	err := verifyScaleClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := validateScaleCluster(testArgs, []string{testArgs.clusterID}, 3, 3, 3)
 	if err != nil {
 		t.Error(err)
 	}
 
-	results, scaleErr := scaleCluster(testArgs)
+	scaleErr := scaleCluster(testArgs)
 	if scaleErr != nil {
 		t.Error(scaleErr)
 	}
-	if results.numWorkersAfter != testArgs.numWorkersDesired {
-		t.Error("Got", results.numWorkersAfter, "workers after scaling, expected", testArgs.numWorkersDesired)
-	}
-
 }
