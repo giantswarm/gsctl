@@ -8,12 +8,12 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
@@ -193,10 +193,10 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		clusterDetailsErrChan <- err
 	}(clusterDetailsChan, clusterDetailsErrChan)
 
-	clusterStatusChan := make(chan *v1alpha1.StatusCluster)
+	clusterStatusChan := make(chan *client.ClusterStatus)
 	clusterStatusErrChan := make(chan error)
 
-	go func(chan *v1alpha1.StatusCluster, chan error) {
+	go func(chan *client.ClusterStatus, chan error) {
 		status, err := getClusterStatus(args.clusterID, showClusterActivityName)
 		clusterStatusChan <- status
 		clusterStatusErrChan <- err
@@ -253,11 +253,11 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	// Calculate worker count: if status info contains Cluster.Nodes, we use that.
 	// Otherwise fall back to old style workers slice.
 	numWorkers := len(clusterDetails.Workers)
-	if clusterStatus != nil && clusterStatus.Nodes != nil {
+	if clusterStatus != nil && clusterStatus.Cluster.Nodes != nil {
 		numWorkers = 0
 
 		// Count all nodes as workers which are not explicitly marked as master.
-		for _, node := range clusterStatus.Nodes {
+		for _, node := range clusterStatus.Cluster.Nodes {
 			val, ok := node.Labels["role"]
 			if ok && val == "master" {
 				// don't count this
@@ -322,7 +322,7 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	// what the autoscaler tries to reach as a target (only interesting if not pinned)
 	if clusterDetails.Scaling != nil && clusterDetails.Scaling.Min != clusterDetails.Scaling.Max {
-		output = append(output, color.YellowString("Desired worker node count:")+"|"+fmt.Sprintf("%d", clusterStatus.Scaling.DesiredCapacity))
+		output = append(output, color.YellowString("Desired worker node count:")+"|"+fmt.Sprintf("%d", clusterStatus.Cluster.Scaling.DesiredCapacity))
 	}
 
 	// current number of workers
