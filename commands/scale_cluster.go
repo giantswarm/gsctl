@@ -162,7 +162,7 @@ func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, er
 }
 
 // scaleCluster is the actual function submitting the API call and handling the response.
-func scaleCluster(args scaleClusterArguments) error {
+func scaleCluster(args scaleClusterArguments) (*models.V4ClusterDetailsResponse, error) {
 	// Preparing API call.
 	reqBody := &models.V4ModifyClusterRequest{
 		Scaling: &models.V4ModifyClusterRequestScaling{
@@ -179,12 +179,12 @@ func scaleCluster(args scaleClusterArguments) error {
 	auxParams := ClientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = scaleClusterActivityName
 
-	_, err := ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
+	response, err := ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
 	if err != nil {
-		return microerror.Mask(err)
+		return nil, microerror.Mask(err)
 	}
 
-	return nil
+	return response.Payload, nil
 }
 
 // scaleClusterRunOutput invokes the actual cluster scaling and prints the result and/or errors.
@@ -284,7 +284,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	// Actually make the scaling request to the API.
-	err = scaleCluster(args)
+	details, err := scaleCluster(args)
 	if err != nil {
 		handleCommonErrors(err)
 
@@ -314,7 +314,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	fmt.Println(color.GreenString("The cluster is being scaled"))
-	fmt.Printf("The cluster limits have been changed from min = %d and max = %d to min = %d and max = %d workers.\n", clusterDetails.Scaling.Min, clusterDetails.Scaling.Max, args.workersMin, args.workersMax)
+	fmt.Printf("The cluster limits have been changed from min = %d and max = %d to min = %d and max = %d workers.\n", clusterDetails.Scaling.Min, clusterDetails.Scaling.Max, details.Scaling.Min, details.Scaling.Max)
 
 }
 

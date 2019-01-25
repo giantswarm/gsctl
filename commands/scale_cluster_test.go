@@ -120,7 +120,7 @@ func TestScaleCluster(t *testing.T) {
 		t.Error(err)
 	}
 
-	scaleErr := scaleCluster(testArgs)
+	_, scaleErr := scaleCluster(testArgs)
 	if scaleErr != nil {
 		t.Error(scaleErr)
 	}
