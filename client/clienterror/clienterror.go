@@ -117,6 +117,39 @@ func New(err error) *APIError {
 		return ae
 	}
 
+	// modify cluster
+	if modifyClusterFailedErr, ok := err.(*clusters.ModifyClusterDefault); ok {
+		ae := &APIError{
+			HTTPStatusCode: modifyClusterFailedErr.Code(),
+			OriginalError:  modifyClusterFailedErr,
+			ErrorMessage:   modifyClusterFailedErr.Error(),
+		}
+
+		if ae.HTTPStatusCode == http.StatusInternalServerError {
+			ae.ErrorMessage = "Internal error"
+			ae.ErrorDetails = "The cluster cannot be modified. Please try scaling using the web UI, or contact the support team.\n"
+			ae.ErrorDetails += "Details: " + modifyClusterFailedErr.Payload.Message
+		}
+
+		return ae
+	}
+	if modifyClusterFailedErr, ok := err.(*clusters.ModifyClusterNotFound); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusNotFound,
+			OriginalError:  modifyClusterFailedErr,
+			ErrorMessage:   "Cluster not found",
+			ErrorDetails:   "The cluster to be modified could not be found.",
+		}
+	}
+	if modifyClusterFailedErr, ok := err.(*clusters.ModifyClusterUnauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  modifyClusterFailedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to modify this cluster.",
+		}
+	}
+
 	// delete cluster
 	if deleteClusterUnauthorizedErr, ok := err.(*clusters.DeleteClusterUnauthorized); ok {
 		return &APIError{
