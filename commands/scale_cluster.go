@@ -31,9 +31,9 @@ way.
 
 Examples:
 
-  gsctl scale cluster c7t2o -w 12
+	gsctl scale cluster c7t2o --workers-min 12 --workers-max 16
 
-  gsctl scale cluster c7t2o -w 12 --num-cpus 4
+	gsctl scale cluster c7t2o --workers-min 3 --workers-max 3
 `,
 
 		// Run calls the business function and prints results and errors.
@@ -71,11 +71,11 @@ func init() {
 	ScaleClusterCommand.Flags().Int64VarP(&cmdWorkersMax, cmdWorkersMaxName, "", 0, "Maximum number of worker nodes to have after scaling.")
 	ScaleClusterCommand.Flags().Int64VarP(&cmdWorkersMin, cmdWorkersMinName, "", 0, "Minimum number of worker nodes to have after scaling.")
 
+	// deprecated
 	ScaleClusterCommand.Flags().Float32VarP(&cmdWorkerStorageSizeGB, cmdWorkerStorageSizeGBName, "", 0, "Local storage size per added worker node.")
 	ScaleClusterCommand.Flags().IntVarP(&cmdWorkerNumCPUs, cmdWorkerNumCPUsName, "", 0, "Number of CPU cores per added worker node.")
 	ScaleClusterCommand.Flags().Float32VarP(&cmdWorkerMemorySizeGB, cmdWorkerMemorySizeGBName, "", 0, "RAM per added worker node.")
 	ScaleClusterCommand.Flags().IntVarP(&cmdNumWorkers, cmdWorkersNumName, "w", 0, "Number of worker nodes to have after scaling.")
-
 	ScaleClusterCommand.Flags().MarkDeprecated(cmdWorkersNumName, "Please use --workers-min and --workers-max to specify the node count to use.")
 	ScaleClusterCommand.Flags().MarkDeprecated(cmdWorkerMemorySizeGBName, "Changing the amount of Memory is no longer supported while scaling.")
 	ScaleClusterCommand.Flags().MarkDeprecated(cmdWorkerNumCPUsName, "Changing the number of CPUs is no longer supported while scaling.")
