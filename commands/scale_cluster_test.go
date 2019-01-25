@@ -157,7 +157,8 @@ func TestScaleCluster(t *testing.T) {
 		t.Errorf("Expected status.Scaling.DesiredCapacity to be 3, but is %d. status: %#v", status.Cluster.Scaling.DesiredCapacity, status)
 	}
 
-	scaleErr := scaleCluster(testArgs)
+	_, scaleErr := scaleCluster(testArgs)
+
 	if scaleErr != nil {
 		t.Error(scaleErr)
 	}
