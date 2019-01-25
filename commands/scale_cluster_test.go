@@ -96,8 +96,36 @@ func TestScaleCluster(t *testing.T) {
 		} else if r.Method == "GET" && r.URL.String() == "/v4/clusters/cluster-id/status/" {
 
 			w.Write([]byte(`{
-				"scaling": {
-					"desiredCapacity": 3
+				"cluster": {
+					"conditions": [
+						{
+							"status": "True",
+							"type": "Created"
+						}
+					],
+					"network": {
+						"cidr": ""
+					},
+					"nodes": [
+						{
+							"name": "4jr2w-master-000000",
+							"version": "2.0.1"
+						},
+						{
+							"name": "4jr2w-worker-000001",
+							"version": "2.0.1"
+						}
+					],
+					"resources": [],
+					"scaling":{
+						"desiredCapacity": 3
+					},					
+					"versions": [
+						{
+							"date": "0001-01-01T00:00:00Z",
+							"semver": "2.0.1"
+						}
+					]
 				}
 			}`))
 		}
@@ -118,6 +146,15 @@ func TestScaleCluster(t *testing.T) {
 	err := validateScaleCluster(testArgs, []string{testArgs.clusterID}, 3, 3, 3)
 	if err != nil {
 		t.Error(err)
+	}
+
+	status, err := getClusterStatus(testArgs.clusterID, "scale-cluster")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if status.Cluster.Scaling.DesiredCapacity != 3 {
+		t.Errorf("Expected status.Scaling.DesiredCapacity to be 3, but is %d. status: %#v", status.Cluster.Scaling.DesiredCapacity, status)
 	}
 
 	scaleErr := scaleCluster(testArgs)
