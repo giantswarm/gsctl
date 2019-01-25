@@ -1,7 +1,6 @@
 package client
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -10,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
 	"github.com/giantswarm/gsctl/client/clienterror"
 )
 
@@ -401,26 +399,13 @@ func TestGetClusterStatus(t *testing.T) {
 		t.Error(err)
 	}
 
-	response, err := gsClient.GetClusterStatus("cluster-id", nil)
+	status, err := gsClient.GetClusterStatus("cluster-id", nil)
 	if err != nil {
 		t.Error(err)
 	}
 
-	m, err := json.Marshal(response.Payload)
-	if err != nil {
-		t.Error(err)
-	}
-
-	var status v1alpha1.StatusCluster
-
-	err = json.Unmarshal(m, &status)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if len(status.Nodes) != 2 {
-		t.Errorf("Expected status.Nodes to have length 2, but has %d. status: %#v", len(status.Nodes), status)
-		t.Logf("response.Payload: %s", response.Payload)
+	if len(status.Cluster.Nodes) != 2 {
+		t.Errorf("Expected status.Nodes to have length 2, but has %d. status: %#v", len(status.Cluster.Nodes), status)
 	}
 }
 
@@ -445,24 +430,12 @@ func TestGetClusterStatusEmpty(t *testing.T) {
 		t.Error(err)
 	}
 
-	response, err := gsClient.GetClusterStatus("cluster-id", nil)
+	status, err := gsClient.GetClusterStatus("cluster-id", nil)
 	if err != nil {
 		t.Error(err)
 	}
 
-	m, err := json.Marshal(response.Payload)
-	if err != nil {
-		t.Error(err)
-	}
-
-	var status v1alpha1.StatusCluster
-
-	err = json.Unmarshal(m, &status)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if len(status.Nodes) != 0 {
-		t.Errorf("Expected status.Nodes to have length 0. Has length %d", len(status.Nodes))
+	if len(status.Cluster.Nodes) != 0 {
+		t.Errorf("Expected status.Nodes to have length 0. Has length %d", len(status.Cluster.Nodes))
 	}
 }

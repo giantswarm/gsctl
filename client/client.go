@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/json"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -501,7 +502,7 @@ func (w *WrapperV2) SetCredentials(organizationID string, addCredentialsRequest 
 }
 
 // GetClusterStatus fetches details on a cluster using the V2 client.
-func (w *WrapperV2) GetClusterStatus(clusterID string, p *AuxiliaryParams) (*clusters.GetClusterStatusOK, error) {
+func (w *WrapperV2) GetClusterStatus(clusterID string, p *AuxiliaryParams) (*ClusterStatus, error) {
 	params := clusters.NewGetClusterStatusParams().WithClusterID(clusterID)
 	err := setParamsWithAuthorization(p, w, params)
 	if err != nil {
@@ -513,5 +514,17 @@ func (w *WrapperV2) GetClusterStatus(clusterID string, p *AuxiliaryParams) (*clu
 		return nil, clienterror.New(err)
 	}
 
-	return response, nil
+	m, err := json.Marshal(response.Payload)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	var status ClusterStatus
+
+	err = json.Unmarshal(m, &status)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return &status, nil
 }
