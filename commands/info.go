@@ -122,8 +122,8 @@ func printInfo(cmd *cobra.Command, args []string) {
 
 		if result.infoResponse != nil {
 			if result.infoResponse.Payload.General.Provider == "aws" {
-				output = append(output, color.YellowString("Worker instance type options:")+"|"+color.CyanString(strings.Join(result.infoResponse.Payload.Workers.InstanceType.Options, ", ")))
-				output = append(output, color.YellowString("Default worker instance type:")+"|"+color.CyanString(result.infoResponse.Payload.Workers.InstanceType.Default))
+				output = append(output, color.YellowString("Worker EC2 instance type options:")+"|"+color.CyanString(strings.Join(result.infoResponse.Payload.Workers.InstanceType.Options, ", ")))
+				output = append(output, color.YellowString("Default worker EC2 instance type:")+"|"+color.CyanString(result.infoResponse.Payload.Workers.InstanceType.Default))
 			} else if result.infoResponse.Payload.General.Provider == "azure" {
 				output = append(output, color.YellowString("Worker VM size options:")+"|"+color.CyanString(strings.Join(result.infoResponse.Payload.Workers.VMSize.Options, ", ")))
 				output = append(output, color.YellowString("Default worker VM size:")+"|"+color.CyanString(result.infoResponse.Payload.Workers.VMSize.Default))

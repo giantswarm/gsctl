@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
@@ -173,6 +174,8 @@ func sumWorkerMemory(workerDetails []*models.V4ClusterDetailsResponseWorkersItem
 	return sum
 }
 
+// showClusterRunOutput fetches cluster info from the API, which involves
+// several API calls, and prints the output.
 func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultShowClusterArguments()
 	args.clusterID = cmdLineArgs[0]
@@ -181,35 +184,52 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println(color.WhiteString("Fetching details for cluster %s", args.clusterID))
 	}
 
-	clusterDetails, err := getClusterDetails(args.clusterID, showClusterActivityName)
+	clusterDetailsChan := make(chan *models.V4ClusterDetailsResponse)
+	clusterDetailsErrChan := make(chan error)
 
-	var credentialDetails *models.V4GetCredentialResponse
+	go func(chan *models.V4ClusterDetailsResponse, chan error) {
+		clusterDetails, err := getClusterDetails(args.clusterID, showClusterActivityName)
+		clusterDetailsChan <- clusterDetails
+		clusterDetailsErrChan <- err
+	}(clusterDetailsChan, clusterDetailsErrChan)
 
-	if err == nil && clusterDetails.CredentialID != "" {
-		if args.verbose {
-			fmt.Println(color.WhiteString("Fetching details for credential %s", clusterDetails.CredentialID))
-		}
+	clusterStatusChan := make(chan *client.ClusterStatus)
+	clusterStatusErrChan := make(chan error)
 
-		credentialDetails, err = getOrgCredentials(clusterDetails.Owner, clusterDetails.CredentialID, showClusterActivityName)
+	go func(chan *client.ClusterStatus, chan error) {
+		status, err := getClusterStatus(args.clusterID, showClusterActivityName)
+		clusterStatusChan <- status
+		clusterStatusErrChan <- err
+	}(clusterStatusChan, clusterStatusErrChan)
+
+	clusterDetails := <-clusterDetailsChan
+	clusterDetailsErr := <-clusterDetailsErrChan
+	clusterStatus := <-clusterStatusChan
+	clusterStatusErr := <-clusterStatusErrChan
+
+	// Cluster status isn't crucual, so we inform about problems, but don't exit.
+	if clusterStatusErr != nil {
+		fmt.Println(color.RedString("Error: Could not fetch cluster status."))
+		fmt.Println("The worker node count displayed might derive from the actual number.")
 	}
 
-	if err != nil {
-		handleCommonErrors(err)
+	if clusterDetailsErr != nil {
+		handleCommonErrors(clusterDetailsErr)
 
 		var headline = ""
 		var subtext = ""
 
 		switch {
-		case IsClusterNotFoundError(err):
+		case IsClusterNotFoundError(clusterDetailsErr):
 			headline = "Cluster not found"
 			subtext = "The cluster with this ID could not be found. Please use 'gsctl list clusters' to list all available clusters."
-		case IsCredentialNotFoundError(err):
+		case IsCredentialNotFoundError(clusterDetailsErr):
 			headline = "Credential not found"
 			subtext = "Credentials with the given ID could not be found."
-		case err.Error() == "":
+		case clusterDetailsErr.Error() == "":
 			return
 		default:
-			headline = err.Error()
+			headline = clusterDetailsErr.Error()
 		}
 
 		// Print error output
@@ -218,6 +238,33 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			fmt.Println(subtext)
 		}
 		os.Exit(1)
+	}
+
+	var credentialDetails *models.V4GetCredentialResponse
+	//var credentialDetailsErr error
+	if clusterDetailsErr == nil && clusterDetails.CredentialID != "" {
+		if args.verbose {
+			fmt.Println(color.WhiteString("Fetching details for credential %s", clusterDetails.CredentialID))
+		}
+
+		credentialDetails, _ = getOrgCredentials(clusterDetails.Owner, clusterDetails.CredentialID, showClusterActivityName)
+	}
+
+	// Calculate worker count: if status info contains Cluster.Nodes, we use that.
+	// Otherwise fall back to old style workers slice.
+	numWorkers := len(clusterDetails.Workers)
+	if clusterStatus != nil && clusterStatus.Cluster.Nodes != nil {
+		numWorkers = 0
+
+		// Count all nodes as workers which are not explicitly marked as master.
+		for _, node := range clusterStatus.Cluster.Nodes {
+			val, ok := node.Labels["role"]
+			if ok && val == "master" {
+				// don't count this
+			} else {
+				numWorkers++
+			}
+		}
 	}
 
 	// print table
@@ -262,12 +309,29 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		output = append(output, color.YellowString("Release version:")+"|n/a")
 	}
 
-	output = append(output, color.YellowString("Workers:")+"|"+fmt.Sprintf("%d", len(clusterDetails.Workers)))
+	// scaling info
+	scalingInfo := "n/a"
+	if clusterDetails.Scaling != nil {
+		if clusterDetails.Scaling.Min == clusterDetails.Scaling.Max {
+			scalingInfo = fmt.Sprintf("pinned at %d", clusterDetails.Scaling.Min)
+		} else {
+			scalingInfo = fmt.Sprintf("autoscaling between %d and %d", clusterDetails.Scaling.Min, clusterDetails.Scaling.Max)
+		}
+	}
+	output = append(output, color.YellowString("Worker node scaling:")+"|"+scalingInfo)
+
+	// what the autoscaler tries to reach as a target (only interesting if not pinned)
+	if clusterDetails.Scaling != nil && clusterDetails.Scaling.Min != clusterDetails.Scaling.Max {
+		output = append(output, color.YellowString("Desired worker node count:")+"|"+fmt.Sprintf("%d", clusterStatus.Cluster.Scaling.DesiredCapacity))
+	}
+
+	// current number of workers
+	output = append(output, color.YellowString("Worker nodes running:")+"|"+fmt.Sprintf("%d", numWorkers))
 
 	// This assumes all nodes use the same instance type.
 	if len(clusterDetails.Workers) > 0 {
 		if clusterDetails.Workers[0].Aws != nil && clusterDetails.Workers[0].Aws.InstanceType != "" {
-			output = append(output, color.YellowString("Worker instance type:")+"|"+clusterDetails.Workers[0].Aws.InstanceType)
+			output = append(output, color.YellowString("Worker EC2 instance type:")+"|"+clusterDetails.Workers[0].Aws.InstanceType)
 		}
 
 		if clusterDetails.Workers[0].Azure != nil && clusterDetails.Workers[0].Azure.VMSize != "" {

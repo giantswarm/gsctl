@@ -1,16 +1,15 @@
 package commands
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -149,32 +148,17 @@ func defaultScaleClusterArguments(cmd *cobra.Command, clusterId string, maxBefor
 }
 
 // getClusterStatus returns the status for one cluster.
-func getClusterStatus(clusterID, activityName string) (*v1alpha1.StatusCluster, error) {
+func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, error) {
 	// perform API call
 	auxParams := ClientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := ClientV2.GetClusterStatus(clusterID, auxParams)
+	status, err := ClientV2.GetClusterStatus(clusterID, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	// We have to marshal and unmarshal here because the generated client gives us
-	// a map[string]interface and we want to unmarshal it into the actual
-	// apiextensions type.
-	m, err := json.Marshal(response.Payload)
-	if err != nil {
-		return nil, err
-	}
-
-	var status v1alpha1.StatusCluster
-
-	err = json.Unmarshal(m, &status)
-	if err != nil {
-		return nil, err
-	}
-
-	return &status, nil
+	return status, nil
 }
 
 // scaleCluster is the actual function submitting the API call and handling the response.
@@ -245,7 +229,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		}
 		maxBefore = clusterDetails.Scaling.Max
 		minBefore = clusterDetails.Scaling.Min
-		desiredCapacity = int64(status.Scaling.DesiredCapacity)
+		desiredCapacity = int64(status.Cluster.Scaling.DesiredCapacity)
 
 	} else {
 		// Default to the length of the workers array. We don't know how old the

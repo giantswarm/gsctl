@@ -79,7 +79,7 @@
   name = "github.com/giantswarm/apiextensions"
   packages = ["pkg/apis/provider/v1alpha1"]
   pruneopts = "UT"
-  revision = "0584389c4f82e52ba980c14dc31434d922245a46"
+  revision = "1f1e998db676f6bfc5698286fd697f5b4c0a55e5"
 
 [[projects]]
   digest = "1:bb4b8d3907c58fa0f09f1a254c2b6acfbeaf307255bc8076e8f578609c0ece56"
@@ -196,19 +196,19 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:cb3a032be83177e74c05678d6c540941809383b6cea66f45e5add36b31cf9c77"
+  digest = "1:cd44a5ccbbc1fd0180587fd8e4e15c578f240b544c9a2e32f98f0d3ff80a2c63"
   name = "github.com/go-openapi/strfmt"
   packages = ["."]
   pruneopts = "UT"
-  revision = "dd2bd34dedb77725bec3b8e941ad06daf32a935a"
+  revision = "bc2668dc64edd7a448bdb3a6a997a85f7f868bbc"
 
 [[projects]]
   branch = "master"
-  digest = "1:0005186c6608dd542239ac8e4f4f1e2e7c24d493e999113c46b93332f0362fc0"
+  digest = "1:ba19f31d5324df5e97dc58d92ebc99e0a77ddab15148f10541efa9ef99ff8cf2"
   name = "github.com/go-openapi/swag"
   packages = ["."]
   pruneopts = "UT"
-  revision = "1d29f06aebd59ccdf11ae04aa0334ded96e2d909"
+  revision = "de290ea356bdd2815da4219f4f2757611fa09af9"
 
 [[projects]]
   branch = "master"
@@ -219,12 +219,12 @@
   revision = "d2eab7d93009e9215fc85b2faa2c2f2a98c2af48"
 
 [[projects]]
-  digest = "1:bd342004ef1bb83bee8709e2ad630e47a95d069f7fcb60ee1b8bceb4bbbe14ae"
+  digest = "1:4868df29afe0468bd98f663aff34f486b2e92db41f25747d8e6855c9cd91808b"
   name = "github.com/gobuffalo/envy"
   packages = ["."]
   pruneopts = "UT"
-  revision = "801d7253ade1f895f74596b9a96147ed2d3b087e"
-  version = "v1.6.11"
+  revision = "f3b98d4da2fa434517f47f615e217fa72ff2c51e"
+  version = "v1.6.12"
 
 [[projects]]
   branch = "master"
@@ -271,11 +271,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:45aad874d3c7d5e8610427c81870fb54970b981692930ec2a319ce4cb89d7a00"
+  digest = "1:a54ada9beb59fdc35b69322979e870ff0b780e03f4dc309c4c8674b94927df75"
   name = "github.com/hashicorp/go-rootcerts"
   packages = ["."]
   pruneopts = "UT"
-  revision = "6bb64b370b90e7ef1fa532be9e591a81c3493e00"
+  revision = "63503fb4e1eca22f9ae0f90b49c5d5538a0e87eb"
 
 [[projects]]
   branch = "master"
@@ -411,11 +411,11 @@
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "UT"
-  revision = "ff983b9c42bc9fbf91556e191cc8efb585c16908"
+  revision = "057139ce5d2bdbe6fe73c53679e24e9cf007f637"
 
 [[projects]]
   branch = "master"
-  digest = "1:ca38c104c734524967fbd5142db26f55febff8fb6fbe92ff4c0f95dae6bcc265"
+  digest = "1:9edb1388850880d4d9ce2296fe215740fb1ed0f799990d60cef1daa0dbfafd75"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -425,18 +425,18 @@
     "idna",
   ]
   pruneopts = "UT"
-  revision = "915654e7eabcea33ae277abbecf52f0d8b7a9fdc"
+  revision = "ed066c81e75eba56dd9bd2139ade88125b855585"
 
 [[projects]]
   branch = "master"
-  digest = "1:43cde116ff48f299eddb7e6515677e6d0a2c915854bb05a333877f07c3bb3033"
+  digest = "1:bb644db32f5bc1e327a0f748ec871edc4dc46f19b4fbbc15bfd95b1460646537"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "11f53e03133963fb11ae0588e08b5e0b85be8be5"
+  revision = "b90733256f2e882e81d52f9126de08df5615afd9"
 
 [[projects]]
   digest = "1:0c56024909189aee3364b7f21a95a27459f718aa7c199a5c111c36cfffd9eaef"
