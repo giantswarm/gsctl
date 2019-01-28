@@ -336,7 +336,7 @@ func validateScaleCluster(args scaleClusterArguments, cmdLineArgs []string, maxB
 	}
 
 	// flag conflicts.
-	if args.numWorkersDesired > 0 && (args.workersMax > 0 || args.workersMin > 0) {
+	if args.numWorkersDesired > 0 && (args.workersMax > 0 || args.workersMin > 0) && (int64(args.numWorkersDesired) != args.workersMax || int64(args.numWorkersDesired) != args.workersMin) {
 		return microerror.Mask(conflictingWorkerFlagsUsedError)
 	}
 
