@@ -416,8 +416,13 @@ func definitionFromFlags(def clusterDefinition, args addClusterArguments) cluste
 	}
 
 	if def.Scaling.Min == 0 && def.Scaling.Max == 0 {
-		def.Scaling.Min = int64(len(def.Workers))
-		def.Scaling.Max = int64(len(def.Workers))
+		def.Scaling.Min = int64(args.numWorkers)
+		def.Scaling.Max = int64(args.numWorkers)
+	}
+
+	if def.Scaling.Min == 0 && def.Scaling.Max == 0 && args.numWorkers == 0 {
+		def.Scaling.Min = 3
+		def.Scaling.Max = 3
 	}
 
 	workers := []nodeDefinition{}
@@ -468,8 +473,6 @@ func createAddClusterBody(d clusterDefinition) *models.V4AddClusterRequest {
 		ndmWorker.Aws = &models.V4AddClusterRequestWorkersItemsAws{InstanceType: d.Workers[0].AWS.InstanceType}
 		ndmWorker.Azure = &models.V4AddClusterRequestWorkersItemsAzure{VMSize: d.Workers[0].Azure.VMSize}
 		a.Workers = append(a.Workers, ndmWorker)
-	} else {
-		a.Workers = append(a.Workers, &models.V4AddClusterRequestWorkersItems{})
 	}
 
 	return a
@@ -507,22 +510,22 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		}
 	}
 
-	// Preview in YAML format
-	if args.verbose {
-		fmt.Println("\nDefinition for the requested cluster:")
-		d, marshalErr := yaml.Marshal(result.definition)
-		if marshalErr != nil {
-			log.Fatalf("error: %v", marshalErr)
-		}
-		fmt.Printf(color.CyanString(string(d)))
-		fmt.Println()
-	}
-
 	// create JSON API call payload to catch and handle errors early
 	addClusterBody := createAddClusterBody(result.definition)
 	_, marshalErr := json.Marshal(addClusterBody)
 	if marshalErr != nil {
 		return result, microerror.Maskf(couldNotCreateJSONRequestBodyError, marshalErr.Error())
+	}
+
+	// Preview in YAML format
+	if args.verbose {
+		fmt.Println("\nDefinition for the requested cluster:")
+		d, marshalErr := yaml.Marshal(addClusterBody)
+		if marshalErr != nil {
+			log.Fatalf("error: %v", marshalErr)
+		}
+		fmt.Printf(color.CyanString(string(d)))
+		fmt.Println()
 	}
 
 	if !args.dryRun {

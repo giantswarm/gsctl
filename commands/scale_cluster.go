@@ -147,6 +147,19 @@ func defaultScaleClusterArguments(cmd *cobra.Command, clusterId string, maxBefor
 	return scaleArgs
 }
 
+func isAutoscalingEnabled(version string) (bool, error) {
+	{
+		n, err := util.CompareVersions(version, "6.3.0")
+		if err != nil {
+			return false, err
+		}
+		if n == 0 || n == 1 {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // getClusterStatus returns the status for one cluster.
 func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, error) {
 	// perform API call
@@ -201,16 +214,10 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		os.Exit(1)
 	}
 
-	var autoScalingEnabled bool
-	{
-		n, err := util.CompareVersions(clusterDetails.ReleaseVersion, "6.3.0")
-		if err != nil {
-			fmt.Println(color.RedString(err.Error()))
-			os.Exit(1)
-		}
-		if n == 0 || n == 1 {
-			autoScalingEnabled = true
-		}
+	autoScalingEnabled, err := isAutoscalingEnabled(clusterDetails.ReleaseVersion)
+	if err != nil {
+		fmt.Println(color.RedString(err.Error()))
+		os.Exit(1)
 	}
 
 	var maxBefore int64
