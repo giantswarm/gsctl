@@ -327,6 +327,12 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 // validatyScaleCluster does a few general checks and returns an error in case something is missing.
 func validateScaleCluster(args scaleClusterArguments, cmdLineArgs []string, maxBefore int64, minBefore int64, desiredCapacity int64) error {
+	desiredWorkersExists := (args.numWorkersDesired > 0)
+	scalingParameterIsPresent := (args.workersMax > 0 || args.workersMin > 0)
+	desiredWorkersDifferFromMaxNumOfWorkers := (int64(args.numWorkersDesired) != args.workersMax)
+	desiredWorkersDifferFromMinNumOfWorkers := (int64(args.numWorkersDesired) != args.workersMin)
+	desiredWorkersAreNotAtScalingLimits := (desiredWorkersDifferFromMaxNumOfWorkers || desiredWorkersDifferFromMinNumOfWorkers)
+
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(notLoggedInError)
 	}
@@ -336,11 +342,11 @@ func validateScaleCluster(args scaleClusterArguments, cmdLineArgs []string, maxB
 	}
 
 	// flag conflicts.
-	if args.numWorkersDesired > 0 && (args.workersMax > 0 || args.workersMin > 0) && (int64(args.numWorkersDesired) != args.workersMax || int64(args.numWorkersDesired) != args.workersMin) {
+	if desiredWorkersExists && scalingParameterIsPresent && desiredWorkersAreNotAtScalingLimits {
 		return microerror.Mask(conflictingWorkerFlagsUsedError)
 	}
 
-	if args.numWorkersDesired > 0 && args.numWorkersDesired < minimumNumWorkers {
+	if desiredWorkersExists && args.numWorkersDesired < minimumNumWorkers {
 		return microerror.Mask(notEnoughWorkerNodesError)
 	}
 	if args.workersMax > 0 && args.workersMax < int64(minimumNumWorkers) {
@@ -349,7 +355,7 @@ func validateScaleCluster(args scaleClusterArguments, cmdLineArgs []string, maxB
 	if args.workersMin > 0 && args.workersMin < int64(minimumNumWorkers) {
 		return microerror.Mask(notEnoughWorkerNodesError)
 	}
-	if args.workersMin > 0 && args.workersMax > 0 && args.workersMin > args.workersMax {
+	if scalingParameterIsPresent && args.workersMin > args.workersMax {
 		return microerror.Mask(workersMinMaxInvalidError)
 	}
 
