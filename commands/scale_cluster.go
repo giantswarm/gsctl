@@ -147,6 +147,19 @@ func defaultScaleClusterArguments(cmd *cobra.Command, clusterId string, maxBefor
 	return scaleArgs
 }
 
+func isAutoscalingEnabled(version string) (bool, error) {
+	{
+		n, err := util.CompareVersions(version, "6.3.0")
+		if err != nil {
+			return false, err
+		}
+		if n == 0 || n == 1 {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // getClusterStatus returns the status for one cluster.
 func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, error) {
 	// perform API call
@@ -201,16 +214,10 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		os.Exit(1)
 	}
 
-	var autoScalingEnabled bool
-	{
-		n, err := util.CompareVersions(clusterDetails.ReleaseVersion, "6.3.0")
-		if err != nil {
-			fmt.Println(color.RedString(err.Error()))
-			os.Exit(1)
-		}
-		if n == 0 || n == 1 {
-			autoScalingEnabled = true
-		}
+	autoScalingEnabled, err := isAutoscalingEnabled(clusterDetails.ReleaseVersion)
+	if err != nil {
+		fmt.Println(color.RedString(err.Error()))
+		os.Exit(1)
 	}
 
 	var maxBefore int64
@@ -320,6 +327,12 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 // validatyScaleCluster does a few general checks and returns an error in case something is missing.
 func validateScaleCluster(args scaleClusterArguments, cmdLineArgs []string, maxBefore int64, minBefore int64, desiredCapacity int64) error {
+	desiredWorkersExists := (args.numWorkersDesired > 0)
+	scalingParameterIsPresent := (args.workersMax > 0 || args.workersMin > 0)
+	desiredWorkersDifferFromMaxNumOfWorkers := (int64(args.numWorkersDesired) != args.workersMax)
+	desiredWorkersDifferFromMinNumOfWorkers := (int64(args.numWorkersDesired) != args.workersMin)
+	desiredWorkersAreNotAtScalingLimits := (desiredWorkersDifferFromMaxNumOfWorkers || desiredWorkersDifferFromMinNumOfWorkers)
+
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(notLoggedInError)
 	}
@@ -329,11 +342,11 @@ func validateScaleCluster(args scaleClusterArguments, cmdLineArgs []string, maxB
 	}
 
 	// flag conflicts.
-	if args.numWorkersDesired > 0 && (args.workersMax > 0 || args.workersMin > 0) {
+	if desiredWorkersExists && scalingParameterIsPresent && desiredWorkersAreNotAtScalingLimits {
 		return microerror.Mask(conflictingWorkerFlagsUsedError)
 	}
 
-	if args.numWorkersDesired > 0 && args.numWorkersDesired < minimumNumWorkers {
+	if desiredWorkersExists && args.numWorkersDesired < minimumNumWorkers {
 		return microerror.Mask(notEnoughWorkerNodesError)
 	}
 	if args.workersMax > 0 && args.workersMax < int64(minimumNumWorkers) {
@@ -342,7 +355,7 @@ func validateScaleCluster(args scaleClusterArguments, cmdLineArgs []string, maxB
 	if args.workersMin > 0 && args.workersMin < int64(minimumNumWorkers) {
 		return microerror.Mask(notEnoughWorkerNodesError)
 	}
-	if args.workersMin > 0 && args.workersMax > 0 && args.workersMin > args.workersMax {
+	if scalingParameterIsPresent && args.workersMin > args.workersMax {
 		return microerror.Mask(workersMinMaxInvalidError)
 	}
 
