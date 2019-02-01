@@ -148,29 +148,20 @@ func getOrgCredentials(orgName, credentialID, activityName string) (*models.V4Ge
 }
 
 // sumWorkerCPUs adds up the worker's CPU cores
-func sumWorkerCPUs(workerDetails []*models.V4ClusterDetailsResponseWorkersItems) uint {
-	sum := uint(0)
-	for _, item := range workerDetails {
-		sum = sum + uint(item.CPU.Cores)
-	}
-	return sum
+func sumWorkerCPUs(numWorkers int, workerDetails []*models.V4ClusterDetailsResponseWorkersItems) uint {
+	sum := numWorkers * int(workerDetails[0].CPU.Cores)
+	return uint(sum)
 }
 
 // sumWorkerStorage adds up the worker's storage
-func sumWorkerStorage(workerDetails []*models.V4ClusterDetailsResponseWorkersItems) float64 {
-	sum := float64(0.0)
-	for _, item := range workerDetails {
-		sum = sum + item.Storage.SizeGb
-	}
+func sumWorkerStorage(numWorkers int, workerDetails []*models.V4ClusterDetailsResponseWorkersItems) float64 {
+	sum := float64(numWorkers) * workerDetails[0].Storage.SizeGb
 	return sum
 }
 
 // sumWorkerMemory adds up the worker's memory
-func sumWorkerMemory(workerDetails []*models.V4ClusterDetailsResponseWorkersItems) float64 {
-	sum := float64(0.0)
-	for _, item := range workerDetails {
-		sum = sum + item.Memory.SizeGb
-	}
+func sumWorkerMemory(numWorkers int, workerDetails []*models.V4ClusterDetailsResponseWorkersItems) float64 {
+	sum := float64(numWorkers) * workerDetails[0].Memory.SizeGb
 	return sum
 }
 
@@ -250,12 +241,9 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		credentialDetails, _ = getOrgCredentials(clusterDetails.Owner, clusterDetails.CredentialID, showClusterActivityName)
 	}
 
-	// Calculate worker count: if status info contains Cluster.Nodes, we use that.
-	// Otherwise fall back to old style workers slice.
-	numWorkers := len(clusterDetails.Workers)
+	// Calculate worker node count.
+	numWorkers := 0
 	if clusterStatus != nil && clusterStatus.Cluster.Nodes != nil {
-		numWorkers = 0
-
 		// Count all nodes as workers which are not explicitly marked as master.
 		for _, node := range clusterStatus.Cluster.Nodes {
 			val, ok := node.Labels["role"]
@@ -309,6 +297,13 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		output = append(output, color.YellowString("Release version:")+"|n/a")
 	}
 
+	// Instance type / VM size
+	if clusterDetails.Workers[0].Aws != nil && clusterDetails.Workers[0].Aws.InstanceType != "" {
+		output = append(output, color.YellowString("Worker EC2 instance type:")+"|"+clusterDetails.Workers[0].Aws.InstanceType)
+	} else if clusterDetails.Workers[0].Azure != nil && clusterDetails.Workers[0].Azure.VMSize != "" {
+		output = append(output, color.YellowString("Worker VM size:")+"|"+clusterDetails.Workers[0].Azure.VMSize)
+	}
+
 	// scaling info
 	scalingInfo := "n/a"
 	if clusterDetails.Scaling != nil {
@@ -321,29 +316,18 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	output = append(output, color.YellowString("Worker node scaling:")+"|"+scalingInfo)
 
 	// what the autoscaler tries to reach as a target (only interesting if not pinned)
-	if clusterStatus != nil && clusterDetails.Scaling.Min != clusterDetails.Scaling.Max {
+	if clusterStatus != nil && clusterStatus.Cluster != nil && clusterDetails.Scaling != nil && clusterDetails.Scaling.Min != clusterDetails.Scaling.Max {
 		output = append(output, color.YellowString("Desired worker node count:")+"|"+fmt.Sprintf("%d", clusterStatus.Cluster.Scaling.DesiredCapacity))
 	}
 
 	// current number of workers
 	output = append(output, color.YellowString("Worker nodes running:")+"|"+fmt.Sprintf("%d", numWorkers))
 
-	// This assumes all nodes use the same instance type.
-	if len(clusterDetails.Workers) > 0 {
-		if clusterDetails.Workers[0].Aws != nil && clusterDetails.Workers[0].Aws.InstanceType != "" {
-			output = append(output, color.YellowString("Worker EC2 instance type:")+"|"+clusterDetails.Workers[0].Aws.InstanceType)
-		}
-
-		if clusterDetails.Workers[0].Azure != nil && clusterDetails.Workers[0].Azure.VMSize != "" {
-			output = append(output, color.YellowString("Worker VM size:")+"|"+clusterDetails.Workers[0].Azure.VMSize)
-		}
-	}
-
-	output = append(output, color.YellowString("CPU cores in workers:")+"|"+fmt.Sprintf("%d", sumWorkerCPUs(clusterDetails.Workers)))
-	output = append(output, color.YellowString("RAM in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerMemory(clusterDetails.Workers)))
+	output = append(output, color.YellowString("CPU cores in workers:")+"|"+fmt.Sprintf("%d", sumWorkerCPUs(numWorkers, clusterDetails.Workers)))
+	output = append(output, color.YellowString("RAM in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerMemory(numWorkers, clusterDetails.Workers)))
 
 	if clusterDetails.Kvm != nil {
-		output = append(output, color.YellowString("Storage in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerStorage(clusterDetails.Workers)))
+		output = append(output, color.YellowString("Storage in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerStorage(numWorkers, clusterDetails.Workers)))
 	}
 
 	if clusterDetails.Kvm != nil && len(clusterDetails.Kvm.PortMappings) > 0 {
