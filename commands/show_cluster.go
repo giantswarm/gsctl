@@ -6,6 +6,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
@@ -198,12 +199,6 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	clusterStatus := <-clusterStatusChan
 	clusterStatusErr := <-clusterStatusErrChan
 
-	// Cluster status isn't crucual, so we inform about problems, but don't exit.
-	if clusterStatusErr != nil {
-		fmt.Println(color.RedString("Error: Could not fetch cluster status."))
-		fmt.Println("The worker node count displayed might derive from the actual number.")
-	}
-
 	if clusterDetailsErr != nil {
 		handleCommonErrors(clusterDetailsErr)
 
@@ -335,6 +330,18 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			output = append(output, color.YellowString(fmt.Sprintf("Ingress port for %s:", portMapping.Protocol))+"|"+fmt.Sprintf("%d", portMapping.Port))
 		}
 	}
+
+	// Here we inform about problems fetching the cluster status, which happens regularly for new clusters
+	// and isn't a problem.
+	if clusterStatusErr != nil {
+		fmt.Println("\nInfo: Could not fetch cluster status, so the worker node count displayed might derive from the actual number.")
+
+		if time.Since(created).Minutes() < 5 {
+			fmt.Println("This is expected for clusters which are still in creation.")
+		}
+	}
+	
+	
 
 	fmt.Println(columnize.SimpleFormat(output))
 }
