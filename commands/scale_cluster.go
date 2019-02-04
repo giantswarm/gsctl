@@ -116,7 +116,7 @@ func confirmScaleCluster(args scaleClusterArguments, maxBefore int64, minBefore 
 }
 
 // defaultScaleClusterArguments defaults arguments supplied by the users.
-func defaultScaleClusterArguments(cmd *cobra.Command, clusterId string, maxBefore int64, minBefore int64) scaleClusterArguments {
+func defaultScaleClusterArguments(cmd *cobra.Command, clusterID string, maxBefore int64, minBefore int64) scaleClusterArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
@@ -124,7 +124,7 @@ func defaultScaleClusterArguments(cmd *cobra.Command, clusterId string, maxBefor
 	scaleArgs := scaleClusterArguments{
 		apiEndpoint:         endpoint,
 		authToken:           token,
-		clusterID:           clusterId,
+		clusterID:           clusterID,
 		numWorkersDesired:   cmdNumWorkers,
 		oppressConfirmation: cmdForce,
 		scheme:              scheme,
