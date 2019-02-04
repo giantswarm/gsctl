@@ -39,6 +39,9 @@ Examples:
 		// Run calls the business function and prints results and errors.
 		Run: showClusterRunOutput,
 	}
+
+	// Time after which a new cluster should be up, roughly.
+	clusterCreationExpectedDuration = 20 * time.Minute
 )
 
 const (
@@ -331,17 +334,15 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		}
 	}
 
+	fmt.Println(columnize.SimpleFormat(output))
+
 	// Here we inform about problems fetching the cluster status, which happens regularly for new clusters
 	// and isn't a problem.
 	if clusterStatusErr != nil {
 		fmt.Println("\nInfo: Could not fetch cluster status, so the worker node count displayed might derive from the actual number.")
 
-		if time.Since(created).Minutes() < 5 {
+		if time.Since(created) < clusterCreationExpectedDuration {
 			fmt.Println("This is expected for clusters which are still in creation.")
 		}
 	}
-	
-	
-
-	fmt.Println(columnize.SimpleFormat(output))
 }
