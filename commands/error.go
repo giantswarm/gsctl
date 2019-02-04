@@ -365,7 +365,7 @@ var apiError = &microerror.Error{
 	Kind: "apiError",
 }
 
-// IsAIPError asserts apiError.
+// IsAPIError asserts apiError.
 func IsAPIError(err error) bool {
 	c := microerror.Cause(err)
 	_, ok := c.(*clienterror.APIError)
