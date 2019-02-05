@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/cmd/cluster/scale/defaulting"
+	"github.com/giantswarm/gsctl/cmd/cluster/scale/request"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -115,8 +118,9 @@ func confirmScaleCluster(args scaleClusterArguments, maxBefore int64, minBefore 
 
 }
 
-// defaultScaleClusterArguments defaults arguments supplied by the users.
-func defaultScaleClusterArguments(cmd *cobra.Command, clusterId string, maxBefore int64, minBefore int64) scaleClusterArguments {
+func defaultScaleClusterArguments(ctx context.Context, cmd *cobra.Command, clusterId string, autoScalingEnabled bool, currentScalingMax int64, currentScalingMin int64, desiredScalingMax int64, desiredScalingMin int64, desiredNumWorkers int64) (scaleClusterArguments, error) {
+	var err error
+
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
@@ -125,7 +129,7 @@ func defaultScaleClusterArguments(cmd *cobra.Command, clusterId string, maxBefor
 		apiEndpoint:         endpoint,
 		authToken:           token,
 		clusterID:           clusterId,
-		numWorkersDesired:   cmdNumWorkers,
+		numWorkersDesired:   int(desiredNumWorkers),
 		oppressConfirmation: cmdForce,
 		scheme:              scheme,
 		verbose:             cmdVerbose,
@@ -133,18 +137,38 @@ func defaultScaleClusterArguments(cmd *cobra.Command, clusterId string, maxBefor
 		workersMin:          cmdWorkersMin,
 	}
 
-	if !cmd.Flags().Changed(cmdWorkersMinName) {
-		scaleArgs.workersMin = minBefore
-	}
-	if !cmd.Flags().Changed(cmdWorkersMaxName) {
-		scaleArgs.workersMax = maxBefore
-	}
-	if !cmd.Flags().Changed(cmdWorkersMaxName) && !cmd.Flags().Changed(cmdWorkersMinName) && cmd.Flags().Changed(cmdWorkersNumName) {
-		scaleArgs.workersMax = int64(scaleArgs.numWorkersDesired)
-		scaleArgs.workersMin = int64(scaleArgs.numWorkersDesired)
+	desiredNumWorkersChanged := cmd.Flags().Changed(cmdWorkersNumName)
+	desiredScalingMinChanged := cmd.Flags().Changed(cmdWorkersMinName)
+	desiredScalingMaxChanged := cmd.Flags().Changed(cmdWorkersMaxName)
+
+	var scaling *defaulting.Scaling
+	{
+		c := defaulting.ScalingConfig{
+			AutoScalingEnabled:       &autoScalingEnabled,
+			CurrentScalingMax:        &currentScalingMax,
+			CurrentScalingMin:        &currentScalingMin,
+			DesiredNumWorkers:        &desiredNumWorkers,
+			DesiredNumWorkersChanged: &desiredNumWorkersChanged,
+			DesiredScalingMax:        &desiredScalingMax,
+			DesiredScalingMaxChanged: &desiredScalingMaxChanged,
+			DesiredScalingMin:        &desiredScalingMin,
+			DesiredScalingMinChanged: &desiredScalingMinChanged,
+		}
+
+		scaling, err = defaulting.NewScaling(c)
+		if err != nil {
+			return scaleClusterArguments{}, microerror.Mask(err)
+		}
 	}
 
-	return scaleArgs
+	req := request.Request{}
+
+	req.Cluster.Scaling = scaling.Default(ctx, req.Cluster.Scaling)
+
+	scaleArgs.workersMax = req.Cluster.Scaling.Max
+	scaleArgs.workersMin = req.Cluster.Scaling.Min
+
+	return scaleArgs, nil
 }
 
 func isAutoscalingEnabled(version string) (bool, error) {
@@ -205,56 +229,77 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	if len(cmdLineArgs) == 0 {
 		handleCommonErrors(clusterIDMissingError)
 	}
-	// Get all necessary information for defaulting and confirmation.
-	clusterDetails, err := getClusterDetails(cmdLineArgs[0], scaleClusterActivityName)
+	clusterID := cmdLineArgs[0]
+	desiredNumWorkers := cmdNumWorkers
+
+	var currentScalingMax int64
+	var currentScalingMin int64
+	var currentWorkers int64
+	var releaseVersion string
+	{
+		clusterDetails, err := getClusterDetails(clusterID, scaleClusterActivityName)
+		if err != nil {
+			fmt.Println(color.RedString("Error getting cluster details!"))
+			handleCommonErrors(err)
+			fmt.Println(color.RedString(err.Error()))
+			os.Exit(1)
+		}
+
+		currentScalingMax = clusterDetails.Scaling.Max
+		currentScalingMin = clusterDetails.Scaling.Min
+		currentWorkers = int64(len(clusterDetails.Workers))
+		releaseVersion = clusterDetails.ReleaseVersion
+	}
+
+	var desiredScalingMax int64
+	var desiredScalingMin int64
+	{
+		desiredScalingMax = cmdWorkersMax
+		desiredScalingMin = cmdWorkersMin
+	}
+
+	autoScalingEnabled, err := isAutoscalingEnabled(releaseVersion)
 	if err != nil {
-		fmt.Println(color.RedString("Error getting cluster details!"))
-		handleCommonErrors(err)
 		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
 	}
 
-	autoScalingEnabled, err := isAutoscalingEnabled(clusterDetails.ReleaseVersion)
-	if err != nil {
-		fmt.Println(color.RedString(err.Error()))
-		os.Exit(1)
-	}
-
-	var maxBefore int64
-	var minBefore int64
 	var desiredCapacity int64
 
 	if autoScalingEnabled {
 		// We only need the status if autoscaling is enabled, because we are only
 		// interested in the DesiredCapacity.
-		status, err := getClusterStatus(cmdLineArgs[0], scaleClusterActivityName)
+		status, err := getClusterStatus(clusterID, scaleClusterActivityName)
 		if err != nil {
 			fmt.Println(color.RedString("Error getting cluster status!"))
 			handleCommonErrors(err)
 			fmt.Println(color.RedString(err.Error()))
 			os.Exit(1)
 		}
-		maxBefore = clusterDetails.Scaling.Max
-		minBefore = clusterDetails.Scaling.Min
 		desiredCapacity = int64(status.Cluster.Scaling.DesiredCapacity)
 
 	} else {
 		// Default to the length of the workers array. We don't know how old the
 		// cluster is and the workers array should be a reliable source of truth for
 		// older clusters.
-		maxBefore = int64(len(clusterDetails.Workers))
-		minBefore = int64(len(clusterDetails.Workers))
-		desiredCapacity = int64(len(clusterDetails.Workers))
+		currentScalingMax = currentWorkers
+		currentScalingMin = currentWorkers
+		desiredCapacity = currentWorkers
 	}
 
 	// Default all necessary information from flags.
-	args := defaultScaleClusterArguments(cmd, cmdLineArgs[0], maxBefore, minBefore)
+	args, err := defaultScaleClusterArguments(context.Background(), cmd, clusterID, autoScalingEnabled, currentScalingMax, currentScalingMin, desiredScalingMax, desiredScalingMin, int64(desiredNumWorkers))
+	if err != nil {
+		handleCommonErrors(err)
+		fmt.Println(color.RedString(err.Error()))
+		os.Exit(1)
+	}
 
 	headline := ""
 	subtext := ""
 
 	// Validate the input for obvious errors.
-	err = validateScaleCluster(args, cmdLineArgs, maxBefore, minBefore, desiredCapacity)
+	err = validateScaleCluster(args, cmdLineArgs, currentScalingMax, currentScalingMin, desiredCapacity)
 	if err != nil {
 		handleCommonErrors(err)
 
@@ -282,13 +327,15 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	// Ask for confirmation for the scaling action.
 	if !cmdForce {
-		err = confirmScaleCluster(args, maxBefore, minBefore, desiredCapacity)
+		err = confirmScaleCluster(args, currentScalingMax, currentScalingMin, desiredCapacity)
 		if err != nil {
 			handleCommonErrors(err)
 			fmt.Println(color.RedString(err.Error()))
 			os.Exit(1)
 		}
 	}
+
+	os.Exit(0)
 
 	// Actually make the scaling request to the API.
 	details, err := scaleCluster(args)
@@ -321,8 +368,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	fmt.Println(color.GreenString("The cluster is being scaled"))
-	fmt.Printf("The cluster limits have been changed from min = %d and max = %d to min = %d and max = %d workers.\n", clusterDetails.Scaling.Min, clusterDetails.Scaling.Max, details.Scaling.Min, details.Scaling.Max)
-
+	fmt.Printf("The cluster limits have been changed from min = %d and max = %d to min = %d and max = %d workers.\n", currentScalingMin, currentScalingMax, details.Scaling.Min, details.Scaling.Max)
 }
 
 // validatyScaleCluster does a few general checks and returns an error in case something is missing.
