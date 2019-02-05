@@ -335,8 +335,6 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		}
 	}
 
-	os.Exit(0)
-
 	// Actually make the scaling request to the API.
 	details, err := scaleCluster(args)
 	if err != nil {
