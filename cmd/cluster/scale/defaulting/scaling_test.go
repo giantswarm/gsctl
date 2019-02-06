@@ -58,7 +58,7 @@ func Test_Cmd_Cluster_Scale_Defaulting(t *testing.T) {
 			},
 		},
 		{
-			Name:                     "case 2 ensures --num-workers=5 sets scaling.max and scaling.min to 5",
+			Name:                     "case 2 ensures --num-workers=5 sets scaling.max and scaling.min to 5 when AS is enabled",
 			AutoScalingEnabled:       true,
 			CurrentScalingMax:        3,
 			CurrentScalingMin:        3,
@@ -74,7 +74,23 @@ func Test_Cmd_Cluster_Scale_Defaulting(t *testing.T) {
 			},
 		},
 		{
-			Name:                     "case 3 ensures --workers-max=5 sets scaling.max and scaling.min to 5 when AS is not enabled",
+			Name:                     "case 3 ensures --num-workers=5 sets scaling.max and scaling.min to 5 when AS is not enabled",
+			AutoScalingEnabled:       false,
+			CurrentScalingMax:        3,
+			CurrentScalingMin:        3,
+			DesiredNumWorkers:        5,
+			DesiredNumWorkersChanged: true,
+			DesiredScalingMax:        0,
+			DesiredScalingMaxChanged: false,
+			DesiredScalingMin:        0,
+			DesiredScalingMinChanged: false,
+			ExpectedScaling: request.Scaling{
+				Min: 5,
+				Max: 5,
+			},
+		},
+		{
+			Name:                     "case 4 ensures --workers-max=5 sets scaling.max and scaling.min to 5 when AS is not enabled",
 			AutoScalingEnabled:       false,
 			CurrentScalingMax:        3,
 			CurrentScalingMin:        3,
@@ -90,7 +106,7 @@ func Test_Cmd_Cluster_Scale_Defaulting(t *testing.T) {
 			},
 		},
 		{
-			Name:                     "case 4 ensures --workers-min=5 sets scaling.max and scaling.min to 5 when AS is not enabled",
+			Name:                     "case 5 ensures --workers-min=5 sets scaling.max and scaling.min to 5 when AS is not enabled",
 			AutoScalingEnabled:       false,
 			CurrentScalingMax:        3,
 			CurrentScalingMin:        3,

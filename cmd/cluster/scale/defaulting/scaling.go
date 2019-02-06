@@ -93,7 +93,6 @@ func (s *Scaling) Default(ctx context.Context, scaling request.Scaling) request.
 		},
 		{
 			Conditions: []func() bool{
-				func() bool { return s.autoScalingEnabled },
 				func() bool { return not(s.desiredScalingMinChanged) },
 				func() bool { return not(s.desiredScalingMaxChanged) },
 				func() bool { return s.desiredNumWorkersChanged },
