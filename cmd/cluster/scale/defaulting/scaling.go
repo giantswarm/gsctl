@@ -76,7 +76,7 @@ func (s *Scaling) Default(ctx context.Context, scaling request.Scaling) request.
 		{
 			Conditions: []func() bool{
 				func() bool { return s.autoScalingEnabled },
-				func() bool { return !s.desiredScalingMinChanged },
+				func() bool { return not(s.desiredScalingMinChanged) },
 			},
 			Defaulting: func() {
 				scaling.Min = s.currentScalingMin
@@ -85,7 +85,7 @@ func (s *Scaling) Default(ctx context.Context, scaling request.Scaling) request.
 		{
 			Conditions: []func() bool{
 				func() bool { return s.autoScalingEnabled },
-				func() bool { return !s.desiredScalingMaxChanged },
+				func() bool { return not(s.desiredScalingMaxChanged) },
 			},
 			Defaulting: func() {
 				scaling.Max = s.currentScalingMax
@@ -94,8 +94,8 @@ func (s *Scaling) Default(ctx context.Context, scaling request.Scaling) request.
 		{
 			Conditions: []func() bool{
 				func() bool { return s.autoScalingEnabled },
-				func() bool { return !s.desiredScalingMinChanged },
-				func() bool { return !s.desiredScalingMaxChanged },
+				func() bool { return not(s.desiredScalingMinChanged) },
+				func() bool { return not(s.desiredScalingMaxChanged) },
 				func() bool { return s.desiredNumWorkersChanged },
 			},
 			Defaulting: func() {
@@ -105,7 +105,7 @@ func (s *Scaling) Default(ctx context.Context, scaling request.Scaling) request.
 		},
 		{
 			Conditions: []func() bool{
-				func() bool { return !s.autoScalingEnabled },
+				func() bool { return not(s.autoScalingEnabled) },
 				func() bool { return s.desiredScalingMinChanged },
 			},
 			Defaulting: func() {
@@ -115,7 +115,7 @@ func (s *Scaling) Default(ctx context.Context, scaling request.Scaling) request.
 		},
 		{
 			Conditions: []func() bool{
-				func() bool { return !s.autoScalingEnabled },
+				func() bool { return not(s.autoScalingEnabled) },
 				func() bool { return s.desiredScalingMaxChanged },
 			},
 			Defaulting: func() {
