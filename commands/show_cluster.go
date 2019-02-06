@@ -342,7 +342,7 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println("\nInfo: Could not fetch cluster status, so the worker node count displayed might derive from the actual number.")
 
 		if time.Since(created) < clusterCreationExpectedDuration {
-			fmt.Println("This is expected for clusters which are still in creation.")
+			fmt.Println("This is expected for clusters which are most likely still in creation.")
 		}
 	}
 }
