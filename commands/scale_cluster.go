@@ -89,26 +89,14 @@ func init() {
 
 // confirmScaleCluster asks the user for confirmation for scaling actions.
 func confirmScaleCluster(args scaleClusterArguments, maxBefore int64, minBefore int64, desiredCapacity int64) error {
-	if maxBefore == minBefore && args.workersMax == args.workersMin {
-		confirmed := askForConfirmation(fmt.Sprintf("The cluster size is currently pinned to %d.\nDo you want to pin the number of worker nodes to %d?", minBefore, args.workersMin))
+	if desiredCapacity > args.workersMax && args.workersMax == args.workersMin {
+		confirmed := askForConfirmation(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to pin the number of worker nodes to %d?", desiredCapacity, args.workersMin))
 		if !confirmed {
 			return microerror.Mask(commandAbortedError)
 		}
 	}
-	if maxBefore != minBefore && args.workersMax == args.workersMin {
-		confirmed := askForConfirmation(fmt.Sprintf("The cluster is autoscaling between %d and %d worker nodes, with %d worker nodes currently desired.\nDo you want to pin the number of worker nodes to %d?", minBefore, maxBefore, desiredCapacity, args.workersMin))
-		if !confirmed {
-			return microerror.Mask(commandAbortedError)
-		}
-	}
-	if maxBefore == minBefore && args.workersMax != args.workersMin {
-		confirmed := askForConfirmation(fmt.Sprintf("The cluster size is currently pinned to %d.\nDo you want to change the limits to be min=%d, max=%d?", minBefore, args.workersMin, args.workersMax))
-		if !confirmed {
-			return microerror.Mask(commandAbortedError)
-		}
-	}
-	if maxBefore != minBefore && args.workersMax != args.workersMin {
-		confirmed := askForConfirmation(fmt.Sprintf("The cluster is autoscaling between %d and %d worker nodes, with %d worker nodes currently up.\nDo you want to change the limits to be min=%d, max=%d?", minBefore, maxBefore, desiredCapacity, args.workersMin, args.workersMax))
+	if desiredCapacity > args.workersMax && args.workersMax != args.workersMin {
+		confirmed := askForConfirmation(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to change the limits to be min=%d, max=%d?", desiredCapacity, args.workersMin, args.workersMax))
 		if !confirmed {
 			return microerror.Mask(commandAbortedError)
 		}
