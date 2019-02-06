@@ -108,19 +108,31 @@ flags take precedence.
 
 Examples:
 
-	gsctl create cluster --file my-cluster.yaml
+  gsctl create cluster --file my-cluster.yaml
 
-	gsctl create cluster -o myorg -n "My Cluster" --num-workers 5 --num-cpus 2
+  gsctl create cluster \
+    -o myorg -n "My KVM Cluster" \
+    --num-workers 5 --num-cpus 2
 
-	gsctl create cluster -o myorg -n "My AWS Cluster" --workers-min 2 --aws-instance-type m3.medium
+  gsctl create cluster \
+    -o myorg -n "My AWS Autoscaling Cluster" \
+    --workers-min 3 --workers-max 6 \
+    --aws-instance-type m3.xlarge
 
-	gsctl create cluster -o myorg -n "My Azure Cluster" --workers-max 2 --azure-vm-size Standard_D2s_v3
+  gsctl create cluster \
+    -o myorg -n "My Azure Cluster" \
+    --num-workers 5 \
+    --azure-vm-size Standard_D2s_v3
 
-	gsctl create cluster -o myorg -n "Cluster using specifc version" -r 1.2.3
+  gsctl create cluster \
+    -o myorg -n "Cluster using specific version" \
+    --release 1.2.3
 
-	gsctl create cluster -o myorg --workers-min 3 --dry-run --verbose
+  gsctl create cluster \
+    -o myorg --num-workers 3 \
+    --dry-run --verbose
 
-	`,
+`,
 		PreRun: createClusterValidationOutput,
 		Run:    createClusterExecutionOutput,
 	}
@@ -151,7 +163,7 @@ func init() {
 	CreateClusterCommand.Flags().StringVarP(&cmdClusterName, "name", "n", "", "Cluster name")
 	CreateClusterCommand.Flags().StringVarP(&cmdOwner, "owner", "o", "", "Organization to own the cluster")
 	CreateClusterCommand.Flags().StringVarP(&cmdRelease, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
-	CreateClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "", 0, "Number of worker nodes. Can't be used with -f|--file.")
+	CreateClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "", 0, "Shorthand to set --workers-min and --workers-max to the same value. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().Int64VarP(&cmdWorkersMin, "workers-min", "", 0, "Minimum number of worker nodes. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().Int64VarP(&cmdWorkersMax, "workers-max", "", 0, "Maximum number of worker nodes. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
@@ -163,7 +175,6 @@ func init() {
 
 	// kubernetes-version never had any effect, and is deprecated now on the API side, too
 	CreateClusterCommand.Flags().MarkDeprecated("kubernetes-version", "please use --release to specify a release to use")
-	CreateClusterCommand.Flags().MarkDeprecated("num-workers", "please use --workers-min and --workers-max to specify the node count to use")
 
 	CreateCommand.AddCommand(CreateClusterCommand)
 }
