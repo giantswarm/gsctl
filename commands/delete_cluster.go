@@ -18,6 +18,8 @@ type deleteClusterArguments struct {
 	apiEndpoint string
 	// cluster ID to delete
 	clusterID string
+	// cluster ID passed via -c/--cluster argument
+	legacyClusterID string
 	// don't prompt
 	force bool
 	// auth scheme
@@ -28,18 +30,24 @@ type deleteClusterArguments struct {
 	verbose bool
 }
 
-func defaultDeleteClusterArguments() deleteClusterArguments {
+func defaultDeleteClusterArguments(positionalArgs []string) deleteClusterArguments {
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, cmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
 
+	clusterID := ""
+	if len(positionalArgs) > 0 {
+		clusterID = positionalArgs[0]
+	}
+
 	return deleteClusterArguments{
-		apiEndpoint: endpoint,
-		clusterID:   cmdClusterID,
-		force:       cmdForce,
-		scheme:      scheme,
-		token:       token,
-		verbose:     cmdVerbose,
+		apiEndpoint:     endpoint,
+		clusterID:       clusterID,
+		force:           cmdForce,
+		legacyClusterID: cmdClusterID,
+		scheme:          scheme,
+		token:           token,
+		verbose:         cmdVerbose,
 	}
 }
 
@@ -48,7 +56,6 @@ const (
 )
 
 var (
-
 	// DeleteClusterCommand performs the "delete cluster" function
 	DeleteClusterCommand = &cobra.Command{
 		Use:   "cluster",
@@ -60,7 +67,7 @@ worker nodes will be lost. There is no way to undo this.
 
 Example:
 
-	gsctl delete cluster -c c7t2o`,
+	gsctl delete cluster c7t2o`,
 		PreRun: deleteClusterValidationOutput,
 		Run:    deleteClusterExecutionOutput,
 	}
@@ -70,7 +77,7 @@ func init() {
 	DeleteClusterCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to delete")
 	DeleteClusterCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
 
-	DeleteClusterCommand.MarkFlagRequired("cluster")
+	CreateClusterCommand.Flags().MarkDeprecated("cluster", "You no longer need to pass the cluster ID with -c/--cluster. Use --help for details.")
 
 	DeleteCommand.AddCommand(DeleteClusterCommand)
 }
@@ -79,7 +86,7 @@ func init() {
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
 func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
-	dca := defaultDeleteClusterArguments()
+	dca := defaultDeleteClusterArguments(args)
 
 	err := validateDeleteClusterPreConditions(dca)
 	if err != nil {
@@ -89,6 +96,13 @@ func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
 		var subtext = ""
 
 		switch {
+		case IsConflictingFlagsError(err):
+			headline = "Conflicting flags/arguments"
+			subtext = "Please specify the cluster to be used as a positional argument, avoid -c/--cluster."
+			subtext += "See --help for details."
+		case IsClusterIDMissingError(err):
+			headline = "No cluster ID specified"
+			subtext = "See --help for usage details."
 		case IsCouldNotDeleteClusterError(err):
 			headline = "The cluster could not be deleted."
 			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
@@ -108,8 +122,11 @@ func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
 
 // validateDeleteClusterPreConditions checks preconditions and returns an error in case
 func validateDeleteClusterPreConditions(args deleteClusterArguments) error {
-	if args.clusterID == "" {
+	if args.clusterID == "" && args.legacyClusterID == "" {
 		return microerror.Mask(clusterIDMissingError)
+	}
+	if args.clusterID != "" && args.legacyClusterID != "" {
+		return microerror.Mask(conflictingFlagsError)
 	}
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(notLoggedInError)
@@ -119,7 +136,7 @@ func validateDeleteClusterPreConditions(args deleteClusterArguments) error {
 
 // interprets arguments/flags, eventually submits delete request
 func deleteClusterExecutionOutput(cmd *cobra.Command, args []string) {
-	dca := defaultDeleteClusterArguments()
+	dca := defaultDeleteClusterArguments(args)
 	deleted, err := deleteCluster(dca)
 	if err != nil {
 		handleCommonErrors(err)
@@ -145,9 +162,15 @@ func deleteClusterExecutionOutput(cmd *cobra.Command, args []string) {
 // - error: The error that has occurred (or nil)
 //
 func deleteCluster(args deleteClusterArguments) (bool, error) {
+	// Accept legacy cluster ID for a while, but real one takes precedence.
+	clusterID := args.legacyClusterID
+	if args.clusterID != "" {
+		clusterID = args.clusterID
+	}
+
 	// confirmation
 	if !args.force {
-		confirmed := askForConfirmation("Do you really want to delete cluster '" + args.clusterID + "'?")
+		confirmed := askForConfirmation("Do you really want to delete cluster '" + clusterID + "'?")
 		if !confirmed {
 			return false, nil
 		}
@@ -157,7 +180,7 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 	auxParams.ActivityName = deleteClusterActivityName
 
 	// perform API call
-	_, err := ClientV2.DeleteCluster(args.clusterID, auxParams)
+	_, err := ClientV2.DeleteCluster(clusterID, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {
