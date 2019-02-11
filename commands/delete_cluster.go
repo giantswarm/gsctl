@@ -141,7 +141,21 @@ func deleteClusterExecutionOutput(cmd *cobra.Command, args []string) {
 	if err != nil {
 		handleCommonErrors(err)
 
-		fmt.Println(color.RedString(err.Error()))
+		var headline = ""
+		var subtext = ""
+
+		switch {
+		case IsClusterNotFoundError(err):
+			headline = "Cluster not found"
+			subtext = "The cluster you tried to delete doesn't seem to exist. Check 'gsctl list clusters' to make sure."
+		default:
+			headline = err.Error()
+		}
+
+		fmt.Println(color.RedString(headline))
+		if subtext != "" {
+			fmt.Println(subtext)
+		}
 		os.Exit(1)
 	}
 
@@ -186,6 +200,8 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusForbidden {
 				return false, microerror.Mask(accessForbiddenError)
+			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
+				return false, microerror.Mask(clusterNotFoundError)
 			}
 		}
 
