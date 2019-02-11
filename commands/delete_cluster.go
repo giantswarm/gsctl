@@ -161,7 +161,11 @@ func deleteClusterExecutionOutput(cmd *cobra.Command, args []string) {
 
 	// non-error output
 	if deleted {
-		fmt.Println(color.GreenString("The cluster with ID '%s' will be deleted as soon as all workloads are terminated.", dca.clusterID))
+		clusterID := dca.legacyClusterID
+		if dca.clusterID != "" {
+			clusterID = dca.clusterID
+		}
+		fmt.Println(color.GreenString("The cluster with ID '%s' will be deleted as soon as all workloads are terminated.", clusterID))
 	} else {
 		if dca.verbose {
 			fmt.Println(color.GreenString("Aborted."))
