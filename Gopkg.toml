@@ -43,7 +43,7 @@
   version = "=2.0.2"
 
 [[constraint]]
-  branch = "feature-auto-scaling"
+  branch = "master"
   name = "github.com/giantswarm/gsclientgen"
 
 [[constraint]]
