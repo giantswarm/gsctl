@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/json"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	rootcerts "github.com/hashicorp/go-rootcerts"
 
+	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
 	gsclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 	"github.com/giantswarm/gsclientgen/client/clusters"
@@ -72,6 +74,16 @@ type WrapperV2 struct {
 
 	// commandLine is the command line use to execute gsctl, can be overridden.
 	commandLine string
+
+	// rawClient is a client used to make simple, authenticated HTTP requests
+	// against the Giant Swarm API using Go's net/http API.
+	rawClient *http.Client
+}
+
+// ClusterStatus is a type we use to unmarshal a cluster status JSON response
+// from the API. Note: this is scarce, leaving out many available details.
+type ClusterStatus struct {
+	Cluster *v1alpha1.StatusCluster `json:"cluster,omitempty"`
 }
 
 // NewV2 creates a client based on the latest gsclientgen version.
@@ -104,11 +116,17 @@ func NewV2(conf *Configuration) (*WrapperV2, error) {
 	}
 	transport.Transport = setUserAgent(transport.Transport, conf.UserAgent)
 
+	rawClient := &http.Client{
+		Transport: transport.Transport,
+		Timeout:   conf.Timeout,
+	}
+
 	return &WrapperV2{
 		conf:        conf,
 		gsclient:    gsclient.New(transport, strfmt.Default),
 		requestID:   randomRequestID(),
 		commandLine: getCommandLine(),
+		rawClient:   rawClient,
 	}, nil
 }
 
@@ -339,7 +357,7 @@ func (w *WrapperV2) DeleteCluster(clusterID string, p *AuxiliaryParams) (*cluste
 	return response, nil
 }
 
-// GetClusters fetches details on a cluster using the V2 client.
+// GetClusters fetches a list of clusters using the V2 client.
 func (w *WrapperV2) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, error) {
 	params := clusters.NewGetClustersParams()
 	err := setParamsWithAuthorization(p, w, params)
@@ -481,4 +499,32 @@ func (w *WrapperV2) SetCredentials(organizationID string, addCredentialsRequest 
 	}
 
 	return response, nil
+}
+
+// GetClusterStatus fetches details on a cluster using the V2 client.
+func (w *WrapperV2) GetClusterStatus(clusterID string, p *AuxiliaryParams) (*ClusterStatus, error) {
+	params := clusters.NewGetClusterStatusParams().WithClusterID(clusterID)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Clusters.GetClusterStatus(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	m, err := json.Marshal(response.Payload)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	var status ClusterStatus
+
+	err = json.Unmarshal(m, &status)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return &status, nil
 }

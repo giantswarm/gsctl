@@ -1,6 +1,9 @@
 package commands
 
 import (
+	"net/http"
+
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/microerror"
 )
 
@@ -98,7 +101,16 @@ var clusterNotFoundError = &microerror.Error{
 
 // IsClusterNotFoundError asserts clusterNotFoundError.
 func IsClusterNotFoundError(err error) bool {
-	return microerror.Cause(err) == clusterNotFoundError
+	c := microerror.Cause(err)
+	clientErr, ok := c.(*clienterror.APIError)
+	if ok && clientErr.HTTPStatusCode == http.StatusNotFound {
+		return true
+	}
+	if c == clusterNotFoundError {
+		return true
+	}
+
+	return false
 }
 
 // releaseVersionMissingError means the required release version argument is missing
@@ -130,7 +142,16 @@ var internalServerError = &microerror.Error{
 
 // IsInternalServerError asserts internalServerError.
 func IsInternalServerError(err error) bool {
-	return microerror.Cause(err) == internalServerError
+	c := microerror.Cause(err)
+	clientErr, ok := c.(*clienterror.APIError)
+	if ok && clientErr.HTTPStatusCode == http.StatusInternalServerError {
+		return true
+	}
+	if c == internalServerError {
+		return true
+	}
+
+	return false
 }
 
 // server side has not returned a response
@@ -151,7 +172,16 @@ var notAuthorizedError = &microerror.Error{
 
 // IsNotAuthorizedError asserts notAuthorizedError.
 func IsNotAuthorizedError(err error) bool {
-	return microerror.Cause(err) == notAuthorizedError
+	c := microerror.Cause(err)
+	clientErr, ok := c.(*clienterror.APIError)
+	if ok && clientErr.HTTPStatusCode == http.StatusUnauthorized {
+		return true
+	}
+	if c == notAuthorizedError {
+		return true
+	}
+
+	return false
 }
 
 // Errors for cluster creation
@@ -229,7 +259,16 @@ var organizationNotFoundError = &microerror.Error{
 
 // IsOrganizationNotFoundError asserts organizationNotFoundError
 func IsOrganizationNotFoundError(err error) bool {
-	return microerror.Cause(err) == organizationNotFoundError
+	c := microerror.Cause(err)
+	clientErr, ok := c.(*clienterror.APIError)
+	if ok && clientErr.HTTPStatusCode == http.StatusNotFound {
+		return true
+	}
+	if c == organizationNotFoundError {
+		return true
+	}
+
+	return false
 }
 
 // organizationNotSpecifiedError means that the user has not specified an organization to work with
@@ -322,6 +361,24 @@ func IsCouldNotScaleClusterError(err error) bool {
 	return microerror.Cause(err) == couldNotScaleClusterError
 }
 
+var apiError = &microerror.Error{
+	Kind: "apiError",
+}
+
+// IsAPIError asserts apiError.
+func IsAPIError(err error) bool {
+	c := microerror.Cause(err)
+	_, ok := c.(*clienterror.APIError)
+	if ok {
+		return true
+	}
+	if c == apiError {
+		return true
+	}
+
+	return false
+}
+
 // cannotScaleBelowMinimumWorkersError means the user tries to scale to less
 // nodes than allowed
 var cannotScaleBelowMinimumWorkersError = &microerror.Error{
@@ -404,7 +461,16 @@ var accessForbiddenError = &microerror.Error{
 
 // IsAccessForbiddenError asserts accessForbiddenError
 func IsAccessForbiddenError(err error) bool {
-	return microerror.Cause(err) == accessForbiddenError
+	c := microerror.Cause(err)
+	clientErr, ok := c.(*clienterror.APIError)
+	if ok && clientErr.HTTPStatusCode == http.StatusForbidden {
+		return true
+	}
+	if c == accessForbiddenError {
+		return true
+	}
+
+	return false
 }
 
 // invalidCredentialsError means the user's credentials could not be verified
@@ -551,4 +617,28 @@ var updateCheckFailed = &microerror.Error{
 // IsUpdateCheckFailed asserts updateCheckFailed.
 func IsUpdateCheckFailed(err error) bool {
 	return microerror.Cause(err) == updateCheckFailed
+}
+
+// conflictingWorkerFlagsUsedError is raised when the deprecated --num-workers
+// flag is used together with the new node count flags --workers-min and
+// --workers-max.
+var conflictingWorkerFlagsUsedError = &microerror.Error{
+	Kind: "conflictingWorkerFlagsUsedError",
+}
+
+// IsConflictingWorkerFlagsUsed asserts conflictingWorkerFlagsUsedError.
+func IsConflictingWorkerFlagsUsed(err error) bool {
+	return microerror.Cause(err) == conflictingWorkerFlagsUsedError
+}
+
+// workersMinMaxInvalidError is raised when the value of the node count flag
+// --workers-min is higher than the value of the node count flag --workers-max.
+var workersMinMaxInvalidError = &microerror.Error{
+	Kind: "workersMinMaxInvalidError",
+	Desc: "min must not be higher than max",
+}
+
+// IsWorkersMinMaxInvalid asserts workersMinMaxInvalidError.
+func IsWorkersMinMaxInvalid(err error) bool {
+	return microerror.Cause(err) == workersMinMaxInvalidError
 }

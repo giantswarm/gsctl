@@ -27,13 +27,20 @@ type V4ModifyClusterRequest struct {
 	// Release version to use after an upgrade
 	ReleaseVersion string `json:"release_version,omitempty"`
 
-	// Worker node array
+	// scaling
+	Scaling *V4ModifyClusterRequestScaling `json:"scaling,omitempty"`
+
+	// Worker node array (deprecated)
 	Workers []*V4ModifyClusterRequestWorkersItems `json:"workers"`
 }
 
 // Validate validates this v4 modify cluster request
 func (m *V4ModifyClusterRequest) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateScaling(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateWorkers(formats); err != nil {
 		res = append(res, err)
@@ -42,6 +49,24 @@ func (m *V4ModifyClusterRequest) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *V4ModifyClusterRequest) validateScaling(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Scaling) { // not required
+		return nil
+	}
+
+	if m.Scaling != nil {
+		if err := m.Scaling.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("scaling")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 

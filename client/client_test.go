@@ -352,3 +352,90 @@ func TestV2DeleteAuthToken(t *testing.T) { // Our test server.
 		t.Errorf("Didn't get the RESOURCE_DELETED message. Got '%s'", response.Payload.Code)
 	}
 }
+
+func TestGetClusterStatus(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{
+			"cluster": {
+				"conditions": [
+					{
+						"status": "True",
+						"type": "Created"
+					}
+				],
+				"network": {
+					"cidr": ""
+				},
+				"nodes": [
+					{
+						"name": "4jr2w-master-000000",
+						"version": "2.0.1"
+					},
+					{
+						"name": "4jr2w-worker-000001",
+						"version": "2.0.1"
+					}
+				],
+				"resources": [],
+				"versions": [
+					{
+						"date": "0001-01-01T00:00:00Z",
+						"semver": "2.0.1"
+					}
+				]
+			}
+		}`))
+	}))
+	defer ts.Close()
+
+	config := &Configuration{
+		Endpoint: ts.URL,
+	}
+
+	gsClient, err := NewV2(config)
+	if err != nil {
+		t.Error(err)
+	}
+
+	status, err := gsClient.GetClusterStatus("cluster-id", nil)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(status.Cluster.Nodes) != 2 {
+		t.Errorf("Expected status.Nodes to have length 2, but has %d. status: %#v", len(status.Cluster.Nodes), status)
+	}
+}
+
+func TestGetClusterStatusEmpty(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{
+			"cluster": {
+				"nodes": []
+			}
+		}`))
+	}))
+	defer ts.Close()
+
+	config := &Configuration{
+		Endpoint: ts.URL,
+	}
+
+	gsClient, err := NewV2(config)
+	if err != nil {
+		t.Error(err)
+	}
+
+	status, err := gsClient.GetClusterStatus("cluster-id", nil)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(status.Cluster.Nodes) != 0 {
+		t.Errorf("Expected status.Nodes to have length 0. Has length %d", len(status.Cluster.Nodes))
+	}
+}
