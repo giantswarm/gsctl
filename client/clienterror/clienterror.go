@@ -164,6 +164,14 @@ func New(err error) *APIError {
 			ErrorDetails:   "You don't have permission to delete this cluster.",
 		}
 	}
+	if deleteClusterNotFoundErr, ok := err.(*clusters.DeleteClusterNotFound); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusNotFound,
+			OriginalError:  deleteClusterNotFoundErr,
+			ErrorMessage:   "Not found",
+			ErrorDetails:   "The given cluster doesn't seem to exist.",
+		}
+	}
 	if deleteClusterDefaultErr, ok := err.(*clusters.DeleteClusterDefault); ok {
 		return &APIError{
 			HTTPStatusCode: deleteClusterDefaultErr.Code(),
