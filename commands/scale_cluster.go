@@ -89,15 +89,15 @@ func init() {
 }
 
 // confirmScaleCluster asks the user for confirmation for scaling actions.
-func confirmScaleCluster(args scaleClusterArguments, maxBefore int64, minBefore int64, desiredCapacity int64) error {
-	if desiredCapacity > args.workersMax && args.workersMax == args.workersMin {
-		confirmed := askForConfirmation(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to pin the number of worker nodes to %d?", desiredCapacity, args.workersMin))
+func confirmScaleCluster(args scaleClusterArguments, maxBefore int64, minBefore int64, currentWorkers int64) error {
+	if currentWorkers > args.workersMax && args.workersMax == args.workersMin {
+		confirmed := askForConfirmation(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to pin the number of worker nodes to %d?", currentWorkers, args.workersMin))
 		if !confirmed {
 			return microerror.Mask(commandAbortedError)
 		}
 	}
-	if desiredCapacity > args.workersMax && args.workersMax != args.workersMin {
-		confirmed := askForConfirmation(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to change the limits to be min=%d, max=%d?", desiredCapacity, args.workersMin, args.workersMax))
+	if currentWorkers > args.workersMax && args.workersMax != args.workersMin {
+		confirmed := askForConfirmation(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to change the limits to be min=%d, max=%d?", currentWorkers, args.workersMin, args.workersMax))
 		if !confirmed {
 			return microerror.Mask(commandAbortedError)
 		}
@@ -254,6 +254,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	var desiredCapacity int64
+	var statusWorkers int64
 
 	if autoScalingEnabled {
 		// We only need the status if autoscaling is enabled, because we are only
@@ -267,6 +268,18 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		}
 		desiredCapacity = int64(status.Cluster.Scaling.DesiredCapacity)
 
+		if len(status.Cluster.Nodes) >= 1 {
+			// Count all nodes as workers which are not explicitly marked as master.
+			for _, node := range status.Cluster.Nodes {
+				val, ok := node.Labels["role"]
+				if ok && val == "master" {
+					// don't count this
+				} else {
+					statusWorkers++
+				}
+			}
+		}
+
 	} else {
 		// Default to the length of the workers array. We don't know how old the
 		// cluster is and the workers array should be a reliable source of truth for
@@ -274,6 +287,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		currentScalingMax = currentWorkers
 		currentScalingMin = currentWorkers
 		desiredCapacity = currentWorkers
+		statusWorkers = currentWorkers
 	}
 
 	// Default all necessary information from flags.
@@ -316,7 +330,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	// Ask for confirmation for the scaling action.
 	if !cmdForce {
-		err = confirmScaleCluster(args, currentScalingMax, currentScalingMin, desiredCapacity)
+		err = confirmScaleCluster(args, currentScalingMax, currentScalingMin, statusWorkers)
 		if err != nil {
 			handleCommonErrors(err)
 			fmt.Println(color.RedString(err.Error()))
