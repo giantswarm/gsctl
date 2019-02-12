@@ -77,7 +77,7 @@ func init() {
 	DeleteClusterCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to delete")
 	DeleteClusterCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
 
-	CreateClusterCommand.Flags().MarkDeprecated("cluster", "You no longer need to pass the cluster ID with -c/--cluster. Use --help for details.")
+	DeleteClusterCommand.Flags().MarkDeprecated("cluster", "You no longer need to pass the cluster ID with -c/--cluster. Use --help for details.")
 
 	DeleteCommand.AddCommand(DeleteClusterCommand)
 }
@@ -141,13 +141,31 @@ func deleteClusterExecutionOutput(cmd *cobra.Command, args []string) {
 	if err != nil {
 		handleCommonErrors(err)
 
-		fmt.Println(color.RedString(err.Error()))
+		var headline = ""
+		var subtext = ""
+
+		switch {
+		case IsClusterNotFoundError(err):
+			headline = "Cluster not found"
+			subtext = "The cluster you tried to delete doesn't seem to exist. Check 'gsctl list clusters' to make sure."
+		default:
+			headline = err.Error()
+		}
+
+		fmt.Println(color.RedString(headline))
+		if subtext != "" {
+			fmt.Println(subtext)
+		}
 		os.Exit(1)
 	}
 
 	// non-error output
 	if deleted {
-		fmt.Println(color.GreenString("The cluster with ID '%s' will be deleted as soon as all workloads are terminated.", dca.clusterID))
+		clusterID := dca.legacyClusterID
+		if dca.clusterID != "" {
+			clusterID = dca.clusterID
+		}
+		fmt.Println(color.GreenString("The cluster with ID '%s' will be deleted as soon as all workloads are terminated.", clusterID))
 	} else {
 		if dca.verbose {
 			fmt.Println(color.GreenString("Aborted."))
@@ -186,6 +204,8 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusForbidden {
 				return false, microerror.Mask(accessForbiddenError)
+			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
+				return false, microerror.Mask(clusterNotFoundError)
 			}
 		}
 
