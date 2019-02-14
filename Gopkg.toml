@@ -71,5 +71,6 @@
   version = ">=2.1.0"
 
 [prune]
+  non-go = true
   go-tests = true
   unused-packages = true
