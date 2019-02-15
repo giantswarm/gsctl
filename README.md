@@ -1,4 +1,5 @@
 [![codecov](https://codecov.io/gh/giantswarm/gsctl/branch/master/graph/badge.svg)](https://codecov.io/gh/giantswarm/gsctl)
+[![Coverage Status](https://coveralls.io/repos/github/giantswarm/gsctl/badge.svg?branch=master)](https://coveralls.io/github/giantswarm/gsctl?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/giantswarm/gsctl)](https://goreportcard.com/report/github.com/giantswarm/gsctl)
 [![IRC Channel](https://img.shields.io/badge/irc-%23giantswarm-blue.svg)](https://kiwiirc.com/client/irc.freenode.net/#giantswarm)
 
