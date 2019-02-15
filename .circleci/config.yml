@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.11
+      - image: circleci/golang:1.11.5
     working_directory: /go/src/github.com/giantswarm/gsctl
     steps:
       - checkout
@@ -30,6 +30,13 @@ jobs:
           command: |
             bash ./test_coverage.sh
             bash <(curl -s https://codecov.io/bash)
+      - run:
+          name: Update Coveralls
+          command: |
+            go get golang.org/x/tools/cmd/cover
+            go get github.com/mattn/goveralls
+            go test ./... -v -covermode=count -coverprofile=coverage.out
+            goveralls -coverprofile=coverage.out -service=circle-ci -repotoken $COVERALLS_TOKEN
   dist:
     machine: true
     steps:

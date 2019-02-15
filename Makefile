@@ -1,7 +1,7 @@
 PROJECT=gsctl
 ORGANISATION=giantswarm
 BIN=$(PROJECT)
-GOVERSION := 1.11.2
+GOVERSION := 1.11.5
 BUILDDATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 COMMIT := $(shell git rev-parse HEAD | cut -c1-10)
 VERSION := $(shell (test -f VERSION && cat VERSION) || echo "git-${COMMIT}")
