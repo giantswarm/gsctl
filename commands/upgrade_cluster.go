@@ -36,7 +36,7 @@ building blocks of a cluster with newer versions. See details at
 A cluster will always be upgraded to the subsequent release. To find out what
 release version is used currently, use
 
-    gsctl show cluster -c <cluster-id>
+    gsctl show cluster <cluster-id>
 
 To find out what is the subsequent version, list all available versions using
 
