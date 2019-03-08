@@ -161,8 +161,8 @@ func info(args infoArguments) (infoResult, error) {
 	result.version = config.Version
 	result.buildDate = config.BuildDate
 
-	if config.Config.Endpoints[result.apiEndpoint] != nil {
-		result.apiEndpointAlias = config.Config.Endpoints[result.apiEndpoint].Alias
+	if config.Config.EndpointConfig(result.apiEndpoint) != nil {
+		result.apiEndpointAlias = config.Config.EndpointConfig(result.apiEndpoint).Alias
 	}
 
 	result.configFilePath = config.ConfigFilePath

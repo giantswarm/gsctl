@@ -294,8 +294,8 @@ selected_endpoint: https://other.endpoint`
 	defer os.RemoveAll(dir)
 
 	// first, selected endpoint must have empty alias
-	if Config.Endpoints[Config.SelectedEndpoint].Alias != "" {
-		t.Errorf("Expected alias '', got '%s'", Config.Endpoints[Config.SelectedEndpoint].Alias)
+	if Config.EndpointConfig(Config.SelectedEndpoint).Alias != "" {
+		t.Errorf("Expected alias '', got '%s'", Config.EndpointConfig(Config.SelectedEndpoint).Alias)
 	}
 
 	err = Config.SelectEndpoint("myalias")
@@ -309,8 +309,8 @@ selected_endpoint: https://other.endpoint`
 	}
 
 	// after selection, selected endpoint must have alias
-	if Config.Endpoints[ep].Alias != "myalias" {
-		t.Errorf("Expected alias 'myalias', got '%s'", Config.Endpoints[Config.SelectedEndpoint].Alias)
+	if Config.EndpointConfig(ep).Alias != "myalias" {
+		t.Errorf("Expected alias 'myalias', got '%s'", Config.EndpointConfig(Config.SelectedEndpoint).Alias)
 	}
 
 	// try selecting using a non-existing alias/URL
