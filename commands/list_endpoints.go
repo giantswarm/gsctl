@@ -59,21 +59,21 @@ func listEndpoints(cmd *cobra.Command, args []string) {
 
 // endpointsTable returns a table of clusters the user has access to
 func endpointsTable(args listEndpointsArguments) string {
-	if len(config.Config.Endpoints) == 0 {
+	if len(config.Config.Endpoints()) == 0 {
 		return fmt.Sprintf("No endpoints configured.\n\nTo add an endpoint and authenticate for it, use\n\n\t%s\n",
 			color.YellowString("gsctl login <email> -e <endpoint>"))
 	}
 
 	// get keys (URLs) and sort by them
-	endpointURLs := make([]string, 0, len(config.Config.Endpoints))
-	for u := range config.Config.Endpoints {
+	endpointURLs := make([]string, 0, len(config.Config.Endpoints()))
+	for _, u := range config.Config.Endpoints() {
 		endpointURLs = append(endpointURLs, u)
 	}
 
 	// detect if we want to show the alias column
 	hasAlias := false
 	for _, endpoint := range endpointURLs {
-		if config.Config.Endpoints[endpoint].Alias != "" {
+		if config.Config.EndpointConfig(endpoint).Alias != "" {
 			hasAlias = true
 		}
 	}
@@ -83,8 +83,8 @@ func endpointsTable(args listEndpointsArguments) string {
 		return endpointURLs[i] < endpointURLs[j]
 	})
 	sort.Slice(endpointURLs, func(i, j int) bool {
-		aliasi := config.Config.Endpoints[endpointURLs[i]].Alias
-		aliasj := config.Config.Endpoints[endpointURLs[j]].Alias
+		aliasi := config.Config.EndpointConfig(endpointURLs[i]).Alias
+		aliasj := config.Config.EndpointConfig(endpointURLs[j]).Alias
 		// sort empty alias to bottom position
 		if aliasi == "" {
 			aliasi = "zzzzz"
@@ -109,25 +109,27 @@ func endpointsTable(args listEndpointsArguments) string {
 	output = append(output, strings.Join(headers, "|"))
 
 	for _, endpoint := range endpointURLs {
+		endpointConfig := config.Config.EndpointConfig(endpoint)
+
 		selected := "no"
 		loggedIn := "no"
 		email := "n/a"
 		alias := "n/a"
 
-		if config.Config.Endpoints[endpoint].Alias != "" {
-			alias = config.Config.Endpoints[endpoint].Alias
+		if endpointConfig.Alias != "" {
+			alias = endpointConfig.Alias
 		}
 
 		if endpoint == args.apiEndpoint {
 			selected = "yes"
 		}
 
-		if config.Config.Endpoints[endpoint].Token != "" {
+		if endpointConfig.Token != "" {
 			loggedIn = "yes"
 		}
 
-		if config.Config.Endpoints[endpoint].Email != "" {
-			email = config.Config.Endpoints[endpoint].Email
+		if endpointConfig.Email != "" {
+			email = endpointConfig.Email
 		}
 
 		columns := []string{}

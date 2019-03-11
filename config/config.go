@@ -10,6 +10,7 @@ import (
 	"os/user"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -46,7 +47,7 @@ const (
 
 var (
 	// Config is an object holding all configuration fields
-	Config = configStruct{}
+	Config = newConfigStruct()
 
 	// Version is the version number, to be set on build by the go linker
 	Version string
@@ -82,16 +83,12 @@ var (
 // configStruct is the top-level data structure used to serialize and
 // deserialize our configuration from/to a YAML file
 type configStruct struct {
-
 	// LastVersionCheck is the last time when we successfully checked for a gsctl update.
 	// It has no "omitempty", to enforce the output. Marshaling failed otherwise.
 	LastVersionCheck time.Time `yaml:"last_version_check"`
 
 	// Updated is the time when the config has last been written.
 	Updated string `yaml:"updated"`
-
-	// Endpoints is a map of endpoints
-	Endpoints map[string]*endpointConfig `yaml:"endpoints"`
 
 	// SelectedEndpoint is the URL of the selected endpoint
 	SelectedEndpoint string `yaml:"selected_endpoint"`
@@ -115,6 +112,37 @@ type configStruct struct {
 	// Not marshalled back to the config file, as it is contained in the
 	// endpoint's entry.
 	Email string `yaml:"-"`
+
+	endpoints      map[string]*endpointConfig
+	endpointsMutex *sync.RWMutex
+}
+
+func newConfigStruct() *configStruct {
+	return &configStruct{
+		endpoints:      map[string]*endpointConfig{},
+		endpointsMutex: &sync.RWMutex{},
+	}
+}
+
+// readFromFile reads configuration from the YAML config file
+func readFromFile(filePath string) (*configStruct, error) {
+	myConfig := newConfigStruct()
+	data, readErr := ioutil.ReadFile(filePath)
+	if readErr != nil {
+		if os.IsNotExist(readErr) {
+			// ignore if file does not exist,
+			// as this is not an error.
+			return myConfig, nil
+		}
+		return myConfig, microerror.Mask(readErr)
+	}
+
+	yamlErr := yaml.Unmarshal(data, myConfig)
+	if yamlErr != nil {
+		return myConfig, microerror.Mask(yamlErr)
+	}
+
+	return myConfig, nil
 }
 
 // endpointConfig is used to serialize/deserialize endpoint configuration
@@ -145,10 +173,6 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email
 		return microerror.Mask(credentialsRequiredError)
 	}
 
-	if c.Endpoints == nil {
-		c.Endpoints = map[string]*endpointConfig{}
-	}
-
 	// Ensure alias uniqueness.
 	// If the alias is already in use, it has to point to the
 	// same endpoint URL.
@@ -163,13 +187,16 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email
 		}
 	}
 
+	c.endpointsMutex.Lock()
+	defer c.endpointsMutex.Unlock()
+
 	// keep current Alias, if there
 	aliasBefore := ""
-	if _, ok := c.Endpoints[ep]; ok {
-		aliasBefore = c.Endpoints[ep].Alias
+	if _, ok := c.endpoints[ep]; ok {
+		aliasBefore = c.endpoints[ep].Alias
 	}
 
-	c.Endpoints[ep] = &endpointConfig{
+	c.endpoints[ep] = &endpointConfig{
 		Alias:        aliasBefore,
 		Email:        email,
 		RefreshToken: refreshToken,
@@ -178,7 +205,7 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email
 	}
 
 	if alias != "" && aliasBefore == "" {
-		c.Endpoints[ep].Alias = alias
+		c.endpoints[ep].Alias = alias
 	}
 
 	WriteToFile()
@@ -209,23 +236,26 @@ func (c *configStruct) SelectEndpoint(endpointAliasOrURL string) error {
 		}
 	}
 
+	c.endpointsMutex.Lock()
+	c.endpointsMutex.Unlock()
+
 	if !argumentIsAlias {
 		ep = normalizeEndpoint(endpointAliasOrURL)
-		if _, ok := c.Endpoints[ep]; !ok {
+		if _, ok := c.endpoints[ep]; !ok {
 			return microerror.Mask(endpointNotDefinedError)
 		}
 	}
 
 	// Migrate empty scheme to 'giantswarm'
-	if c.Endpoints[ep].Scheme == "" {
-		c.Endpoints[ep].Scheme = "giantswarm"
+	if c.endpoints[ep].Scheme == "" {
+		c.endpoints[ep].Scheme = "giantswarm"
 	}
 
 	c.SelectedEndpoint = ep
-	c.RefreshToken = c.Endpoints[ep].RefreshToken
-	c.Scheme = c.Endpoints[ep].Scheme
-	c.Token = c.Endpoints[ep].Token
-	c.Email = c.Endpoints[ep].Email
+	c.RefreshToken = c.endpoints[ep].RefreshToken
+	c.Scheme = c.endpoints[ep].Scheme
+	c.Token = c.endpoints[ep].Token
+	c.Email = c.endpoints[ep].Email
 
 	WriteToFile()
 
@@ -270,9 +300,10 @@ func (c *configStruct) ChooseToken(endpoint, overridingToken string) string {
 		return overridingToken
 	}
 
-	if endpointStruct, ok := c.Endpoints[ep]; ok {
-		if endpointStruct != nil && endpointStruct.Token != "" {
-			return endpointStruct.Token
+	endpointConfig := c.EndpointConfig(ep)
+	if endpointConfig != nil {
+		if endpointConfig != nil && endpointConfig.Token != "" {
+			return endpointConfig.Token
 		}
 	}
 
@@ -291,9 +322,10 @@ func (c *configStruct) ChooseScheme(endpoint string, cmdToken string) string {
 		return "giantswarm"
 	}
 
-	if endpointStruct, ok := c.Endpoints[ep]; ok {
-		if endpointStruct != nil && endpointStruct.Scheme != "" {
-			return endpointStruct.Scheme
+	endpointConfig := c.EndpointConfig(ep)
+	if endpointConfig != nil {
+		if endpointConfig != nil && endpointConfig.Scheme != "" {
+			return endpointConfig.Scheme
 		}
 	}
 
@@ -302,28 +334,56 @@ func (c *configStruct) ChooseScheme(endpoint string, cmdToken string) string {
 
 // HasEndpointAlias returns whether the given alias is used for an endpoint
 func (c *configStruct) HasEndpointAlias(alias string) bool {
-	for key := range c.Endpoints {
-		if c.Endpoints[key].Alias == alias {
+	c.endpointsMutex.RLock()
+	defer c.endpointsMutex.RUnlock()
+
+	for key := range c.endpoints {
+		if c.endpoints[key].Alias == alias {
 			return true
 		}
 	}
 	return false
 }
 
+func (c *configStruct) EndpointConfig(ep string) *endpointConfig {
+	c.endpointsMutex.RLock()
+	defer c.endpointsMutex.RUnlock()
+
+	return c.endpoints[ep]
+}
+
 // EndpointByAlias performs a lookup by alias and returns the according endpoint URL
 // (if the alias is assigned) or an error (if not found)
 func (c *configStruct) EndpointByAlias(alias string) (string, error) {
-	for url := range c.Endpoints {
-		if c.Endpoints[url].Alias == alias {
+	c.endpointsMutex.RLock()
+	defer c.endpointsMutex.RUnlock()
+
+	for url := range c.endpoints {
+		if c.endpoints[url].Alias == alias {
 			return url, nil
 		}
 	}
 	return "", microerror.Maskf(endpointNotDefinedError, "no endpoint for this alias")
 }
 
+func (c *configStruct) Endpoints() []string {
+	c.endpointsMutex.RLock()
+	defer c.endpointsMutex.RUnlock()
+
+	var endpoints []string
+	for k, _ := range c.endpoints {
+		endpoints = append(endpoints, k)
+	}
+
+	return endpoints
+}
+
 // NumEndpoints returns the number of endpoints stored in the configuration
 func (c *configStruct) NumEndpoints() int {
-	return len(c.Endpoints)
+	c.endpointsMutex.RLock()
+	defer c.endpointsMutex.RUnlock()
+
+	return len(c.endpoints)
 }
 
 // Logout removes the token value from the selected endpoint.
@@ -335,10 +395,11 @@ func (c *configStruct) Logout(endpointURL string) {
 		c.Scheme = ""
 	}
 
-	if element, ok := c.Endpoints[ep]; ok {
-		element.RefreshToken = ""
-		element.Token = ""
-		element.Scheme = ""
+	endpointConfig := c.EndpointConfig(ep)
+	if endpointConfig != nil {
+		endpointConfig.RefreshToken = ""
+		endpointConfig.Token = ""
+		endpointConfig.Scheme = ""
 	}
 
 	WriteToFile()
@@ -354,13 +415,13 @@ func (c *configStruct) AuthHeaderGetter(endpoint string, overridingToken string)
 		// If the scheme is Bearer, first verify that the token is valid.
 		// If it is expired, then try to refresh it.
 		if scheme == "Bearer" {
-			// Check if the endpoint we are accessing is even saved.
-			if _, ok := c.Endpoints[endpoint]; !ok {
+			endpointConfig := c.EndpointConfig(endpoint)
+			if endpointConfig == nil {
 				return "", microerror.Mask(endpointNotDefinedError)
 			}
 
 			// Check if it has a refresh token.
-			refreshToken := c.Endpoints[endpoint].RefreshToken
+			refreshToken := endpointConfig.RefreshToken
 			if refreshToken == "" {
 				return "", microerror.Maskf(endpointNotDefinedError, "No refresh token saved in config file, unable to acquire new access token. Please login again.")
 			}
@@ -379,7 +440,7 @@ func (c *configStruct) AuthHeaderGetter(endpoint string, overridingToken string)
 				}
 
 				// Update the config file with the new access token.
-				if err := Config.StoreEndpointAuth(endpoint, c.Endpoints[endpoint].Alias, idToken.Email, "Bearer", refreshTokenResponse.AccessToken, refreshToken); err != nil {
+				if err := Config.StoreEndpointAuth(endpoint, endpointConfig.Alias, idToken.Email, "Bearer", refreshTokenResponse.AccessToken, refreshToken); err != nil {
 					return "", microerror.Maskf(err, "Error while attempting to store the token in the config file")
 				}
 
@@ -439,7 +500,7 @@ func init() {
 func Initialize(configDirPath string) error {
 	// Reset our Config object. This is particularly necessary for running
 	// multiple tests in a row.
-	Config = configStruct{}
+	Config = newConfigStruct()
 
 	// configDirPath argument overrides default, if given
 	if configDirPath != "" {
@@ -505,23 +566,19 @@ func Initialize(configDirPath string) error {
 // populateConfigStruct assigns configuration values from the unmarshalled
 // structure to Config.
 // cs here is what we read from the file.
-func populateConfigStruct(cs configStruct) {
+func populateConfigStruct(cs *configStruct) {
 
 	Config.LastVersionCheck = cs.LastVersionCheck
 	Config.Updated = cs.Updated
 
-	Config.Endpoints = cs.Endpoints
-	if Config.Endpoints == nil {
-		Config.Endpoints = make(map[string]*endpointConfig)
-	}
+	Config.endpoints = cs.endpoints
 
 	if cs.SelectedEndpoint != "" {
 		Config.SelectedEndpoint = cs.SelectedEndpoint
-		if _, ok := cs.Endpoints[cs.SelectedEndpoint]; ok {
-			if cs.Endpoints[cs.SelectedEndpoint] != nil {
-				Config.Email = cs.Endpoints[cs.SelectedEndpoint].Email
-				Config.Token = cs.Endpoints[cs.SelectedEndpoint].Token
-			}
+		endpointConfig := cs.EndpointConfig(cs.SelectedEndpoint)
+		if endpointConfig != nil {
+			Config.Email = endpointConfig.Email
+			Config.Token = endpointConfig.Token
 		}
 	}
 
@@ -532,30 +589,8 @@ func UserAgent() string {
 	return fmt.Sprintf("%s/%s", ProgramName, Version)
 }
 
-// readFromFile reads configuration from the YAML config file
-func readFromFile(filePath string) (configStruct, error) {
-	myConfig := configStruct{}
-	data, readErr := ioutil.ReadFile(filePath)
-	if readErr != nil {
-		if os.IsNotExist(readErr) {
-			// ignore if file does not exist,
-			// as this is not an error.
-			return myConfig, nil
-		}
-		return myConfig, microerror.Mask(readErr)
-	}
-
-	yamlErr := yaml.Unmarshal(data, &myConfig)
-	if yamlErr != nil {
-		return myConfig, microerror.Mask(yamlErr)
-	}
-
-	return myConfig, nil
-}
-
 // WriteToFile writes the configuration data to a YAML file
 func WriteToFile() error {
-
 	data := Config
 	data.Updated = time.Now().Format(time.RFC3339)
 
