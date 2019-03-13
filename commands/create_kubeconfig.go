@@ -2,6 +2,12 @@ package commands
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"regexp"
+	"runtime"
+
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/kubeconfig"
@@ -9,12 +15,7 @@ import (
 	"github.com/giantswarm/micrologger/microloggertest"
 	"github.com/giantswarm/operatorkit/client/k8srestconfig"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 	"k8s.io/client-go/kubernetes/fake"
-	"net/http"
-	"os"
-	"regexp"
-	"runtime"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
@@ -425,7 +426,7 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 			}
 
 			kcc := kubeconfig.Config{
-				Logger: microloggertest.New(),
+				Logger:    microloggertest.New(),
 				K8sClient: fake.NewSimpleClientset(),
 			}
 
