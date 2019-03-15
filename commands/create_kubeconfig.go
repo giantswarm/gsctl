@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -15,7 +16,6 @@ import (
 	"github.com/giantswarm/micrologger/microloggertest"
 	"github.com/giantswarm/operatorkit/client/k8srestconfig"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
@@ -425,16 +425,7 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 				return result, microerror.Mask(err)
 			}
 
-			kcc := kubeconfig.Config{
-				Logger:    microloggertest.New(),
-				K8sClient: fake.NewSimpleClientset(),
-			}
-
-			kc, err := kubeconfig.New(kcc)
-			if err != nil {
-				return result, microerror.Mask(err)
-			}
-			yamlBytes, err = kc.NewKubeConfigForRESTConfig(nil, restConfig, fmt.Sprintf("giantswarm-%s", args.clusterID), "")
+			yamlBytes, err = kubeconfig.NewKubeConfigForRESTConfig(context.Background(), restConfig, fmt.Sprintf("giantswarm-%s", args.clusterID), "")
 			if err != nil {
 				return result, microerror.Mask(err)
 			}
