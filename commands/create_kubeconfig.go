@@ -13,7 +13,7 @@ import (
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/kubeconfig"
 	"github.com/giantswarm/microerror"
-	"github.com/giantswarm/micrologger/microloggertest"
+	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/client/k8srestconfig"
 	"github.com/spf13/cobra"
 
@@ -175,7 +175,6 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	err := verifyCreateKubeconfigPreconditions(args, cmdLineArgs)
-
 	if err == nil {
 		return
 	}
@@ -408,13 +407,17 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 	} else {
 		// create a self-contained kubeconfig
 		var yamlBytes []byte
+		logger, err := micrologger.New(micrologger.Config{})
+		if err != nil {
+			return result, microerror.Mask(err)
+		}
 		{
 			c := k8srestconfig.Config{
-				Logger: microloggertest.New(),
+				Logger: logger,
 
 				Address:   result.apiEndpoint,
 				InCluster: false,
-				TLS: k8srestconfig.TLSClientConfig{
+				TLS: k8srestconfig.ConfigTLS{
 					CAData:  []byte(response.Payload.CertificateAuthorityData),
 					CrtData: []byte(response.Payload.ClientCertificateData),
 					KeyData: []byte(response.Payload.ClientKeyData),
