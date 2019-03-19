@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"encoding/base64"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -11,9 +11,11 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/kubeconfig"
 	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/micrologger"
+	"github.com/giantswarm/operatorkit/client/k8srestconfig"
 	"github.com/spf13/cobra"
-	yaml "gopkg.in/yaml.v2"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
@@ -141,53 +143,6 @@ type createKubeconfigResult struct {
 	ttlHours uint
 }
 
-// Kubeconfig is a struct used to create a kubectl configuration YAML file
-type Kubeconfig struct {
-	APIVersion     string                   `yaml:"apiVersion"`
-	Kind           string                   `yaml:"kind"`
-	Clusters       []KubeconfigNamedCluster `yaml:"clusters"`
-	Users          []KubeconfigUser         `yaml:"users"`
-	Contexts       []KubeconfigNamedContext `yaml:"contexts"`
-	CurrentContext string                   `yaml:"current-context"`
-	Preferences    struct{}                 `yaml:"preferences"`
-}
-
-// KubeconfigUser is a struct used to create a kubectl configuration YAML file
-type KubeconfigUser struct {
-	Name string                `yaml:"name"`
-	User KubeconfigUserKeyPair `yaml:"user"`
-}
-
-// KubeconfigUserKeyPair is a struct used to create a kubectl configuration YAML file
-type KubeconfigUserKeyPair struct {
-	ClientCertificateData string `yaml:"client-certificate-data"`
-	ClientKeyData         string `yaml:"client-key-data"`
-}
-
-// KubeconfigNamedCluster is a struct used to create a kubectl configuration YAML file
-type KubeconfigNamedCluster struct {
-	Name    string            `yaml:"name"`
-	Cluster KubeconfigCluster `yaml:"cluster"`
-}
-
-// KubeconfigCluster is a struct used to create a kubectl configuration YAML file
-type KubeconfigCluster struct {
-	Server                   string `yaml:"server"`
-	CertificateAuthorityData string `yaml:"certificate-authority-data"`
-}
-
-// KubeconfigNamedContext is a struct used to create a kubectl configuration YAML file
-type KubeconfigNamedContext struct {
-	Name    string            `yaml:"name"`
-	Context KubeconfigContext `yaml:"context"`
-}
-
-// KubeconfigContext is a struct used to create a kubectl configuration YAML file
-type KubeconfigContext struct {
-	Cluster string `yaml:"cluster"`
-	User    string `yaml:"user"`
-}
-
 func init() {
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key pair")
@@ -220,7 +175,6 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	err := verifyCreateKubeconfigPreconditions(args, cmdLineArgs)
-
 	if err == nil {
 		return
 	}
@@ -300,8 +254,10 @@ func verifyCreateKubeconfigPreconditions(args createKubeconfigArguments, cmdLine
 
 // createKubeconfig adds configuration for kubectl
 func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+	ctx := context.Background()
+
 	args, _ := defaultCreateKubeconfigArguments()
-	result, err := createKubeconfig(args)
+	result, err := createKubeconfig(ctx, args)
 
 	if err != nil {
 		handleCommonErrors(err)
@@ -377,7 +333,7 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 // createKubeconfig is our business function talking to the API to create a keypair
 // and creating a new kubectl context
-func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, error) {
+func createKubeconfig(ctx context.Context, args createKubeconfigArguments) (createKubeconfigResult, error) {
 	result := createKubeconfigResult{}
 
 	auxParams := ClientV2.DefaultAuxiliaryParams()
@@ -452,43 +408,32 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 		}
 	} else {
 		// create a self-contained kubeconfig
-		kubeconfig := Kubeconfig{
-			APIVersion:     "v1",
-			Kind:           "Config",
-			CurrentContext: args.contextName,
-			Clusters: []KubeconfigNamedCluster{
-				{
-					Name: "giantswarm-" + args.clusterID,
-					Cluster: KubeconfigCluster{
-						Server:                   result.apiEndpoint,
-						CertificateAuthorityData: base64.StdEncoding.EncodeToString([]byte(response.Payload.CertificateAuthorityData)),
-					},
-				},
-			},
-			Contexts: []KubeconfigNamedContext{
-				{
-					Name: args.contextName,
-					Context: KubeconfigContext{
-						Cluster: "giantswarm-" + args.clusterID,
-						User:    "giantswarm-" + args.clusterID + "-user",
-					},
-				},
-			},
-			Users: []KubeconfigUser{
-				{
-					Name: "giantswarm-" + args.clusterID + "-user",
-					User: KubeconfigUserKeyPair{
-						ClientCertificateData: base64.StdEncoding.EncodeToString([]byte(response.Payload.ClientCertificateData)),
-						ClientKeyData:         base64.StdEncoding.EncodeToString([]byte(response.Payload.ClientKeyData)),
-					},
-				},
-			},
-		}
-
-		// create YAML
-		yamlBytes, err := yaml.Marshal(&kubeconfig)
+		var yamlBytes []byte
+		logger, err := micrologger.New(micrologger.Config{})
 		if err != nil {
 			return result, microerror.Mask(err)
+		}
+		{
+			c := k8srestconfig.Config{
+				Logger: logger,
+
+				Address:   result.apiEndpoint,
+				InCluster: false,
+				TLS: k8srestconfig.ConfigTLS{
+					CAData:  []byte(response.Payload.CertificateAuthorityData),
+					CrtData: []byte(response.Payload.ClientCertificateData),
+					KeyData: []byte(response.Payload.ClientKeyData),
+				},
+			}
+			restConfig, err := k8srestconfig.New(c)
+			if err != nil {
+				return result, microerror.Mask(err)
+			}
+
+			yamlBytes, err = kubeconfig.NewKubeConfigForRESTConfig(ctx, restConfig, fmt.Sprintf("giantswarm-%s", args.clusterID), "")
+			if err != nil {
+				return result, microerror.Mask(err)
+			}
 		}
 
 		err = ioutil.WriteFile(args.selfContainedPath, yamlBytes, 0600)

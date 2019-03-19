@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -81,7 +82,7 @@ func Test_CreateKubeconfig(t *testing.T) {
 		t.Error(err)
 	}
 
-	result, err := createKubeconfig(args)
+	result, err := createKubeconfig(context.Background(), args)
 	if err != nil {
 		t.Error(err)
 	}
@@ -153,7 +154,7 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 		t.Error(err)
 	}
 
-	result, err := createKubeconfig(args)
+	result, err := createKubeconfig(context.Background(), args)
 	if err != nil {
 		t.Error(err)
 	}
@@ -231,7 +232,7 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 		t.Error(err)
 	}
 
-	result, err := createKubeconfig(args)
+	result, err := createKubeconfig(context.Background(), args)
 	if err != nil {
 		t.Error(err)
 	}
@@ -280,7 +281,7 @@ func Test_CreateKubeconfigNoConnection(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = createKubeconfig(args)
+	_, err = createKubeconfig(context.Background(), args)
 	if err == nil {
 		t.Error("Expected error (no connection, no response) didn't occur.")
 	}
