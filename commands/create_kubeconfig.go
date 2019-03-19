@@ -254,8 +254,10 @@ func verifyCreateKubeconfigPreconditions(args createKubeconfigArguments, cmdLine
 
 // createKubeconfig adds configuration for kubectl
 func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+	ctx := context.Background()
+
 	args, _ := defaultCreateKubeconfigArguments()
-	result, err := createKubeconfig(args)
+	result, err := createKubeconfig(ctx, args)
 
 	if err != nil {
 		handleCommonErrors(err)
@@ -331,7 +333,7 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 // createKubeconfig is our business function talking to the API to create a keypair
 // and creating a new kubectl context
-func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, error) {
+func createKubeconfig(ctx context.Context, args createKubeconfigArguments) (createKubeconfigResult, error) {
 	result := createKubeconfigResult{}
 
 	auxParams := ClientV2.DefaultAuxiliaryParams()
@@ -428,7 +430,7 @@ func createKubeconfig(args createKubeconfigArguments) (createKubeconfigResult, e
 				return result, microerror.Mask(err)
 			}
 
-			yamlBytes, err = kubeconfig.NewKubeConfigForRESTConfig(context.Background(), restConfig, fmt.Sprintf("giantswarm-%s", args.clusterID), "")
+			yamlBytes, err = kubeconfig.NewKubeConfigForRESTConfig(ctx, restConfig, fmt.Sprintf("giantswarm-%s", args.clusterID), "")
 			if err != nil {
 				return result, microerror.Mask(err)
 			}
