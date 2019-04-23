@@ -245,6 +245,10 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		// Count all nodes as workers which are not explicitly marked as master.
 		for _, node := range clusterStatus.Cluster.Nodes {
 			val, ok := node.Labels["role"]
+			if !ok {
+				// Workaround for k8s 1.14 because the label changed.
+				val, ok = node.Labels["kubernetes.io/role"]
+			}
 			if ok && val == "master" {
 				// don't count this
 			} else {
