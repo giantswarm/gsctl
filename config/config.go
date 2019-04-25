@@ -113,6 +113,11 @@ type configStruct struct {
 	// endpoint's entry.
 	Email string `yaml:"-"`
 
+	// provider is the provider found for the selected endpoint. Might be empty.
+	// Not marshalled back to the config file, as it is contained in the
+	// endpoint's entry.
+	Provider string `yaml:"-"`
+
 	endpoints      map[string]*endpointConfig
 	endpointsMutex *sync.RWMutex
 }
@@ -153,6 +158,9 @@ type endpointConfig struct {
 
 	// Email is the email address of the authenticated user.
 	Email string `yaml:"email"`
+
+	// Provider is the cloud provider used in the installation.
+	Provider string `yaml:"provider"`
 
 	// RefreshToken for acquiring a new token when using the bearer scheme.
 	RefreshToken string `yaml:"refresh_token,omitempty"`
@@ -578,6 +586,7 @@ func populateConfigStruct(cs *configStruct) {
 		endpointConfig := cs.EndpointConfig(cs.SelectedEndpoint)
 		if endpointConfig != nil {
 			Config.Email = endpointConfig.Email
+			Config.Provider = endpointConfig.Provider
 			Config.Token = endpointConfig.Token
 		}
 	}
