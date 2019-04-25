@@ -41,6 +41,14 @@ func New(config Config) (*KubeConfig, error) {
 // NewRESTConfigForApp returns a Kubernetes REST config for the cluster
 // configured in the kubeconfig section of the app CR.
 func (k *KubeConfig) NewRESTConfigForApp(ctx context.Context, app v1alpha1.App) (*rest.Config, error) {
+	if inCluster(app) {
+		config, err := rest.InClusterConfig()
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+		return config, nil
+	}
+
 	secretName := secretName(app)
 	secretNamespace := secretNamespace(app)
 

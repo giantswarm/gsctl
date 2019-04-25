@@ -56,12 +56,14 @@ const (
 	RFC3339Millis = "2006-01-02T15:04:05.000Z07:00"
 	// RFC3339Micro represents a ISO8601 format to micro instead of to nano
 	RFC3339Micro = "2006-01-02T15:04:05.000000Z07:00"
+	// ISO8601LocalTime represents a ISO8601 format to ISO8601 in local time (no timezone)
+	ISO8601LocalTime = "2006-01-02T15:04:05"
 	// DateTimePattern pattern to match for the date-time format from http://tools.ietf.org/html/rfc3339#section-5.6
 	DateTimePattern = `^([0-9]{2}):([0-9]{2}):([0-9]{2})(.[0-9]+)?(z|([+-][0-9]{2}:[0-9]{2}))$`
 )
 
 var (
-	dateTimeFormats = []string{RFC3339Micro, RFC3339Millis, time.RFC3339, time.RFC3339Nano}
+	dateTimeFormats = []string{RFC3339Micro, RFC3339Millis, time.RFC3339, time.RFC3339Nano, ISO8601LocalTime}
 	rxDateTime      = regexp.MustCompile(DateTimePattern)
 	// MarshalFormat sets the time resolution format used for marshaling time (set to milliseconds)
 	MarshalFormat = RFC3339Millis
@@ -156,6 +158,9 @@ func (t DateTime) MarshalEasyJSON(w *jwriter.Writer) {
 
 // UnmarshalJSON sets the DateTime from JSON
 func (t *DateTime) UnmarshalJSON(data []byte) error {
+	if string(data) == jsonNull {
+		return nil
+	}
 	l := jlexer.Lexer{Data: data}
 	t.UnmarshalEasyJSON(&l)
 	return l.Error()
@@ -195,17 +200,16 @@ func (t *DateTime) SetBSON(raw bson.Raw) error {
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
-func (in *DateTime) DeepCopyInto(out *DateTime) {
-	*out = *in
-	return
+func (t *DateTime) DeepCopyInto(out *DateTime) {
+	*out = *t
 }
 
 // DeepCopy copies the receiver into a new DateTime.
-func (in *DateTime) DeepCopy() *DateTime {
-	if in == nil {
+func (t *DateTime) DeepCopy() *DateTime {
+	if t == nil {
 		return nil
 	}
 	out := new(DateTime)
-	in.DeepCopyInto(out)
+	t.DeepCopyInto(out)
 	return out
 }
