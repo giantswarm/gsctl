@@ -379,7 +379,7 @@ func (c *configStruct) Endpoints() []string {
 	defer c.endpointsMutex.RUnlock()
 
 	var endpoints []string
-	for k, _ := range c.endpoints {
+	for k := range c.endpoints {
 		endpoints = append(endpoints, k)
 	}
 
