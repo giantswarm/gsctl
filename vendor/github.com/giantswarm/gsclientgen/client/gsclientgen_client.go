@@ -15,6 +15,7 @@ import (
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/client/info"
 	"github.com/giantswarm/gsclientgen/client/key_pairs"
+	"github.com/giantswarm/gsclientgen/client/nodepools"
 	"github.com/giantswarm/gsclientgen/client/organizations"
 	"github.com/giantswarm/gsclientgen/client/releases"
 	"github.com/giantswarm/gsclientgen/client/users"
@@ -70,6 +71,8 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Gsclientge
 	cli.Info = info.New(transport, formats)
 
 	cli.KeyPairs = key_pairs.New(transport, formats)
+
+	cli.Nodepools = nodepools.New(transport, formats)
 
 	cli.Organizations = organizations.New(transport, formats)
 
@@ -129,6 +132,8 @@ type Gsclientgen struct {
 
 	KeyPairs *key_pairs.Client
 
+	Nodepools *nodepools.Client
+
 	Organizations *organizations.Client
 
 	Releases *releases.Client
@@ -149,6 +154,8 @@ func (c *Gsclientgen) SetTransport(transport runtime.ClientTransport) {
 	c.Info.SetTransport(transport)
 
 	c.KeyPairs.SetTransport(transport)
+
+	c.Nodepools.SetTransport(transport)
 
 	c.Organizations.SetTransport(transport)
 

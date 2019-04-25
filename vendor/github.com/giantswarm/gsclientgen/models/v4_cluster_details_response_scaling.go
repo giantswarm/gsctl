@@ -17,11 +17,11 @@ import (
 // swagger:model v4ClusterDetailsResponseScaling
 type V4ClusterDetailsResponseScaling struct {
 
-	// The maximum number of cluster nodes as configured
+	// Maximum number of cluster nodes as configured
 	//
 	Max int64 `json:"max,omitempty"`
 
-	// The minimum number of cluster nodes as configured
+	// Minimum number of cluster nodes as configured
 	//
 	Min int64 `json:"min,omitempty"`
 }
