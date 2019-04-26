@@ -374,6 +374,7 @@ func (c *configStruct) EndpointByAlias(alias string) (string, error) {
 	return "", microerror.Maskf(endpointNotDefinedError, "no endpoint for this alias")
 }
 
+// Endpoints returns a slice of endpoint URLs.
 func (c *configStruct) Endpoints() []string {
 	c.endpointsMutex.RLock()
 	defer c.endpointsMutex.RUnlock()
@@ -392,6 +393,23 @@ func (c *configStruct) NumEndpoints() int {
 	defer c.endpointsMutex.RUnlock()
 
 	return len(c.endpoints)
+}
+
+// EnsureProvider takes care that we have provider information for the
+// currently selected endpoint.
+func (c *configStruct) EnsureProvider(clientV2 *client.WrapperV2) error {
+	if c.SelectedEndpoint != "" && c.Provider == "" {
+		result, err := clientV2.GetInfo(nil)
+		if err != nil {
+			return err
+		}
+
+		c.endpoints[c.SelectedEndpoint].Provider = result.Payload.General.Provider
+		c.Provider = result.Payload.General.Provider
+		WriteToFile()
+	}
+
+	return nil
 }
 
 // Logout removes the token value from the selected endpoint.
