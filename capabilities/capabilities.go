@@ -6,13 +6,25 @@ import (
 )
 
 var (
-	// Autoscaling si the capability to scale tenant clusters automatically.
+	// Autoscaling is the capability to scale tenant clusters automatically.
 	Autoscaling = CapabilityDefinition{
 		Name: "Autoscaling",
 		RequiredReleasePerProvider: []ReleaseProviderPair{
 			ReleaseProviderPair{
 				Provider:       "aws",
 				ReleaseVersion: semver.MustParse("6.3"),
+			},
+		},
+	}
+
+	// AvailabilityZones si the capability to spread the worker nodes of a tenant
+	// cluster over multiple availability zones.
+	AvailabilityZones = CapabilityDefinition{
+		Name: "AvailabilityZones",
+		RequiredReleasePerProvider: []ReleaseProviderPair{
+			ReleaseProviderPair{
+				Provider:       "aws",
+				ReleaseVersion: semver.MustParse("6.1"),
 			},
 		},
 	}
@@ -31,6 +43,7 @@ var (
 	// AllCapabilityDefinitions contains all the capabilities
 	AllCapabilityDefinitions = []CapabilityDefinition{
 		Autoscaling,
+		AvailabilityZones,
 		NodePools,
 	}
 )

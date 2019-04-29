@@ -23,21 +23,21 @@ var capabilityTests = []struct {
 			Provider:       "aws",
 			ReleaseVersion: semver.MustParse("6.4.0"),
 		},
-		[]CapabilityDefinition{Autoscaling},
+		[]CapabilityDefinition{Autoscaling, AvailabilityZones},
 	},
 	{
 		ReleaseProviderPair{
 			Provider:       "aws",
 			ReleaseVersion: semver.MustParse("9.0.0"),
 		},
-		[]CapabilityDefinition{Autoscaling, NodePools},
+		[]CapabilityDefinition{Autoscaling, AvailabilityZones, NodePools},
 	},
 	{
 		ReleaseProviderPair{
 			Provider:       "aws",
 			ReleaseVersion: semver.MustParse("9.1.2"),
 		},
-		[]CapabilityDefinition{Autoscaling, NodePools},
+		[]CapabilityDefinition{Autoscaling, AvailabilityZones, NodePools},
 	},
 	{
 		ReleaseProviderPair{
