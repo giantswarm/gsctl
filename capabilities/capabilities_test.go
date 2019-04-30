@@ -3,46 +3,57 @@ package capabilities
 import (
 	"testing"
 
-	"github.com/Masterminds/semver"
 	"github.com/google/go-cmp/cmp"
 )
 
+type testInput struct {
+	Provider       string
+	ReleaseVersion string
+}
+
 var capabilityTests = []struct {
-	in  ReleaseProviderPair
+	in  testInput
 	out []CapabilityDefinition
 }{
 	{
-		ReleaseProviderPair{
+		testInput{
 			Provider:       "aws",
-			ReleaseVersion: semver.MustParse("1.2.3"),
+			ReleaseVersion: "1.2.3",
 		},
 		[]CapabilityDefinition{},
 	},
 	{
-		ReleaseProviderPair{
+		testInput{
 			Provider:       "aws",
-			ReleaseVersion: semver.MustParse("6.4.0"),
+			ReleaseVersion: "6.1.2",
+		},
+		[]CapabilityDefinition{AvailabilityZones},
+	},
+	{
+		testInput{
+			Provider:       "aws",
+			ReleaseVersion: "6.4.0",
 		},
 		[]CapabilityDefinition{Autoscaling, AvailabilityZones},
 	},
 	{
-		ReleaseProviderPair{
+		testInput{
 			Provider:       "aws",
-			ReleaseVersion: semver.MustParse("9.0.0"),
+			ReleaseVersion: "9.0.0",
 		},
 		[]CapabilityDefinition{Autoscaling, AvailabilityZones, NodePools},
 	},
 	{
-		ReleaseProviderPair{
+		testInput{
 			Provider:       "aws",
-			ReleaseVersion: semver.MustParse("9.1.2"),
+			ReleaseVersion: "9.1.2",
 		},
 		[]CapabilityDefinition{Autoscaling, AvailabilityZones, NodePools},
 	},
 	{
-		ReleaseProviderPair{
+		testInput{
 			Provider:       "kvm",
-			ReleaseVersion: semver.MustParse("9.1.2"),
+			ReleaseVersion: "9.1.2",
 		},
 		[]CapabilityDefinition{},
 	},
@@ -52,7 +63,7 @@ func TestGetCapabilities(t *testing.T) {
 	for index, tt := range capabilityTests {
 		cap, err := GetCapabilities(tt.in.Provider, tt.in.ReleaseVersion)
 		if err != nil {
-			t.Error(err)
+			t.Errorf("Test %d: Error: %s", index, err)
 		}
 		if !cmp.Equal(cap, tt.out) {
 			t.Errorf("Test %d: Expected %#v but got %#v", index, tt.out, cap)

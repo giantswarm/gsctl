@@ -3,6 +3,7 @@ package capabilities
 
 import (
 	"github.com/Masterminds/semver"
+	"github.com/giantswarm/microerror"
 )
 
 var (
@@ -66,12 +67,16 @@ type ReleaseProviderPair struct {
 }
 
 // GetCapabilities returns the capabilities available in the current context
-func GetCapabilities(provider string, releaseVersion *semver.Version) ([]CapabilityDefinition, error) {
+func GetCapabilities(provider, releaseVersion string) ([]CapabilityDefinition, error) {
 	cap := []CapabilityDefinition{}
 
 	// iterate all capabilities and find the ones that apply
 	for _, capability := range AllCapabilityDefinitions {
-		if HasCapability(provider, releaseVersion, capability) {
+		hasCap, err := HasCapability(provider, releaseVersion, capability)
+		if err != nil {
+			return []CapabilityDefinition{}, microerror.Mask(err)
+		}
+		if hasCap {
 			cap = append(cap, capability)
 		}
 	}
@@ -81,15 +86,20 @@ func GetCapabilities(provider string, releaseVersion *semver.Version) ([]Capabil
 
 // HasCapability returns true if the current context (provider, release) provides
 // the given capabililty.
-func HasCapability(provider string, releaseVersion *semver.Version, capability CapabilityDefinition) bool {
+func HasCapability(provider, releaseVersion string, capability CapabilityDefinition) (bool, error) {
+	ver, err := semver.NewVersion(releaseVersion)
+	if err != nil {
+		return false, microerror.Mask(err)
+	}
+
 	// check which release/provider pair matches ours
 	for _, releaseProviderPair := range capability.RequiredReleasePerProvider {
 		if provider == releaseProviderPair.Provider {
-			if !releaseVersion.LessThan(releaseProviderPair.ReleaseVersion) {
-				return true
+			if !ver.LessThan(releaseProviderPair.ReleaseVersion) {
+				return true, nil
 			}
 		}
 	}
 
-	return false
+	return false, nil
 }

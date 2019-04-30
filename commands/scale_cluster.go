@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Masterminds/semver"
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
@@ -244,13 +243,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		desiredScalingMin = cmdWorkersMin
 	}
 
-	ver, err := semver.NewVersion(releaseVersion)
-	if err != nil {
-		fmt.Println(color.RedString(err.Error()))
-		os.Exit(1)
-	}
-
-	autoScalingEnabled := capabilities.HasCapability(config.Config.Provider, ver, capabilities.Autoscaling)
+	autoScalingEnabled, err := capabilities.HasCapability(config.Config.Provider, releaseVersion, capabilities.Autoscaling)
 	if err != nil {
 		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
