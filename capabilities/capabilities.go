@@ -17,7 +17,7 @@ var (
 		},
 	}
 
-	// AvailabilityZones si the capability to spread the worker nodes of a tenant
+	// AvailabilityZones is the capability to spread the worker nodes of a tenant
 	// cluster over multiple availability zones.
 	AvailabilityZones = CapabilityDefinition{
 		Name: "AvailabilityZones",
