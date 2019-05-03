@@ -4,14 +4,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/coreos/go-semver/semver"
 )
 
 func Test_CurrentVersion(t *testing.T) {
-	testVersion := semver.New("0.0.0")
+	testVersion := "0.0.0"
 	current := currentVersion()
-	if !current.Equal(*testVersion) {
+	if current != testVersion {
 		t.Error("Version equality check failed.")
 	}
 }
