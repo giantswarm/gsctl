@@ -22,3 +22,12 @@ func CompareVersions(v1 string, v2 string) (int, error) {
 
 	return s1.Compare(s2), nil
 }
+
+// VersionSortComp is a comparison function usable with the sort.Slice API
+func VersionSortComp(v1, v2 string) bool {
+	comp, _ := CompareVersions(v1, v2)
+	if comp == -1 {
+		return true
+	}
+	return false
+}

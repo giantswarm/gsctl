@@ -27,3 +27,21 @@ func TestVersionCompare(t *testing.T) {
 		}
 	}
 }
+
+func TestVersionSortComp(t *testing.T) {
+	var testCases = []struct {
+		in  []string
+		out bool
+	}{
+		{[]string{"0.1.2", "0.1.3"}, true},
+		{[]string{"0.1.2", "0.1.2"}, false},
+		{[]string{"0.1.3", "0.1.2"}, false},
+	}
+
+	for index, tt := range testCases {
+		result := VersionSortComp(tt.in[0], tt.in[1])
+		if result != tt.out {
+			t.Errorf("Test %d: Expected %v, got %v", index, tt.out, result)
+		}
+	}
+}
