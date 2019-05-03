@@ -113,6 +113,11 @@ type configStruct struct {
 	// endpoint's entry.
 	Email string `yaml:"-"`
 
+	// provider is the provider found for the selected endpoint. Might be empty.
+	// Not marshalled back to the config file, as it is contained in the
+	// endpoint's entry.
+	Provider string `yaml:"-"`
+
 	endpoints      map[string]*endpointConfig
 	endpointsMutex *sync.RWMutex
 }
@@ -153,6 +158,9 @@ type endpointConfig struct {
 
 	// Email is the email address of the authenticated user.
 	Email string `yaml:"email"`
+
+	// Provider is the cloud provider used in the installation.
+	Provider string `yaml:"provider"`
 
 	// RefreshToken for acquiring a new token when using the bearer scheme.
 	RefreshToken string `yaml:"refresh_token,omitempty"`
@@ -366,12 +374,13 @@ func (c *configStruct) EndpointByAlias(alias string) (string, error) {
 	return "", microerror.Maskf(endpointNotDefinedError, "no endpoint for this alias")
 }
 
+// Endpoints returns a slice of endpoint URLs.
 func (c *configStruct) Endpoints() []string {
 	c.endpointsMutex.RLock()
 	defer c.endpointsMutex.RUnlock()
 
 	var endpoints []string
-	for k, _ := range c.endpoints {
+	for k := range c.endpoints {
 		endpoints = append(endpoints, k)
 	}
 
@@ -384,6 +393,23 @@ func (c *configStruct) NumEndpoints() int {
 	defer c.endpointsMutex.RUnlock()
 
 	return len(c.endpoints)
+}
+
+// EnsureProvider takes care that we have provider information for the
+// currently selected endpoint.
+func (c *configStruct) EnsureProvider(clientV2 *client.WrapperV2) error {
+	if c.SelectedEndpoint != "" && c.Provider == "" {
+		result, err := clientV2.GetInfo(nil)
+		if err != nil {
+			return err
+		}
+
+		c.endpoints[c.SelectedEndpoint].Provider = result.Payload.General.Provider
+		c.Provider = result.Payload.General.Provider
+		WriteToFile()
+	}
+
+	return nil
 }
 
 // Logout removes the token value from the selected endpoint.
@@ -578,6 +604,7 @@ func populateConfigStruct(cs *configStruct) {
 		endpointConfig := cs.EndpointConfig(cs.SelectedEndpoint)
 		if endpointConfig != nil {
 			Config.Email = endpointConfig.Email
+			Config.Provider = endpointConfig.Provider
 			Config.Token = endpointConfig.Token
 		}
 	}

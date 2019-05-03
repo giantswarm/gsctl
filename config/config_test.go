@@ -153,6 +153,7 @@ func Test_Initialize_NonEmpty(t *testing.T) {
 updated: 2017-09-29T11:23:15+02:00
 endpoints:
   https://myapi.domain.tld:
+    provider: testprovider
     email: email@example.com
     token: some-token
 selected_endpoint: https://myapi.domain.tld`
@@ -165,6 +166,9 @@ selected_endpoint: https://myapi.domain.tld`
 	}
 	defer os.RemoveAll(dir)
 
+	if Config.Provider != "testprovider" {
+		t.Errorf("Expected provider testprovider, got '%s'", Config.Provider)
+	}
 	if Config.Email != email {
 		t.Errorf("Expected email '%s', got '%s'", email, Config.Email)
 	}

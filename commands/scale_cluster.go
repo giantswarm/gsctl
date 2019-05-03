@@ -10,11 +10,11 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/capabilities"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/cmd/cluster/scale/defaulting"
 	"github.com/giantswarm/gsctl/cmd/cluster/scale/request"
 	"github.com/giantswarm/gsctl/config"
-	"github.com/giantswarm/gsctl/util"
 )
 
 var (
@@ -107,7 +107,7 @@ func confirmScaleCluster(args scaleClusterArguments, maxBefore int64, minBefore 
 
 }
 
-func defaultScaleClusterArguments(ctx context.Context, cmd *cobra.Command, clusterId string, autoScalingEnabled bool, currentScalingMax int64, currentScalingMin int64, desiredScalingMax int64, desiredScalingMin int64, desiredNumWorkers int64) (scaleClusterArguments, error) {
+func defaultScaleClusterArguments(ctx context.Context, cmd *cobra.Command, clusterID string, autoScalingEnabled bool, currentScalingMax int64, currentScalingMin int64, desiredScalingMax int64, desiredScalingMin int64, desiredNumWorkers int64) (scaleClusterArguments, error) {
 	var err error
 
 	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
@@ -117,7 +117,7 @@ func defaultScaleClusterArguments(ctx context.Context, cmd *cobra.Command, clust
 	scaleArgs := scaleClusterArguments{
 		apiEndpoint:         endpoint,
 		authToken:           token,
-		clusterID:           clusterId,
+		clusterID:           clusterID,
 		numWorkersDesired:   int(desiredNumWorkers),
 		oppressConfirmation: cmdForce,
 		scheme:              scheme,
@@ -158,19 +158,6 @@ func defaultScaleClusterArguments(ctx context.Context, cmd *cobra.Command, clust
 	scaleArgs.workersMin = req.Cluster.Scaling.Min
 
 	return scaleArgs, nil
-}
-
-func isAutoscalingEnabled(version string) (bool, error) {
-	{
-		n, err := util.CompareVersions(version, "6.3.0")
-		if err != nil {
-			return false, err
-		}
-		if n == 0 || n == 1 {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 // getClusterStatus returns the status for one cluster.
@@ -221,6 +208,15 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	clusterID := cmdLineArgs[0]
 	desiredNumWorkers := cmdNumWorkers
 
+	// Make sure we have provider info in the current endpoint
+	err := config.Config.EnsureProvider(ClientV2)
+	if err != nil {
+		fmt.Println(color.RedString("Error getting installation details"))
+		handleCommonErrors(err)
+		fmt.Println(color.RedString(err.Error()))
+		os.Exit(1)
+	}
+
 	var currentScalingMax int64
 	var currentScalingMin int64
 	var currentWorkers int64
@@ -228,7 +224,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	{
 		clusterDetails, err := getClusterDetails(clusterID, scaleClusterActivityName)
 		if err != nil {
-			fmt.Println(color.RedString("Error getting cluster details!"))
+			fmt.Println(color.RedString("Error getting cluster details"))
 			handleCommonErrors(err)
 			fmt.Println(color.RedString(err.Error()))
 			os.Exit(1)
@@ -247,7 +243,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		desiredScalingMin = cmdWorkersMin
 	}
 
-	autoScalingEnabled, err := isAutoscalingEnabled(releaseVersion)
+	autoScalingEnabled, err := capabilities.HasCapability(config.Config.Provider, releaseVersion, capabilities.Autoscaling)
 	if err != nil {
 		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)

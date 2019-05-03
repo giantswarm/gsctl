@@ -96,6 +96,13 @@ func verifyShowClusterPreconditions(args showClusterArguments, cmdLineArgs []str
 	if len(cmdLineArgs) == 0 {
 		return microerror.Mask(clusterIDMissingError)
 	}
+
+	// Make sure we have provider info in the current endpoint
+	err := config.Config.EnsureProvider(ClientV2)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
 	return nil
 }
 
