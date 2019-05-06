@@ -50,14 +50,6 @@
   version = "v2.1.1"
 
 [[projects]]
-  digest = "1:0ef770954bca104ee99b3b6b7f9b240605ac03517d9f98cbc1893daa03f3c038"
-  name = "github.com/coreos/go-semver"
-  packages = ["semver"]
-  pruneopts = "NUT"
-  revision = "8ab6407b697782a06568d4b7f1db25550ec2e4c6"
-  version = "v0.2.0"
-
-[[projects]]
   digest = "1:7a6852b35eb5bbc184561443762d225116ae630c26a7c4d90546619f1e7d2ad2"
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
@@ -867,7 +859,6 @@
     "github.com/Jeffail/gabs",
     "github.com/Masterminds/semver",
     "github.com/cenkalti/backoff",
-    "github.com/coreos/go-semver/semver",
     "github.com/dgrijalva/jwt-go",
     "github.com/fatih/color",
     "github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1",

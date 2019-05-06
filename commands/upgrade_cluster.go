@@ -5,13 +5,13 @@ import (
 	"os"
 	"sort"
 
-	"github.com/coreos/go-semver/semver"
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/config"
-	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/gsctl/util"
 )
 
 const (
@@ -303,16 +303,13 @@ func successorReleaseVersion(version string, versions []string) string {
 
 	// sort versions by semver number
 	sort.Slice(versions, func(i, j int) bool {
-		vi := semver.New(versions[i])
-		vj := semver.New(versions[j])
-		return vi.LessThan(*vj)
+		return util.VersionSortComp(versions[i], versions[j])
 	})
 
 	// return first item that is greater than version
-	comp := semver.New(version)
 	for _, v := range versions {
-		vv := semver.New(v)
-		if comp.LessThan(*vv) {
+		comp, _ := util.CompareVersions(v, version)
+		if comp == 1 {
 			return v
 		}
 	}

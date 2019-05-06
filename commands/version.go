@@ -6,18 +6,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coreos/go-semver/semver"
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/util"
 )
 
 type updateAvailabilityInfo struct {
-	currentVersion  *semver.Version
-	latestVersion   *semver.Version
+	currentVersion  string
+	latestVersion   string
 	updateAvailable bool
 }
 
@@ -59,9 +59,10 @@ func printVersion(cmd *cobra.Command, args []string) {
 
 	// check for an update
 	cv := currentVersion()
-	if cv.Equal(*semver.New("0.0.0")) {
+	if cv == "0.0.0" {
 		return
 	}
+
 	info, err := checkUpdateAvailable(config.VersionCheckURL)
 	if err == nil {
 		// we are ignoring any errors from failed versionchecks
@@ -76,8 +77,8 @@ func printVersion(cmd *cobra.Command, args []string) {
 	}
 }
 
-// latestVersion returns the latest available version as semver.Version
-func latestVersion(url string) (*semver.Version, error) {
+// latestVersion returns the latest available version as string
+func latestVersion(url string) (string, error) {
 	// an HTTP client that doesn't follow redirects and timeouts quickly
 	// in order to not let the user wait too long
 	client := &http.Client{
@@ -89,29 +90,29 @@ func latestVersion(url string) (*semver.Version, error) {
 
 	resp, err := client.Get(url)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return "", microerror.Mask(err)
 	}
 	defer resp.Body.Close()
 
 	location := resp.Header.Get("Location")
 	if location == "" {
-		return nil, microerror.Mask(updateCheckFailed)
+		return "", microerror.Mask(updateCheckFailed)
 	}
 
 	parts := strings.Split(location, "/")
-	return semver.New(parts[len(parts)-1]), nil
+	return parts[len(parts)-1], nil
 }
 
-// currentVersion returns the current gsctl version as semver.Version.
+// currentVersion returns the current gsctl version as string.
 // When executed from a non-build (e. g. go test), it returns the
 // equivalent of "0.0.0"
-func currentVersion() *semver.Version {
+func currentVersion() string {
 	if config.Version != "" {
 		// remove '+git'
 		v := strings.Replace(config.Version, "+git", "", 1)
-		return semver.New(v)
+		return v
 	}
-	return semver.New("0.0.0")
+	return "0.0.0"
 }
 
 // checkUpdateAvailable checks whether an update is available and returns info as a struct
@@ -128,7 +129,12 @@ func checkUpdateAvailable(url string) (updateAvailabilityInfo, error) {
 		updateAvailable: false,
 	}
 
-	if current.LessThan(*latest) {
+	comp, err := util.CompareVersions(latest, current)
+	if err != nil {
+		return updateAvailabilityInfo{}, microerror.Mask(err)
+	}
+
+	if comp > 0 {
 		info.updateAvailable = true
 	}
 
