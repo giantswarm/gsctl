@@ -2,6 +2,8 @@
 [![Coverage Status](https://coveralls.io/repos/github/giantswarm/gsctl/badge.svg?branch=master)](https://coveralls.io/github/giantswarm/gsctl?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/giantswarm/gsctl)](https://goreportcard.com/report/github.com/giantswarm/gsctl)
 
+![Repo Image](https://repository-images.githubusercontent.com/74132145/b85d2300-70d4-11e9-9851-5bd95cec45c9)
+
 # `gsctl` - The Giant Swarm CLI
 
 `gsctl` is the cross-platform command line utility to manage your Kubernetes clusters at Giant Swarm.
