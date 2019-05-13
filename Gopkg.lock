@@ -85,11 +85,12 @@
   version = "v2.0.2"
 
 [[projects]]
-  branch = "master"
-  digest = "1:6cb6c5050bb5e594953e06780c6f4f1f641af4028fdac1a2e4764e50cf02dd9b"
+  branch = "upgrade-goswagger"
+  digest = "1:81d0e7b22cee4346d4160298a2bf3354254bd996832a70ccff4175c58b311223"
   name = "github.com/giantswarm/gsclientgen"
   packages = [
     "client",
+    "client/apps",
     "client/auth_tokens",
     "client/clusters",
     "client/info",
@@ -100,7 +101,7 @@
     "models",
   ]
   pruneopts = "NUT"
-  revision = "20c165a577a8ad73e0f7ae44695069e4c69ace63"
+  revision = "76fa17003e5a587ef082531228e602c62dba70a7"
 
 [[projects]]
   branch = "master"
@@ -257,12 +258,12 @@
   revision = "b3e2804c8535ee0d1b89320afd98474d5b8e9e3b"
 
 [[projects]]
-  branch = "master"
-  digest = "1:ca881444056acfb789057177b3f80343e0cb2fb488d1391ee4bf455840c0e7c0"
+  digest = "1:d2f9c34eee6ddafe36cc96f0ce0499c0df78380aa54fd8053df1397621db786b"
   name = "github.com/go-openapi/validate"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "3fd099a3cf2ee54e86beee561afe8f1b5bfe769e"
+  revision = "5b1623be7460f5a3967a82c00d518048fb190f5e"
+  version = "v0.19.0"
 
 [[projects]]
   digest = "1:91358b3a314c1ddfd4d6445ca9c1fb846842c31c153e626730594b3c95f73f4a"

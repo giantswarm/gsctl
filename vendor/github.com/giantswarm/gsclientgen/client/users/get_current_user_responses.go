@@ -61,7 +61,7 @@ func NewGetCurrentUserOK() *GetCurrentUserOK {
 Success
 */
 type GetCurrentUserOK struct {
-	Payload *models.GetUserOKBody
+	Payload *models.V4UserListItem
 }
 
 func (o *GetCurrentUserOK) Error() string {
@@ -70,7 +70,7 @@ func (o *GetCurrentUserOK) Error() string {
 
 func (o *GetCurrentUserOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.GetUserOKBody)
+	o.Payload = new(models.V4UserListItem)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
