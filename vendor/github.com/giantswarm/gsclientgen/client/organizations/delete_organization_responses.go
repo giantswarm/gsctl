@@ -46,6 +46,13 @@ func (o *DeleteOrganizationReader) ReadResponse(response runtime.ClientResponse,
 		}
 		return nil, result
 
+	case 409:
+		result := NewDeleteOrganizationConflict()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
 	default:
 		result := NewDeleteOrganizationDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -134,6 +141,35 @@ func (o *DeleteOrganizationNotFound) Error() string {
 }
 
 func (o *DeleteOrganizationNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.V4GenericResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewDeleteOrganizationConflict creates a DeleteOrganizationConflict with default headers values
+func NewDeleteOrganizationConflict() *DeleteOrganizationConflict {
+	return &DeleteOrganizationConflict{}
+}
+
+/*DeleteOrganizationConflict handles this case with default header values.
+
+Organization has credentials
+*/
+type DeleteOrganizationConflict struct {
+	Payload *models.V4GenericResponse
+}
+
+func (o *DeleteOrganizationConflict) Error() string {
+	return fmt.Sprintf("[DELETE /v4/organizations/{organization_id}/][%d] deleteOrganizationConflict  %+v", 409, o.Payload)
+}
+
+func (o *DeleteOrganizationConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.V4GenericResponse)
 
