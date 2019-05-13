@@ -1,4 +1,5 @@
-package commands
+// Package cluster contains the 'show cluster' command handling
+package cluster
 
 import (
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -57,16 +59,16 @@ type showClusterArguments struct {
 }
 
 func defaultShowClusterArguments() showClusterArguments {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.AuthToken)
+	scheme := config.Config.ChooseScheme(endpoint, flags.AuthToken)
 
 	return showClusterArguments{
 		apiEndpoint: endpoint,
 		authToken:   token,
 		scheme:      scheme,
 		clusterID:   "",
-		verbose:     cmdVerbose,
+		verbose:     flags.Verbose,
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
+	"github.com/giantswarm/gsctl/commands/show"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -62,7 +63,7 @@ func defaultShowReleaseArguments() showReleaseArguments {
 }
 
 func init() {
-	ShowCommand.AddCommand(ShowReleaseCommand)
+	show.ShowCommand.AddCommand(ShowReleaseCommand)
 }
 
 func showReleasePreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {

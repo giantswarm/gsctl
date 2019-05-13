@@ -1,6 +1,11 @@
-package commands
+// Package show implements the 'show' command.
+package show
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/commands"
+)
 
 var (
 	// ShowCommand is the command to display single items
@@ -12,5 +17,5 @@ var (
 )
 
 func init() {
-	RootCommand.AddCommand(ShowCommand)
+	commands.RootCommand.AddCommand(ShowCommand)
 }

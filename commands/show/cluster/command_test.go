@@ -1,4 +1,4 @@
-package commands
+package cluster
 
 import (
 	"io/ioutil"
