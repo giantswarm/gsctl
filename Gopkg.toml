@@ -27,10 +27,6 @@
   branch = "master"
 
 [[constraint]]
-  name = "github.com/coreos/go-semver"
-  version = "0.2.0"
-
-[[constraint]]
   name = "github.com/fatih/color"
   version = "1.1.0"
 
