@@ -32,6 +32,13 @@ func (o *GetClusterV5Reader) ReadResponse(response runtime.ClientResponse, consu
 		}
 		return result, nil
 
+	case 301:
+		result := NewGetClusterV5MovedPermanently()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
 	default:
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
 	}
@@ -62,6 +69,35 @@ func (o *GetClusterV5OK) readResponse(response runtime.ClientResponse, consumer 
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
+
+	return nil
+}
+
+// NewGetClusterV5MovedPermanently creates a GetClusterV5MovedPermanently with default headers values
+func NewGetClusterV5MovedPermanently() *GetClusterV5MovedPermanently {
+	return &GetClusterV5MovedPermanently{}
+}
+
+/*GetClusterV5MovedPermanently handles this case with default header values.
+
+Version mismatch
+*/
+type GetClusterV5MovedPermanently struct {
+	/*URI of the new path to use for retrying the request, as the one
+	used is not usable for this cluster.
+
+	*/
+	Location string
+}
+
+func (o *GetClusterV5MovedPermanently) Error() string {
+	return fmt.Sprintf("[GET /v5/clusters/{cluster_id}/][%d] getClusterV5MovedPermanently ", 301)
+}
+
+func (o *GetClusterV5MovedPermanently) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	// response header Location
+	o.Location = response.GetHeader("Location")
 
 	return nil
 }
