@@ -9,6 +9,7 @@ import (
 
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/flags"
 
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 )
@@ -34,7 +35,7 @@ var regularInfoResponse = []byte(`{
 // Test_LoginValidPassword simulates a login with a valid email/password combination
 func Test_LoginValidPassword(t *testing.T) {
 	// we start with an empty config
-	dir, err := tempConfig("")
+	dir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -59,8 +60,8 @@ func Test_LoginValidPassword(t *testing.T) {
 		verbose:     true,
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	result, err := login(args)
 	if err != nil {
@@ -88,7 +89,7 @@ func Test_LoginValidPassword(t *testing.T) {
 
 // Test_LoginInvalidPassword simulates a login with a bad email/password combination
 func Test_LoginInvalidPassword(t *testing.T) {
-	dir, err := tempConfig("")
+	dir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -110,8 +111,8 @@ func Test_LoginInvalidPassword(t *testing.T) {
 		password:    "bad password",
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	_, err = login(args)
 	convertedError, ok := err.(*clienterror.APIError)
@@ -146,7 +147,7 @@ func Test_LoginWhenUserLoggedInBefore(t *testing.T) {
     token: token
 selected_endpoint: "` + mockServer.URL + `"
 `
-	dir, err := tempConfig(yamlText)
+	dir, err := config.TempConfig(yamlText)
 	if err != nil {
 		fmt.Printf(yamlText)
 		t.Error(err)
@@ -159,8 +160,8 @@ selected_endpoint: "` + mockServer.URL + `"
 		password:    "test password",
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	result, loginErr := login(args)
 	if loginErr != nil {
@@ -183,7 +184,7 @@ selected_endpoint: "` + mockServer.URL + `"
 // Test_LoginInactiveAccount simulates a login with an inactive/expired account
 func Test_LoginInactiveAccount(t *testing.T) {
 	// we start with an empty config
-	dir, err := tempConfig("")
+	dir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -203,8 +204,8 @@ func Test_LoginInactiveAccount(t *testing.T) {
 		password:    "test password",
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	_, err = login(args)
 	if err == nil {

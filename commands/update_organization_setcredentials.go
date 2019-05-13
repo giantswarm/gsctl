@@ -11,8 +11,11 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 const (
@@ -91,7 +94,7 @@ type updateOrgSetCredentialsResult struct {
 }
 
 func init() {
-	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&cmdOrganizationID, "organization", "o", "", "ID of the organization to set credentials for")
+	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&flags.CmdOrganizationID, "organization", "o", "", "ID of the organization to set credentials for")
 	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&cmdAWSOperatorRoleARN, "aws-operator-role", "", "", "AWS ARN of the role to use for operating clusters")
 	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&cmdAWSAdminRoleARN, "aws-admin-role", "", "", "AWS ARN of the role to be used by Giant Swarm staff")
 	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&cmdAzureSubscriptionID, "azure-subscription-id", "", "", "ID of the Azure subscription to run clusters in")
@@ -103,16 +106,16 @@ func init() {
 }
 
 func defaultUpdateOrgSetCredentialsArguments() updateOrgSetCredentialsArguments {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return updateOrgSetCredentialsArguments{
 		apiEndpoint:         endpoint,
 		authToken:           token,
 		scheme:              scheme,
-		organizationID:      cmdOrganizationID,
-		verbose:             cmdVerbose,
+		organizationID:      flags.CmdOrganizationID,
+		verbose:             flags.CmdVerbose,
 		awsAdminRole:        cmdAWSAdminRoleARN,
 		awsOperatorRole:     cmdAWSOperatorRoleARN,
 		azureClientID:       cmdAzureClientID,
@@ -130,26 +133,26 @@ func updateOrgSetCredentialsPreRunOutput(cmd *cobra.Command, cmdLineArgs []strin
 		return
 	}
 
-	handleCommonErrors(err)
+	errors.HandleCommonErrors(err)
 
 	// From here on we handle errors that can only occur in this command
 	headline := ""
 	subtext := ""
 
 	switch {
-	case IsOrganizationNotSpecifiedError(err):
+	case errors.IsOrganizationNotSpecifiedError(err):
 		headline = "No organization given"
 		subtext = "Please specify the organization to set credentials for using the -o|--organization flag."
-	case IsProviderNotSupportedError(err):
+	case errors.IsProviderNotSupportedError(err):
 		headline = "Unsupported provider"
 		subtext = "Setting credentials is only supported on AWS and Azure installations."
-	case IsRequiredFlagMissingError(err):
+	case errors.IsRequiredFlagMissingError(err):
 		headline = "Missing flag: " + err.Error()
 		subtext = "Please use --help to see details regarding the command's usage."
-	case IsConflictingFlagsError(err):
+	case errors.IsConflictingFlagsError(err):
 		headline = "Conflicting flags"
 		subtext = "Please use only AWS or Azure related flags with this installation. See --help for details."
-	case IsOrganizationNotFoundError(err):
+	case errors.IsOrganizationNotFoundError(err):
 		headline = fmt.Sprintf("Organization '%s' not found", args.organizationID)
 		subtext = "The specified organization does not exist, or you are not a member. Please check the exact upper/lower case spelling."
 		subtext += "\nUse 'gsctl list organizations' to list all organizations."
@@ -167,10 +170,10 @@ func updateOrgSetCredentialsPreRunOutput(cmd *cobra.Command, cmdLineArgs []strin
 
 func verifyUpdateOrgSetCredentialsPreconditions(args updateOrgSetCredentialsArguments) error {
 	if args.organizationID == "" {
-		return microerror.Mask(organizationNotSpecifiedError)
+		return microerror.Mask(errors.OrganizationNotSpecifiedError)
 	}
 	if config.Config.Token == "" && args.authToken == "" {
-		return microerror.Mask(notLoggedInError)
+		return microerror.Mask(errors.NotLoggedInError)
 	}
 
 	// get installation's provider (supported: aws, azure)
@@ -183,9 +186,9 @@ func verifyUpdateOrgSetCredentialsPreconditions(args updateOrgSetCredentialsArgu
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-				return microerror.Mask(notAuthorizedError)
+				return microerror.Mask(errors.NotAuthorizedError)
 			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return microerror.Mask(accessForbiddenError)
+				return microerror.Mask(errors.AccessForbiddenError)
 			}
 		}
 		return microerror.Mask(err)
@@ -194,41 +197,41 @@ func verifyUpdateOrgSetCredentialsPreconditions(args updateOrgSetCredentialsArgu
 	provider = response.Payload.General.Provider
 
 	if provider != "aws" && provider != "azure" {
-		return microerror.Mask(providerNotSupportedError)
+		return microerror.Mask(errors.ProviderNotSupportedError)
 	}
 
 	// check flags based on provider
 	{
 		if provider == "aws" {
 			if args.awsAdminRole == "" {
-				return microerror.Maskf(requiredFlagMissingError, "--aws-admin-role")
+				return microerror.Maskf(errors.RequiredFlagMissingError, "--aws-admin-role")
 			}
 			if args.awsOperatorRole == "" {
-				return microerror.Maskf(requiredFlagMissingError, "--aws-operator-role")
+				return microerror.Maskf(errors.RequiredFlagMissingError, "--aws-operator-role")
 			}
 
 			// conflicts
 			if args.azureClientID != "" || args.azureSecretKey != "" || args.azureSubscriptionID != "" || args.azureTenantID != "" {
-				return microerror.Maskf(conflictingFlagsError, "Azure-related flags not allowed here")
+				return microerror.Maskf(errors.ConflictingFlagsError, "Azure-related flags not allowed here")
 			}
 		}
 		if provider == "azure" {
 			if args.azureClientID == "" {
-				return microerror.Maskf(requiredFlagMissingError, "--azure-client-id")
+				return microerror.Maskf(errors.RequiredFlagMissingError, "--azure-client-id")
 			}
 			if args.azureSecretKey == "" {
-				return microerror.Maskf(requiredFlagMissingError, "--azure-secret-key")
+				return microerror.Maskf(errors.RequiredFlagMissingError, "--azure-secret-key")
 			}
 			if args.azureSubscriptionID == "" {
-				return microerror.Maskf(requiredFlagMissingError, "--azure-subscription-id")
+				return microerror.Maskf(errors.RequiredFlagMissingError, "--azure-subscription-id")
 			}
 			if args.azureTenantID == "" {
-				return microerror.Maskf(requiredFlagMissingError, "--azure-tenant-id")
+				return microerror.Maskf(errors.RequiredFlagMissingError, "--azure-tenant-id")
 			}
 
 			// conflicts
 			if args.awsAdminRole != "" || args.awsOperatorRole != "" {
-				return microerror.Maskf(conflictingFlagsError, "AWS-related flags not allowed here")
+				return microerror.Maskf(errors.ConflictingFlagsError, "AWS-related flags not allowed here")
 			}
 		}
 	}
@@ -242,9 +245,9 @@ func verifyUpdateOrgSetCredentialsPreconditions(args updateOrgSetCredentialsArgu
 		if err != nil {
 			if clientErr, ok := err.(*clienterror.APIError); ok {
 				if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-					return microerror.Mask(notAuthorizedError)
+					return microerror.Mask(errors.NotAuthorizedError)
 				} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-					return microerror.Mask(accessForbiddenError)
+					return microerror.Mask(errors.AccessForbiddenError)
 				}
 			}
 			return microerror.Mask(err)
@@ -257,7 +260,7 @@ func verifyUpdateOrgSetCredentialsPreconditions(args updateOrgSetCredentialsArgu
 			}
 		}
 		if !foundOrg {
-			return microerror.Mask(organizationNotFoundError)
+			return microerror.Mask(errors.OrganizationNotFoundError)
 		}
 	}
 
@@ -271,14 +274,15 @@ func updateOrgSetCredentialsRunOutput(cmd *cobra.Command, cmdLineArgs []string) 
 	result, err := updateOrgSetCredentials(args)
 
 	if err != nil {
-		handleCommonErrors(err)
+		errors.HandleCommonErrors(err)
+		client.HandleErrors(err)
 
 		// From here on we handle errors that can only occur in this command
 		headline := ""
 		subtext := ""
 
 		switch {
-		case IsCredentialsAlreadySetError(err):
+		case errors.IsCredentialsAlreadySetError(err):
 			headline = "Credentials already set"
 			subtext = fmt.Sprintf("Organization '%s' has credentials already. These cannot be overwritten.", args.organizationID)
 		default:
@@ -329,7 +333,7 @@ func updateOrgSetCredentials(args updateOrgSetCredentialsArguments) (*updateOrgS
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusConflict {
-				return nil, microerror.Mask(credentialsAlreadySetError)
+				return nil, microerror.Mask(errors.CredentialsAlreadySetError)
 			}
 		}
 		return nil, microerror.Mask(err)

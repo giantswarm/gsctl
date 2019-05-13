@@ -116,27 +116,27 @@ func ParseDuration(durationString string) (time.Duration, error) {
 	switch unit {
 	case "h":
 		if number > maxDurationInHours {
-			return duration, microerror.Mask(durationExceededError)
+			return duration, microerror.Mask(DurationExceededError)
 		}
 		duration = 3600 * time.Duration(number) * time.Second
 	case "d":
 		if number > maxDurationInDays {
-			return duration, microerror.Mask(durationExceededError)
+			return duration, microerror.Mask(DurationExceededError)
 		}
 		duration = 24 * 3600 * time.Duration(number) * time.Second
 	case "w":
 		if number > maxDurationInWeeks {
-			return duration, microerror.Mask(durationExceededError)
+			return duration, microerror.Mask(DurationExceededError)
 		}
 		duration = 7 * 24 * 3600 * time.Duration(number) * time.Second
 	case "m":
 		if number > maxDurationInMonths {
-			return duration, microerror.Mask(durationExceededError)
+			return duration, microerror.Mask(DurationExceededError)
 		}
 		duration = 30 * 24 * 3600 * time.Duration(number) * time.Second
 	case "y":
 		if number > maxDurationInYears {
-			return duration, microerror.Mask(durationExceededError)
+			return duration, microerror.Mask(DurationExceededError)
 		}
 		duration = 365 * 24 * 3600 * time.Duration(number) * time.Second
 	default:

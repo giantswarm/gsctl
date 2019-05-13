@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 const (
@@ -38,14 +39,14 @@ type infoArguments struct {
 // defaultInfoArguments returns an infoArguments object populated by the user's
 // command line arguments
 func defaultInfoArguments() infoArguments {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return infoArguments{
 		scheme:      scheme,
 		token:       token,
-		verbose:     cmdVerbose,
+		verbose:     flags.CmdVerbose,
 		apiEndpoint: endpoint,
 	}
 }

@@ -5,11 +5,13 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
+	"github.com/giantswarm/gsctl/config"
 )
 
 // TestRedactPasswordArgs tests redactPasswordArgs().
@@ -437,5 +439,48 @@ func TestGetClusterStatusEmpty(t *testing.T) {
 
 	if len(status.Cluster.Nodes) != 0 {
 		t.Errorf("Expected status.Nodes to have length 0. Has length %d", len(status.Cluster.Nodes))
+	}
+}
+
+// Test_GetDefaultCluster tests the GetDefaultCluster function
+// for the case that only one cluster exists
+func Test_GetDefaultCluster(t *testing.T) {
+	// returns one cluster
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`[
+      {
+        "create_date": "2017-04-16T09:30:31.192170835Z",
+        "id": "cluster-id",
+        "name": "Some random test cluster",
+				"owner": "acme"
+      }
+    ]`))
+	}))
+	defer mockServer.Close()
+
+	// config
+	yamlText := `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  ` + mockServer.URL + `:
+    email: email@example.com
+    token: some-token
+selected_endpoint: ` + mockServer.URL
+	dir, err := config.TempConfig(yamlText)
+	defer os.RemoveAll(dir)
+	if err != nil {
+		t.Error(err)
+	}
+
+	clientV2, err := NewWithConfig(mockServer.URL, "")
+
+	clusterID, err := clientV2.GetDefaultCluster(nil)
+	if err != nil {
+		t.Error(err)
+	}
+	if clusterID != "cluster-id" {
+		t.Errorf("Expected 'cluster-id', got %#v", clusterID)
 	}
 }

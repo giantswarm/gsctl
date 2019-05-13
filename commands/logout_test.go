@@ -9,11 +9,13 @@ import (
 	"github.com/giantswarm/microerror"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
+	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 // Test_LogoutValidToken tests the logout for a valid token
 func Test_LogoutValidToken(t *testing.T) {
-	dir, err := tempConfig("")
+	dir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -31,8 +33,8 @@ func Test_LogoutValidToken(t *testing.T) {
 		token:       "test-token",
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	err = logout(logoutArgs)
 	if err != nil {
@@ -42,7 +44,7 @@ func Test_LogoutValidToken(t *testing.T) {
 
 // Test_LogoutInvalidToken tests the logout for an invalid token
 func Test_LogoutInvalidToken(t *testing.T) {
-	dir, err := tempConfig("")
+	dir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -60,8 +62,8 @@ func Test_LogoutInvalidToken(t *testing.T) {
 		token:       "test-token",
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	err = logout(logoutArgs)
 
@@ -76,7 +78,7 @@ func Test_LogoutInvalidToken(t *testing.T) {
 // Test_LogoutCommand simply calls the functions cobra would call,
 // with a temporary config path and mock server as endpoint.
 func Test_LogoutCommand(t *testing.T) {
-	dir, err := tempConfig("")
+	dir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -89,9 +91,9 @@ func Test_LogoutCommand(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	cmdAPIEndpoint = mockServer.URL
-	cmdToken = "some-token"
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	flags.CmdToken = "some-token"
+	InitClient()
 
 	logoutValidationOutput(LogoutCommand, []string{})
 	logoutOutput(LogoutCommand, []string{})

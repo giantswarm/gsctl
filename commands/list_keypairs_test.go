@@ -5,13 +5,17 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 // Test_ListKeypairs_NotLoggedIn checks whether we are detecting whether or not the user
 // is logged in or provides an auth token. Here we use an empty config to have
 // an unauthorized user.
 func Test_ListKeypairs_NotLoggedIn(t *testing.T) {
-	dir, err := tempConfig("")
+	dir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -19,8 +23,8 @@ func Test_ListKeypairs_NotLoggedIn(t *testing.T) {
 
 	args := listKeypairsArguments{}
 
-	cmdAPIEndpoint = ""
-	initClient()
+	flags.CmdAPIEndpoint = ""
+	InitClient()
 
 	err = listKeypairsValidate(&args)
 	if err == nil {
@@ -31,7 +35,7 @@ func Test_ListKeypairs_NotLoggedIn(t *testing.T) {
 // Test_ListKeypairs_Empty simulates the situation where there are no
 // key pairs for a given cluster.
 func Test_ListKeypairs_Empty(t *testing.T) {
-	dir, err := tempConfig("")
+	dir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -51,8 +55,8 @@ func Test_ListKeypairs_Empty(t *testing.T) {
 	args.token = "my-token"
 	args.clusterID = "my-cluster"
 
-	cmdAPIEndpoint = keyPairsMockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = keyPairsMockServer.URL
+	InitClient()
 
 	err = listKeypairsValidate(&args)
 	if err != nil {
@@ -71,7 +75,7 @@ func Test_ListKeypairs_Empty(t *testing.T) {
 // Test_ListKeypairs_NotFound simulates the situation where the cluster
 // to list key pairs for is not found
 func Test_ListKeypairs_NotFound(t *testing.T) {
-	dir, err := tempConfig("")
+	dir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -89,8 +93,8 @@ func Test_ListKeypairs_NotFound(t *testing.T) {
 	args.token = "my-token"
 	args.clusterID = "unknown-cluster"
 
-	cmdAPIEndpoint = keyPairsMockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = keyPairsMockServer.URL
+	InitClient()
 
 	err = listKeypairsValidate(&args)
 	if err != nil {
@@ -100,15 +104,15 @@ func Test_ListKeypairs_NotFound(t *testing.T) {
 	_, listErr := listKeypairs(args)
 	if listErr == nil {
 		t.Error("No error occurred where we expected one.")
-	} else if !IsClusterNotFoundError(listErr) {
-		t.Errorf("Expected error '%s', got '%s'.", clusterNotFoundError, listErr)
+	} else if !errors.IsClusterNotFoundError(listErr) {
+		t.Errorf("Expected error '%s', got '%s'.", errors.ClusterNotFoundError, listErr)
 	}
 }
 
 // Test_ListKeyPairs_Nonempty simulates listing key pairs where several
 // items are returned.
 func Test_ListKeyPairs_Nonempty(t *testing.T) {
-	dir, err := tempConfig("")
+	dir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -141,8 +145,8 @@ func Test_ListKeyPairs_Nonempty(t *testing.T) {
 	args.token = "my-token"
 	args.clusterID = "my-cluster"
 
-	cmdAPIEndpoint = keyPairsMockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = keyPairsMockServer.URL
+	InitClient()
 
 	err = listKeypairsValidate(&args)
 	if err != nil {

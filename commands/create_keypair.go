@@ -11,8 +11,11 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -46,31 +49,31 @@ type createKeypairArguments struct {
 
 // function to create arguments based on command line flags and config
 func defaultCreateKeypairArguments() (createKeypairArguments, error) {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
-	description := cmdDescription
+	description := flags.CmdDescription
 	if description == "" {
 		description = "Added by user " + config.Config.Email + " using 'gsctl create keypair'"
 	}
 
-	ttl, err := util.ParseDuration(cmdTTL)
-	if IsInvalidDurationError(err) {
-		return createKeypairArguments{}, microerror.Mask(invalidDurationError)
-	} else if IsDurationExceededError(err) {
-		return createKeypairArguments{}, microerror.Mask(durationExceededError)
+	ttl, err := util.ParseDuration(flags.CmdTTL)
+	if errors.IsInvalidDurationError(err) {
+		return createKeypairArguments{}, microerror.Mask(errors.InvalidDurationError)
+	} else if errors.IsDurationExceededError(err) {
+		return createKeypairArguments{}, microerror.Mask(errors.DurationExceededError)
 	} else if err != nil {
-		return createKeypairArguments{}, microerror.Mask(durationExceededError)
+		return createKeypairArguments{}, microerror.Mask(errors.DurationExceededError)
 	}
 
 	return createKeypairArguments{
 		apiEndpoint:              endpoint,
 		scheme:                   scheme,
 		authToken:                token,
-		certificateOrganizations: cmdCertificateOrganizations,
-		clusterID:                cmdClusterID,
-		commonNamePrefix:         cmdCNPrefix,
+		certificateOrganizations: flags.CmdCertificateOrganizations,
+		clusterID:                flags.CmdClusterID,
+		commonNamePrefix:         flags.CmdCNPrefix,
 		description:              description,
 		ttlHours:                 int32(ttl.Hours()),
 	}, nil
@@ -92,11 +95,11 @@ type createKeypairResult struct {
 }
 
 func init() {
-	CreateKeypairCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to create a key pair for")
-	CreateKeypairCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key pair")
-	CreateKeypairCommand.Flags().StringVarP(&cmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
-	CreateKeypairCommand.Flags().StringVarP(&cmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
-	CreateKeypairCommand.Flags().StringVarP(&cmdTTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
+	CreateKeypairCommand.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster to create a key pair for")
+	CreateKeypairCommand.Flags().StringVarP(&flags.CmdDescription, "description", "d", "", "Description for the key pair")
+	CreateKeypairCommand.Flags().StringVarP(&flags.CmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
+	CreateKeypairCommand.Flags().StringVarP(&flags.CmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
+	CreateKeypairCommand.Flags().StringVarP(&flags.CmdTTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
 
 	CreateKeypairCommand.MarkFlagRequired("cluster")
 
@@ -106,10 +109,10 @@ func init() {
 func createKeyPairPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args, argsErr := defaultCreateKeypairArguments()
 	if argsErr != nil {
-		if IsInvalidDurationError(argsErr) {
+		if errors.IsInvalidDurationError(argsErr) {
 			fmt.Println(color.RedString("The value passed with --ttl is invalid."))
 			fmt.Println("Please provide a number and a unit, e. g. '10h', '1d', '1w'.")
-		} else if IsDurationExceededError(argsErr) {
+		} else if errors.IsDurationExceededError(argsErr) {
 			fmt.Println(color.RedString("The expiration period passed with --ttl is too long."))
 			fmt.Println("The maximum possible value is the eqivalent of 292 years.")
 		} else {
@@ -124,7 +127,7 @@ func createKeyPairPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		return
 	}
 
-	handleCommonErrors(err)
+	errors.HandleCommonErrors(err)
 
 	headline := ""
 	subtext := ""
@@ -133,7 +136,7 @@ func createKeyPairPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	switch {
 	case err.Error() == "":
 		return
-	case IsInvalidCNPrefixError(err):
+	case errors.IsInvalidCNPrefixError(err):
 		headline = "Bad characters in CN prefix (--cn-prefix)"
 		subtext = "Please use these characters only: a-z A-Z 0-9 . @ -"
 	default:
@@ -150,20 +153,20 @@ func createKeyPairPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 func verifyCreateKeypairPreconditions(args createKeypairArguments) error {
 	if config.Config.Token == "" && args.authToken == "" {
-		return microerror.Mask(notLoggedInError)
+		return microerror.Mask(errors.NotLoggedInError)
 	}
 	if args.apiEndpoint == "" {
-		return microerror.Mask(endpointMissingError)
+		return microerror.Mask(errors.EndpointMissingError)
 	}
 	if args.clusterID == "" {
-		return microerror.Mask(clusterIDMissingError)
+		return microerror.Mask(errors.ClusterIDMissingError)
 	}
 
 	// validate CN prefix character set
 	if args.commonNamePrefix != "" {
 		cnPrefixRE := regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9@\\.-]*[a-zA-Z0-9]$")
 		if !cnPrefixRE.MatchString(args.commonNamePrefix) {
-			return microerror.Mask(invalidCNPrefixError)
+			return microerror.Mask(errors.InvalidCNPrefixError)
 		}
 	}
 
@@ -176,13 +179,14 @@ func createKeyPairRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	result, err := createKeypair(args)
 
 	if err != nil {
-		handleCommonErrors(err)
+		errors.HandleCommonErrors(err)
+		client.HandleErrors(err)
 
 		var headline string
 		var subtext string
 
 		switch {
-		case IsBadRequestError(err):
+		case errors.IsBadRequestError(err):
 			headline = "API Error 400: Bad Request"
 			subtext = "The key pair could not be created with the given parameters. Please try a shorter expiry period (--ttl)\n"
 			subtext += "and check the other arguments, too. Please contact the Giant Swarm support team if you need assistance."
@@ -231,13 +235,13 @@ func createKeypair(args createKeypairArguments) (createKeypairResult, error) {
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return result, microerror.Mask(accessForbiddenError)
+				return result, microerror.Mask(errors.AccessForbiddenError)
 			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
-				return result, microerror.Mask(clusterNotFoundError)
+				return result, microerror.Mask(errors.ClusterNotFoundError)
 			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return result, microerror.Mask(accessForbiddenError)
+				return result, microerror.Mask(errors.AccessForbiddenError)
 			} else if clientErr.HTTPStatusCode == http.StatusBadRequest {
-				return result, microerror.Maskf(badRequestError, clientErr.ErrorDetails)
+				return result, microerror.Maskf(errors.BadRequestError, clientErr.ErrorDetails)
 			}
 		}
 

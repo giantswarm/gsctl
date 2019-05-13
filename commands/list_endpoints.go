@@ -5,11 +5,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/giantswarm/columnize"
-	"github.com/giantswarm/gsctl/config"
-
 	"github.com/fatih/color"
+	"github.com/giantswarm/columnize"
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 // listEndpointsArgs are the arguments we pass to the actual functions
@@ -38,9 +39,9 @@ func init() {
 // defaultListEndpointArgs returns listEndpointsArguments
 // with settings loaded from flags etc.
 func defaultListEndpointArguments() listEndpointsArguments {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 	return listEndpointsArguments{
 		apiEndpoint: endpoint,
 		token:       token,

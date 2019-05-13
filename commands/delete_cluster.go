@@ -5,12 +5,15 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/giantswarm/microerror"
-
 	"github.com/fatih/color"
+	"github.com/giantswarm/microerror"
+	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
-	"github.com/spf13/cobra"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 type deleteClusterArguments struct {
@@ -31,9 +34,9 @@ type deleteClusterArguments struct {
 }
 
 func defaultDeleteClusterArguments(positionalArgs []string) deleteClusterArguments {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	clusterID := ""
 	if len(positionalArgs) > 0 {
@@ -43,11 +46,11 @@ func defaultDeleteClusterArguments(positionalArgs []string) deleteClusterArgumen
 	return deleteClusterArguments{
 		apiEndpoint:     endpoint,
 		clusterID:       clusterID,
-		force:           cmdForce,
-		legacyClusterID: cmdClusterID,
+		force:           flags.CmdForce,
+		legacyClusterID: flags.CmdClusterID,
 		scheme:          scheme,
 		token:           token,
-		verbose:         cmdVerbose,
+		verbose:         flags.CmdVerbose,
 	}
 }
 
@@ -74,8 +77,8 @@ Example:
 )
 
 func init() {
-	DeleteClusterCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to delete")
-	DeleteClusterCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
+	DeleteClusterCommand.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster to delete")
+	DeleteClusterCommand.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
 
 	DeleteClusterCommand.Flags().MarkDeprecated("cluster", "You no longer need to pass the cluster ID with -c/--cluster. Use --help for details.")
 
@@ -90,20 +93,20 @@ func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
 
 	err := validateDeleteClusterPreConditions(dca)
 	if err != nil {
-		handleCommonErrors(err)
+		errors.HandleCommonErrors(err)
 
 		var headline = ""
 		var subtext = ""
 
 		switch {
-		case IsConflictingFlagsError(err):
+		case errors.IsConflictingFlagsError(err):
 			headline = "Conflicting flags/arguments"
 			subtext = "Please specify the cluster to be used as a positional argument, avoid -c/--cluster."
 			subtext += "See --help for details."
-		case IsClusterIDMissingError(err):
+		case errors.IsClusterIDMissingError(err):
 			headline = "No cluster ID specified"
 			subtext = "See --help for usage details."
-		case IsCouldNotDeleteClusterError(err):
+		case errors.IsCouldNotDeleteClusterError(err):
 			headline = "The cluster could not be deleted."
 			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
 			subtext += " Sorry for the inconvenience!"
@@ -123,13 +126,13 @@ func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
 // validateDeleteClusterPreConditions checks preconditions and returns an error in case
 func validateDeleteClusterPreConditions(args deleteClusterArguments) error {
 	if args.clusterID == "" && args.legacyClusterID == "" {
-		return microerror.Mask(clusterIDMissingError)
+		return microerror.Mask(errors.ClusterIDMissingError)
 	}
 	if args.clusterID != "" && args.legacyClusterID != "" {
-		return microerror.Mask(conflictingFlagsError)
+		return microerror.Mask(errors.ConflictingFlagsError)
 	}
 	if config.Config.Token == "" && args.token == "" {
-		return microerror.Mask(notLoggedInError)
+		return microerror.Mask(errors.NotLoggedInError)
 	}
 	return nil
 }
@@ -139,13 +142,14 @@ func deleteClusterExecutionOutput(cmd *cobra.Command, args []string) {
 	dca := defaultDeleteClusterArguments(args)
 	deleted, err := deleteCluster(dca)
 	if err != nil {
-		handleCommonErrors(err)
+		errors.HandleCommonErrors(err)
+		client.HandleErrors(err)
 
 		var headline = ""
 		var subtext = ""
 
 		switch {
-		case IsClusterNotFoundError(err):
+		case errors.IsClusterNotFoundError(err):
 			headline = "Cluster not found"
 			subtext = "The cluster you tried to delete doesn't seem to exist. Check 'gsctl list clusters' to make sure."
 		default:
@@ -203,13 +207,13 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return false, microerror.Mask(accessForbiddenError)
+				return false, microerror.Mask(errors.AccessForbiddenError)
 			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
-				return false, microerror.Mask(clusterNotFoundError)
+				return false, microerror.Mask(errors.ClusterNotFoundError)
 			}
 		}
 
-		return false, microerror.Maskf(couldNotDeleteClusterError, err.Error())
+		return false, microerror.Maskf(errors.CouldNotDeleteClusterError, err.Error())
 	}
 
 	return true, nil

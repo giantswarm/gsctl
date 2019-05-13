@@ -1,6 +1,9 @@
 package commands
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/giantswarm/gsctl/flags"
+	"github.com/spf13/cobra"
+)
 
 var (
 
@@ -19,6 +22,6 @@ Examples:
 )
 
 func init() {
-	UpdateOrganizationCommand.Flags().StringVarP(&cmdOrganizationID, "organization", "o", "", "ID of the organization to modify")
+	UpdateOrganizationCommand.Flags().StringVarP(&flags.CmdOrganizationID, "organization", "o", "", "ID of the organization to modify")
 	UpdateCommand.AddCommand(UpdateOrganizationCommand)
 }

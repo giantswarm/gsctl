@@ -5,6 +5,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 func Test_UpdateOrgSetCredentials_Success(t *testing.T) {
@@ -49,7 +52,7 @@ func Test_UpdateOrgSetCredentials_Success(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	dir, err := tempConfig("")
+	dir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -63,8 +66,8 @@ func Test_UpdateOrgSetCredentials_Success(t *testing.T) {
 		awsOperatorRole: "test-operator-role",
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	err = verifyUpdateOrgSetCredentialsPreconditions(args)
 	if err != nil {

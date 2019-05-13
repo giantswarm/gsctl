@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/microerror"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -225,9 +227,9 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		}))
 		defer mockServer.Close()
 
-		cmdAPIEndpoint = mockServer.URL
-		cmdToken = testCase.inputArgs.token
-		initClient()
+		flags.CmdAPIEndpoint = mockServer.URL
+		flags.CmdToken = testCase.inputArgs.token
+		InitClient()
 
 		err := validateCreateClusterPreConditions(*testCase.inputArgs)
 		if err != nil {
@@ -258,7 +260,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 			},
 			serverResponseJSON: []byte(`{"code": "PERMISSION_DENIED", "message": "Lorem ipsum"}`),
 			responseStatus:     http.StatusUnauthorized,
-			errorMatcher:       IsNotAuthorizedError,
+			errorMatcher:       errors.IsNotAuthorizedError,
 		},
 		{
 			description: "Owner organization not existing",
@@ -268,7 +270,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 			},
 			serverResponseJSON: []byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Lorem ipsum"}`),
 			responseStatus:     http.StatusNotFound,
-			errorMatcher:       IsOrganizationNotFoundError,
+			errorMatcher:       errors.IsOrganizationNotFoundError,
 		},
 		{
 			description: "Non-existing YAML definition path",
@@ -280,7 +282,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 			},
 			serverResponseJSON: []byte(``),
 			responseStatus:     0,
-			errorMatcher:       IsYAMLFileNotReadableError,
+			errorMatcher:       errors.IsYAMLFileNotReadableError,
 		},
 	}
 
@@ -297,9 +299,9 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 		defer mockServer.Close()
 
 		// client
-		cmdAPIEndpoint = mockServer.URL // required to make initClient() work
+		flags.CmdAPIEndpoint = mockServer.URL // required to make InitClient() work
 		testCase.inputArgs.apiEndpoint = mockServer.URL
-		err := initClient()
+		err := InitClient()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -334,7 +336,7 @@ func Test_CreateCluster_ValidationFailures(t *testing.T) {
 				workersMin: 4,
 				workersMax: 2,
 			},
-			errorMatcher: IsWorkersMinMaxInvalid,
+			errorMatcher: errors.IsWorkersMinMaxInvalid,
 		},
 		{
 			name: "case 1 workers min and max with legacy num workers",
@@ -345,7 +347,7 @@ func Test_CreateCluster_ValidationFailures(t *testing.T) {
 				workersMax: 2,
 				numWorkers: 2,
 			},
-			errorMatcher: IsConflictingWorkerFlagsUsed,
+			errorMatcher: errors.IsConflictingWorkerFlagsUsed,
 		},
 		{
 			name: "case 2 workers min with legacy num workers",
@@ -355,7 +357,7 @@ func Test_CreateCluster_ValidationFailures(t *testing.T) {
 				workersMin: 4,
 				numWorkers: 2,
 			},
-			errorMatcher: IsConflictingWorkerFlagsUsed,
+			errorMatcher: errors.IsConflictingWorkerFlagsUsed,
 		},
 		{
 			name: "case 3 workers max with legacy num workers",
@@ -365,7 +367,7 @@ func Test_CreateCluster_ValidationFailures(t *testing.T) {
 				workersMax: 2,
 				numWorkers: 2,
 			},
-			errorMatcher: IsConflictingWorkerFlagsUsed,
+			errorMatcher: errors.IsConflictingWorkerFlagsUsed,
 		},
 	}
 

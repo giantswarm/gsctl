@@ -5,12 +5,15 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 // Test_ListReleases_Empty simulates the situation where there are no releases
 // (which is an exception)
 func Test_ListReleases_Empty(t *testing.T) {
-	dir, err := tempConfig("")
+	dir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -30,8 +33,8 @@ func Test_ListReleases_Empty(t *testing.T) {
 		token:       "my-token",
 	}
 
-	cmdAPIEndpoint = releasesMockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = releasesMockServer.URL
+	InitClient()
 
 	err = listReleasesPreconditions(&args)
 	if err != nil {
@@ -50,7 +53,7 @@ func Test_ListReleases_Empty(t *testing.T) {
 // Test_ListReleases_Nonempty simulates listing releases where several
 // items are returned.
 func Test_ListReleases_Nonempty(t *testing.T) {
-	dir, err := tempConfig("")
+	dir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -193,8 +196,8 @@ func Test_ListReleases_Nonempty(t *testing.T) {
 		token:       "my-token",
 	}
 
-	cmdAPIEndpoint = releasesMockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = releasesMockServer.URL
+	InitClient()
 
 	err = listReleasesPreconditions(&args)
 	if err != nil {

@@ -5,10 +5,11 @@ import (
 	"os"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/microerror"
-
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
 )
 
 var (
@@ -47,7 +48,7 @@ func selectEndpointPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	var subtext string
 
 	switch {
-	case IsEndpointMissingError(err):
+	case errors.IsEndpointMissingError(err):
 		headline = "No endpoint specified."
 		subtext = "Please give an endpoint URL to use. Use --help for details."
 	default:
@@ -64,7 +65,7 @@ func selectEndpointPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 func verifySelectEndpointPreconditions(cmdLineArgs []string) error {
 	if len(cmdLineArgs) == 0 {
-		return microerror.Mask(endpointMissingError)
+		return microerror.Mask(errors.EndpointMissingError)
 	}
 	return nil
 }

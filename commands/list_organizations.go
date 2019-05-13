@@ -7,11 +7,13 @@ import (
 	"sort"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
-	"github.com/giantswarm/microerror"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 var (
@@ -38,9 +40,9 @@ type listOrgsArguments struct {
 
 // defaultListOrgsArguments creates arguments based on command line flags and config
 func defaultListOrgsArguments() listOrgsArguments {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return listOrgsArguments{
 		apiEndpoint: endpoint,
@@ -60,12 +62,12 @@ func listOrgsPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		return
 	}
 
-	handleCommonErrors(err)
+	errors.HandleCommonErrors(err)
 }
 
 func verifyListOrgsPreconditions(args listOrgsArguments) error {
 	if config.Config.Token == "" && args.authToken == "" {
-		return microerror.Mask(notLoggedInError)
+		return microerror.Mask(errors.NotLoggedInError)
 	}
 	return nil
 }
@@ -101,9 +103,9 @@ func orgsTable() (string, error) {
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-				return "", microerror.Mask(notAuthorizedError)
+				return "", microerror.Mask(errors.NotAuthorizedError)
 			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return "", microerror.Mask(accessForbiddenError)
+				return "", microerror.Mask(errors.AccessForbiddenError)
 			}
 		}
 

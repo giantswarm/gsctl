@@ -23,7 +23,7 @@ endpoints:
     token: some-other-token
 selected_endpoint: https://my.second.endpoint
 `
-	dir, err := tempConfig(yamlText)
+	dir, err := config.TempConfig(yamlText)
 	if err != nil {
 		t.Error(err)
 	}

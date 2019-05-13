@@ -8,6 +8,7 @@ import (
 
 	"github.com/Jeffail/gabs"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 var successorVersionTests = []struct {
@@ -131,8 +132,8 @@ func TestUpgradeCluster(t *testing.T) {
 		t.Error(err)
 	}
 
-	cmdAPIEndpoint = testArgs.apiEndpoint
-	initClient()
+	flags.CmdAPIEndpoint = testArgs.apiEndpoint
+	InitClient()
 
 	results, upgradeErr := upgradeCluster(testArgs)
 	if upgradeErr != nil {

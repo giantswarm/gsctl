@@ -8,6 +8,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/oidc"
 	"github.com/giantswarm/microerror"
 	"github.com/howeyc/gopass"
@@ -80,10 +82,10 @@ type loginArguments struct {
 
 func defaultLoginArguments() loginArguments {
 	return loginArguments{
-		apiEndpoint: config.Config.ChooseEndpoint(cmdAPIEndpoint),
+		apiEndpoint: config.Config.ChooseEndpoint(flags.CmdAPIEndpoint),
 		email:       cmdEmail,
 		password:    cmdPassword,
-		verbose:     cmdVerbose,
+		verbose:     flags.CmdVerbose,
 	}
 }
 
@@ -100,14 +102,14 @@ func loginPreRunOutput(cmd *cobra.Command, positionalArgs []string) {
 	var subtext = ""
 
 	switch {
-	case IsNoEmailArgumentGivenError(err):
+	case errors.IsNoEmailArgumentGivenError(err):
 		headline = "The email argument is required."
 		subtext = "Please execute the command as 'gsctl login <email>'. See 'gsctl login --help' for details."
-	case IsTokenArgumentNotApplicableError(err):
+	case errors.IsTokenArgumentNotApplicableError(err):
 		headline = "The '--auth-token' flag cannot be used with the 'gsctl login' command."
-	case IsPasswordArgumentNotApplicableError(err):
+	case errors.IsPasswordArgumentNotApplicableError(err):
 		headline = "The '--password' flag cannot be used with the 'gsctl login --sso' command."
-	case IsEmptyPasswordError(err):
+	case errors.IsEmptyPasswordError(err):
 		headline = "The password cannot be empty."
 		subtext = "Please call the command again and enter a non-empty password. See 'gsctl login --help' for details."
 	default:
@@ -125,23 +127,23 @@ func loginPreRunOutput(cmd *cobra.Command, positionalArgs []string) {
 func verifyLoginPreconditions(positionalArgs []string) error {
 	// using auth token flag? The 'login' command is the only exception
 	// where we can't accept this argument.
-	if cmdToken != "" {
-		return microerror.Mask(tokenArgumentNotApplicableError)
+	if flags.CmdToken != "" {
+		return microerror.Mask(errors.TokenArgumentNotApplicableError)
 	}
 
 	if cmdSSO {
 		if cmdPassword != "" {
-			return microerror.Mask(passwordArgumentNotApplicableError)
+			return microerror.Mask(errors.PasswordArgumentNotApplicableError)
 		}
 	} else {
 		if len(positionalArgs) >= 1 {
 			// set cmdEmail for later use, as cobra doesn't do that for us
 			cmdEmail = positionalArgs[0]
 		} else {
-			return microerror.Mask(noEmailArgumentGivenError)
+			return microerror.Mask(errors.NoEmailArgumentGivenError)
 		}
 
-		endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+		endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 
 		// interactive password prompt
 		if cmdPassword == "" {
@@ -151,7 +153,7 @@ func verifyLoginPreconditions(positionalArgs []string) error {
 				return err
 			}
 			if string(password) == "" {
-				return microerror.Mask(emptyPasswordError)
+				return microerror.Mask(errors.EmptyPasswordError)
 			}
 			cmdPassword = string(password)
 		}
@@ -180,20 +182,21 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 	result, err := login(loginArgs)
 
 	if err != nil {
-		handleCommonErrors(err)
+		errors.HandleCommonErrors(err)
+		client.HandleErrors(err)
 
 		var headline = ""
 		var subtext = ""
 		switch {
-		case IsEmptyPasswordError(err):
+		case errors.IsEmptyPasswordError(err):
 			headline = "Empty password submitted"
 			subtext = "The API server complains about the password provided."
 			subtext += " Please make sure to provide a string with more than white space characters."
-		case IsInvalidCredentialsError(err):
+		case errors.IsInvalidCredentialsError(err):
 			headline = "Bad password or email address"
 			subtext = fmt.Sprintf("Could not log you in to %s.", color.CyanString(loginArgs.apiEndpoint))
 			subtext += " The email or the password provided (or both) was incorrect."
-		case IsUserAccountInactiveError(err):
+		case errors.IsUserAccountInactiveError(err):
 			headline = "User account has expired or is deactivated"
 			subtext = "Please contact the Giant Swarm support team."
 		case config.IsAliasMustBeUniqueError(err):
@@ -204,7 +207,7 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 			headline = "Token created in the future?"
 			subtext = "It appears as if your system time is behind the actual time. Please adjust the time and make sure\n"
 			subtext += "that it is automatically synchronized with a time service. Otherwise SSO login does not work."
-		case IsSSOError(err):
+		case errors.IsSSOError(err):
 			headline = "Something went wrong during SSO"
 			subtext = err.Error()
 			subtext += "\nPlease contact the Giant Swarm support team or try the command again later."
@@ -261,7 +264,7 @@ func getAlias(apiEndpoint string, scheme string, accessToken string) (string, er
 	}
 	clientV2, err := client.NewV2(clientConfig)
 	if err != nil {
-		return "", microerror.Maskf(couldNotCreateClientError, err.Error())
+		return "", microerror.Maskf(errors.CouldNotCreateClientError, err.Error())
 	}
 
 	// Fetch installation name as alias.

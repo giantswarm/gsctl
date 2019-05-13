@@ -4,6 +4,9 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 // Test_PrintInfo simply executes the printInfo function.
@@ -23,7 +26,7 @@ endpoints:
     alias: ""
 selected_endpoint: https://other.endpoint`
 
-	dir, err := tempConfig(yamlText)
+	dir, err := config.TempConfig(yamlText)
 	if err != nil {
 		t.Error(err)
 	}
@@ -49,26 +52,26 @@ endpoints:
     alias: ""
 selected_endpoint: https://other.endpoint`
 
-	dir, err := tempConfig(yamlText)
+	dir, err := config.TempConfig(yamlText)
 	if err != nil {
 		t.Error(err)
 	}
 	defer os.RemoveAll(dir)
 
-	cmdVerbose = true
+	flags.CmdVerbose = true
 	printInfo(InfoCommand, []string{})
 }
 
 // Test_InfoWithTempDirAndToken tests the info() function with a custom
 // configuration path and an auth-token
 func Test_InfoWithTempDirAndToken(t *testing.T) {
-	dir, err := tempConfig("")
+	dir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
 	defer os.RemoveAll(dir)
 
-	cmdAPIEndpoint = ""
+	flags.CmdAPIEndpoint = ""
 	args := defaultInfoArguments()
 	args.token = "fake token"
 
@@ -82,7 +85,7 @@ func Test_InfoWithTempDirAndToken(t *testing.T) {
 			infoResult.configFilePath, dir)
 	}
 	if infoResult.token != args.token {
-		t.Errorf("Expected token '%s', got '%s'", cmdToken, infoResult.token)
+		t.Errorf("Expected token '%s', got '%s'", flags.CmdToken, infoResult.token)
 	}
 	if infoResult.email != "" {
 		t.Error("Expected empty email, got ", infoResult.email)

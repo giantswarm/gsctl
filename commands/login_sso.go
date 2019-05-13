@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/microerror"
+
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
 	"github.com/giantswarm/gsctl/oidc"
-	"github.com/giantswarm/microerror"
 )
 
 func init() {
@@ -25,7 +27,7 @@ func loginSSO(args loginArguments) (loginResult, error) {
 		if args.verbose {
 			fmt.Println(color.WhiteString("Attempt to run the OAuth2 PKCE workflow with a local callback HTTP server failed."))
 		}
-		return loginResult{}, microerror.Maskf(ssoError, pkceResponse.ErrorDescription)
+		return loginResult{}, microerror.Maskf(errors.SSOError, pkceResponse.ErrorDescription)
 	}
 
 	// Try to parse the ID Token.
@@ -48,13 +50,13 @@ func loginSSO(args loginArguments) (loginResult, error) {
 
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return loginResult{}, microerror.Mask(accessForbiddenError)
+				return loginResult{}, microerror.Mask(errors.AccessForbiddenError)
 			}
 
 			return loginResult{}, clientErr
 		}
 
-		return loginResult{}, microerror.Maskf(ssoError, err.Error())
+		return loginResult{}, microerror.Maskf(errors.SSOError, err.Error())
 	}
 
 	// Store the token in the config file.
@@ -63,7 +65,7 @@ func loginSSO(args loginArguments) (loginResult, error) {
 			fmt.Println(color.WhiteString("Attempt to store our authentication data with the endpoint in the configuration failed."))
 			fmt.Println(color.WhiteString("Error details: %s", err.Error()))
 		}
-		return loginResult{}, microerror.Maskf(ssoError, "Error while attempting to store the token in the config file")
+		return loginResult{}, microerror.Maskf(errors.SSOError, "Error while attempting to store the token in the config file")
 	}
 	if err := config.Config.SelectEndpoint(args.apiEndpoint); err != nil {
 		return loginResult{}, microerror.Mask(err)

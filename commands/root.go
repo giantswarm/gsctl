@@ -6,7 +6,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/commands/show"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/microerror"
 )
 
@@ -27,24 +30,27 @@ var (
 
 func init() {
 	// Replaced by "endpoint" flag
-	RootCommand.PersistentFlags().StringVarP(&cmdAPIEndpoint, "api-endpoint", "", "", "The URL base path, to access the API (deprecated)")
+	RootCommand.PersistentFlags().StringVarP(&flags.CmdAPIEndpoint, "api-endpoint", "", "", "The URL base path, to access the API (deprecated)")
 	RootCommand.PersistentFlags().MarkDeprecated("api-endpoint", "please use --endpoint or -e instead.")
 
-	RootCommand.PersistentFlags().StringVarP(&cmdAPIEndpoint, "endpoint", "e", "", "The API endpoint to use")
-	RootCommand.PersistentFlags().StringVarP(&cmdToken, "auth-token", "", "", "Authorization token to use")
-	RootCommand.PersistentFlags().StringVarP(&cmdConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
-	RootCommand.PersistentFlags().BoolVarP(&cmdVerbose, "verbose", "v", false, "Print more information")
+	RootCommand.PersistentFlags().StringVarP(&flags.CmdAPIEndpoint, "endpoint", "e", "", "The API endpoint to use")
+	RootCommand.PersistentFlags().StringVarP(&flags.CmdToken, "auth-token", "", "", "Authorization token to use")
+	RootCommand.PersistentFlags().StringVarP(&flags.CmdConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
+	RootCommand.PersistentFlags().BoolVarP(&flags.CmdVerbose, "verbose", "v", false, "Print more information")
+
+	// add subcommands
+	RootCommand.AddCommand(show.ShowCommand)
 }
 
 // initConfig calls the config.Initialize() function
 // before any command is executed.
 func initConfig(cmd *cobra.Command, args []string) error {
-	err := config.Initialize(cmdConfigDirPath)
+	err := config.Initialize(flags.CmdConfigDirPath)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	err = initClient()
+	err = InitClient()
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -52,11 +58,12 @@ func initConfig(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func initClient() error {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+// InitClient initializes the client wrapper.
+func InitClient() error {
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 
 	ClientConfig = &client.Configuration{
-		AuthHeaderGetter: config.Config.AuthHeaderGetter(endpoint, cmdToken),
+		AuthHeaderGetter: config.Config.AuthHeaderGetter(endpoint, flags.CmdToken),
 		Endpoint:         endpoint,
 		Timeout:          20 * time.Second,
 		UserAgent:        config.UserAgent(),
@@ -65,7 +72,7 @@ func initClient() error {
 	var err error
 	ClientV2, err = client.NewV2(ClientConfig)
 	if err != nil {
-		return microerror.Maskf(couldNotCreateClientError, err.Error())
+		return microerror.Maskf(errors.CouldNotCreateClientError, err.Error())
 	}
 
 	return nil

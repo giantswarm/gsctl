@@ -11,10 +11,6 @@ import (
 	"strings"
 	"time"
 
-	httptransport "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
-	rootcerts "github.com/hashicorp/go-rootcerts"
-
 	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
 	gsclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
@@ -25,8 +21,12 @@ import (
 	"github.com/giantswarm/gsclientgen/client/releases"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
+	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
+	rootcerts "github.com/hashicorp/go-rootcerts"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
+	"github.com/giantswarm/gsctl/config"
 )
 
 var (
@@ -128,6 +128,20 @@ func NewV2(conf *Configuration) (*WrapperV2, error) {
 		commandLine: getCommandLine(),
 		rawClient:   rawClient,
 	}, nil
+}
+
+// NewWithConfig creates a new client wrapper for a certain endpoint, optionally
+// using a certain auth token.
+func NewWithConfig(endpointString, token string) (*WrapperV2, error) {
+	endpoint := config.Config.ChooseEndpoint(endpointString)
+	ClientConfig := &Configuration{
+		AuthHeaderGetter: config.Config.AuthHeaderGetter(endpoint, token),
+		Endpoint:         endpoint,
+		Timeout:          20 * time.Second,
+		UserAgent:        config.UserAgent(),
+	}
+
+	return NewV2(ClientConfig)
 }
 
 type roundTripperWithUserAgent struct {
@@ -387,6 +401,27 @@ func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.
 	}
 
 	return response, nil
+}
+
+// GetDefaultCluster determines which is the default cluster.
+// If only one cluster exists, the default cluster is the only cluster.
+func (w *WrapperV2) GetDefaultCluster(p *AuxiliaryParams) (string, error) {
+	params := clusters.NewGetClustersParams()
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Clusters.GetClusters(params, nil)
+	if err != nil {
+		return "", clienterror.New(err)
+	}
+
+	if len(response.Payload) == 1 {
+		return response.Payload[0].ID, nil
+	}
+
+	return "", nil
 }
 
 // CreateKeyPair calls the addKeyPair API operation using the V2 client.

@@ -14,8 +14,11 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -48,9 +51,9 @@ type listReleasesArguments struct {
 // defaultListReleasesArguments returns a new listReleasesArguments struct
 // based on global variables (= command line options from cobra).
 func defaultListReleasesArguments() listReleasesArguments {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return listReleasesArguments{
 		apiEndpoint: endpoint,
@@ -73,7 +76,7 @@ func listReleasesPreRunOutput(cmd *cobra.Command, extraArgs []string) {
 		return
 	}
 
-	handleCommonErrors(err)
+	errors.HandleCommonErrors(err)
 
 	fmt.Println(color.RedString(err.Error()))
 	os.Exit(1)
@@ -83,7 +86,7 @@ func listReleasesPreRunOutput(cmd *cobra.Command, extraArgs []string) {
 // case something is missing.
 func listReleasesPreconditions(args *listReleasesArguments) error {
 	if config.Config.Token == "" && args.token == "" {
-		return microerror.Mask(notLoggedInError)
+		return microerror.Mask(errors.NotLoggedInError)
 	}
 
 	return nil
@@ -96,7 +99,8 @@ func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 	releases, err := listReleases(args)
 
 	if err != nil {
-		handleCommonErrors(err)
+		errors.HandleCommonErrors(err)
+		client.HandleErrors(err)
 
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			fmt.Println(color.RedString(clientErr.ErrorMessage))
@@ -220,9 +224,9 @@ func listReleases(args listReleasesArguments) ([]*models.V4ReleaseListItem, erro
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode >= http.StatusInternalServerError {
-				return nil, microerror.Maskf(internalServerError, err.Error())
+				return nil, microerror.Maskf(errors.InternalServerError, err.Error())
 			} else if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-				return nil, microerror.Mask(notAuthorizedError)
+				return nil, microerror.Mask(errors.NotAuthorizedError)
 			}
 		}
 

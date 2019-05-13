@@ -17,8 +17,11 @@ import (
 	"github.com/giantswarm/operatorkit/client/k8srestconfig"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -86,25 +89,25 @@ type createKubeconfigArguments struct {
 // defaultCreateKubeconfigArguments creates arguments based on command line
 // flags and config and applies defaults
 func defaultCreateKubeconfigArguments() (createKubeconfigArguments, error) {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
-	description := cmdDescription
+	description := flags.CmdDescription
 	if description == "" {
 		description = "Added by user " + config.Config.Email + " using 'gsctl create kubeconfig'"
 	}
 
 	contextName := cmdKubeconfigContextName
 	if cmdKubeconfigContextName == "" {
-		contextName = "giantswarm-" + cmdClusterID
+		contextName = "giantswarm-" + flags.CmdClusterID
 	}
 
-	ttl, err := util.ParseDuration(cmdTTL)
-	if IsInvalidDurationError(err) {
-		return createKubeconfigArguments{}, microerror.Mask(invalidDurationError)
-	} else if IsDurationExceededError(err) {
-		return createKubeconfigArguments{}, microerror.Mask(durationExceededError)
+	ttl, err := util.ParseDuration(flags.CmdTTL)
+	if errors.IsInvalidDurationError(err) {
+		return createKubeconfigArguments{}, microerror.Mask(errors.InvalidDurationError)
+	} else if errors.IsDurationExceededError(err) {
+		return createKubeconfigArguments{}, microerror.Mask(errors.DurationExceededError)
 	} else if err != nil {
 		return createKubeconfigArguments{}, microerror.Mask(err)
 	}
@@ -113,13 +116,13 @@ func defaultCreateKubeconfigArguments() (createKubeconfigArguments, error) {
 		apiEndpoint:       endpoint,
 		scheme:            scheme,
 		authToken:         token,
-		clusterID:         cmdClusterID,
+		clusterID:         flags.CmdClusterID,
 		description:       description,
-		cnPrefix:          cmdCNPrefix,
-		certOrgs:          cmdCertificateOrganizations,
+		cnPrefix:          flags.CmdCNPrefix,
+		certOrgs:          flags.CmdCertificateOrganizations,
 		ttlHours:          int32(ttl.Hours()),
 		selfContainedPath: cmdKubeconfigSelfContained,
-		force:             cmdForce,
+		force:             flags.CmdForce,
 		contextName:       contextName,
 	}, nil
 }
@@ -144,14 +147,14 @@ type createKubeconfigResult struct {
 }
 
 func init() {
-	CreateKubeconfigCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster")
-	CreateKubeconfigCommand.Flags().StringVarP(&cmdDescription, "description", "d", "", "Description for the key pair")
-	CreateKubeconfigCommand.Flags().StringVarP(&cmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
+	CreateKubeconfigCommand.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster")
+	CreateKubeconfigCommand.Flags().StringVarP(&flags.CmdDescription, "description", "d", "", "Description for the key pair")
+	CreateKubeconfigCommand.Flags().StringVarP(&flags.CmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdKubeconfigSelfContained, "self-contained", "", "", "Create a self-contained kubectl config with embedded credentials and write it to this path.")
 	CreateKubeconfigCommand.Flags().StringVarP(&cmdKubeconfigContextName, "context", "", "", "Set a custom context name. Defaults to 'giantswarm-<cluster-id>'.")
-	CreateKubeconfigCommand.Flags().StringVarP(&cmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
-	CreateKubeconfigCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation.")
-	CreateKubeconfigCommand.Flags().StringVarP(&cmdTTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
+	CreateKubeconfigCommand.Flags().StringVarP(&flags.CmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
+	CreateKubeconfigCommand.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation.")
+	CreateKubeconfigCommand.Flags().StringVarP(&flags.CmdTTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
 
 	CreateKubeconfigCommand.MarkFlagRequired("cluster")
 
@@ -162,10 +165,10 @@ func init() {
 func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	args, argsErr := defaultCreateKubeconfigArguments()
 	if argsErr != nil {
-		if IsInvalidDurationError(argsErr) {
+		if errors.IsInvalidDurationError(argsErr) {
 			fmt.Println(color.RedString("The value passed with --ttl is invalid."))
 			fmt.Println("Please provide a number and a unit, e. g. '10h', '1d', '1w'.")
-		} else if IsDurationExceededError(argsErr) {
+		} else if errors.IsDurationExceededError(argsErr) {
 			fmt.Println(color.RedString("The expiration period passed with --ttl is too long."))
 			fmt.Println("The maximum possible value is the eqivalent of 292 years.")
 		} else {
@@ -179,15 +182,15 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		return
 	}
 
-	handleCommonErrors(err)
+	errors.HandleCommonErrors(err)
 
 	var headline string
 	var subtext string
 
 	switch {
-	case IsCommandAbortedError(err):
+	case errors.IsCommandAbortedError(err):
 		headline = "File not overwritten, no kubeconfig created."
-	case IsKubectlMissingError(err):
+	case errors.IsKubectlMissingError(err):
 		headline = "kubectl is not installed"
 		if runtime.GOOS == "darwin" {
 			subtext = "Please install via 'brew install kubernetes-cli' or visit\n"
@@ -197,7 +200,7 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		} else if runtime.GOOS == "windows" {
 			subtext = fmt.Sprintf("Please visit %s to download a recent kubectl binary.", kubectlWindowsInstallURL)
 		}
-	case IsInvalidCNPrefixError(err):
+	case errors.IsInvalidCNPrefixError(err):
 		headline = "Bad characters in CN prefix (--cn-prefix)"
 		subtext = "Please use these characters only: a-z A-Z 0-9 . @ -"
 	default:
@@ -217,26 +220,26 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 // returns nil if yes, error if not
 func verifyCreateKubeconfigPreconditions(args createKubeconfigArguments, cmdLineArgs []string) error {
 	if config.Config.Token == "" && args.authToken == "" {
-		return microerror.Mask(notLoggedInError)
+		return microerror.Mask(errors.NotLoggedInError)
 	}
 	if args.apiEndpoint == "" {
-		return microerror.Mask(endpointMissingError)
+		return microerror.Mask(errors.EndpointMissingError)
 	}
 	if args.clusterID == "" {
-		return microerror.Mask(clusterIDMissingError)
+		return microerror.Mask(errors.ClusterIDMissingError)
 	}
 
 	// validate CN prefix character set
 	if args.cnPrefix != "" {
 		cnPrefixRE := regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9@\\.-]*[a-zA-Z0-9]$")
 		if !cnPrefixRE.MatchString(args.cnPrefix) {
-			return microerror.Mask(invalidCNPrefixError)
+			return microerror.Mask(errors.InvalidCNPrefixError)
 		}
 	}
 
 	kubectlOkay := util.CheckKubectl()
 	if !kubectlOkay {
-		return microerror.Mask(kubectlMissingError)
+		return microerror.Mask(errors.KubectlMissingError)
 	}
 
 	// ask for confirmation to overwrite existing file
@@ -244,7 +247,7 @@ func verifyCreateKubeconfigPreconditions(args createKubeconfigArguments, cmdLine
 		if _, err := os.Stat(args.selfContainedPath); !os.IsNotExist(err) {
 			confirmed := askForConfirmation("Do you want to overwrite " + args.selfContainedPath + " ?")
 			if !confirmed {
-				return microerror.Mask(commandAbortedError)
+				return microerror.Mask(errors.CommandAbortedError)
 			}
 		}
 	}
@@ -260,7 +263,8 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	result, err := createKubeconfig(ctx, args)
 
 	if err != nil {
-		handleCommonErrors(err)
+		errors.HandleCommonErrors(err)
+		client.HandleErrors(err)
 
 		var headline string
 		var subtext string
@@ -279,13 +283,13 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		case util.IsCouldNotUseKubectlContextError(err):
 			headline = "Error: " + err.Error()
 			subtext = "Context name to select is: giantswarm-" + args.clusterID
-		case IsClusterNotFoundError(err):
+		case errors.IsClusterNotFoundError(err):
 			headline = fmt.Sprintf("Error: Cluster '%s' does not exist.", args.clusterID)
 			subtext = "Please check the ID spelling or list clusters using 'gsctl list clusters'."
-		case IsCouldNotWriteFileError(err):
+		case errors.IsCouldNotWriteFileError(err):
 			headline = "Error: File could not be written"
 			subtext = fmt.Sprintf("Details: %s", err.Error())
-		case IsBadRequestError(err):
+		case errors.IsBadRequestError(err):
 			headline = "API Error 400: Bad Request"
 			subtext = "The key pair could not be created with the given parameters. Please try a shorter expiry period (--ttl)\n"
 			subtext += "and check the other arguments, too. Please contact the Giant Swarm support team if you need assistance."
@@ -366,13 +370,13 @@ func createKubeconfig(ctx context.Context, args createKubeconfigArguments) (crea
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return result, microerror.Mask(accessForbiddenError)
+				return result, microerror.Mask(errors.AccessForbiddenError)
 			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
-				return result, microerror.Mask(clusterNotFoundError)
+				return result, microerror.Mask(errors.ClusterNotFoundError)
 			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return result, microerror.Mask(accessForbiddenError)
+				return result, microerror.Mask(errors.AccessForbiddenError)
 			} else if clientErr.HTTPStatusCode == http.StatusBadRequest {
-				return result, microerror.Maskf(badRequestError, clientErr.ErrorDetails)
+				return result, microerror.Maskf(errors.BadRequestError, clientErr.ErrorDetails)
 			}
 		}
 
@@ -438,7 +442,7 @@ func createKubeconfig(ctx context.Context, args createKubeconfigArguments) (crea
 
 		err = ioutil.WriteFile(args.selfContainedPath, yamlBytes, 0600)
 		if err != nil {
-			return result, microerror.Maskf(couldNotWriteFileError, "could not write self-contained kubeconfig file")
+			return result, microerror.Maskf(errors.CouldNotWriteFileError, "could not write self-contained kubeconfig file")
 		}
 
 		result.selfContainedPath = args.selfContainedPath

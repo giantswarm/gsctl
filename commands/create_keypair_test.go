@@ -6,6 +6,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 func Test_CreateKeypair(t *testing.T) {
@@ -26,7 +29,7 @@ func Test_CreateKeypair(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	dir, err := tempConfig("")
+	dir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -38,8 +41,8 @@ func Test_CreateKeypair(t *testing.T) {
 		authToken:   "test-token",
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	err = verifyCreateKeypairPreconditions(args)
 	if err != nil {

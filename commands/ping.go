@@ -14,6 +14,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 var (
@@ -33,12 +35,12 @@ func init() {
 // runPingCommand executes the ping() function
 // and prints output in a user-friendly way
 func runPingCommand(cmd *cobra.Command, args []string) {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 
 	duration, err := ping(endpoint)
 	if err != nil {
 
-		handleCommonErrors(err)
+		errors.HandleCommonErrors(err)
 
 		fmt.Println(color.RedString("Could not reach API"))
 		fmt.Println(err.Error())
@@ -99,7 +101,7 @@ func ping(endpointURL string) (time.Duration, error) {
 	duration = time.Since(start)
 	if resp.StatusCode != http.StatusOK {
 		if resp.StatusCode == http.StatusForbidden {
-			return duration, microerror.Mask(accessForbiddenError)
+			return duration, microerror.Mask(errors.AccessForbiddenError)
 		}
 		return duration, microerror.Mask(fmt.Errorf("bad status code %d", resp.StatusCode))
 	}

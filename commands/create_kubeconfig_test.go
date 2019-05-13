@@ -9,6 +9,9 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 // makeMockServer returns a mock server to be used in several test cases
@@ -61,7 +64,7 @@ func Test_CreateKubeconfig(t *testing.T) {
 	os.Setenv("KUBECONFIG", kubeConfigPath)
 	defer os.Unsetenv("KUBECONFIG")
 
-	configDir, err := tempConfig("")
+	configDir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -74,8 +77,8 @@ func Test_CreateKubeconfig(t *testing.T) {
 		contextName: "giantswarm-test-cluster-id",
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
 	if err != nil {
@@ -107,7 +110,7 @@ func Test_CreateKubeconfig(t *testing.T) {
 		t.Error(err)
 	}
 
-	if !strings.Contains(string(content), "current-context: giantswarm-"+cmdClusterID) {
+	if !strings.Contains(string(content), "current-context: giantswarm-"+flags.CmdClusterID) {
 		t.Error("Kubeconfig doesn't contain the expected current-context value")
 	}
 	if !strings.Contains(string(content), "client-certificate: "+configDir) {
@@ -128,14 +131,14 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 	defer mockServer.Close()
 
 	// temporary config
-	configDir, err := tempConfig("")
+	configDir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
 	defer os.RemoveAll(configDir)
 
 	// output folder
-	tmpdir := tempDir()
+	tmpdir := config.TempDir()
 	defer os.RemoveAll(tmpdir)
 
 	args := createKubeconfigArguments{
@@ -146,8 +149,8 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 		selfContainedPath: tmpdir + string(os.PathSeparator) + "kubeconfig",
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
 	if err != nil {
@@ -182,7 +185,7 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 		t.Error(err)
 	}
 
-	if !strings.Contains(string(content), "current-context: giantswarm-"+cmdClusterID) {
+	if !strings.Contains(string(content), "current-context: giantswarm-"+flags.CmdClusterID) {
 		t.Error("Kubeconfig doesn't contain the expected current-context value")
 	}
 	if !strings.Contains(string(content), "client-certificate-data:") {
@@ -211,7 +214,7 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 	defer os.Unsetenv("KUBECONFIG")
 
 	// temporary config
-	configDir, err := tempConfig("")
+	configDir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -224,8 +227,8 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 		contextName: "test-context",
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
 	if err != nil {
@@ -263,7 +266,7 @@ func Test_CreateKubeconfigNoConnection(t *testing.T) {
 	os.Setenv("KUBECONFIG", kubeConfigPath)
 	defer os.Unsetenv("KUBECONFIG")
 
-	configDir, err := tempConfig("")
+	configDir, err := config.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}

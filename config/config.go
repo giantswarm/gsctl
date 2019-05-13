@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -14,7 +13,6 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/oidc"
 	"github.com/giantswarm/microerror"
 
@@ -315,10 +313,10 @@ func (c *configStruct) ChooseToken(endpoint, overridingToken string) string {
 //   then always return "giantswarm".
 // - If we have an auth scheme for the given endpoint, we return that.
 // - otherwise we return "giantswarm"
-func (c *configStruct) ChooseScheme(endpoint string, cmdToken string) string {
+func (c *configStruct) ChooseScheme(endpoint string, CmdToken string) string {
 	ep := normalizeEndpoint(endpoint)
 
-	if cmdToken != "" {
+	if CmdToken != "" {
 		return "giantswarm"
 	}
 
@@ -371,7 +369,7 @@ func (c *configStruct) Endpoints() []string {
 	defer c.endpointsMutex.RUnlock()
 
 	var endpoints []string
-	for k, _ := range c.endpoints {
+	for k := range c.endpoints {
 		endpoints = append(endpoints, k)
 	}
 
@@ -642,46 +640,6 @@ func getKubeconfigPaths(homeDir string) []string {
 
 	// No kubeconfig file. Return empty slice.
 	return nil
-}
-
-// GetDefaultCluster determines which is the default cluster
-//
-// This can be either the only cluster accessible, or a cluster selected explicitly.
-//
-// @param requestIDHeader  Request ID to pass with API requests
-// @param activityName     Name of the activity calling this function (for tracking)
-// @param cmdLine          Command line content used to run the CLI (for tracking)
-// @param apiEndpoint      Endpoint URL
-func GetDefaultCluster(activityName, apiEndpoint string) (clusterID string, err error) {
-	// Go through available orgs and clusters to find all clusters
-	if Config.Token == "" {
-		return "", errors.New("user not logged in")
-	}
-
-	clientConfig := &client.Configuration{
-		AuthHeaderGetter: Config.AuthHeaderGetter(apiEndpoint, Config.Token),
-		Endpoint:         apiEndpoint,
-		Timeout:          10 * time.Second,
-		UserAgent:        UserAgent(),
-	}
-	apiClient, err := client.NewV2(clientConfig)
-	if err != nil {
-		return "", microerror.Mask(err)
-	}
-
-	auxParams := apiClient.DefaultAuxiliaryParams()
-	auxParams.ActivityName = activityName
-
-	response, err := apiClient.GetClusters(auxParams)
-	if err != nil {
-		return "", err
-	}
-
-	if len(response.Payload) == 1 {
-		return response.Payload[0].ID, nil
-	}
-
-	return "", nil
 }
 
 // normalizeEndpoint sanitizes a user-entered endpoint URL.

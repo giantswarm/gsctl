@@ -14,8 +14,11 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -48,14 +51,14 @@ type listKeypairsArguments struct {
 // defaultListKeypairsArguments returns a new listKeypairsArguments struct
 // based on global variables (= command line options from cobra).
 func defaultListKeypairsArguments() listKeypairsArguments {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return listKeypairsArguments{
 		apiEndpoint: endpoint,
-		clusterID:   cmdClusterID,
-		full:        cmdFull,
+		clusterID:   flags.CmdClusterID,
+		full:        flags.CmdFull,
 		token:       token,
 		scheme:      scheme,
 	}
@@ -67,8 +70,8 @@ type listKeypairsResult struct {
 }
 
 func init() {
-	ListKeypairsCommand.Flags().StringVarP(&cmdClusterID, "cluster", "c", "", "ID of the cluster to list key pairs for")
-	ListKeypairsCommand.Flags().BoolVarP(&cmdFull, "full", "", false, "Enables output of full, untruncated values")
+	ListKeypairsCommand.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster to list key pairs for")
+	ListKeypairsCommand.Flags().BoolVarP(&flags.CmdFull, "full", "", false, "Enables output of full, untruncated values")
 
 	ListKeypairsCommand.MarkFlagRequired("cluster")
 	ListCommand.AddCommand(ListKeypairsCommand)
@@ -80,7 +83,7 @@ func listKeypairsValidationOutput(cmd *cobra.Command, extraArgs []string) {
 	args := defaultListKeypairsArguments()
 	err := listKeypairsValidate(&args)
 	if err != nil {
-		handleCommonErrors(err)
+		errors.HandleCommonErrors(err)
 
 		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
@@ -94,15 +97,15 @@ func listKeypairsValidationOutput(cmd *cobra.Command, extraArgs []string) {
 // the clusterID field.
 func listKeypairsValidate(args *listKeypairsArguments) error {
 	if config.Config.Token == "" && args.token == "" {
-		return microerror.Mask(notLoggedInError)
+		return microerror.Mask(errors.NotLoggedInError)
 	}
 	if args.clusterID == "" {
 		// use default cluster if possible
-		clusterID, _ := config.GetDefaultCluster(listKeypairsActivityName, cmdAPIEndpoint)
+		clusterID, _ := ClientV2.GetDefaultCluster(nil)
 		if clusterID != "" {
-			cmdClusterID = clusterID
+			flags.CmdClusterID = clusterID
 		} else {
-			return microerror.Mask(clusterIDMissingError)
+			return microerror.Mask(errors.ClusterIDMissingError)
 		}
 	}
 
@@ -117,13 +120,14 @@ func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
 
 	// error output
 	if err != nil {
-		handleCommonErrors(err)
+		errors.HandleCommonErrors(err)
+		client.HandleErrors(err)
 
 		var headline string
 		var subtext string
 
 		switch {
-		case IsClusterNotFoundError(err):
+		case errors.IsClusterNotFoundError(err):
 			headline = "The cluster does not exist."
 			subtext = fmt.Sprintf("We couldn't find a cluster with the ID '%s' via API endpoint %s.", args.clusterID, args.apiEndpoint)
 		default:
@@ -191,11 +195,11 @@ func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode >= http.StatusInternalServerError {
-				return result, microerror.Maskf(internalServerError, err.Error())
+				return result, microerror.Maskf(errors.InternalServerError, err.Error())
 			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
-				return result, microerror.Mask(clusterNotFoundError)
+				return result, microerror.Mask(errors.ClusterNotFoundError)
 			} else if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-				return result, microerror.Mask(notAuthorizedError)
+				return result, microerror.Mask(errors.NotAuthorizedError)
 			}
 		}
 

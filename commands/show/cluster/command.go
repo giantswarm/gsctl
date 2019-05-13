@@ -1,4 +1,5 @@
-package commands
+// Package cluster implements the 'show cluster' command.
+package cluster
 
 import (
 	"fmt"
@@ -17,6 +18,8 @@ import (
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -57,21 +60,17 @@ type showClusterArguments struct {
 }
 
 func defaultShowClusterArguments() showClusterArguments {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return showClusterArguments{
 		apiEndpoint: endpoint,
 		authToken:   token,
 		scheme:      scheme,
 		clusterID:   "",
-		verbose:     cmdVerbose,
+		verbose:     flags.CmdVerbose,
 	}
-}
-
-func init() {
-	ShowCommand.AddCommand(ShowClusterCommand)
 }
 
 func showClusterPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
@@ -82,7 +81,7 @@ func showClusterPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		return
 	}
 
-	handleCommonErrors(err)
+	errors.HandleCommonErrors(err)
 
 	// handle non-common errors
 	fmt.Println(color.RedString(err.Error()))
@@ -91,32 +90,37 @@ func showClusterPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 func verifyShowClusterPreconditions(args showClusterArguments, cmdLineArgs []string) error {
 	if config.Config.Token == "" && args.authToken == "" {
-		return microerror.Mask(notLoggedInError)
+		return microerror.Mask(errors.NotLoggedInError)
 	}
 	if len(cmdLineArgs) == 0 {
-		return microerror.Mask(clusterIDMissingError)
+		return microerror.Mask(errors.ClusterIDMissingError)
 	}
 	return nil
 }
 
 // getClusterDetails returns details for one cluster.
 func getClusterDetails(clusterID, activityName string) (*models.V4ClusterDetailsResponse, error) {
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
 	// perform API call
-	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := ClientV2.GetCluster(clusterID, auxParams)
+	response, err := clientV2.GetCluster(clusterID, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			switch clientErr.HTTPStatusCode {
 			case http.StatusForbidden:
-				return nil, microerror.Mask(accessForbiddenError)
+				return nil, microerror.Mask(errors.AccessForbiddenError)
 			case http.StatusUnauthorized:
-				return nil, microerror.Mask(notAuthorizedError)
+				return nil, microerror.Mask(errors.NotAuthorizedError)
 			case http.StatusNotFound:
-				return nil, microerror.Mask(clusterNotFoundError)
+				return nil, microerror.Mask(errors.ClusterNotFoundError)
 			case http.StatusInternalServerError:
-				return nil, microerror.Mask(internalServerError)
+				return nil, microerror.Mask(errors.InternalServerError)
 			}
 		}
 
@@ -127,21 +131,26 @@ func getClusterDetails(clusterID, activityName string) (*models.V4ClusterDetails
 }
 
 func getOrgCredentials(orgName, credentialID, activityName string) (*models.V4GetCredentialResponse, error) {
-	auxParams := ClientV2.DefaultAuxiliaryParams()
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := ClientV2.GetCredential(orgName, credentialID, auxParams)
+	response, err := clientV2.GetCredential(orgName, credentialID, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			switch clientErr.HTTPStatusCode {
 			case http.StatusForbidden:
-				return nil, microerror.Mask(accessForbiddenError)
+				return nil, microerror.Mask(errors.AccessForbiddenError)
 			case http.StatusUnauthorized:
-				return nil, microerror.Mask(notAuthorizedError)
+				return nil, microerror.Mask(errors.NotAuthorizedError)
 			case http.StatusNotFound:
-				return nil, microerror.Mask(credentialNotFoundError)
+				return nil, microerror.Mask(errors.CredentialNotFoundError)
 			case http.StatusInternalServerError:
-				return nil, microerror.Mask(internalServerError)
+				return nil, microerror.Mask(errors.InternalServerError)
 			}
 		}
 
@@ -179,6 +188,12 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println(color.WhiteString("Fetching details for cluster %s", args.clusterID))
 	}
 
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	if err != nil {
+		fmt.Println(color.RedString(err.Error()))
+		os.Exit(1)
+	}
+
 	clusterDetailsChan := make(chan *models.V4ClusterDetailsResponse)
 	clusterDetailsErrChan := make(chan error)
 
@@ -192,7 +207,10 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	clusterStatusErrChan := make(chan error)
 
 	go func(chan *client.ClusterStatus, chan error) {
-		status, err := getClusterStatus(args.clusterID, showClusterActivityName)
+		auxParams := clientV2.DefaultAuxiliaryParams()
+		auxParams.ActivityName = showClusterActivityName
+
+		status, err := clientV2.GetClusterStatus(args.clusterID, auxParams)
 		clusterStatusChan <- status
 		clusterStatusErrChan <- err
 	}(clusterStatusChan, clusterStatusErrChan)
@@ -203,16 +221,17 @@ func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	clusterStatusErr := <-clusterStatusErrChan
 
 	if clusterDetailsErr != nil {
-		handleCommonErrors(clusterDetailsErr)
+		errors.HandleCommonErrors(clusterDetailsErr)
+		client.HandleErrors(clusterDetailsErr)
 
 		var headline = ""
 		var subtext = ""
 
 		switch {
-		case IsClusterNotFoundError(clusterDetailsErr):
+		case errors.IsClusterNotFoundError(clusterDetailsErr):
 			headline = "Cluster not found"
 			subtext = "The cluster with this ID could not be found. Please use 'gsctl list clusters' to list all available clusters."
-		case IsCredentialNotFoundError(clusterDetailsErr):
+		case errors.IsCredentialNotFoundError(clusterDetailsErr):
 			headline = "Credential not found"
 			subtext = "Credentials with the given ID could not be found."
 		case clusterDetailsErr.Error() == "":

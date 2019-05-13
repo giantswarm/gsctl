@@ -6,6 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 func init() {
@@ -61,8 +64,8 @@ func Test_ListClusters(t *testing.T) {
 		authToken:   "testtoken",
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	err := verifyListClusterPreconditions(args)
 	if err != nil {
@@ -91,8 +94,8 @@ func Test_ListClustersEmpty(t *testing.T) {
 		authToken:   "testtoken",
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	err := verifyListClusterPreconditions(args)
 	if err != nil {
@@ -123,8 +126,8 @@ func Test_ListClustersUnauthorized(t *testing.T) {
 		authToken:   "testtoken",
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	err := verifyListClusterPreconditions(args)
 	if err != nil {
@@ -132,7 +135,7 @@ func Test_ListClustersUnauthorized(t *testing.T) {
 	}
 
 	_, err = clustersTable(args)
-	if !IsNotAuthorizedError(err) {
-		t.Errorf("Expected notAuthorizedError, got %#v", err)
+	if !errors.IsNotAuthorizedError(err) {
+		t.Errorf("Expected NotAuthorizedError, got %#v", err)
 	}
 }

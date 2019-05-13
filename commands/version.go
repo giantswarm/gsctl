@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -96,7 +97,7 @@ func latestVersion(url string) (string, error) {
 
 	location := resp.Header.Get("Location")
 	if location == "" {
-		return "", microerror.Mask(updateCheckFailed)
+		return "", microerror.Mask(errors.UpdateCheckFailed)
 	}
 
 	parts := strings.Split(location, "/")

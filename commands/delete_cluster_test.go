@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 // TestDeleteClusterSuccess runs test case that are supposed to succeed
@@ -26,8 +29,8 @@ func TestDeleteClusterSuccess(t *testing.T) {
 		},
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	for i, testCase := range testCases {
 		validateErr := validateDeleteClusterPreConditions(testCase)
@@ -55,14 +58,14 @@ func TestDeleteClusterFailures(t *testing.T) {
 				clusterID: "somecluster",
 				token:     "",
 			},
-			expectedError: notLoggedInError,
+			expectedError: errors.NotLoggedInError,
 		},
 		{
 			arguments: deleteClusterArguments{
 				clusterID: "",
 				token:     "some token",
 			},
-			expectedError: clusterIDMissingError,
+			expectedError: errors.ClusterIDMissingError,
 		},
 	}
 

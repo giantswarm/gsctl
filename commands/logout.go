@@ -8,8 +8,11 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/microerror"
 )
 
@@ -38,8 +41,8 @@ type logoutArguments struct {
 }
 
 func defaultLogoutArguments() logoutArguments {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 
 	return logoutArguments{
 		apiEndpoint: endpoint,
@@ -52,7 +55,7 @@ func init() {
 }
 
 func logoutValidationOutput(cmd *cobra.Command, args []string) {
-	if config.Config.Token == "" && cmdToken == "" {
+	if config.Config.Token == "" && flags.CmdToken == "" {
 		fmt.Println("You weren't logged in here, but better be safe than sorry.")
 		os.Exit(1)
 	}
@@ -75,7 +78,8 @@ func logoutOutput(cmd *cobra.Command, extraArgs []string) {
 			}
 		}
 
-		handleCommonErrors(err)
+		errors.HandleCommonErrors(err)
+		client.HandleErrors(err)
 
 		// handle non-common errors
 		fmt.Println(color.RedString(err.Error()))

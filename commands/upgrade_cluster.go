@@ -10,7 +10,10 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -70,8 +73,8 @@ type upgradeClusterArguments struct {
 
 // function to create arguments based on command line flags and config
 func defaultUpgradeClusterArguments(cmdLineArgs []string) upgradeClusterArguments {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	clusterID := ""
 	if len(cmdLineArgs) > 0 {
 		clusterID = cmdLineArgs[0]
@@ -82,7 +85,7 @@ func defaultUpgradeClusterArguments(cmdLineArgs []string) upgradeClusterArgument
 		authToken:   token,
 		clusterID:   clusterID,
 		force:       false,
-		verbose:     cmdVerbose,
+		verbose:     flags.CmdVerbose,
 	}
 }
 
@@ -94,7 +97,7 @@ type upgradeClusterResult struct {
 
 // Here we populate our cobra command
 func init() {
-	UpgradeClusterCommand.Flags().BoolVarP(&cmdForce, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
+	UpgradeClusterCommand.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
 
 	UpgradeCommand.AddCommand(UpgradeClusterCommand)
 }
@@ -109,15 +112,15 @@ func upgradeClusterValidationOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	err := validateUpgradeClusterPreconditions(args, cmdLineArgs)
 
 	if err != nil {
-		handleCommonErrors(err)
+		errors.HandleCommonErrors(err)
 
 		switch {
 		case err.Error() == "":
 			return
-		case IsNotLoggedInError(err):
+		case errors.IsNotLoggedInError(err):
 			headline = "You are not logged in."
 			subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
-		case IsClusterIDMissingError(err):
+		case errors.IsClusterIDMissingError(err):
 			headline = "No cluster ID specified."
 			subtext = "Please specify which cluster to upgrade by using the cluster ID as an argument."
 		default:
@@ -138,12 +141,12 @@ func upgradeClusterValidationOutput(cmd *cobra.Command, cmdLineArgs []string) {
 func validateUpgradeClusterPreconditions(args upgradeClusterArguments, cmdLineArgs []string) error {
 	// authentication
 	if config.Config.Token == "" && args.authToken == "" {
-		return microerror.Mask(notLoggedInError)
+		return microerror.Mask(errors.NotLoggedInError)
 	}
 
 	// cluster ID is present
 	if args.clusterID == "" {
-		return microerror.Mask(clusterIDMissingError)
+		return microerror.Mask(errors.ClusterIDMissingError)
 	}
 
 	return nil
@@ -156,22 +159,25 @@ func upgradeClusterExecutionOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	result, err := upgradeCluster(args)
 
 	if err != nil {
+		errors.HandleCommonErrors(err)
+		client.HandleErrors(err)
+
 		var headline = ""
 		var subtext = ""
 
 		switch {
 		case err.Error() == "":
 			return
-		case IsCouldNotCreateClientError(err):
+		case errors.IsCouldNotCreateClientError(err):
 			headline = "Failed to create API client."
 			subtext = "Details: " + err.Error()
-		case IsNoUpgradeAvailableError(err):
+		case errors.IsNoUpgradeAvailableError(err):
 			headline = "There is no newer release available."
 			subtext = "Please check the available releases using 'gsctl list releases'."
-		case IsClusterNotFoundError(err):
+		case errors.IsClusterNotFoundError(err):
 			headline = "The cluster does not exist."
 			subtext = fmt.Sprintf("We couldn't find a cluster with the ID '%s' via API endpoint %s.", args.clusterID, args.apiEndpoint)
-		case IsCommandAbortedError(err):
+		case errors.IsCommandAbortedError(err):
 			headline = "Not upgrading."
 		default:
 			headline = err.Error()
@@ -196,9 +202,17 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	result := upgradeClusterResult{}
 
 	// fetch current cluster details
-	details, detailsErr := getClusterDetails(args.clusterID, upgradeClusterActivityName)
-	if detailsErr != nil {
-		return result, microerror.Mask(detailsErr)
+	var details *models.V4ClusterDetailsResponse
+	{
+		auxParams := ClientV2.DefaultAuxiliaryParams()
+		auxParams.ActivityName = upgradeClusterActivityName
+
+		response, err := ClientV2.GetCluster(args.clusterID, auxParams)
+		if err != nil {
+			return result, microerror.Mask(err)
+		}
+
+		details = response.Payload
 	}
 
 	listReleasesArgs := listReleasesArguments{
@@ -223,7 +237,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	// define the target version to upgrade to
 	targetVersion := successorReleaseVersion(details.ReleaseVersion, releaseVersions)
 	if targetVersion == "" {
-		return result, microerror.Mask(noUpgradeAvailableError)
+		return result, microerror.Mask(errors.NoUpgradeAvailableError)
 	}
 
 	var targetRelease models.V4ReleaseListItem
@@ -268,7 +282,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	if !args.force {
 		confirmed := askForConfirmation("Do you want to start the upgrade now?")
 		if !confirmed {
-			return result, microerror.Mask(commandAbortedError)
+			return result, microerror.Mask(errors.CommandAbortedError)
 		}
 	}
 
@@ -285,7 +299,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	auxParams.ActivityName = upgradeClusterActivityName
 	_, err := ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
 	if err != nil {
-		return result, microerror.Maskf(couldNotUpgradeClusterError, err.Error())
+		return result, microerror.Maskf(errors.CouldNotUpgradeClusterError, err.Error())
 	}
 
 	result.versionAfter = targetVersion

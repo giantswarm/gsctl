@@ -15,7 +15,10 @@ import (
 	"github.com/spf13/cobra"
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 // addClusterArguments contains all possible input parameter needed
@@ -42,28 +45,28 @@ type addClusterArguments struct {
 }
 
 func defaultAddClusterArguments() addClusterArguments {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 	return addClusterArguments{
-		apiEndpoint:             endpoint,
-		availabilityZones:       cmdAvailabilityZones,
-		clusterName:             cmdClusterName,
-		dryRun:                  cmdDryRun,
-		inputYAMLFile:           cmdInputYAMLFile,
-		numWorkers:              cmdNumWorkers,
-		owner:                   cmdOwner,
-		releaseVersion:          cmdRelease,
-		scheme:                  scheme,
-		token:                   token,
+		apiEndpoint:       endpoint,
+		availabilityZones: cmdAvailabilityZones,
+		clusterName:       cmdClusterName,
+		dryRun:            cmdDryRun,
+		inputYAMLFile:     cmdInputYAMLFile,
+		numWorkers:        cmdNumWorkers,
+		owner:             cmdOwner,
+		releaseVersion:    flags.CmdRelease,
+		scheme:            scheme,
+		token:             token,
 		wokerAwsEc2InstanceType: cmdWorkerAwsEc2InstanceType,
 		wokerAzureVMSize:        cmdWorkerAzureVMSize,
-		workerNumCPUs:           cmdWorkerNumCPUs,
-		workerMemorySizeGB:      cmdWorkerMemorySizeGB,
-		workerStorageSizeGB:     cmdWorkerStorageSizeGB,
+		workerNumCPUs:           flags.CmdWorkerNumCPUs,
+		workerMemorySizeGB:      flags.CmdWorkerMemorySizeGB,
+		workerStorageSizeGB:     flags.CmdWorkerStorageSizeGB,
 		workersMax:              cmdWorkersMax,
 		workersMin:              cmdWorkersMin,
-		verbose:                 cmdVerbose,
+		verbose:                 flags.CmdVerbose,
 	}
 }
 
@@ -162,15 +165,15 @@ func init() {
 	CreateClusterCommand.Flags().StringVarP(&cmdInputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file")
 	CreateClusterCommand.Flags().StringVarP(&cmdClusterName, "name", "n", "", "Cluster name")
 	CreateClusterCommand.Flags().StringVarP(&cmdOwner, "owner", "o", "", "Organization to own the cluster")
-	CreateClusterCommand.Flags().StringVarP(&cmdRelease, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
+	CreateClusterCommand.Flags().StringVarP(&flags.CmdRelease, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
 	CreateClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "", 0, "Shorthand to set --workers-min and --workers-max to the same value. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().Int64VarP(&cmdWorkersMin, "workers-min", "", 0, "Minimum number of worker nodes. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().Int64VarP(&cmdWorkersMax, "workers-max", "", 0, "Maximum number of worker nodes. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
 	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAzureVMSize, "azure-vm-size", "", "", "VmSize to use for workers (Azure only), e. g. 'Standard_D2s_v3'")
-	CreateClusterCommand.Flags().IntVarP(&cmdWorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
-	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
-	CreateClusterCommand.Flags().Float32VarP(&cmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
+	CreateClusterCommand.Flags().IntVarP(&flags.CmdWorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
+	CreateClusterCommand.Flags().Float32VarP(&flags.CmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
+	CreateClusterCommand.Flags().Float32VarP(&flags.CmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
 	CreateClusterCommand.Flags().BoolVarP(&cmdDryRun, "dry-run", "", false, "If set, the cluster won't be created. Useful with -v|--verbose.")
 
 	// kubernetes-version never had any effect, and is deprecated now on the API side, too
@@ -190,31 +193,31 @@ func createClusterValidationOutput(cmd *cobra.Command, args []string) {
 
 	err := validateCreateClusterPreConditions(aca)
 	if err != nil {
-		handleCommonErrors(err)
+		errors.HandleCommonErrors(err)
 
 		switch {
-		case IsConflictingFlagsError(err):
+		case errors.IsConflictingFlagsError(err):
 			headline = "Conflicting flags used"
 			subtext = "When specifying a definition via a YAML file, certain flags must not be used."
-		case IsConflictingWorkerFlagsUsed(err):
+		case errors.IsConflictingWorkerFlagsUsed(err):
 			headline = "Conflicting flags used"
 			subtext = "When specifying --num-workers, neither --workers-max nor --workers-min must be used."
-		case IsWorkersMinMaxInvalid(err):
+		case errors.IsWorkersMinMaxInvalid(err):
 			headline = "Number of worker nodes invalid"
 			subtext = "Node count flag --workers-min must not be higher than --workers-max."
-		case IsNumWorkerNodesMissingError(err):
+		case errors.IsNumWorkerNodesMissingError(err):
 			headline = "Number of worker nodes required"
 			subtext = "When specifying worker node details, you must also specify the number of worker nodes."
-		case IsNotEnoughWorkerNodesError(err):
+		case errors.IsNotEnoughWorkerNodesError(err):
 			headline = "Not enough worker nodes specified"
 			subtext = fmt.Sprintf("You'll need at least %v worker nodes for a useful cluster.", minimumNumWorkers)
-		case IsNotEnoughCPUCoresPerWorkerError(err):
+		case errors.IsNotEnoughCPUCoresPerWorkerError(err):
 			headline = "Not enough CPUs per worker specified"
 			subtext = fmt.Sprintf("You'll need at least %v CPU cores per worker node.", minimumWorkerNumCPUs)
-		case IsNotEnoughMemoryPerWorkerError(err):
+		case errors.IsNotEnoughMemoryPerWorkerError(err):
 			headline = "Not enough Memory per worker specified"
 			subtext = fmt.Sprintf("You'll need at least %.1f GB per worker node.", minimumWorkerMemorySizeGB)
-		case IsNotEnoughStoragePerWorkerError(err):
+		case errors.IsNotEnoughStoragePerWorkerError(err):
 			headline = "Not enough Storage per worker specified"
 			subtext = fmt.Sprintf("You'll need at least %.1f GB per worker node.", minimumWorkerStorageSizeGB)
 		default:
@@ -237,36 +240,37 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 
 	result, err := addCluster(aca)
 	if err != nil {
-		handleCommonErrors(err)
+		errors.HandleCommonErrors(err)
+		client.HandleErrors(err)
 
 		var headline string
 		var subtext string
 		richError, richErrorOK := err.(*errgo.Err)
 
 		switch {
-		case IsClusterOwnerMissingError(err):
+		case errors.IsClusterOwnerMissingError(err):
 			headline = "No owner organization set"
 			subtext = "Please specify an owner organization for the cluster via the --owner flag."
 			if aca.inputYAMLFile != "" {
 				subtext = "Please specify an owner organization for the cluster in your definition file or set one via the --owner flag."
 			}
-		case IsNotEnoughWorkerNodesError(err):
+		case errors.IsNotEnoughWorkerNodesError(err):
 			headline = "Not enough worker nodes specified"
 			subtext = fmt.Sprintf("If you specify workers in your definition file, you'll have to specify at least %d worker nodes for a useful cluster.", minimumNumWorkers)
-		case IsYAMLFileNotReadableError(err):
+		case errors.IsYAMLFileNotReadableError(err):
 			headline = "Could not read YAML file"
 			subtext = fmt.Sprintf("The file '%s' could not read. Please make sure that it is valid YAML.", aca.inputYAMLFile)
-		case IsCouldNotCreateJSONRequestBodyError(err):
+		case errors.IsCouldNotCreateJSONRequestBodyError(err):
 			headline = "Could not create the JSON body for cluster creation API request"
 			subtext = "There seems to be a problem in parsing the cluster definition. Please contact Giant Swarm via Slack or via support@giantswarm.io with details on how you executes this command."
-		case IsNotAuthorizedError(err):
+		case errors.IsNotAuthorizedError(err):
 			headline = "Not authorized"
 			subtext = "No cluster has been created, as you are are not authenticated or not authorized to perform this action."
 			subtext += " Please check your credentials or, to make sure, use 'gsctl login' to log in again."
-		case IsOrganizationNotFoundError(err):
+		case errors.IsOrganizationNotFoundError(err):
 			headline = "Organization not found"
 			subtext = "The organization set to own the cluster does not exist."
-		case IsCouldNotCreateClusterError(err):
+		case errors.IsCouldNotCreateClusterError(err):
 			headline = "The cluster could not be created."
 			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
 			subtext += " Sorry for the inconvenience!"
@@ -316,52 +320,52 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 func validateCreateClusterPreConditions(args addClusterArguments) error {
 	// logged in?
 	if config.Config.Token == "" && args.token == "" {
-		return microerror.Mask(notLoggedInError)
+		return microerror.Mask(errors.NotLoggedInError)
 	}
 
 	// false flag combination?
 	if args.inputYAMLFile != "" {
 		if args.numWorkers != 0 || args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 || args.wokerAwsEc2InstanceType != "" || args.wokerAzureVMSize != "" {
-			return microerror.Mask(conflictingFlagsError)
+			return microerror.Mask(errors.ConflictingFlagsError)
 		}
 	}
 
 	// validate number of workers specified by flag
 	if args.numWorkers > 0 && (args.workersMax > 0 || args.workersMin > 0) {
-		return microerror.Mask(conflictingWorkerFlagsUsedError)
+		return microerror.Mask(errors.ConflictingWorkerFlagsUsedError)
 	}
 	if args.numWorkers > 0 && args.numWorkers < minimumNumWorkers {
-		return microerror.Mask(notEnoughWorkerNodesError)
+		return microerror.Mask(errors.NotEnoughWorkerNodesError)
 	}
 	if args.workersMax > 0 && args.workersMax < int64(minimumNumWorkers) {
-		return microerror.Mask(notEnoughWorkerNodesError)
+		return microerror.Mask(errors.NotEnoughWorkerNodesError)
 	}
 	if args.workersMin > 0 && args.workersMin < int64(minimumNumWorkers) {
-		return microerror.Mask(notEnoughWorkerNodesError)
+		return microerror.Mask(errors.NotEnoughWorkerNodesError)
 	}
 	if args.workersMin > 0 && args.workersMax > 0 && args.workersMin > args.workersMax {
-		return microerror.Mask(workersMinMaxInvalidError)
+		return microerror.Mask(errors.WorkersMinMaxInvalidError)
 	}
 
 	// validate number of CPUs specified by flag
 	if args.workerNumCPUs > 0 && args.workerNumCPUs < minimumWorkerNumCPUs {
-		return microerror.Mask(notEnoughCPUCoresPerWorkerError)
+		return microerror.Mask(errors.NotEnoughCPUCoresPerWorkerError)
 	}
 
 	// validate memory size specified by flag
 	if args.workerMemorySizeGB > 0 && args.workerMemorySizeGB < minimumWorkerMemorySizeGB {
-		return microerror.Mask(notEnoughMemoryPerWorkerError)
+		return microerror.Mask(errors.NotEnoughMemoryPerWorkerError)
 	}
 
 	// validate storage size specified by flag
 	if args.workerStorageSizeGB > 0 && args.workerStorageSizeGB < minimumWorkerStorageSizeGB {
-		return microerror.Mask(notEnoughStoragePerWorkerError)
+		return microerror.Mask(errors.NotEnoughStoragePerWorkerError)
 	}
 
 	if args.wokerAwsEc2InstanceType != "" || args.wokerAzureVMSize != "" {
 		// check for incompatibilities
 		if args.workerNumCPUs != 0 || args.workerMemorySizeGB != 0 || args.workerStorageSizeGB != 0 {
-			return microerror.Mask(incompatibleSettingsError)
+			return microerror.Mask(errors.IncompatibleSettingsError)
 		}
 	}
 
@@ -499,7 +503,7 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 		// definition from file (and optionally flags)
 		result.definition, err = readDefinitionFromFile(args.inputYAMLFile)
 		if err != nil {
-			return addClusterResult{}, microerror.Maskf(yamlFileNotReadableError, err.Error())
+			return addClusterResult{}, microerror.Maskf(errors.YAMLFileNotReadableError, err.Error())
 		}
 		result.definition = definitionFromFlags(result.definition, args)
 	} else {
@@ -509,7 +513,7 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 
 	// Validate definition
 	if result.definition.Owner == "" {
-		return addClusterResult{}, microerror.Mask(clusterOwnerMissingError)
+		return addClusterResult{}, microerror.Mask(errors.ClusterOwnerMissingError)
 	}
 
 	// Validations based on definition file.
@@ -517,7 +521,7 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 	if args.inputYAMLFile != "" {
 		// number of workers
 		if len(result.definition.Workers) > 0 && len(result.definition.Workers) < minimumNumWorkers {
-			return addClusterResult{}, microerror.Mask(notEnoughWorkerNodesError)
+			return addClusterResult{}, microerror.Mask(errors.NotEnoughWorkerNodesError)
 		}
 	}
 
@@ -525,7 +529,7 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 	addClusterBody := createAddClusterBody(result.definition)
 	_, marshalErr := json.Marshal(addClusterBody)
 	if marshalErr != nil {
-		return result, microerror.Maskf(couldNotCreateJSONRequestBodyError, marshalErr.Error())
+		return result, microerror.Maskf(errors.CouldNotCreateJSONRequestBodyError, marshalErr.Error())
 	}
 
 	// Preview in YAML format

@@ -9,6 +9,8 @@ import (
 	"github.com/Jeffail/gabs"
 
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 // TestScaleClusterNotLoggedIn tests if we can prevent an attempt to do things
@@ -30,12 +32,12 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 		clusterID:   "cluster-id",
 	}
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	err := validateScaleCluster(testArgs, []string{testArgs.clusterID}, 5, 5, 5)
-	if !IsNotLoggedInError(err) {
-		t.Error("Expected notLoggedInError, got", err)
+	if !errors.IsNotLoggedInError(err) {
+		t.Error("Expected NotLoggedInError, got", err)
 	}
 
 }
@@ -140,8 +142,8 @@ func TestScaleCluster(t *testing.T) {
 	}
 	config.Config.Token = "my-token"
 
-	cmdAPIEndpoint = mockServer.URL
-	initClient()
+	flags.CmdAPIEndpoint = mockServer.URL
+	InitClient()
 
 	err := validateScaleCluster(testArgs, []string{testArgs.clusterID}, 3, 3, 3)
 	if err != nil {

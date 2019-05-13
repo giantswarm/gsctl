@@ -12,8 +12,11 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -40,9 +43,9 @@ type listClustersArguments struct {
 }
 
 func defaultListClustersArguments() listClustersArguments {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return listClustersArguments{
 		apiEndpoint: endpoint,
@@ -63,15 +66,15 @@ func listClusterPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		return
 	}
 
-	handleCommonErrors(err)
+	errors.HandleCommonErrors(err)
 }
 
 func verifyListClusterPreconditions(args listClustersArguments) error {
 	if config.Config.Token == "" && args.authToken == "" {
-		return microerror.Mask(notLoggedInError)
+		return microerror.Mask(errors.NotLoggedInError)
 	}
 	if args.apiEndpoint == "" {
-		return microerror.Mask(endpointMissingError)
+		return microerror.Mask(errors.EndpointMissingError)
 	}
 
 	return nil
@@ -83,7 +86,8 @@ func listClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	output, err := clustersTable(args)
 	if err != nil {
-		handleCommonErrors(err)
+		errors.HandleCommonErrors(err)
+		client.HandleErrors(err)
 
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			fmt.Println(color.RedString(clientErr.ErrorMessage))
@@ -111,9 +115,9 @@ func clustersTable(args listClustersArguments) (string, error) {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			switch clientErr.HTTPStatusCode {
 			case http.StatusUnauthorized:
-				return "", microerror.Mask(notAuthorizedError)
+				return "", microerror.Mask(errors.NotAuthorizedError)
 			case http.StatusForbidden:
-				return "", microerror.Mask(accessForbiddenError)
+				return "", microerror.Mask(errors.AccessForbiddenError)
 			}
 		}
 
