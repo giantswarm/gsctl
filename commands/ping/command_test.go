@@ -1,11 +1,28 @@
-package commands
+package ping
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/giantswarm/gsctl/flags"
 )
+
+func Test_Command_Execution(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`OK`))
+	}))
+	defer mockServer.Close()
+
+	flags.CmdAPIEndpoint = mockServer.URL
+
+	err := Command.Execute()
+	if err != nil {
+		t.Errorf("Unexpected error %s\n", err.Error())
+	}
+}
 
 func Test_Ping(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -1,4 +1,5 @@
-package commands
+// Packe ping implements the ping command.
+package ping
 
 import (
 	"crypto/tls"
@@ -19,22 +20,18 @@ import (
 )
 
 var (
-	// PingCommand is the "ping" CLI command
-	PingCommand = &cobra.Command{
+	// Command is the "ping" CLI command
+	Command = &cobra.Command{
 		Use:   "ping",
 		Short: "Check API connection",
 		Long:  `Tests the connection to the API`,
-		Run:   runPingCommand,
+		Run:   runCommand,
 	}
 )
 
-func init() {
-	RootCommand.AddCommand(PingCommand)
-}
-
-// runPingCommand executes the ping() function
+// runCommand executes the ping() function
 // and prints output in a user-friendly way
-func runPingCommand(cmd *cobra.Command, args []string) {
+func runCommand(cmd *cobra.Command, args []string) {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 
 	duration, err := ping(endpoint)
