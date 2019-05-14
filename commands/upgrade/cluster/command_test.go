@@ -1,4 +1,4 @@
-package commands
+package cluster
 
 import (
 	"io/ioutil"
@@ -133,7 +133,6 @@ func TestUpgradeCluster(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = testArgs.apiEndpoint
-	InitClient()
 
 	results, upgradeErr := upgradeCluster(testArgs)
 	if upgradeErr != nil {

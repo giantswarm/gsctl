@@ -1,4 +1,4 @@
-package commands
+package cluster
 
 import (
 	"fmt"
@@ -26,8 +26,8 @@ const (
 )
 
 var (
-	// UpgradeClusterCommand performs the "upgrade cluster" function
-	UpgradeClusterCommand = &cobra.Command{
+	// Command performs the "upgrade cluster" function
+	Command = &cobra.Command{
 		Use:   "cluster",
 		Short: "Upgrades a cluster to a newer release version",
 		Long: fmt.Sprintf(`Upgrades a cluster to a newer release version.
@@ -98,9 +98,7 @@ type upgradeClusterResult struct {
 
 // Here we populate our cobra command
 func init() {
-	UpgradeClusterCommand.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
-
-	UpgradeCommand.AddCommand(UpgradeClusterCommand)
+	Command.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
 }
 
 // Prints results of our pre-validation
@@ -201,14 +199,19 @@ func upgradeClusterExecutionOutput(cmd *cobra.Command, cmdLineArgs []string) {
 // configures it, configures an API request and performs it.
 func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) {
 	result := upgradeClusterResult{}
-
 	var details *models.V4ClusterDetailsResponse
-	auxParams := ClientV2.DefaultAuxiliaryParams()
+
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	if err != nil {
+		return result, microerror.Mask(err)
+	}
+
+	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = upgradeClusterActivityName
 
 	// fetch current cluster details
 	{
-		response, err := ClientV2.GetCluster(args.clusterID, auxParams)
+		response, err := clientV2.GetCluster(args.clusterID, auxParams)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}
@@ -216,7 +219,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 		details = response.Payload
 	}
 
-	releasesResponse, err := ClientV2.GetReleases(auxParams)
+	releasesResponse, err := clientV2.GetReleases(auxParams)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
@@ -292,7 +295,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	}
 
 	// perform API call
-	_, err = ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
+	_, err = clientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
 	if err != nil {
 		return result, microerror.Maskf(errors.CouldNotUpgradeClusterError, err.Error())
 	}
