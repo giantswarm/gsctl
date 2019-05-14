@@ -1,4 +1,4 @@
-package commands
+package version
 
 import (
 	"fmt"
@@ -27,8 +27,8 @@ const (
 )
 
 var (
-	// VersionCommand is the "version" go command
-	VersionCommand = &cobra.Command{
+	// Command is the "version" go command
+	Command = &cobra.Command{
 		Use:   "version",
 		Short: "Print version number",
 		Long: `Prints the gsctl version number.
@@ -37,10 +37,6 @@ When executed with the -v/--verbose flag, the build date is printed in addition.
 		Run: printVersion,
 	}
 )
-
-func init() {
-	RootCommand.AddCommand(VersionCommand)
-}
 
 // printInfo prints some information on the current user and configuration
 func printVersion(cmd *cobra.Command, args []string) {
