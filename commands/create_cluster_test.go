@@ -7,10 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/giantswarm/gsctl/commands/errors"
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/microerror"
 	yaml "gopkg.in/yaml.v2"
+
+	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 // TestReadFiles tests the readDefinitionFromFile with all
