@@ -1,4 +1,5 @@
-package commands
+// Package logout implements the logout command.
+package logout
 
 import (
 	"fmt"
@@ -21,15 +22,15 @@ const (
 )
 
 var (
-	// LogoutCommand performs a logout
-	LogoutCommand = &cobra.Command{
+	// Command performs a logout
+	Command = &cobra.Command{
 		Use:   "logout",
 		Short: "Sign the current user out",
 		Long: `Terminates the user's session with the current endpoint and invalidates the authentication token.
 
 If an endpoint was selected before, it remains selected. Re-login using 'gsctl login <email>'.`,
-		PreRun: logoutValidationOutput,
-		Run:    logoutOutput,
+		PreRun: printValidation,
+		Run:    printResult,
 	}
 )
 
@@ -50,19 +51,15 @@ func defaultLogoutArguments() logoutArguments {
 	}
 }
 
-func init() {
-	RootCommand.AddCommand(LogoutCommand)
-}
-
-func logoutValidationOutput(cmd *cobra.Command, args []string) {
+func printValidation(cmd *cobra.Command, args []string) {
 	if config.Config.Token == "" && flags.CmdToken == "" {
 		fmt.Println("You weren't logged in here, but better be safe than sorry.")
 		os.Exit(1)
 	}
 }
 
-// logoutOutput performs our logout function and displays the result.
-func logoutOutput(cmd *cobra.Command, extraArgs []string) {
+// printResult performs our logout function and displays the result.
+func printResult(cmd *cobra.Command, extraArgs []string) {
 	logoutArgs := defaultLogoutArguments()
 
 	err := logout(logoutArgs)
@@ -99,9 +96,14 @@ func logout(args logoutArguments) error {
 		return nil
 	}
 
-	ap := ClientV2.DefaultAuxiliaryParams()
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	ap := clientV2.DefaultAuxiliaryParams()
 	ap.ActivityName = logoutActivityName
 
-	_, err := ClientV2.DeleteAuthToken(args.token, ap)
+	_, err = clientV2.DeleteAuthToken(args.token, ap)
 	return microerror.Mask(err)
 }

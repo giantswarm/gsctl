@@ -1,4 +1,4 @@
-package commands
+package logout
 
 import (
 	"net/http"
@@ -34,7 +34,6 @@ func Test_LogoutValidToken(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	err = logout(logoutArgs)
 	if err != nil {
@@ -63,7 +62,6 @@ func Test_LogoutInvalidToken(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	err = logout(logoutArgs)
 
@@ -93,8 +91,6 @@ func Test_LogoutCommand(t *testing.T) {
 
 	flags.CmdAPIEndpoint = mockServer.URL
 	flags.CmdToken = "some-token"
-	InitClient()
 
-	logoutValidationOutput(LogoutCommand, []string{})
-	logoutOutput(LogoutCommand, []string{})
+	Command.Execute()
 }
