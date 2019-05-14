@@ -1,4 +1,5 @@
-package commands
+// Package cluster implements the 'scale cluster' command.
+package cluster
 
 import (
 	"context"
@@ -22,8 +23,8 @@ import (
 )
 
 var (
-	// ScaleClusterCommand performs the "delete cluster" function
-	ScaleClusterCommand = &cobra.Command{
+	// Command performs the "delete cluster" function
+	Command = &cobra.Command{
 		Use:   "cluster",
 		Short: "Scale cluster",
 		Long: `Increase or reduce the number of worker nodes in a cluster.
@@ -76,20 +77,18 @@ type scaleClusterArguments struct {
 }
 
 func init() {
-	ScaleClusterCommand.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, no confirmation is required.")
-	ScaleClusterCommand.Flags().Int64VarP(&flags.CmdWorkersMax, cmdWorkersMaxName, "", 0, "Maximum number of worker nodes to have after scaling.")
-	ScaleClusterCommand.Flags().Int64VarP(&flags.CmdWorkersMin, cmdWorkersMinName, "", 0, "Minimum number of worker nodes to have after scaling.")
-	ScaleClusterCommand.Flags().IntVarP(&flags.CmdNumWorkers, cmdWorkersNumName, "w", 0, "Shorthand to set --workers-min and --workers-max to the same value.")
+	Command.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, no confirmation is required.")
+	Command.Flags().Int64VarP(&flags.CmdWorkersMax, cmdWorkersMaxName, "", 0, "Maximum number of worker nodes to have after scaling.")
+	Command.Flags().Int64VarP(&flags.CmdWorkersMin, cmdWorkersMinName, "", 0, "Minimum number of worker nodes to have after scaling.")
+	Command.Flags().IntVarP(&flags.CmdNumWorkers, cmdWorkersNumName, "w", 0, "Shorthand to set --workers-min and --workers-max to the same value.")
 
 	// deprecated
-	ScaleClusterCommand.Flags().Float32VarP(&flags.CmdWorkerStorageSizeGB, cmdWorkerStorageSizeGBName, "", 0, "Local storage size per added worker node.")
-	ScaleClusterCommand.Flags().IntVarP(&flags.CmdWorkerNumCPUs, cmdWorkerNumCPUsName, "", 0, "Number of CPU cores per added worker node.")
-	ScaleClusterCommand.Flags().Float32VarP(&flags.CmdWorkerMemorySizeGB, cmdWorkerMemorySizeGBName, "", 0, "RAM per added worker node.")
-	ScaleClusterCommand.Flags().MarkDeprecated(cmdWorkerMemorySizeGBName, "Changing the amount of Memory is no longer supported while scaling.")
-	ScaleClusterCommand.Flags().MarkDeprecated(cmdWorkerNumCPUsName, "Changing the number of CPUs is no longer supported while scaling.")
-	ScaleClusterCommand.Flags().MarkDeprecated(cmdWorkerStorageSizeGBName, "Changing the amount of Storage is no longer supported while scaling.")
-
-	ScaleCommand.AddCommand(ScaleClusterCommand)
+	Command.Flags().Float32VarP(&flags.CmdWorkerStorageSizeGB, cmdWorkerStorageSizeGBName, "", 0, "Local storage size per added worker node.")
+	Command.Flags().IntVarP(&flags.CmdWorkerNumCPUs, cmdWorkerNumCPUsName, "", 0, "Number of CPU cores per added worker node.")
+	Command.Flags().Float32VarP(&flags.CmdWorkerMemorySizeGB, cmdWorkerMemorySizeGBName, "", 0, "RAM per added worker node.")
+	Command.Flags().MarkDeprecated(cmdWorkerMemorySizeGBName, "Changing the amount of Memory is no longer supported while scaling.")
+	Command.Flags().MarkDeprecated(cmdWorkerNumCPUsName, "Changing the number of CPUs is no longer supported while scaling.")
+	Command.Flags().MarkDeprecated(cmdWorkerStorageSizeGBName, "Changing the amount of Storage is no longer supported while scaling.")
 }
 
 // confirmScaleCluster asks the user for confirmation for scaling actions.
@@ -179,11 +178,16 @@ func isAutoscalingEnabled(version string) (bool, error) {
 
 // getClusterStatus returns the status for one cluster.
 func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, error) {
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
 	// perform API call
-	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	status, err := ClientV2.GetClusterStatus(clusterID, auxParams)
+	status, err := clientV2.GetClusterStatus(clusterID, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -206,10 +210,15 @@ func scaleCluster(args scaleClusterArguments) (*models.V4ClusterDetailsResponse,
 		fmt.Println("Sending API request to modify cluster")
 	}
 
-	auxParams := ClientV2.DefaultAuxiliaryParams()
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = scaleClusterActivityName
 
-	response, err := ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
+	response, err := clientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -230,10 +239,16 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	var currentWorkers int64
 	var releaseVersion string
 	{
-		auxParams := ClientV2.DefaultAuxiliaryParams()
+		clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+		if err != nil {
+			fmt.Println(color.RedString(err.Error()))
+			os.Exit(1)
+		}
+
+		auxParams := clientV2.DefaultAuxiliaryParams()
 		auxParams.ActivityName = scaleClusterActivityName
 
-		response, err := ClientV2.GetCluster(clusterID, auxParams)
+		response, err := clientV2.GetCluster(clusterID, auxParams)
 		if err != nil {
 			errors.HandleCommonErrors(err)
 			client.HandleErrors(err)

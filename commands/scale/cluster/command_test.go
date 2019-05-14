@@ -1,4 +1,4 @@
-package commands
+package cluster
 
 import (
 	"io/ioutil"
@@ -33,7 +33,6 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	err := validateScaleCluster(testArgs, []string{testArgs.clusterID}, 5, 5, 5)
 	if !errors.IsNotLoggedInError(err) {
@@ -143,7 +142,6 @@ func TestScaleCluster(t *testing.T) {
 	config.Config.Token = "my-token"
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	err := validateScaleCluster(testArgs, []string{testArgs.clusterID}, 3, 3, 3)
 	if err != nil {

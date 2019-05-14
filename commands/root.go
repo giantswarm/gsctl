@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/list"
 	"github.com/giantswarm/gsctl/commands/login"
 	"github.com/giantswarm/gsctl/commands/logout"
+	"github.com/giantswarm/gsctl/commands/scale"
 	"github.com/giantswarm/gsctl/commands/show"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
@@ -51,6 +52,7 @@ func init() {
 	RootCommand.AddCommand(list.Command)
 	RootCommand.AddCommand(login.Command)
 	RootCommand.AddCommand(logout.Command)
+	RootCommand.AddCommand(scale.Command)
 	RootCommand.AddCommand(show.Command)
 }
 
