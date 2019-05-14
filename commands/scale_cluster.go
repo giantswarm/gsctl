@@ -14,7 +14,7 @@ import (
 	"github.com/giantswarm/gsctl/cmd/cluster/scale/defaulting"
 	"github.com/giantswarm/gsctl/cmd/cluster/scale/request"
 	"github.com/giantswarm/gsctl/config"
-	"github.com/giantswarm/gsctl/errors"
+	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/util"
 )

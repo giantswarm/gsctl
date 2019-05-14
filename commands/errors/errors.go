@@ -1,4 +1,5 @@
-// Package errors definescCommon errors and matcher functions.
+// Package errors defines errors that can occur in command/input validation and
+// execution and ways to handle those.
 package errors
 
 import (
