@@ -1,4 +1,4 @@
-package commands
+package clusters
 
 import (
 	"math/rand"
@@ -65,7 +65,6 @@ func Test_ListClusters(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	err := verifyListClusterPreconditions(args)
 	if err != nil {
@@ -95,7 +94,6 @@ func Test_ListClustersEmpty(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	err := verifyListClusterPreconditions(args)
 	if err != nil {
@@ -127,7 +125,6 @@ func Test_ListClustersUnauthorized(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	err := verifyListClusterPreconditions(args)
 	if err != nil {

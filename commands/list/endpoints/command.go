@@ -1,4 +1,5 @@
-package commands
+// Package endpoints implements the 'list endpoints' sub-command.
+package endpoints
 
 import (
 	"fmt"
@@ -22,8 +23,8 @@ type listEndpointsArguments struct {
 }
 
 var (
-	// ListEndpointsCommand performs the "list endpoints" function
-	ListEndpointsCommand = &cobra.Command{
+	// Command performs the "list endpoints" function
+	Command = &cobra.Command{
 		Use:     "endpoints",
 		Aliases: []string{"endpoint"},
 		Short:   "List API endpoints",
@@ -31,10 +32,6 @@ var (
 		Run:     listEndpoints,
 	}
 )
-
-func init() {
-	ListCommand.AddCommand(ListEndpointsCommand)
-}
 
 // defaultListEndpointArgs returns listEndpointsArguments
 // with settings loaded from flags etc.

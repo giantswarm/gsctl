@@ -1,4 +1,5 @@
-package commands
+// Package keypairs implements the 'list keypairs' sub-command.
+package keypairs
 
 import (
 	"fmt"
@@ -28,13 +29,13 @@ const (
 
 var (
 
-	// ListKeypairsCommand performs the "list keypairs" function
-	ListKeypairsCommand = &cobra.Command{
+	// Command performs the "list keypairs" function
+	Command = &cobra.Command{
 		Use:    "keypairs",
 		Short:  "List key pairs for a cluster",
 		Long:   `Prints a list of key pairs for a cluster`,
-		PreRun: listKeypairsValidationOutput,
-		Run:    listKeypairsOutput,
+		PreRun: printValidation,
+		Run:    printResult,
 	}
 )
 
@@ -70,16 +71,15 @@ type listKeypairsResult struct {
 }
 
 func init() {
-	ListKeypairsCommand.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster to list key pairs for")
-	ListKeypairsCommand.Flags().BoolVarP(&flags.CmdFull, "full", "", false, "Enables output of full, untruncated values")
+	Command.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster to list key pairs for")
+	Command.Flags().BoolVarP(&flags.CmdFull, "full", "", false, "Enables output of full, untruncated values")
 
-	ListKeypairsCommand.MarkFlagRequired("cluster")
-	ListCommand.AddCommand(ListKeypairsCommand)
+	Command.MarkFlagRequired("cluster")
 }
 
-// listKeypairsValidationOutput does our pre-checks and shows errors, in case
+// printValidation does our pre-checks and shows errors, in case
 // something is missing.
-func listKeypairsValidationOutput(cmd *cobra.Command, extraArgs []string) {
+func printValidation(cmd *cobra.Command, extraArgs []string) {
 	args := defaultListKeypairsArguments()
 	err := listKeypairsValidate(&args)
 	if err != nil {
@@ -99,9 +99,15 @@ func listKeypairsValidate(args *listKeypairsArguments) error {
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
+
+	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
 	if args.clusterID == "" {
 		// use default cluster if possible
-		clusterID, _ := ClientV2.GetDefaultCluster(nil)
+		clusterID, _ := clientV2.GetDefaultCluster(nil)
 		if clusterID != "" {
 			flags.CmdClusterID = clusterID
 		} else {
@@ -112,9 +118,9 @@ func listKeypairsValidate(args *listKeypairsArguments) error {
 	return nil
 }
 
-// listKeypairsOutput is the function called to list keypairs and display
+// printResult is the function called to list keypairs and display
 // errors in case they happen
-func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
+func printResult(cmd *cobra.Command, extraArgs []string) {
 	args := defaultListKeypairsArguments()
 	result, err := listKeypairs(args)
 
@@ -188,10 +194,15 @@ func listKeypairsOutput(cmd *cobra.Command, extraArgs []string) {
 func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
 	result := listKeypairsResult{}
 
-	auxParams := ClientV2.DefaultAuxiliaryParams()
+	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	if err != nil {
+		return result, microerror.Mask(err)
+	}
+
+	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = listKeypairsActivityName
 
-	response, err := ClientV2.GetKeyPairs(args.clusterID, auxParams)
+	response, err := clientV2.GetKeyPairs(args.clusterID, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode >= http.StatusInternalServerError {

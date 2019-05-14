@@ -1,4 +1,4 @@
-package commands
+package organizations
 
 import (
 	"net/http"
@@ -42,14 +42,13 @@ func Test_ListOrganizationsSuccess(t *testing.T) {
 			authToken:   "some-token",
 			apiEndpoint: orgsMockServer.URL,
 		}
-		InitClient()
 
 		err := verifyListOrgsPreconditions(args)
 		if err != nil {
 			t.Errorf("Table test case %d: Unexpected error in verifyListOrgsPreconditions: %#v", i, err)
 		}
 
-		_, err = orgsTable()
+		_, err = orgsTable(args)
 		if err != nil {
 			t.Errorf("Table test case %d: Unexpected error in orgsTable: %#v", i, err)
 		}

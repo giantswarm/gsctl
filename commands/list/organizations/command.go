@@ -1,4 +1,5 @@
-package commands
+// Package organizations implements the 'list organizations' sub-command.
+package organizations
 
 import (
 	"fmt"
@@ -18,14 +19,14 @@ import (
 )
 
 var (
-	// ListOrgsCommand performs the "list organizations" function
-	ListOrgsCommand = &cobra.Command{
+	// Command performs the "list organizations" function
+	Command = &cobra.Command{
 		Use:     "organizations",
 		Aliases: []string{"orgs", "organisations"},
 		Short:   "List organizations",
 		Long:    `Prints a list of the organizations you are a member of`,
-		PreRun:  listOrgsPreRunOutput,
-		Run:     listOrgsRunOutput,
+		PreRun:  printValidation,
+		Run:     printResult,
 	}
 )
 
@@ -52,11 +53,7 @@ func defaultListOrgsArguments() listOrgsArguments {
 	}
 }
 
-func init() {
-	ListCommand.AddCommand(ListOrgsCommand)
-}
-
-func listOrgsPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultListOrgsArguments()
 	err := verifyListOrgsPreconditions(args)
 	if err == nil {
@@ -73,13 +70,14 @@ func verifyListOrgsPreconditions(args listOrgsArguments) error {
 	return nil
 }
 
-// listOrgsRunOutput fetches a list organizations the user is member of
+// printResult fetches a list organizations the user is member of
 // and prints it in tabular form, or prints errors of they occur.
 //
 // TODO: Refactor so that this function calls the client, receives structured
 // data which can be tested, and creates user-friendly output.
-func listOrgsRunOutput(cmd *cobra.Command, args []string) {
-	output, err := orgsTable()
+func printResult(cmd *cobra.Command, extraArgs []string) {
+	args := defaultListOrgsArguments()
+	output, err := orgsTable(args)
 	if err != nil {
 		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
@@ -94,16 +92,22 @@ func listOrgsRunOutput(cmd *cobra.Command, args []string) {
 		}
 		os.Exit(1)
 	}
+
 	fmt.Print(output)
 }
 
 // orgsTable fetches the organizations the user is a member of
 // and returns a table in string form.
-func orgsTable() (string, error) {
-	auxParams := ClientV2.DefaultAuxiliaryParams()
+func orgsTable(args listOrgsArguments) (string, error) {
+	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = listOrgsActivityName
 
-	response, err := ClientV2.GetOrganizations(auxParams)
+	response, err := clientV2.GetOrganizations(auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusUnauthorized {

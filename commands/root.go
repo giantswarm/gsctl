@@ -8,6 +8,7 @@ import (
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/create"
 	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/commands/list"
 	"github.com/giantswarm/gsctl/commands/show"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
@@ -40,8 +41,9 @@ func init() {
 	RootCommand.PersistentFlags().BoolVarP(&flags.CmdVerbose, "verbose", "v", false, "Print more information")
 
 	// add subcommands
-	RootCommand.AddCommand(show.ShowCommand)
+	RootCommand.AddCommand(show.Command)
 	RootCommand.AddCommand(create.Command)
+	RootCommand.AddCommand(list.Command)
 }
 
 // initConfig calls the config.Initialize() function

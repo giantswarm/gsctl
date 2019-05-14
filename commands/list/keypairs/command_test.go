@@ -1,4 +1,4 @@
-package commands
+package keypairs
 
 import (
 	"net/http"
@@ -24,7 +24,6 @@ func Test_ListKeypairs_NotLoggedIn(t *testing.T) {
 	args := listKeypairsArguments{}
 
 	flags.CmdAPIEndpoint = ""
-	InitClient()
 
 	err = listKeypairsValidate(&args)
 	if err == nil {
@@ -56,7 +55,6 @@ func Test_ListKeypairs_Empty(t *testing.T) {
 	args.clusterID = "my-cluster"
 
 	flags.CmdAPIEndpoint = keyPairsMockServer.URL
-	InitClient()
 
 	err = listKeypairsValidate(&args)
 	if err != nil {
@@ -94,7 +92,6 @@ func Test_ListKeypairs_NotFound(t *testing.T) {
 	args.clusterID = "unknown-cluster"
 
 	flags.CmdAPIEndpoint = keyPairsMockServer.URL
-	InitClient()
 
 	err = listKeypairsValidate(&args)
 	if err != nil {
@@ -146,7 +143,6 @@ func Test_ListKeyPairs_Nonempty(t *testing.T) {
 	args.clusterID = "my-cluster"
 
 	flags.CmdAPIEndpoint = keyPairsMockServer.URL
-	InitClient()
 
 	err = listKeypairsValidate(&args)
 	if err != nil {

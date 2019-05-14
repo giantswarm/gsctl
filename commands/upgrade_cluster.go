@@ -202,12 +202,12 @@ func upgradeClusterExecutionOutput(cmd *cobra.Command, cmdLineArgs []string) {
 func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) {
 	result := upgradeClusterResult{}
 
-	// fetch current cluster details
 	var details *models.V4ClusterDetailsResponse
-	{
-		auxParams := ClientV2.DefaultAuxiliaryParams()
-		auxParams.ActivityName = upgradeClusterActivityName
+	auxParams := ClientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = upgradeClusterActivityName
 
+	// fetch current cluster details
+	{
 		response, err := ClientV2.GetCluster(args.clusterID, auxParams)
 		if err != nil {
 			return result, microerror.Mask(err)
@@ -216,17 +216,13 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 		details = response.Payload
 	}
 
-	listReleasesArgs := listReleasesArguments{
-		apiEndpoint: args.apiEndpoint,
-		token:       args.authToken,
-	}
-	releasesResult, releasesErr := listReleases(listReleasesArgs)
-	if releasesErr != nil {
-		return result, microerror.Mask(releasesErr)
+	releasesResponse, err := ClientV2.GetReleases(auxParams)
+	if err != nil {
+		return result, microerror.Mask(err)
 	}
 
 	releaseVersions := []string{}
-	for _, r := range releasesResult {
+	for _, r := range releasesResponse.Payload {
 		// filter out non-active releases
 		if !r.Active {
 			continue
@@ -242,7 +238,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	}
 
 	var targetRelease models.V4ReleaseListItem
-	for _, rel := range releasesResult {
+	for _, rel := range releasesResponse.Payload {
 		if *rel.Version == targetVersion {
 			targetRelease = *rel
 		}
@@ -296,9 +292,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	}
 
 	// perform API call
-	auxParams := ClientV2.DefaultAuxiliaryParams()
-	auxParams.ActivityName = upgradeClusterActivityName
-	_, err := ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
+	_, err = ClientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
 	if err != nil {
 		return result, microerror.Maskf(errors.CouldNotUpgradeClusterError, err.Error())
 	}

@@ -1,4 +1,5 @@
-package commands
+// Package releases implements the 'list releases' sub-command.
+package releases
 
 import (
 	"fmt"
@@ -28,15 +29,15 @@ const (
 
 var (
 
-	// ListReleasesCommand performs the "list releases" function
-	ListReleasesCommand = &cobra.Command{
+	// Command performs the "list releases" function
+	Command = &cobra.Command{
 		Use:   "releases",
 		Short: "List releases to be used with clusters",
 		Long: `Prints detail on all available releases.
 
 A release is a software bundle that constitutes a cluster. It is identified by its semantic version number.`,
-		PreRun: listReleasesPreRunOutput,
-		Run:    listReleasesRunOutput,
+		PreRun: printValidation,
+		Run:    printResult,
 	}
 )
 
@@ -62,13 +63,9 @@ func defaultListReleasesArguments() listReleasesArguments {
 	}
 }
 
-func init() {
-	ListCommand.AddCommand(ListReleasesCommand)
-}
-
-// listReleasesPreRunOutput does our pre-checks and shows errors, in case
+// printValidation does our pre-checks and shows errors, in case
 // something is missing.
-func listReleasesPreRunOutput(cmd *cobra.Command, extraArgs []string) {
+func printValidation(cmd *cobra.Command, extraArgs []string) {
 	args := defaultListReleasesArguments()
 	err := listReleasesPreconditions(&args)
 
@@ -92,9 +89,9 @@ func listReleasesPreconditions(args *listReleasesArguments) error {
 	return nil
 }
 
-// listReleasesRunOutput is the function called to list releases and display
+// printResult is the function called to list releases and display
 // errors in case they happen
-func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
+func printResult(cmd *cobra.Command, extraArgs []string) {
 	args := defaultListReleasesArguments()
 	releases, err := listReleases(args)
 
@@ -216,10 +213,15 @@ func listReleasesRunOutput(cmd *cobra.Command, extraArgs []string) {
 
 // listReleases fetches releases and returns them as a structured result.
 func listReleases(args listReleasesArguments) ([]*models.V4ReleaseListItem, error) {
-	auxParams := ClientV2.DefaultAuxiliaryParams()
+	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = listReleasesActivityName
 
-	response, err := ClientV2.GetReleases(auxParams)
+	response, err := clientV2.GetReleases(auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {

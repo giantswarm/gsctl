@@ -1,4 +1,4 @@
-package commands
+package releases
 
 import (
 	"net/http"
@@ -34,7 +34,6 @@ func Test_ListReleases_Empty(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = releasesMockServer.URL
-	InitClient()
 
 	err = listReleasesPreconditions(&args)
 	if err != nil {
@@ -197,7 +196,6 @@ func Test_ListReleases_Nonempty(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = releasesMockServer.URL
-	InitClient()
 
 	err = listReleasesPreconditions(&args)
 	if err != nil {

@@ -1,4 +1,5 @@
-package commands
+// Package clusters implements the 'list clusters'  sub-command.
+package clusters
 
 import (
 	"fmt"
@@ -21,14 +22,14 @@ import (
 )
 
 var (
-	// ListClustersCommand performs the "list clusters" function
-	ListClustersCommand = &cobra.Command{
+	// Command performs the "list clusters" function
+	Command = &cobra.Command{
 		Use:     "clusters",
 		Aliases: []string{"cluster"},
 		Short:   "List clusters",
 		Long:    `Prints a list of all clusters you have access to`,
-		PreRun:  listClusterPreRunOutput,
-		Run:     listClusterRunOutput,
+		PreRun:  printValidation,
+		Run:     printResult,
 	}
 )
 
@@ -54,11 +55,7 @@ func defaultListClustersArguments() listClustersArguments {
 	}
 }
 
-func init() {
-	ListCommand.AddCommand(ListClustersCommand)
-}
-
-func listClusterPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultListClustersArguments()
 	err := verifyListClusterPreconditions(args)
 
@@ -81,7 +78,7 @@ func verifyListClusterPreconditions(args listClustersArguments) error {
 }
 
 // listClusters prints a table with all clusters the user has access to
-func listClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultListClustersArguments()
 
 	output, err := clustersTable(args)
@@ -107,10 +104,15 @@ func listClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 // clustersTable returns a table of clusters the user has access to
 func clustersTable(args listClustersArguments) (string, error) {
-	auxParams := ClientV2.DefaultAuxiliaryParams()
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = listClustersActivityName
 
-	response, err := ClientV2.GetClusters(auxParams)
+	response, err := clientV2.GetClusters(auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			switch clientErr.HTTPStatusCode {
