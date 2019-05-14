@@ -32,7 +32,7 @@ selected_endpoint: https://other.endpoint`
 	}
 	defer os.RemoveAll(dir)
 
-	printInfo(InfoCommand, []string{})
+	InfoCommand.Execute()
 }
 
 // Test_PrintInfoVerbose simply executes the printInfo function with verbose=true
@@ -59,7 +59,8 @@ selected_endpoint: https://other.endpoint`
 	defer os.RemoveAll(dir)
 
 	flags.CmdVerbose = true
-	printInfo(InfoCommand, []string{})
+	InfoCommand.SetArgs([]string{"--verbose"})
+	InfoCommand.Execute()
 }
 
 // Test_InfoWithTempDirAndToken tests the info() function with a custom
