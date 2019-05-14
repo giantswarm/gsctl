@@ -7,6 +7,7 @@ import (
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/create"
+	deletecmd "github.com/giantswarm/gsctl/commands/delete"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/list"
 	"github.com/giantswarm/gsctl/commands/show"
@@ -44,6 +45,7 @@ func init() {
 	RootCommand.AddCommand(show.Command)
 	RootCommand.AddCommand(create.Command)
 	RootCommand.AddCommand(list.Command)
+	RootCommand.AddCommand(deletecmd.Command)
 }
 
 // initConfig calls the config.Initialize() function

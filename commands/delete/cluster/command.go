@@ -1,4 +1,5 @@
-package commands
+// Package cluster implements the 'delete cluster' sub-command.
+package cluster
 
 import (
 	"fmt"
@@ -60,8 +61,8 @@ const (
 )
 
 var (
-	// DeleteClusterCommand performs the "delete cluster" function
-	DeleteClusterCommand = &cobra.Command{
+	// Command performs the "delete cluster" function
+	Command = &cobra.Command{
 		Use:   "cluster",
 		Short: "Delete cluster",
 		Long: `Deletes a Kubernetes cluster.
@@ -72,24 +73,22 @@ worker nodes will be lost. There is no way to undo this.
 Example:
 
 	gsctl delete cluster c7t2o`,
-		PreRun: deleteClusterValidationOutput,
-		Run:    deleteClusterExecutionOutput,
+		PreRun: printValidation,
+		Run:    printResult,
 	}
 )
 
 func init() {
-	DeleteClusterCommand.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster to delete")
-	DeleteClusterCommand.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
+	Command.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster to delete")
+	Command.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
 
-	DeleteClusterCommand.Flags().MarkDeprecated("cluster", "You no longer need to pass the cluster ID with -c/--cluster. Use --help for details.")
-
-	DeleteCommand.AddCommand(DeleteClusterCommand)
+	Command.Flags().MarkDeprecated("cluster", "You no longer need to pass the cluster ID with -c/--cluster. Use --help for details.")
 }
 
-// deleteClusterValidationOutput runs our pre-checks.
+// printValidation runs our pre-checks.
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
-func deleteClusterValidationOutput(cmd *cobra.Command, args []string) {
+func printValidation(cmd *cobra.Command, args []string) {
 	dca := defaultDeleteClusterArguments(args)
 
 	err := validateDeleteClusterPreConditions(dca)
@@ -139,7 +138,7 @@ func validateDeleteClusterPreConditions(args deleteClusterArguments) error {
 }
 
 // interprets arguments/flags, eventually submits delete request
-func deleteClusterExecutionOutput(cmd *cobra.Command, args []string) {
+func printResult(cmd *cobra.Command, args []string) {
 	dca := defaultDeleteClusterArguments(args)
 	deleted, err := deleteCluster(dca)
 	if err != nil {
@@ -199,11 +198,16 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		}
 	}
 
-	auxParams := ClientV2.DefaultAuxiliaryParams()
+	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	if err != nil {
+		return false, microerror.Mask(err)
+	}
+
+	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = deleteClusterActivityName
 
 	// perform API call
-	_, err := ClientV2.DeleteCluster(clusterID, auxParams)
+	_, err = clientV2.DeleteCluster(clusterID, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {

@@ -1,4 +1,4 @@
-package commands
+package cluster
 
 import (
 	"net/http"
@@ -30,7 +30,6 @@ func TestDeleteClusterSuccess(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	for i, testCase := range testCases {
 		validateErr := validateDeleteClusterPreConditions(testCase)
