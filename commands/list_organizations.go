@@ -10,6 +10,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/errors"
@@ -80,6 +81,9 @@ func verifyListOrgsPreconditions(args listOrgsArguments) error {
 func listOrgsRunOutput(cmd *cobra.Command, args []string) {
 	output, err := orgsTable()
 	if err != nil {
+		errors.HandleCommonErrors(err)
+		client.HandleErrors(err)
+
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			fmt.Println(color.RedString(clientErr.ErrorMessage))
 			if clientErr.ErrorDetails != "" {
