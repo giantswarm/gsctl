@@ -1,4 +1,5 @@
-package commands
+// Package kubeconfig implements the 'create kubeconfig' command.
+package kubeconfig
 
 import (
 	"context"
@@ -21,13 +22,14 @@ import (
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/confirm"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/util"
 )
 
 var (
-	// CreateKubeconfigCommand performs the "create kubeconfig" function
-	CreateKubeconfigCommand = &cobra.Command{
+	// Command performs the "create kubeconfig" function
+	Command = &cobra.Command{
 		Use:   "kubeconfig",
 		Short: "Configure kubectl",
 		Long: `Creates or modifies kubectl configuration to access your Giant Swarm
@@ -68,6 +70,12 @@ Examples:
 
 const (
 	createKubeconfigActivityName = "create-kubeconfig"
+
+	// url to intallation instructions
+	kubectlInstallURL = "http://kubernetes.io/docs/user-guide/prereqs/"
+
+	// windows download page
+	kubectlWindowsInstallURL = "https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md"
 )
 
 // createKubeconfigArguments is an argument struct to pass to our business
@@ -147,18 +155,16 @@ type createKubeconfigResult struct {
 }
 
 func init() {
-	CreateKubeconfigCommand.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster")
-	CreateKubeconfigCommand.Flags().StringVarP(&flags.CmdDescription, "description", "d", "", "Description for the key pair")
-	CreateKubeconfigCommand.Flags().StringVarP(&flags.CmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
-	CreateKubeconfigCommand.Flags().StringVarP(&cmdKubeconfigSelfContained, "self-contained", "", "", "Create a self-contained kubectl config with embedded credentials and write it to this path.")
-	CreateKubeconfigCommand.Flags().StringVarP(&cmdKubeconfigContextName, "context", "", "", "Set a custom context name. Defaults to 'giantswarm-<cluster-id>'.")
-	CreateKubeconfigCommand.Flags().StringVarP(&flags.CmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
-	CreateKubeconfigCommand.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation.")
-	CreateKubeconfigCommand.Flags().StringVarP(&flags.CmdTTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
+	Command.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster")
+	Command.Flags().StringVarP(&flags.CmdDescription, "description", "d", "", "Description for the key pair")
+	Command.Flags().StringVarP(&flags.CmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
+	Command.Flags().StringVarP(&cmdKubeconfigSelfContained, "self-contained", "", "", "Create a self-contained kubectl config with embedded credentials and write it to this path.")
+	Command.Flags().StringVarP(&cmdKubeconfigContextName, "context", "", "", "Set a custom context name. Defaults to 'giantswarm-<cluster-id>'.")
+	Command.Flags().StringVarP(&flags.CmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
+	Command.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation.")
+	Command.Flags().StringVarP(&flags.CmdTTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
 
-	CreateKubeconfigCommand.MarkFlagRequired("cluster")
-
-	CreateCommand.AddCommand(CreateKubeconfigCommand)
+	Command.MarkFlagRequired("cluster")
 }
 
 // createKubeconfigPreRunOutput shows our pre-check results
@@ -245,7 +251,7 @@ func verifyCreateKubeconfigPreconditions(args createKubeconfigArguments, cmdLine
 	// ask for confirmation to overwrite existing file
 	if args.selfContainedPath != "" && !args.force {
 		if _, err := os.Stat(args.selfContainedPath); !os.IsNotExist(err) {
-			confirmed := askForConfirmation("Do you want to overwrite " + args.selfContainedPath + " ?")
+			confirmed := confirm.AskForConfirmation("Do you want to overwrite " + args.selfContainedPath + " ?")
 			if !confirmed {
 				return microerror.Mask(errors.CommandAbortedError)
 			}
@@ -340,12 +346,16 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 func createKubeconfig(ctx context.Context, args createKubeconfigArguments) (createKubeconfigResult, error) {
 	result := createKubeconfigResult{}
 
-	auxParams := ClientV2.DefaultAuxiliaryParams()
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	if err != nil {
+		return result, microerror.Mask(err)
+	}
+
+	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = createKubeconfigActivityName
 
 	// get cluster details
-
-	clusterDetailsResponse, err := ClientV2.GetCluster(args.clusterID, auxParams)
+	clusterDetailsResponse, err := clientV2.GetCluster(args.clusterID, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			return result, microerror.Maskf(clientErr,
@@ -364,8 +374,7 @@ func createKubeconfig(ctx context.Context, args createKubeconfigArguments) (crea
 		CertificateOrganizations: args.certOrgs,
 	}
 
-	response, err := ClientV2.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
-
+	response, err := clientV2.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {

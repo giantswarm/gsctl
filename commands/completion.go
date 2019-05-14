@@ -1,5 +1,8 @@
 package commands
 
+// The 'completion' command is defined on the top leve of the commands
+// package, as it has to have access to the root command.
+
 import (
 	"fmt"
 	"os"

@@ -1,4 +1,5 @@
-package commands
+// Package cluster defines the 'create cluster' command.
+package cluster
 
 import (
 	"encoding/json"
@@ -17,13 +18,15 @@ import (
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/commands/types"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/limits"
 )
 
-// addClusterArguments contains all possible input parameter needed
+// arguments contains all possible input parameter needed
 // (and optionally available) for creating a cluster
-type addClusterArguments struct {
+type arguments struct {
 	apiEndpoint             string
 	availabilityZones       int
 	clusterName             string
@@ -44,17 +47,17 @@ type addClusterArguments struct {
 	verbose                 bool
 }
 
-func defaultAddClusterArguments() addClusterArguments {
+func defaultArguments() arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
-	return addClusterArguments{
+	return arguments{
 		apiEndpoint:       endpoint,
 		availabilityZones: cmdAvailabilityZones,
 		clusterName:       cmdClusterName,
 		dryRun:            cmdDryRun,
 		inputYAMLFile:     cmdInputYAMLFile,
-		numWorkers:        cmdNumWorkers,
+		numWorkers:        flags.CmdNumWorkers,
 		owner:             cmdOwner,
 		releaseVersion:    flags.CmdRelease,
 		scheme:            scheme,
@@ -64,36 +67,29 @@ func defaultAddClusterArguments() addClusterArguments {
 		workerNumCPUs:           flags.CmdWorkerNumCPUs,
 		workerMemorySizeGB:      flags.CmdWorkerMemorySizeGB,
 		workerStorageSizeGB:     flags.CmdWorkerStorageSizeGB,
-		workersMax:              cmdWorkersMax,
-		workersMin:              cmdWorkersMin,
+		workersMax:              flags.CmdWorkersMax,
+		workersMin:              flags.CmdWorkersMin,
 		verbose:                 flags.CmdVerbose,
 	}
 }
 
-type addClusterResult struct {
+type creationResult struct {
 	// cluster ID
 	id string
 	// location to fetch details on new cluster from
 	location string
 	// cluster definition assembled
-	definition clusterDefinition
+	definition types.ClusterDefinition
 }
 
 const (
-	// TODO: These settings should come from the API.
-	// See https://github.com/giantswarm/gsctl/issues/155
-	minimumNumWorkers          int     = 0
-	minimumWorkerNumCPUs       int     = 1
-	minimumWorkerMemorySizeGB  float32 = 1
-	minimumWorkerStorageSizeGB float32 = 1
-
 	createClusterActivityName = "create-cluster"
 )
 
 var (
 
-	// CreateClusterCommand performs the "create cluster" function
-	CreateClusterCommand = &cobra.Command{
+	// Command performs the "create cluster" function
+	Command = &cobra.Command{
 		Use:   "cluster",
 		Short: "Create cluster",
 		Long: `Creates a new Kubernetes cluster.
@@ -136,8 +132,8 @@ Examples:
     --dry-run --verbose
 
 `,
-		PreRun: createClusterValidationOutput,
-		Run:    createClusterExecutionOutput,
+		PreRun: printValidation,
+		Run:    printResult,
 	}
 	cmdAvailabilityZones int
 	// path to the input file used optionally as cluster definition
@@ -146,52 +142,44 @@ Examples:
 	cmdClusterName string
 	// owner organization of the cluster as set via flag on execution
 	cmdOwner string
-	// number of workers required via flag on execution
-	cmdNumWorkers int
 	// AWS EC2 instance type to use, provided as a command line flag
 	cmdWorkerAwsEc2InstanceType string
 	// Azure VmSize to use, provided as a command line flag
 	cmdWorkerAzureVMSize string
-	// cmdWorkersMin is the minimum number of workers created for the cluster.
-	cmdWorkersMin int64
-	// cmdWorkersMax is the minimum number of workers created for the cluster.
-	cmdWorkersMax int64
 	// dry run command line flag
 	cmdDryRun bool
 )
 
 func init() {
-	CreateClusterCommand.Flags().IntVarP(&cmdAvailabilityZones, "availability-zones", "", 0, "Number of availability zones to use on AWS. Default is 1.")
-	CreateClusterCommand.Flags().StringVarP(&cmdInputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file")
-	CreateClusterCommand.Flags().StringVarP(&cmdClusterName, "name", "n", "", "Cluster name")
-	CreateClusterCommand.Flags().StringVarP(&cmdOwner, "owner", "o", "", "Organization to own the cluster")
-	CreateClusterCommand.Flags().StringVarP(&flags.CmdRelease, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
-	CreateClusterCommand.Flags().IntVarP(&cmdNumWorkers, "num-workers", "", 0, "Shorthand to set --workers-min and --workers-max to the same value. Can't be used with -f|--file.")
-	CreateClusterCommand.Flags().Int64VarP(&cmdWorkersMin, "workers-min", "", 0, "Minimum number of worker nodes. Can't be used with -f|--file.")
-	CreateClusterCommand.Flags().Int64VarP(&cmdWorkersMax, "workers-max", "", 0, "Maximum number of worker nodes. Can't be used with -f|--file.")
-	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
-	CreateClusterCommand.Flags().StringVarP(&cmdWorkerAzureVMSize, "azure-vm-size", "", "", "VmSize to use for workers (Azure only), e. g. 'Standard_D2s_v3'")
-	CreateClusterCommand.Flags().IntVarP(&flags.CmdWorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
-	CreateClusterCommand.Flags().Float32VarP(&flags.CmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
-	CreateClusterCommand.Flags().Float32VarP(&flags.CmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
-	CreateClusterCommand.Flags().BoolVarP(&cmdDryRun, "dry-run", "", false, "If set, the cluster won't be created. Useful with -v|--verbose.")
+	Command.Flags().IntVarP(&cmdAvailabilityZones, "availability-zones", "", 0, "Number of availability zones to use on AWS. Default is 1.")
+	Command.Flags().StringVarP(&cmdInputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file")
+	Command.Flags().StringVarP(&cmdClusterName, "name", "n", "", "Cluster name")
+	Command.Flags().StringVarP(&cmdOwner, "owner", "o", "", "Organization to own the cluster")
+	Command.Flags().StringVarP(&flags.CmdRelease, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
+	Command.Flags().IntVarP(&flags.CmdNumWorkers, "num-workers", "", 0, "Shorthand to set --workers-min and --workers-max to the same value. Can't be used with -f|--file.")
+	Command.Flags().Int64VarP(&flags.CmdWorkersMin, "workers-min", "", 0, "Minimum number of worker nodes. Can't be used with -f|--file.")
+	Command.Flags().Int64VarP(&flags.CmdWorkersMax, "workers-max", "", 0, "Maximum number of worker nodes. Can't be used with -f|--file.")
+	Command.Flags().StringVarP(&cmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
+	Command.Flags().StringVarP(&cmdWorkerAzureVMSize, "azure-vm-size", "", "", "VmSize to use for workers (Azure only), e. g. 'Standard_D2s_v3'")
+	Command.Flags().IntVarP(&flags.CmdWorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
+	Command.Flags().Float32VarP(&flags.CmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
+	Command.Flags().Float32VarP(&flags.CmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
+	Command.Flags().BoolVarP(&cmdDryRun, "dry-run", "", false, "If set, the cluster won't be created. Useful with -v|--verbose.")
 
 	// kubernetes-version never had any effect, and is deprecated now on the API side, too
-	CreateClusterCommand.Flags().MarkDeprecated("kubernetes-version", "please use --release to specify a release to use")
-
-	CreateCommand.AddCommand(CreateClusterCommand)
+	Command.Flags().MarkDeprecated("kubernetes-version", "please use --release to specify a release to use")
 }
 
-// createClusterValidationOutput runs our pre-checks.
+// printValidation runs our pre-checks.
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
-func createClusterValidationOutput(cmd *cobra.Command, args []string) {
-	aca := defaultAddClusterArguments()
+func printValidation(cmd *cobra.Command, args []string) {
+	aca := defaultArguments()
 
 	headline := ""
 	subtext := ""
 
-	err := validateCreateClusterPreConditions(aca)
+	err := validatePreConditions(aca)
 	if err != nil {
 		errors.HandleCommonErrors(err)
 
@@ -210,16 +198,16 @@ func createClusterValidationOutput(cmd *cobra.Command, args []string) {
 			subtext = "When specifying worker node details, you must also specify the number of worker nodes."
 		case errors.IsNotEnoughWorkerNodesError(err):
 			headline = "Not enough worker nodes specified"
-			subtext = fmt.Sprintf("You'll need at least %v worker nodes for a useful cluster.", minimumNumWorkers)
+			subtext = fmt.Sprintf("You'll need at least %v worker nodes for a useful cluster.", limits.MinimumNumWorkers)
 		case errors.IsNotEnoughCPUCoresPerWorkerError(err):
 			headline = "Not enough CPUs per worker specified"
-			subtext = fmt.Sprintf("You'll need at least %v CPU cores per worker node.", minimumWorkerNumCPUs)
+			subtext = fmt.Sprintf("You'll need at least %v CPU cores per worker node.", limits.MinimumWorkerNumCPUs)
 		case errors.IsNotEnoughMemoryPerWorkerError(err):
 			headline = "Not enough Memory per worker specified"
-			subtext = fmt.Sprintf("You'll need at least %.1f GB per worker node.", minimumWorkerMemorySizeGB)
+			subtext = fmt.Sprintf("You'll need at least %.1f GB per worker node.", limits.MinimumWorkerMemorySizeGB)
 		case errors.IsNotEnoughStoragePerWorkerError(err):
 			headline = "Not enough Storage per worker specified"
-			subtext = fmt.Sprintf("You'll need at least %.1f GB per worker node.", minimumWorkerStorageSizeGB)
+			subtext = fmt.Sprintf("You'll need at least %.1f GB per worker node.", limits.MinimumWorkerStorageSizeGB)
 		default:
 			headline = err.Error()
 		}
@@ -233,10 +221,10 @@ func createClusterValidationOutput(cmd *cobra.Command, args []string) {
 	}
 }
 
-// createClusterExecutionOutput calls addCluster() and creates user-friendly output of the result
-func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
+// printResult calls addCluster() and creates user-friendly output of the result
+func printResult(cmd *cobra.Command, args []string) {
 	// use arguments as passed from command line via cobra
-	aca := defaultAddClusterArguments()
+	aca := defaultArguments()
 
 	result, err := addCluster(aca)
 	if err != nil {
@@ -256,7 +244,7 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 			}
 		case errors.IsNotEnoughWorkerNodesError(err):
 			headline = "Not enough worker nodes specified"
-			subtext = fmt.Sprintf("If you specify workers in your definition file, you'll have to specify at least %d worker nodes for a useful cluster.", minimumNumWorkers)
+			subtext = fmt.Sprintf("If you specify workers in your definition file, you'll have to specify at least %d worker nodes for a useful cluster.", limits.MinimumNumWorkers)
 		case errors.IsYAMLFileNotReadableError(err):
 			headline = "Could not read YAML file"
 			subtext = fmt.Sprintf("The file '%s' could not read. Please make sure that it is valid YAML.", aca.inputYAMLFile)
@@ -316,8 +304,8 @@ func createClusterExecutionOutput(cmd *cobra.Command, args []string) {
 	}
 }
 
-// validateCreateClusterPreConditions checks preconditions and returns an error in case
-func validateCreateClusterPreConditions(args addClusterArguments) error {
+// validatePreConditions checks preconditions and returns an error in case
+func validatePreConditions(args arguments) error {
 	// logged in?
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(errors.NotLoggedInError)
@@ -334,13 +322,13 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 	if args.numWorkers > 0 && (args.workersMax > 0 || args.workersMin > 0) {
 		return microerror.Mask(errors.ConflictingWorkerFlagsUsedError)
 	}
-	if args.numWorkers > 0 && args.numWorkers < minimumNumWorkers {
+	if args.numWorkers > 0 && args.numWorkers < limits.MinimumNumWorkers {
 		return microerror.Mask(errors.NotEnoughWorkerNodesError)
 	}
-	if args.workersMax > 0 && args.workersMax < int64(minimumNumWorkers) {
+	if args.workersMax > 0 && args.workersMax < int64(limits.MinimumNumWorkers) {
 		return microerror.Mask(errors.NotEnoughWorkerNodesError)
 	}
-	if args.workersMin > 0 && args.workersMin < int64(minimumNumWorkers) {
+	if args.workersMin > 0 && args.workersMin < int64(limits.MinimumNumWorkers) {
 		return microerror.Mask(errors.NotEnoughWorkerNodesError)
 	}
 	if args.workersMin > 0 && args.workersMax > 0 && args.workersMin > args.workersMax {
@@ -348,17 +336,17 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 	}
 
 	// validate number of CPUs specified by flag
-	if args.workerNumCPUs > 0 && args.workerNumCPUs < minimumWorkerNumCPUs {
+	if args.workerNumCPUs > 0 && args.workerNumCPUs < limits.MinimumWorkerNumCPUs {
 		return microerror.Mask(errors.NotEnoughCPUCoresPerWorkerError)
 	}
 
 	// validate memory size specified by flag
-	if args.workerMemorySizeGB > 0 && args.workerMemorySizeGB < minimumWorkerMemorySizeGB {
+	if args.workerMemorySizeGB > 0 && args.workerMemorySizeGB < limits.MinimumWorkerMemorySizeGB {
 		return microerror.Mask(errors.NotEnoughMemoryPerWorkerError)
 	}
 
 	// validate storage size specified by flag
-	if args.workerStorageSizeGB > 0 && args.workerStorageSizeGB < minimumWorkerStorageSizeGB {
+	if args.workerStorageSizeGB > 0 && args.workerStorageSizeGB < limits.MinimumWorkerStorageSizeGB {
 		return microerror.Mask(errors.NotEnoughStoragePerWorkerError)
 	}
 
@@ -373,17 +361,17 @@ func validateCreateClusterPreConditions(args addClusterArguments) error {
 }
 
 // readDefinitionFromFile reads a cluster definition from a YAML config file
-func readDefinitionFromFile(path string) (clusterDefinition, error) {
-	def := clusterDefinition{}
+func readDefinitionFromFile(path string) (types.ClusterDefinition, error) {
+	def := types.ClusterDefinition{}
 
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return clusterDefinition{}, microerror.Mask(err)
+		return types.ClusterDefinition{}, microerror.Mask(err)
 	}
 
 	err = yaml.Unmarshal(data, &def)
 	if err != nil {
-		return clusterDefinition{}, microerror.Mask(err)
+		return types.ClusterDefinition{}, microerror.Mask(err)
 	}
 
 	return def, nil
@@ -391,7 +379,7 @@ func readDefinitionFromFile(path string) (clusterDefinition, error) {
 
 // createDefinitionFromFlags creates a clusterDefinition based on the
 // flags/arguments the user has given
-func definitionFromFlags(def clusterDefinition, args addClusterArguments) clusterDefinition {
+func definitionFromFlags(def types.ClusterDefinition, args arguments) types.ClusterDefinition {
 	if args.availabilityZones != 0 {
 		def.AvailabilityZones = args.availabilityZones
 	}
@@ -440,17 +428,17 @@ func definitionFromFlags(def clusterDefinition, args addClusterArguments) cluste
 		def.Scaling.Max = 3
 	}
 
-	workers := []nodeDefinition{}
+	workers := []types.NodeDefinition{}
 
-	worker := nodeDefinition{}
+	worker := types.NodeDefinition{}
 	if args.workerNumCPUs != 0 {
-		worker.CPU = cpuDefinition{Cores: args.workerNumCPUs}
+		worker.CPU = types.CPUDefinition{Cores: args.workerNumCPUs}
 	}
 	if args.workerStorageSizeGB != 0 {
-		worker.Storage = storageDefinition{SizeGB: args.workerStorageSizeGB}
+		worker.Storage = types.StorageDefinition{SizeGB: args.workerStorageSizeGB}
 	}
 	if args.workerMemorySizeGB != 0 {
-		worker.Memory = memoryDefinition{SizeGB: args.workerMemorySizeGB}
+		worker.Memory = types.MemoryDefinition{SizeGB: args.workerMemorySizeGB}
 	}
 	// AWS-specific
 	if args.wokerAwsEc2InstanceType != "" {
@@ -468,7 +456,7 @@ func definitionFromFlags(def clusterDefinition, args addClusterArguments) cluste
 }
 
 // creates a models.V4AddClusterRequest from clusterDefinition
-func createAddClusterBody(d clusterDefinition) *models.V4AddClusterRequest {
+func createAddClusterBody(d types.ClusterDefinition) *models.V4AddClusterRequest {
 	a := &models.V4AddClusterRequest{}
 	a.AvailabilityZones = int64(d.AvailabilityZones)
 	a.Name = d.Name
@@ -495,33 +483,33 @@ func createAddClusterBody(d clusterDefinition) *models.V4AddClusterRequest {
 
 // addCluster actually adds a cluster, interpreting all the input Configuration
 // and returning a structured result
-func addCluster(args addClusterArguments) (addClusterResult, error) {
-	var result addClusterResult
+func addCluster(args arguments) (creationResult, error) {
+	var result creationResult
 	var err error
 
 	if args.inputYAMLFile != "" {
 		// definition from file (and optionally flags)
 		result.definition, err = readDefinitionFromFile(args.inputYAMLFile)
 		if err != nil {
-			return addClusterResult{}, microerror.Maskf(errors.YAMLFileNotReadableError, err.Error())
+			return creationResult{}, microerror.Maskf(errors.YAMLFileNotReadableError, err.Error())
 		}
 		result.definition = definitionFromFlags(result.definition, args)
 	} else {
 		// definition from flags only
-		result.definition = definitionFromFlags(clusterDefinition{}, args)
+		result.definition = definitionFromFlags(types.ClusterDefinition{}, args)
 	}
 
 	// Validate definition
 	if result.definition.Owner == "" {
-		return addClusterResult{}, microerror.Mask(errors.ClusterOwnerMissingError)
+		return creationResult{}, microerror.Mask(errors.ClusterOwnerMissingError)
 	}
 
 	// Validations based on definition file.
-	// For validations based on command line flags, see validateCreateClusterPreConditions()
+	// For validations based on command line flags, see validatePreConditions()
 	if args.inputYAMLFile != "" {
 		// number of workers
-		if len(result.definition.Workers) > 0 && len(result.definition.Workers) < minimumNumWorkers {
-			return addClusterResult{}, microerror.Mask(errors.NotEnoughWorkerNodesError)
+		if len(result.definition.Workers) > 0 && len(result.definition.Workers) < limits.MinimumNumWorkers {
+			return creationResult{}, microerror.Mask(errors.NotEnoughWorkerNodesError)
 		}
 	}
 
@@ -545,13 +533,20 @@ func addCluster(args addClusterArguments) (addClusterResult, error) {
 
 	if !args.dryRun {
 		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
-		auxParams := ClientV2.DefaultAuxiliaryParams()
-		auxParams.ActivityName = createClusterActivityName
-		// perform API call
-		response, err := ClientV2.CreateCluster(addClusterBody, auxParams)
+
+		clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}
+
+		auxParams := clientV2.DefaultAuxiliaryParams()
+		auxParams.ActivityName = createClusterActivityName
+		// perform API call
+		response, err := clientV2.CreateCluster(addClusterBody, auxParams)
+		if err != nil {
+			return result, microerror.Mask(err)
+		}
+
 		// success
 		result.location = response.Location
 		result.id = strings.Split(result.location, "/")[3]

@@ -1,4 +1,4 @@
-package commands
+package kubeconfig
 
 import (
 	"context"
@@ -78,7 +78,6 @@ func Test_CreateKubeconfig(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
 	if err != nil {
@@ -150,7 +149,6 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
 	if err != nil {
@@ -228,7 +226,6 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
 	if err != nil {

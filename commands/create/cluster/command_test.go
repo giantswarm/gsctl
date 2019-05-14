@@ -1,4 +1,4 @@
-package commands
+package cluster
 
 import (
 	"io/ioutil"
@@ -7,10 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/giantswarm/gsctl/commands/errors"
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/microerror"
 	yaml "gopkg.in/yaml.v2"
+
+	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/commands/types"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 // TestReadFiles tests the readDefinitionFromFile with all
@@ -29,7 +31,7 @@ func TestReadFiles(t *testing.T) {
 
 // Test_CreateFromYAML01 tests parsing a most simplistic YAML definition.
 func Test_CreateFromYAML01(t *testing.T) {
-	def := clusterDefinition{}
+	def := types.ClusterDefinition{}
 	data := []byte(`owner: myorg`)
 
 	err := yaml.Unmarshal(data, &def)
@@ -44,7 +46,7 @@ func Test_CreateFromYAML01(t *testing.T) {
 
 // Test_CreateFromYAML02 tests parsing a rather simplistic YAML definition.
 func Test_CreateFromYAML02(t *testing.T) {
-	def := clusterDefinition{}
+	def := types.ClusterDefinition{}
 	data := []byte(`
 owner: myorg
 name: Minimal cluster spec
@@ -65,7 +67,7 @@ name: Minimal cluster spec
 
 // Test_CreateFromYAML03 tests all the worker details.
 func Test_CreateFromYAML03(t *testing.T) {
-	def := clusterDefinition{}
+	def := types.ClusterDefinition{}
 	data := []byte(`
 owner: littleco
 workers:
@@ -103,7 +105,7 @@ workers:
 // Test_CreateFromBadYAML01 tests how non-conforming YAML is treated.
 func Test_CreateFromBadYAML01(t *testing.T) {
 	data := []byte(`o: myorg`)
-	def := clusterDefinition{}
+	def := types.ClusterDefinition{}
 
 	err := yaml.Unmarshal(data, &def)
 	if err != nil {
@@ -119,18 +121,18 @@ func Test_CreateFromBadYAML01(t *testing.T) {
 func Test_CreateClusterSuccessfully(t *testing.T) {
 	var testCases = []struct {
 		description string
-		inputArgs   *addClusterArguments
+		inputArgs   *arguments
 	}{
 		{
 			description: "Minimal arguments",
-			inputArgs: &addClusterArguments{
+			inputArgs: &arguments{
 				owner: "acme",
 				token: "fake token",
 			},
 		},
 		{
 			description: "Extensive arguments",
-			inputArgs: &addClusterArguments{
+			inputArgs: &arguments{
 				clusterName:         "UnitTestCluster",
 				numWorkers:          4,
 				releaseVersion:      "0.3.0",
@@ -144,7 +146,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		},
 		{
 			description: "Max workers",
-			inputArgs: &addClusterArguments{
+			inputArgs: &arguments{
 				owner:      "acme",
 				workersMax: 4,
 				token:      "fake token",
@@ -152,7 +154,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		},
 		{
 			description: "Min workers",
-			inputArgs: &addClusterArguments{
+			inputArgs: &arguments{
 				owner:      "acme",
 				workersMin: 4,
 				token:      "fake token",
@@ -160,7 +162,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		},
 		{
 			description: "Min workers and max workers same",
-			inputArgs: &addClusterArguments{
+			inputArgs: &arguments{
 				owner:      "acme",
 				workersMin: 4,
 				workersMax: 4,
@@ -169,7 +171,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		},
 		{
 			description: "Min workers and max workers different",
-			inputArgs: &addClusterArguments{
+			inputArgs: &arguments{
 				owner:      "acme",
 				workersMin: 2,
 				workersMax: 4,
@@ -178,7 +180,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		},
 		{
 			description: "Definition from YAML file",
-			inputArgs: &addClusterArguments{
+			inputArgs: &arguments{
 				clusterName:   "Cluster Name from Args",
 				owner:         "acme",
 				token:         "fake token",
@@ -229,9 +231,8 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 
 		flags.CmdAPIEndpoint = mockServer.URL
 		flags.CmdToken = testCase.inputArgs.token
-		InitClient()
 
-		err := validateCreateClusterPreConditions(*testCase.inputArgs)
+		err := validatePreConditions(*testCase.inputArgs)
 		if err != nil {
 			t.Errorf("Validation error in testCase %d: %s", i, err.Error())
 		}
@@ -247,14 +248,14 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 func Test_CreateClusterExecutionFailures(t *testing.T) {
 	var testCases = []struct {
 		description        string
-		inputArgs          *addClusterArguments
+		inputArgs          *arguments
 		responseStatus     int
 		serverResponseJSON []byte
 		errorMatcher       func(err error) bool
 	}{
 		{
 			description: "Unauthenticated request despite token being present",
-			inputArgs: &addClusterArguments{
+			inputArgs: &arguments{
 				owner: "owner",
 				token: "some-token",
 			},
@@ -264,7 +265,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 		},
 		{
 			description: "Owner organization not existing",
-			inputArgs: &addClusterArguments{
+			inputArgs: &arguments{
 				owner: "non-existing-owner",
 				token: "some-token",
 			},
@@ -274,7 +275,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 		},
 		{
 			description: "Non-existing YAML definition path",
-			inputArgs: &addClusterArguments{
+			inputArgs: &arguments{
 				owner:         "owner",
 				token:         "some-token",
 				inputYAMLFile: "does/not/exist.yaml",
@@ -301,12 +302,8 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 		// client
 		flags.CmdAPIEndpoint = mockServer.URL // required to make InitClient() work
 		testCase.inputArgs.apiEndpoint = mockServer.URL
-		err := InitClient()
-		if err != nil {
-			t.Fatal(err)
-		}
 
-		err = validateCreateClusterPreConditions(*testCase.inputArgs)
+		err := validatePreConditions(*testCase.inputArgs)
 		if err != nil {
 			t.Errorf("Unexpected error in argument validation: %#v", err)
 		} else {
@@ -325,12 +322,12 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 func Test_CreateCluster_ValidationFailures(t *testing.T) {
 	var testCases = []struct {
 		name         string
-		inputArgs    *addClusterArguments
+		inputArgs    *arguments
 		errorMatcher func(err error) bool
 	}{
 		{
 			name: "case 0 workers min is higher than max",
-			inputArgs: &addClusterArguments{
+			inputArgs: &arguments{
 				owner:      "owner",
 				token:      "some-token",
 				workersMin: 4,
@@ -340,7 +337,7 @@ func Test_CreateCluster_ValidationFailures(t *testing.T) {
 		},
 		{
 			name: "case 1 workers min and max with legacy num workers",
-			inputArgs: &addClusterArguments{
+			inputArgs: &arguments{
 				owner:      "owner",
 				token:      "some-token",
 				workersMin: 4,
@@ -351,7 +348,7 @@ func Test_CreateCluster_ValidationFailures(t *testing.T) {
 		},
 		{
 			name: "case 2 workers min with legacy num workers",
-			inputArgs: &addClusterArguments{
+			inputArgs: &arguments{
 				owner:      "owner",
 				token:      "some-token",
 				workersMin: 4,
@@ -361,7 +358,7 @@ func Test_CreateCluster_ValidationFailures(t *testing.T) {
 		},
 		{
 			name: "case 3 workers max with legacy num workers",
-			inputArgs: &addClusterArguments{
+			inputArgs: &arguments{
 				owner:      "owner",
 				token:      "some-token",
 				workersMax: 2,
@@ -373,7 +370,7 @@ func Test_CreateCluster_ValidationFailures(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := validateCreateClusterPreConditions(*tc.inputArgs)
+			err := validatePreConditions(*tc.inputArgs)
 
 			switch {
 			case err == nil && tc.errorMatcher == nil:

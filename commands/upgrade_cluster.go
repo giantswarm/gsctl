@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/confirm"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -280,7 +281,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 
 	// Confirmation
 	if !args.force {
-		confirmed := askForConfirmation("Do you want to start the upgrade now?")
+		confirmed := confirm.AskForConfirmation("Do you want to start the upgrade now?")
 		if !confirmed {
 			return result, microerror.Mask(errors.CommandAbortedError)
 		}

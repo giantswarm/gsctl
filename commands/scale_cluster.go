@@ -15,7 +15,9 @@ import (
 	"github.com/giantswarm/gsctl/cmd/cluster/scale/request"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/confirm"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/limits"
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -75,9 +77,9 @@ type scaleClusterArguments struct {
 
 func init() {
 	ScaleClusterCommand.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, no confirmation is required.")
-	ScaleClusterCommand.Flags().Int64VarP(&cmdWorkersMax, cmdWorkersMaxName, "", 0, "Maximum number of worker nodes to have after scaling.")
-	ScaleClusterCommand.Flags().Int64VarP(&cmdWorkersMin, cmdWorkersMinName, "", 0, "Minimum number of worker nodes to have after scaling.")
-	ScaleClusterCommand.Flags().IntVarP(&cmdNumWorkers, cmdWorkersNumName, "w", 0, "Shorthand to set --workers-min and --workers-max to the same value.")
+	ScaleClusterCommand.Flags().Int64VarP(&flags.CmdWorkersMax, cmdWorkersMaxName, "", 0, "Maximum number of worker nodes to have after scaling.")
+	ScaleClusterCommand.Flags().Int64VarP(&flags.CmdWorkersMin, cmdWorkersMinName, "", 0, "Minimum number of worker nodes to have after scaling.")
+	ScaleClusterCommand.Flags().IntVarP(&flags.CmdNumWorkers, cmdWorkersNumName, "w", 0, "Shorthand to set --workers-min and --workers-max to the same value.")
 
 	// deprecated
 	ScaleClusterCommand.Flags().Float32VarP(&flags.CmdWorkerStorageSizeGB, cmdWorkerStorageSizeGBName, "", 0, "Local storage size per added worker node.")
@@ -93,13 +95,13 @@ func init() {
 // confirmScaleCluster asks the user for confirmation for scaling actions.
 func confirmScaleCluster(args scaleClusterArguments, maxBefore int64, minBefore int64, currentWorkers int64) error {
 	if currentWorkers > args.workersMax && args.workersMax == args.workersMin {
-		confirmed := askForConfirmation(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to pin the number of worker nodes to %d?", currentWorkers, args.workersMin))
+		confirmed := confirm.AskForConfirmation(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to pin the number of worker nodes to %d?", currentWorkers, args.workersMin))
 		if !confirmed {
 			return microerror.Mask(errors.CommandAbortedError)
 		}
 	}
 	if currentWorkers > args.workersMax && args.workersMax != args.workersMin {
-		confirmed := askForConfirmation(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to change the limits to be min=%d, max=%d?", currentWorkers, args.workersMin, args.workersMax))
+		confirmed := confirm.AskForConfirmation(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to change the limits to be min=%d, max=%d?", currentWorkers, args.workersMin, args.workersMax))
 		if !confirmed {
 			return microerror.Mask(errors.CommandAbortedError)
 		}
@@ -124,8 +126,8 @@ func defaultScaleClusterArguments(ctx context.Context, cmd *cobra.Command, clust
 		oppressConfirmation: flags.CmdForce,
 		scheme:              scheme,
 		verbose:             flags.CmdVerbose,
-		workersMax:          cmdWorkersMax,
-		workersMin:          cmdWorkersMin,
+		workersMax:          flags.CmdWorkersMax,
+		workersMin:          flags.CmdWorkersMin,
 	}
 
 	desiredNumWorkersChanged := cmd.Flags().Changed(cmdWorkersNumName)
@@ -221,7 +223,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		errors.HandleCommonErrors(errors.ClusterIDMissingError)
 	}
 	clusterID := cmdLineArgs[0]
-	desiredNumWorkers := cmdNumWorkers
+	desiredNumWorkers := flags.CmdNumWorkers
 
 	var currentScalingMax int64
 	var currentScalingMin int64
@@ -249,8 +251,8 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	var desiredScalingMax int64
 	var desiredScalingMin int64
 	{
-		desiredScalingMax = cmdWorkersMax
-		desiredScalingMin = cmdWorkersMin
+		desiredScalingMax = flags.CmdWorkersMax
+		desiredScalingMin = flags.CmdWorkersMin
 	}
 
 	autoScalingEnabled, err := isAutoscalingEnabled(releaseVersion)
@@ -325,7 +327,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			subtext = fmt.Sprintf("Node count flag --%s must not be higher than --%s.", cmdWorkersMinName, cmdWorkersMaxName)
 		case errors.IsCannotScaleBelowMinimumWorkersError(err):
 			headline = "Not enough worker nodes specified"
-			subtext = fmt.Sprintf("You'll need at least %v worker nodes for a useful cluster.", minimumNumWorkers)
+			subtext = fmt.Sprintf("You'll need at least %v worker nodes for a useful cluster.", limits.MinimumNumWorkers)
 		default:
 			headline = err.Error()
 		}
@@ -406,13 +408,13 @@ func validateScaleCluster(args scaleClusterArguments, cmdLineArgs []string, maxB
 		return microerror.Mask(errors.ConflictingWorkerFlagsUsedError)
 	}
 
-	if desiredWorkersExists && args.numWorkersDesired < minimumNumWorkers {
+	if desiredWorkersExists && args.numWorkersDesired < limits.MinimumNumWorkers {
 		return microerror.Mask(errors.NotEnoughWorkerNodesError)
 	}
-	if args.workersMax > 0 && args.workersMax < int64(minimumNumWorkers) {
+	if args.workersMax > 0 && args.workersMax < int64(limits.MinimumNumWorkers) {
 		return microerror.Mask(errors.CannotScaleBelowMinimumWorkersError)
 	}
-	if args.workersMin > 0 && args.workersMin < int64(minimumNumWorkers) {
+	if args.workersMin > 0 && args.workersMin < int64(limits.MinimumNumWorkers) {
 		return microerror.Mask(errors.NotEnoughWorkerNodesError)
 	}
 	if scalingParameterIsPresent && args.workersMin > args.workersMax {

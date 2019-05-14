@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/confirm"
 	"github.com/giantswarm/gsctl/flags"
 )
 
@@ -192,7 +193,7 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 
 	// confirmation
 	if !args.force {
-		confirmed := askForConfirmation("Do you really want to delete cluster '" + clusterID + "'?")
+		confirmed := confirm.AskForConfirmation("Do you really want to delete cluster '" + clusterID + "'?")
 		if !confirmed {
 			return false, nil
 		}

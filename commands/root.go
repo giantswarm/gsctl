@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/commands/create"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/show"
 	"github.com/giantswarm/gsctl/config"
@@ -40,6 +41,7 @@ func init() {
 
 	// add subcommands
 	RootCommand.AddCommand(show.ShowCommand)
+	RootCommand.AddCommand(create.Command)
 }
 
 // initConfig calls the config.Initialize() function

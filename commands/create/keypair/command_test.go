@@ -1,4 +1,4 @@
-package commands
+package keypair
 
 import (
 	"fmt"
@@ -42,7 +42,6 @@ func Test_CreateKeypair(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	err = verifyCreateKeypairPreconditions(args)
 	if err != nil {

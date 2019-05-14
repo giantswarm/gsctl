@@ -1,4 +1,5 @@
-package commands
+// Package keypair implements the 'create keypair' command.
+package keypair
 
 import (
 	"fmt"
@@ -20,13 +21,13 @@ import (
 )
 
 var (
-	// CreateKeypairCommand performs the "create keypair" function
-	CreateKeypairCommand = &cobra.Command{
+	// Command performs the "create keypair" function,
+	Command = &cobra.Command{
 		Use:    "keypair",
 		Short:  "Create key pair",
 		Long:   `Creates a new key pair for a cluster`,
-		PreRun: createKeyPairPreRunOutput,
-		Run:    createKeyPairRunOutput,
+		PreRun: printValidation,
+		Run:    printResult,
 	}
 )
 
@@ -95,18 +96,16 @@ type createKeypairResult struct {
 }
 
 func init() {
-	CreateKeypairCommand.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster to create a key pair for")
-	CreateKeypairCommand.Flags().StringVarP(&flags.CmdDescription, "description", "d", "", "Description for the key pair")
-	CreateKeypairCommand.Flags().StringVarP(&flags.CmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
-	CreateKeypairCommand.Flags().StringVarP(&flags.CmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
-	CreateKeypairCommand.Flags().StringVarP(&flags.CmdTTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
+	Command.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster to create a key pair for")
+	Command.Flags().StringVarP(&flags.CmdDescription, "description", "d", "", "Description for the key pair")
+	Command.Flags().StringVarP(&flags.CmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
+	Command.Flags().StringVarP(&flags.CmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
+	Command.Flags().StringVarP(&flags.CmdTTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
 
-	CreateKeypairCommand.MarkFlagRequired("cluster")
-
-	CreateCommand.AddCommand(CreateKeypairCommand)
+	Command.MarkFlagRequired("cluster")
 }
 
-func createKeyPairPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	args, argsErr := defaultCreateKeypairArguments()
 	if argsErr != nil {
 		if errors.IsInvalidDurationError(argsErr) {
@@ -173,7 +172,7 @@ func verifyCreateKeypairPreconditions(args createKeypairArguments) error {
 	return nil
 }
 
-func createKeyPairRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	args, _ := defaultCreateKeypairArguments()
 
 	result, err := createKeypair(args)
@@ -227,10 +226,16 @@ func createKeypair(args createKeypairArguments) (createKeypairResult, error) {
 		CnPrefix:                 args.commonNamePrefix,
 		CertificateOrganizations: args.certificateOrganizations,
 	}
-	auxParams := ClientV2.DefaultAuxiliaryParams()
+
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	if err != nil {
+		return result, microerror.Mask(err)
+	}
+
+	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = addKeyPairActivityName
 
-	response, err := ClientV2.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
+	response, err := clientV2.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {
