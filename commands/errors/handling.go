@@ -33,7 +33,7 @@ func HandleCommonErrors(err error) {
 		switch {
 		case oidc.IsAuthorizationError(err):
 			headline = "Unauthorized"
-			subtext = "Something went wrong during a OIDC operation: " + err.Error() + "\n"
+			subtext = fmt.Sprintf("Something went wrong during a OIDC operation: %s\n", err.Error())
 			subtext += "Please try logging in again."
 		case oidc.IsRefreshError(err):
 			headline = "Unable to refresh your SSO token."
@@ -57,7 +57,7 @@ func HandleCommonErrors(err error) {
 			subtext = "Please specify a cluster ID. Use --help for details."
 		case IsCouldNotCreateClientError(err):
 			headline = "Failed to create API client."
-			subtext = "Details: " + err.Error()
+			subtext = fmt.Sprintf("Details: %s", err.Error())
 		case IsNotAuthorizedError(err):
 			// TODO: remove once the legacy client is no longer used
 			headline = "You are not authorized for this action."
