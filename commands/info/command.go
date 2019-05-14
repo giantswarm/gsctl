@@ -1,4 +1,4 @@
-package commands
+package info
 
 import (
 	"fmt"
@@ -10,6 +10,8 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
 )
@@ -19,12 +21,13 @@ const (
 )
 
 var (
-	// InfoCommand is the "info" go command
-	InfoCommand = &cobra.Command{
-		Use:   "info",
-		Short: "Print some information",
-		Long:  `Prints information that might help you get out of trouble`,
-		Run:   printInfo,
+	// Command is the "info" go command
+	Command = &cobra.Command{
+		Use:    "info",
+		Short:  "Print some information",
+		Long:   `Prints information that might help you get out of trouble`,
+		PreRun: printValidation,
+		Run:    printInfo,
 	}
 )
 
@@ -64,11 +67,23 @@ type infoResult struct {
 	infoResponse     *clientinfo.GetInfoOK
 }
 
-func init() {
-	RootCommand.AddCommand(InfoCommand)
+// validatePreconditions simply returns nil, as the command should work under
+// all conditions.
+func validatePreconditions(args infoArguments) error {
+	return nil
 }
 
-// printInfo prints some information on the current user and configuration
+// printValidation prints if there is anything missing from user input or config.
+func printValidation(cmd *cobra.Command, extraArgs []string) {
+	args := defaultInfoArguments()
+	err := validatePreconditions(args)
+
+	if err != nil {
+		errors.HandleCommonErrors(err)
+	}
+}
+
+// printInfo prints some information on the current user and configuration.
 func printInfo(cmd *cobra.Command, args []string) {
 	infoArgs := defaultInfoArguments()
 	result, err := info(infoArgs)
@@ -175,12 +190,17 @@ func info(args infoArguments) (infoResult, error) {
 		}
 	}
 
-	// get more info from API
+	// If an endpoint is defined, we pull info from the API, too.
 	if args.apiEndpoint != "" {
-		auxParams := ClientV2.DefaultAuxiliaryParams()
+		clientV2, err := client.NewWithConfig(args.apiEndpoint, args.token)
+		if err != nil {
+			return result, microerror.Mask(err)
+		}
+
+		auxParams := clientV2.DefaultAuxiliaryParams()
 		auxParams.ActivityName = infoActivityName
 
-		response, err := ClientV2.GetInfo(auxParams)
+		response, err := clientV2.GetInfo(auxParams)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}

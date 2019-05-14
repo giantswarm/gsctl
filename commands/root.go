@@ -9,6 +9,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/create"
 	deletecmd "github.com/giantswarm/gsctl/commands/delete"
 	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/commands/info"
 	"github.com/giantswarm/gsctl/commands/list"
 	"github.com/giantswarm/gsctl/commands/show"
 	"github.com/giantswarm/gsctl/config"
@@ -42,10 +43,11 @@ func init() {
 	RootCommand.PersistentFlags().BoolVarP(&flags.CmdVerbose, "verbose", "v", false, "Print more information")
 
 	// add subcommands
-	RootCommand.AddCommand(show.Command)
 	RootCommand.AddCommand(create.Command)
-	RootCommand.AddCommand(list.Command)
 	RootCommand.AddCommand(deletecmd.Command)
+	RootCommand.AddCommand(info.Command)
+	RootCommand.AddCommand(list.Command)
+	RootCommand.AddCommand(show.Command)
 }
 
 // initConfig calls the config.Initialize() function

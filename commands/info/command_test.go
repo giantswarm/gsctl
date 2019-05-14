@@ -1,4 +1,4 @@
-package commands
+package info
 
 import (
 	"os"
@@ -32,7 +32,12 @@ selected_endpoint: https://other.endpoint`
 	}
 	defer os.RemoveAll(dir)
 
-	InfoCommand.Execute()
+	output := testutils.CaptureOutput(func() {
+		Command.Execute()
+	})
+	if strings.Contains(output, "Auth token:") {
+		t.Error("Verbose Command output did not contain 'Auth token'")
+	}
 }
 
 // Test_PrintInfoVerbose simply executes the printInfo function with verbose=true
@@ -59,8 +64,13 @@ selected_endpoint: https://other.endpoint`
 	defer os.RemoveAll(dir)
 
 	flags.CmdVerbose = true
-	InfoCommand.SetArgs([]string{"--verbose"})
-	InfoCommand.Execute()
+
+	output := testutils.CaptureOutput(func() {
+		Command.Execute()
+	})
+	if !strings.Contains(output, "Auth token:") {
+		t.Error("Verbose Command output did not contain 'Auth token'")
+	}
 }
 
 // Test_InfoWithTempDirAndToken tests the info() function with a custom
