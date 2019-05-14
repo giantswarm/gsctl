@@ -213,7 +213,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 
 // listReleases fetches releases and returns them as a structured result.
 func listReleases(args listReleasesArguments) ([]*models.V4ReleaseListItem, error) {
-	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}

@@ -7,9 +7,18 @@ import (
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/create"
+	deletecmd "github.com/giantswarm/gsctl/commands/delete"
 	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/commands/info"
 	"github.com/giantswarm/gsctl/commands/list"
+	"github.com/giantswarm/gsctl/commands/login"
+	"github.com/giantswarm/gsctl/commands/logout"
+	"github.com/giantswarm/gsctl/commands/scale"
+	selectcmd "github.com/giantswarm/gsctl/commands/select"
 	"github.com/giantswarm/gsctl/commands/show"
+	"github.com/giantswarm/gsctl/commands/update"
+	"github.com/giantswarm/gsctl/commands/upgrade"
+	"github.com/giantswarm/gsctl/commands/version"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/microerror"
@@ -41,9 +50,18 @@ func init() {
 	RootCommand.PersistentFlags().BoolVarP(&flags.CmdVerbose, "verbose", "v", false, "Print more information")
 
 	// add subcommands
-	RootCommand.AddCommand(show.Command)
 	RootCommand.AddCommand(create.Command)
+	RootCommand.AddCommand(deletecmd.Command)
+	RootCommand.AddCommand(info.Command)
 	RootCommand.AddCommand(list.Command)
+	RootCommand.AddCommand(login.Command)
+	RootCommand.AddCommand(logout.Command)
+	RootCommand.AddCommand(scale.Command)
+	RootCommand.AddCommand(selectcmd.Command)
+	RootCommand.AddCommand(show.Command)
+	RootCommand.AddCommand(update.Command)
+	RootCommand.AddCommand(upgrade.Command)
+	RootCommand.AddCommand(version.Command)
 }
 
 // initConfig calls the config.Initialize() function
