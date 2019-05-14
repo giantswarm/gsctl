@@ -35,6 +35,9 @@ var (
 	// CmdFull represents the switch to disable all output truncation, passed as a flag.
 	CmdFull bool
 
+	// CmdNumWorkers is the number of workers required via flag on execution.
+	CmdNumWorkers int
+
 	// CmdOrganizationID represents an organization ID, passed as a flag.
 	CmdOrganizationID string
 
@@ -49,4 +52,10 @@ var (
 
 	// CmdWorkerStorageSizeGB represents the local storage per worker node in GB per worker as required via flag.
 	CmdWorkerStorageSizeGB float32
+
+	// CmdWorkersMin is the minimum number of workers created for the cluster.
+	CmdWorkersMin int64
+
+	// CmdWorkersMax is the minimum number of workers created for the cluster.
+	CmdWorkersMax int64
 )
