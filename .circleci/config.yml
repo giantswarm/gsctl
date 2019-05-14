@@ -20,7 +20,10 @@ jobs:
       - run:
           name: go test
           command: |
-            go test -v ./...
+            #go test -v ./...
+            for d in $(go list ./...); do
+              go test $d
+            done
       - run:
           name: Execute the built binary
           command: ./gsctl info
