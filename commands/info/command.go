@@ -192,6 +192,10 @@ func info(args infoArguments) (infoResult, error) {
 
 	// If an endpoint is defined, we pull info from the API, too.
 	if args.apiEndpoint != "" {
+		if flags.CmdVerbose {
+			fmt.Println("Fetching installation info from API")
+		}
+
 		clientV2, err := client.NewWithConfig(args.apiEndpoint, args.token)
 		if err != nil {
 			return result, microerror.Mask(err)
