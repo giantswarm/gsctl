@@ -1,4 +1,4 @@
-package commands
+package setcredentials
 
 import (
 	"fmt"
@@ -19,13 +19,13 @@ import (
 )
 
 const (
-	updateOrgSetCredentialsActivityName = "set-org-credentials"
+	activityName = "set-org-credentials"
 )
 
 var (
 
-	// UpdateOrgSetCredentialsCommand performs the "update organization set-credentials" function
-	UpdateOrgSetCredentialsCommand = &cobra.Command{
+	// Command performs the "update organization set-credentials" function
+	Command = &cobra.Command{
 		Use:     "set-credentials",
 		Aliases: []string{"sc"},
 		Short:   "Set credentials of an organization",
@@ -94,15 +94,13 @@ type updateOrgSetCredentialsResult struct {
 }
 
 func init() {
-	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&flags.CmdOrganizationID, "organization", "o", "", "ID of the organization to set credentials for")
-	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&cmdAWSOperatorRoleARN, "aws-operator-role", "", "", "AWS ARN of the role to use for operating clusters")
-	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&cmdAWSAdminRoleARN, "aws-admin-role", "", "", "AWS ARN of the role to be used by Giant Swarm staff")
-	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&cmdAzureSubscriptionID, "azure-subscription-id", "", "", "ID of the Azure subscription to run clusters in")
-	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&cmdAzureTenantID, "azure-tenant-id", "", "", "ID of the Azure tenant to run clusters in")
-	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&cmdAzureClientID, "azure-client-id", "", "", "ID of the Azure service principal to use for operating clusters")
-	UpdateOrgSetCredentialsCommand.Flags().StringVarP(&cmdAzureSecretKey, "azure-secret-key", "", "", "Secret key for the Azure service principal to use for operating clusters")
-
-	UpdateOrganizationCommand.AddCommand(UpdateOrgSetCredentialsCommand)
+	Command.Flags().StringVarP(&flags.CmdOrganizationID, "organization", "o", "", "ID of the organization to set credentials for")
+	Command.Flags().StringVarP(&cmdAWSOperatorRoleARN, "aws-operator-role", "", "", "AWS ARN of the role to use for operating clusters")
+	Command.Flags().StringVarP(&cmdAWSAdminRoleARN, "aws-admin-role", "", "", "AWS ARN of the role to be used by Giant Swarm staff")
+	Command.Flags().StringVarP(&cmdAzureSubscriptionID, "azure-subscription-id", "", "", "ID of the Azure subscription to run clusters in")
+	Command.Flags().StringVarP(&cmdAzureTenantID, "azure-tenant-id", "", "", "ID of the Azure tenant to run clusters in")
+	Command.Flags().StringVarP(&cmdAzureClientID, "azure-client-id", "", "", "ID of the Azure service principal to use for operating clusters")
+	Command.Flags().StringVarP(&cmdAzureSecretKey, "azure-secret-key", "", "", "Secret key for the Azure service principal to use for operating clusters")
 }
 
 func defaultUpdateOrgSetCredentialsArguments() updateOrgSetCredentialsArguments {
@@ -180,9 +178,16 @@ func verifyUpdateOrgSetCredentialsPreconditions(args updateOrgSetCredentialsArgu
 	if args.verbose {
 		fmt.Println(color.WhiteString("Determining which provider this installation uses"))
 	}
-	auxParams := ClientV2.DefaultAuxiliaryParams()
-	auxParams.ActivityName = updateOrgSetCredentialsActivityName
-	response, err := ClientV2.GetInfo(auxParams)
+
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = activityName
+
+	response, err := clientV2.GetInfo(auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusUnauthorized {
@@ -240,7 +245,7 @@ func verifyUpdateOrgSetCredentialsPreconditions(args updateOrgSetCredentialsArgu
 	if args.verbose {
 		fmt.Println(color.WhiteString("Verify organization membership"))
 	}
-	orgsResponse, err := ClientV2.GetOrganizations(auxParams)
+	orgsResponse, err := clientV2.GetOrganizations(auxParams)
 	{
 		if err != nil {
 			if clientErr, ok := err.(*clienterror.APIError); ok {
@@ -327,9 +332,16 @@ func updateOrgSetCredentials(args updateOrgSetCredentialsArguments) (*updateOrgS
 	if args.verbose {
 		fmt.Println(color.WhiteString("Sending API request to set credentials"))
 	}
-	auxParams := ClientV2.DefaultAuxiliaryParams()
-	auxParams.ActivityName = updateOrgSetCredentialsActivityName
-	response, err := ClientV2.SetCredentials(args.organizationID, requestBody, auxParams)
+
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = activityName
+
+	response, err := clientV2.SetCredentials(args.organizationID, requestBody, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusConflict {

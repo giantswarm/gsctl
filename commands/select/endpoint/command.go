@@ -1,4 +1,4 @@
-package commands
+package endpoint
 
 import (
 	"fmt"
@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	// SelectEndpointCommand performs the "select endpoint" function
-	SelectEndpointCommand = &cobra.Command{
+	// Command performs the "select endpoint" function
+	Command = &cobra.Command{
 		Use:     "endpoint <endpoint>",
 		Aliases: []string{"endpoints"},
 		Short:   "Select endpoint to use",
@@ -30,10 +30,6 @@ command.
 		Run:    selectEndpointRunOutput,
 	}
 )
-
-func init() {
-	SelectCommand.AddCommand(SelectEndpointCommand)
-}
 
 // selectEndpointPreRunOutput does some pre-checks and, if necessary,
 // shows output and exits.

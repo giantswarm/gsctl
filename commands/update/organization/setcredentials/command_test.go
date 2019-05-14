@@ -1,4 +1,4 @@
-package commands
+package setcredentials
 
 import (
 	"net/http"
@@ -67,7 +67,6 @@ func Test_UpdateOrgSetCredentials_Success(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	err = verifyUpdateOrgSetCredentialsPreconditions(args)
 	if err != nil {
