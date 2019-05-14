@@ -32,10 +32,10 @@ Examples:
 `,
 
 		// PreRun checks a few general things, like authentication.
-		PreRun: showReleasePreRunOutput,
+		PreRun: printValidation,
 
 		// Run calls the business function and prints results and errors.
-		Run: showReleaseRunOutput,
+		Run: printResult,
 	}
 )
 
@@ -65,7 +65,7 @@ func defaultShowReleaseArguments() showReleaseArguments {
 	}
 }
 
-func showReleasePreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultShowReleaseArguments()
 	err := verifyShowReleasePreconditions(args, cmdLineArgs)
 
@@ -124,8 +124,8 @@ func getReleaseDetails(releaseVersion, scheme, token, endpoint string) (*models.
 	return nil, microerror.Mask(errors.ReleaseNotFoundError)
 }
 
-// showReleaseRunOutput prints the release information on stdout
-func showReleaseRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+// printResult prints the release information on stdout
+func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultShowReleaseArguments()
 	args.releaseVersion = cmdLineArgs[0]
 	release, err := getReleaseDetails(args.releaseVersion, args.scheme,

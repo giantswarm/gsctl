@@ -37,10 +37,10 @@ Examples:
 `,
 
 		// PreRun checks a few general things, like authentication.
-		PreRun: showClusterPreRunOutput,
+		PreRun: printValidation,
 
 		// Run calls the business function and prints results and errors.
-		Run: showClusterRunOutput,
+		Run: printResult,
 	}
 
 	// Time after which a new cluster should be up, roughly.
@@ -73,7 +73,7 @@ func defaultShowClusterArguments() showClusterArguments {
 	}
 }
 
-func showClusterPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultShowClusterArguments()
 	err := verifyShowClusterPreconditions(args, cmdLineArgs)
 
@@ -178,9 +178,9 @@ func sumWorkerMemory(numWorkers int, workerDetails []*models.V4ClusterDetailsRes
 	return sum
 }
 
-// showClusterRunOutput fetches cluster info from the API, which involves
+// printResult fetches cluster info from the API, which involves
 // several API calls, and prints the output.
-func showClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	args := defaultShowClusterArguments()
 	args.clusterID = cmdLineArgs[0]
 
