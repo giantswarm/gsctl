@@ -198,7 +198,7 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		}
 	}
 
-	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return false, microerror.Mask(err)
 	}

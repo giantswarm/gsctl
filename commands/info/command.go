@@ -196,7 +196,7 @@ func info(args infoArguments) (infoResult, error) {
 			fmt.Println("Fetching installation info from API")
 		}
 
-		clientV2, err := client.NewWithConfig(args.apiEndpoint, args.token)
+		clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}

@@ -1,4 +1,4 @@
-package commands
+package login
 
 import (
 	"fmt"
@@ -62,7 +62,6 @@ func Test_LoginValidPassword(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	result, err := login(args)
 	if err != nil {
@@ -113,7 +112,6 @@ func Test_LoginInvalidPassword(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	_, err = login(args)
 	convertedError, ok := err.(*clienterror.APIError)
@@ -162,7 +160,6 @@ selected_endpoint: "` + mockServer.URL + `"
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	result, loginErr := login(args)
 	if loginErr != nil {
@@ -206,7 +203,6 @@ func Test_LoginInactiveAccount(t *testing.T) {
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
-	InitClient()
 
 	_, err = login(args)
 	if err == nil {

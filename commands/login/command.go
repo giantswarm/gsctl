@@ -1,4 +1,4 @@
-package commands
+package login
 
 import (
 	"fmt"
@@ -6,14 +6,15 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/microerror"
+	"github.com/howeyc/gopass"
+	"github.com/spf13/cobra"
+
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/oidc"
-	"github.com/giantswarm/microerror"
-	"github.com/howeyc/gopass"
-	"github.com/spf13/cobra"
 )
 
 const (
@@ -30,8 +31,8 @@ var (
 	// cmdSSO is the bool that triggers login via SSO.
 	cmdSSO bool
 
-	// LoginCommand is the "login" CLI command
-	LoginCommand = &cobra.Command{
+	// Command is the "login" CLI command
+	Command = &cobra.Command{
 		Use:   "login <email> [-e|--endpoint <endpoint>]",
 		Short: "Sign in as a user",
 		Long: `Sign in against an endpoint with email address and password.
@@ -48,10 +49,9 @@ The -e or --endpoint argument can be omitted if an endpoint is already selected.
 )
 
 func init() {
-	LoginCommand.Flags().StringVarP(&cmdPassword, "password", "p", "", "Password. If not given, will be prompted interactively.")
-	LoginCommand.Flags().BoolVarP(&cmdSSO, "sso", "", false, "Authenticate using Single Sign On through our identity provider.")
-	LoginCommand.Flags().MarkHidden("sso")
-	RootCommand.AddCommand(LoginCommand)
+	Command.Flags().StringVarP(&cmdPassword, "password", "p", "", "Password. If not given, will be prompted interactively.")
+	Command.Flags().BoolVarP(&cmdSSO, "sso", "", false, "Authenticate using Single Sign On through our identity provider.")
+	Command.Flags().MarkHidden("sso")
 }
 
 type loginResult struct {
@@ -268,10 +268,8 @@ func getAlias(apiEndpoint string, scheme string, accessToken string) (string, er
 	}
 
 	// Fetch installation name as alias.
-	// TODO: set request ID of the previous request
 	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = loginActivityName
-
 	infoResponse, err := clientV2.GetInfo(auxParams)
 	if err != nil {
 		return "", err

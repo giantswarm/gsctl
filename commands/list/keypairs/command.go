@@ -100,7 +100,7 @@ func listKeypairsValidate(args *listKeypairsArguments) error {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 
-	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -194,7 +194,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
 	result := listKeypairsResult{}
 
-	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}

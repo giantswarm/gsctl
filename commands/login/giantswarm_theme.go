@@ -1,4 +1,4 @@
-package commands
+package login
 
 import (
 	"fmt"
@@ -6,7 +6,9 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/microerror"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 // loginGiantSwarm executes the authentication logic.
@@ -25,29 +27,30 @@ func loginGiantSwarm(args loginArguments) (loginResult, error) {
 		result.endpointSwitched = true
 	}
 
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, "")
+	if err != nil {
+		return result, microerror.Mask(err)
+	}
+
+	ap := clientV2.DefaultAuxiliaryParams()
+	ap.ActivityName = loginActivityName
+
 	// log out if logged in
 	if config.Config.Token != "" {
-
 		if args.verbose {
 			fmt.Println(color.WhiteString("Logging out using a a previously stored token"))
 		}
 
 		result.loggedOutBefore = true
 		// we deliberately ignore the logout result here
-		logout(logoutArguments{
-			apiEndpoint: args.apiEndpoint,
-			token:       config.Config.Token,
-		})
+		clientV2.DeleteAuthToken(config.Config.Token, ap)
 	}
-
-	ap := ClientV2.DefaultAuxiliaryParams()
-	ap.ActivityName = loginActivityName
 
 	if args.verbose {
 		fmt.Println(color.WhiteString("Submitting API call to create an authentication token with email '%s'", args.email))
 	}
 
-	response, err := ClientV2.CreateAuthToken(args.email, args.password, ap)
+	response, err := clientV2.CreateAuthToken(args.email, args.password, ap)
 	if err != nil {
 		return result, err
 	}

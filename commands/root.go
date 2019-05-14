@@ -11,6 +11,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/info"
 	"github.com/giantswarm/gsctl/commands/list"
+	"github.com/giantswarm/gsctl/commands/login"
 	"github.com/giantswarm/gsctl/commands/show"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
@@ -47,6 +48,7 @@ func init() {
 	RootCommand.AddCommand(deletecmd.Command)
 	RootCommand.AddCommand(info.Command)
 	RootCommand.AddCommand(list.Command)
+	RootCommand.AddCommand(login.Command)
 	RootCommand.AddCommand(show.Command)
 }
 

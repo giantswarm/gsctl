@@ -99,7 +99,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 // orgsTable fetches the organizations the user is a member of
 // and returns a table in string form.
 func orgsTable(args listOrgsArguments) (string, error) {
-	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
