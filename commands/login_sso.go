@@ -10,8 +10,8 @@ import (
 	"github.com/giantswarm/microerror"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/oidc"
 )
 

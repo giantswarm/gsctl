@@ -13,8 +13,8 @@ import (
 	rootcerts "github.com/hashicorp/go-rootcerts"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
 )
 

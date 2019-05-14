@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
 )
 

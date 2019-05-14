@@ -6,9 +6,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/show"
 	"github.com/giantswarm/gsctl/config"
-	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/microerror"
 )
@@ -59,6 +59,7 @@ func initConfig(cmd *cobra.Command, args []string) error {
 }
 
 // InitClient initializes the client wrapper.
+// TODO: let every command initialize its own client, then remove this.
 func InitClient() error {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 

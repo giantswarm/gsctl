@@ -11,8 +11,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/util"
 )

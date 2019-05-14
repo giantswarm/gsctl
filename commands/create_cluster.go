@@ -16,8 +16,8 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/giantswarm/gsctl/client"
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
 )
 
