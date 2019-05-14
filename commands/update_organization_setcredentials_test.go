@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
 func Test_UpdateOrgSetCredentials_Success(t *testing.T) {
@@ -52,7 +52,7 @@ func Test_UpdateOrgSetCredentials_Success(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	dir, err := config.TempConfig("")
+	dir, err := testutils.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}

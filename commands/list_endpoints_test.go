@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
 // Test_ListEndpoints tests the listing of a few endpoints
@@ -23,7 +24,7 @@ endpoints:
     token: some-other-token
 selected_endpoint: https://my.second.endpoint
 `
-	dir, err := config.TempConfig(yamlText)
+	dir, err := testutils.TempConfig(yamlText)
 	if err != nil {
 		t.Error(err)
 	}

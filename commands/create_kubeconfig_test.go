@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
 // makeMockServer returns a mock server to be used in several test cases
@@ -57,14 +57,14 @@ func Test_CreateKubeconfig(t *testing.T) {
 	defer mockServer.Close()
 
 	// temporary kubeconfig file
-	kubeConfigPath, err := tempKubeconfig()
+	kubeConfigPath, err := testutils.TempKubeconfig()
 	if err != nil {
 		t.Error(err)
 	}
 	os.Setenv("KUBECONFIG", kubeConfigPath)
 	defer os.Unsetenv("KUBECONFIG")
 
-	configDir, err := config.TempConfig("")
+	configDir, err := testutils.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -131,14 +131,14 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 	defer mockServer.Close()
 
 	// temporary config
-	configDir, err := config.TempConfig("")
+	configDir, err := testutils.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
 	defer os.RemoveAll(configDir)
 
 	// output folder
-	tmpdir := config.TempDir()
+	tmpdir := testutils.TempDir()
 	defer os.RemoveAll(tmpdir)
 
 	args := createKubeconfigArguments{
@@ -206,7 +206,7 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 	defer mockServer.Close()
 
 	// temporary kubeconfig file
-	kubeConfigPath, err := tempKubeconfig()
+	kubeConfigPath, err := testutils.TempKubeconfig()
 	if err != nil {
 		t.Error(err)
 	}
@@ -214,7 +214,7 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 	defer os.Unsetenv("KUBECONFIG")
 
 	// temporary config
-	configDir, err := config.TempConfig("")
+	configDir, err := testutils.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -259,14 +259,14 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 // Test_CreateKubeconfigNoConnection tests what happens if there is no API connection
 func Test_CreateKubeconfigNoConnection(t *testing.T) {
 	// temporary kubeconfig file
-	kubeConfigPath, err := tempKubeconfig()
+	kubeConfigPath, err := testutils.TempKubeconfig()
 	if err != nil {
 		t.Error(err)
 	}
 	os.Setenv("KUBECONFIG", kubeConfigPath)
 	defer os.Unsetenv("KUBECONFIG")
 
-	configDir, err := config.TempConfig("")
+	configDir, err := testutils.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
-	"github.com/giantswarm/gsctl/config"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
 // TestRedactPasswordArgs tests redactPasswordArgs().
@@ -468,7 +468,7 @@ endpoints:
     email: email@example.com
     token: some-token
 selected_endpoint: ` + mockServer.URL
-	dir, err := config.TempConfig(yamlText)
+	dir, err := testutils.TempConfig(yamlText)
 	defer os.RemoveAll(dir)
 	if err != nil {
 		t.Error(err)

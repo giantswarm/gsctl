@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
 // Test_PrintInfo simply executes the printInfo function.
@@ -26,7 +26,7 @@ endpoints:
     alias: ""
 selected_endpoint: https://other.endpoint`
 
-	dir, err := config.TempConfig(yamlText)
+	dir, err := testutils.TempConfig(yamlText)
 	if err != nil {
 		t.Error(err)
 	}
@@ -52,7 +52,7 @@ endpoints:
     alias: ""
 selected_endpoint: https://other.endpoint`
 
-	dir, err := config.TempConfig(yamlText)
+	dir, err := testutils.TempConfig(yamlText)
 	if err != nil {
 		t.Error(err)
 	}
@@ -65,7 +65,7 @@ selected_endpoint: https://other.endpoint`
 // Test_InfoWithTempDirAndToken tests the info() function with a custom
 // configuration path and an auth-token
 func Test_InfoWithTempDirAndToken(t *testing.T) {
-	dir, err := config.TempConfig("")
+	dir, err := testutils.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}

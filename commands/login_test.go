@@ -7,11 +7,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/giantswarm/gsclientgen/client/auth_tokens"
+
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
-
-	"github.com/giantswarm/gsclientgen/client/auth_tokens"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
 // regularInfoResponse is a JSON snippet we use in several test cases
@@ -35,7 +36,7 @@ var regularInfoResponse = []byte(`{
 // Test_LoginValidPassword simulates a login with a valid email/password combination
 func Test_LoginValidPassword(t *testing.T) {
 	// we start with an empty config
-	dir, err := config.TempConfig("")
+	dir, err := testutils.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -89,7 +90,7 @@ func Test_LoginValidPassword(t *testing.T) {
 
 // Test_LoginInvalidPassword simulates a login with a bad email/password combination
 func Test_LoginInvalidPassword(t *testing.T) {
-	dir, err := config.TempConfig("")
+	dir, err := testutils.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -147,7 +148,7 @@ func Test_LoginWhenUserLoggedInBefore(t *testing.T) {
     token: token
 selected_endpoint: "` + mockServer.URL + `"
 `
-	dir, err := config.TempConfig(yamlText)
+	dir, err := testutils.TempConfig(yamlText)
 	if err != nil {
 		fmt.Printf(yamlText)
 		t.Error(err)
@@ -184,7 +185,7 @@ selected_endpoint: "` + mockServer.URL + `"
 // Test_LoginInactiveAccount simulates a login with an inactive/expired account
 func Test_LoginInactiveAccount(t *testing.T) {
 	// we start with an empty config
-	dir, err := config.TempConfig("")
+	dir, err := testutils.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}

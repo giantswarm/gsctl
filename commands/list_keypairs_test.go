@@ -6,16 +6,16 @@ import (
 	"os"
 	"testing"
 
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/errors"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
 // Test_ListKeypairs_NotLoggedIn checks whether we are detecting whether or not the user
 // is logged in or provides an auth token. Here we use an empty config to have
 // an unauthorized user.
 func Test_ListKeypairs_NotLoggedIn(t *testing.T) {
-	dir, err := config.TempConfig("")
+	dir, err := testutils.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -35,7 +35,7 @@ func Test_ListKeypairs_NotLoggedIn(t *testing.T) {
 // Test_ListKeypairs_Empty simulates the situation where there are no
 // key pairs for a given cluster.
 func Test_ListKeypairs_Empty(t *testing.T) {
-	dir, err := config.TempConfig("")
+	dir, err := testutils.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -75,7 +75,7 @@ func Test_ListKeypairs_Empty(t *testing.T) {
 // Test_ListKeypairs_NotFound simulates the situation where the cluster
 // to list key pairs for is not found
 func Test_ListKeypairs_NotFound(t *testing.T) {
-	dir, err := config.TempConfig("")
+	dir, err := testutils.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
@@ -112,7 +112,7 @@ func Test_ListKeypairs_NotFound(t *testing.T) {
 // Test_ListKeyPairs_Nonempty simulates listing key pairs where several
 // items are returned.
 func Test_ListKeyPairs_Nonempty(t *testing.T) {
-	dir, err := config.TempConfig("")
+	dir, err := testutils.TempConfig("")
 	if err != nil {
 		t.Error(err)
 	}
