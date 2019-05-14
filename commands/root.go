@@ -16,6 +16,9 @@ import (
 	"github.com/giantswarm/gsctl/commands/scale"
 	selectcmd "github.com/giantswarm/gsctl/commands/select"
 	"github.com/giantswarm/gsctl/commands/show"
+	"github.com/giantswarm/gsctl/commands/update"
+	"github.com/giantswarm/gsctl/commands/upgrade"
+	"github.com/giantswarm/gsctl/commands/version"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/microerror"
@@ -56,6 +59,9 @@ func init() {
 	RootCommand.AddCommand(scale.Command)
 	RootCommand.AddCommand(selectcmd.Command)
 	RootCommand.AddCommand(show.Command)
+	RootCommand.AddCommand(update.Command)
+	RootCommand.AddCommand(upgrade.Command)
+	RootCommand.AddCommand(version.Command)
 }
 
 // initConfig calls the config.Initialize() function
