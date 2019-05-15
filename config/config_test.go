@@ -70,7 +70,7 @@ func Test_Initialize_Empty(t *testing.T) {
 
 	// directly set some configuration
 	Config.LastVersionCheck = time.Time{}
-	err = Config.StoreEndpointAuth(testEndpointURL, testAlias, testEmail, testScheme, testToken, testRefreshToken)
+	err = Config.StoreEndpointAuth(testEndpointURL, testAlias, "", testEmail, testScheme, testToken, testRefreshToken)
 	if err != nil {
 		t.Error(err)
 	}

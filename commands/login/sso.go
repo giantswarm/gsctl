@@ -37,7 +37,7 @@ func loginSSO(args loginArguments) (loginResult, error) {
 	}
 
 	// Check if the access token works by fetching the installation's name.
-	alias, err := getAlias(args.apiEndpoint, "Bearer", pkceResponse.AccessToken)
+	installationInfo, err := getInstallationInfo(args.apiEndpoint, "Bearer", pkceResponse.AccessToken)
 	if err != nil {
 		if args.verbose {
 			fmt.Println(color.WhiteString("Attempt to use new token against the API failed."))
@@ -60,7 +60,7 @@ func loginSSO(args loginArguments) (loginResult, error) {
 	}
 
 	// Store the token in the config file.
-	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, alias, idToken.Email, "Bearer", pkceResponse.AccessToken, pkceResponse.RefreshToken); err != nil {
+	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, installationInfo.InstallationName, installationInfo.Provider, idToken.Email, "Bearer", pkceResponse.AccessToken, pkceResponse.RefreshToken); err != nil {
 		if args.verbose {
 			fmt.Println(color.WhiteString("Attempt to store our authentication data with the endpoint in the configuration failed."))
 			fmt.Println(color.WhiteString("Error details: %s", err.Error()))
@@ -76,7 +76,8 @@ func loginSSO(args loginArguments) (loginResult, error) {
 		email:              idToken.Email,
 		endpointSwitched:   (config.Config.SelectedEndpoint != args.apiEndpoint),
 		loggedOutBefore:    false,
-		alias:              alias,
+		alias:              installationInfo.InstallationName,
+		provider:           installationInfo.Provider,
 		token:              pkceResponse.AccessToken,
 		numEndpointsBefore: numEndpointsBefore,
 		numEndpointsAfter:  config.Config.NumEndpoints(),

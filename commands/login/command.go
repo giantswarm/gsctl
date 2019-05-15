@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
@@ -65,6 +66,8 @@ type loginResult struct {
 	endpointSwitched bool
 	// email is the email address we are signed in with
 	email string
+	// provider is the provider of the installation
+	provider string
 	// token is the new session token received
 	token string
 	// numEndpointsBefore is the number of endpoints before login
@@ -248,9 +251,9 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 	}
 }
 
-// getAlias creates a giantswarm API client and tries to fetch the info endpoint.
+// getInstallationInfo creates a giantswarm API client and tries to fetch the info endpoint.
 // If it succeeds it returns the alias for that endpoint.
-func getAlias(apiEndpoint string, scheme string, accessToken string) (string, error) {
+func getInstallationInfo(apiEndpoint string, scheme string, accessToken string) (*models.V4InfoResponseGeneral, error) {
 	// Create an API client.
 	authHeaderGetter := func() (string, error) {
 		return scheme + " " + accessToken, nil
@@ -264,7 +267,7 @@ func getAlias(apiEndpoint string, scheme string, accessToken string) (string, er
 	}
 	clientV2, err := client.NewV2(clientConfig)
 	if err != nil {
-		return "", microerror.Maskf(errors.CouldNotCreateClientError, err.Error())
+		return nil, microerror.Maskf(errors.CouldNotCreateClientError, err.Error())
 	}
 
 	// Fetch installation name as alias.
@@ -272,8 +275,8 @@ func getAlias(apiEndpoint string, scheme string, accessToken string) (string, er
 	auxParams.ActivityName = loginActivityName
 	infoResponse, err := clientV2.GetInfo(auxParams)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return infoResponse.Payload.General.InstallationName, nil
+	return infoResponse.Payload.General, nil
 }

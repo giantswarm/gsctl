@@ -17,6 +17,7 @@ func loginGiantSwarm(args loginArguments) (loginResult, error) {
 	result := loginResult{
 		apiEndpoint:        args.apiEndpoint,
 		email:              args.email,
+		provider:           "",
 		loggedOutBefore:    false,
 		endpointSwitched:   false,
 		numEndpointsBefore: config.Config.NumEndpoints(),
@@ -65,13 +66,14 @@ func loginGiantSwarm(args loginArguments) (loginResult, error) {
 		fmt.Println(color.WhiteString("Fetching installation details"))
 	}
 
-	alias, err := getAlias(args.apiEndpoint, "giantswarm", result.token)
+	installationInfo, err := getInstallationInfo(args.apiEndpoint, "giantswarm", result.token)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
-	result.alias = alias
+	result.alias = installationInfo.InstallationName
+	result.provider = installationInfo.Provider
 
-	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, result.alias, args.email, "giantswarm", result.token, ""); err != nil {
+	if err := config.Config.StoreEndpointAuth(args.apiEndpoint, result.alias, result.provider, args.email, "giantswarm", result.token, ""); err != nil {
 		return result, microerror.Mask(err)
 	}
 	if err := config.Config.SelectEndpoint(args.apiEndpoint); err != nil {
