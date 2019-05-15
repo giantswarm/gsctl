@@ -6,7 +6,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/ruleengine"
 
-	"github.com/giantswarm/gsctl/cmd/cluster/scale/request"
+	"github.com/giantswarm/gsctl/commands/scale/cluster/request"
 )
 
 type ScalingConfig struct {

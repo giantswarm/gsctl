@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/giantswarm/gsctl/cmd/cluster/scale/request"
+	"github.com/giantswarm/gsctl/commands/scale/cluster/request"
 )
 
 func Test_Cmd_Cluster_Scale_Defaulting(t *testing.T) {
