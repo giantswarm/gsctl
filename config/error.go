@@ -12,6 +12,26 @@ func IsEndpointNotDefinedError(err error) bool {
 	return microerror.Cause(err) == endpointNotDefinedError
 }
 
+// noEndpointSelectedError means no endpoint is currently selected.
+var noEndpointSelectedError = &microerror.Error{
+	Kind: "noEndpointSelectedError",
+}
+
+// IsNoEndpointSelectedError asserts noEndpointSelectedError.
+func IsNoEndpointSelectedError(err error) bool {
+	return microerror.Cause(err) == noEndpointSelectedError
+}
+
+// endpointProviderIsImmuttableError means no endpoint is currently selected.
+var endpointProviderIsImmuttableError = &microerror.Error{
+	Kind: "endpointProviderIsImmuttableError",
+}
+
+// IsEndpointProviderIsImmuttableError asserts endpointProviderIsImmuttableError.
+func IsEndpointProviderIsImmuttableError(err error) bool {
+	return microerror.Cause(err) == endpointProviderIsImmuttableError
+}
+
 // aliasMustBeUniqueError should be used if the user tries to add an alias to
 // an endpoint, but the alias is already in use
 var aliasMustBeUniqueError = &microerror.Error{
@@ -24,7 +44,10 @@ func IsAliasMustBeUniqueError(err error) bool {
 }
 
 // credentialsRequiredError means an attempt to store incomplete credentials in the config
-var credentialsRequiredError = microerror.New("email, password, or token must not be empty")
+var credentialsRequiredError = &microerror.Error{
+	Kind: "credentialsRequiredError",
+	Desc: "email, password, or token must not be empty",
+}
 
 // IsCredentialsRequiredError asserts credentialsRequiredError.
 func IsCredentialsRequiredError(err error) bool {

@@ -15,7 +15,6 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/giantswarm/gsctl/oidc"
 	"github.com/giantswarm/microerror"
-
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -111,6 +110,11 @@ type configStruct struct {
 	// endpoint's entry.
 	Email string `yaml:"-"`
 
+	// Provider is the provider found for the selected endpoint. Might be empty.
+	// Not marshalled back to the config file, as it is contained in the
+	// endpoint's entry.
+	Provider string `yaml:"-"`
+
 	endpoints      map[string]*endpointConfig
 	endpointsMutex *sync.RWMutex
 }
@@ -151,6 +155,9 @@ type endpointConfig struct {
 
 	// Email is the email address of the authenticated user.
 	Email string `yaml:"email"`
+
+	// Provider is the cloud provider used in the installation.
+	Provider string `yaml:"provider"`
 
 	// RefreshToken for acquiring a new token when using the bearer scheme.
 	RefreshToken string `yaml:"refresh_token,omitempty"`
@@ -364,6 +371,7 @@ func (c *configStruct) EndpointByAlias(alias string) (string, error) {
 	return "", microerror.Maskf(endpointNotDefinedError, "no endpoint for this alias")
 }
 
+// Endpoints returns a slice of endpoint URLs.
 func (c *configStruct) Endpoints() []string {
 	c.endpointsMutex.RLock()
 	defer c.endpointsMutex.RUnlock()
@@ -374,6 +382,23 @@ func (c *configStruct) Endpoints() []string {
 	}
 
 	return endpoints
+}
+
+// SetProvider sets the provider information for the current endpoint.
+// This fails if a provider is already set.
+func (c *configStruct) SetProvider(provider string) error {
+	if c.SelectedEndpoint == "" {
+		return microerror.Mask(noEndpointSelectedError)
+	}
+	if c.Provider != "" {
+		return microerror.Mask(endpointProviderIsImmuttableError)
+	}
+
+	c.endpoints[c.SelectedEndpoint].Provider = provider
+	c.Provider = provider
+	WriteToFile()
+
+	return nil
 }
 
 // NumEndpoints returns the number of endpoints stored in the configuration
@@ -576,6 +601,7 @@ func populateConfigStruct(cs *configStruct) {
 		endpointConfig := cs.EndpointConfig(cs.SelectedEndpoint)
 		if endpointConfig != nil {
 			Config.Email = endpointConfig.Email
+			Config.Provider = endpointConfig.Provider
 			Config.Token = endpointConfig.Token
 		}
 	}
