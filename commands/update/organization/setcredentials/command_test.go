@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/giantswarm/gsctl/flags"
@@ -58,28 +59,34 @@ func Test_UpdateOrgSetCredentials_Success(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 
-	args := updateOrgSetCredentialsArguments{
-		apiEndpoint:     mockServer.URL,
-		organizationID:  "acme",
-		authToken:       "test-token",
-		awsAdminRole:    "test-admin-role",
-		awsOperatorRole: "test-operator-role",
-	}
-
 	flags.CmdAPIEndpoint = mockServer.URL
+	flags.CmdOrganizationID = "acme"
+	flags.CmdToken = "test-token"
+	cmdAWSAdminRoleARN = "test-admin-role"
+	cmdAWSOperatorRoleARN = "test-operator-role"
 
-	err = verifyUpdateOrgSetCredentialsPreconditions(args)
+	args := defaultArguments()
+
+	err = verifyPreconditions(args)
 	if err != nil {
 		t.Errorf("Verifying preconditions returned error: %s", err)
 	}
 
-	result, err := updateOrgSetCredentials(args)
+	result, err := setOrgCredentials(args)
 	if err != nil {
 		t.Error(err)
 	}
 
-	// TODO: check result content
 	if result.credentialID != "test" {
 		t.Errorf("Expected credential ID 'test', got %q", result.credentialID)
+	}
+
+	expected := "Credentials set successfully"
+	output := testutils.CaptureOutput(func() {
+		printResult(Command, []string{""})
+	})
+	if !strings.Contains(output, expected) {
+		t.Logf("Command output: %q", output)
+		t.Errorf("Command output did not contain expected part %q\n", expected)
 	}
 }

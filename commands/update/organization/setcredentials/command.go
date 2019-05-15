@@ -55,10 +55,10 @@ For details on how to prepare the account/subscription, consult the documentatio
 
 		// PreRun checks a few general things, like authentication and flags
 		// compatibility.
-		PreRun: updateOrgSetCredentialsPreRunOutput,
+		PreRun: printValidation,
 
 		// Run calls the business function and prints results and errors.
-		Run: updateOrgSetCredentialsRunOutput,
+		Run: printResult,
 	}
 
 	// AWS role ARN flags
@@ -75,7 +75,7 @@ For details on how to prepare the account/subscription, consult the documentatio
 	provider string
 )
 
-type updateOrgSetCredentialsArguments struct {
+type cmdArguments struct {
 	apiEndpoint         string
 	authToken           string
 	scheme              string
@@ -89,7 +89,7 @@ type updateOrgSetCredentialsArguments struct {
 	azureSecretKey      string
 }
 
-type updateOrgSetCredentialsResult struct {
+type setOrgCredentialsResult struct {
 	credentialID string
 }
 
@@ -103,12 +103,12 @@ func init() {
 	Command.Flags().StringVarP(&cmdAzureSecretKey, "azure-secret-key", "", "", "Secret key for the Azure service principal to use for operating clusters")
 }
 
-func defaultUpdateOrgSetCredentialsArguments() updateOrgSetCredentialsArguments {
+func defaultArguments() cmdArguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
-	return updateOrgSetCredentialsArguments{
+	return cmdArguments{
 		apiEndpoint:         endpoint,
 		authToken:           token,
 		scheme:              scheme,
@@ -123,9 +123,9 @@ func defaultUpdateOrgSetCredentialsArguments() updateOrgSetCredentialsArguments 
 	}
 }
 
-func updateOrgSetCredentialsPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultUpdateOrgSetCredentialsArguments()
-	err := verifyUpdateOrgSetCredentialsPreconditions(args)
+func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
+	args := defaultArguments()
+	err := verifyPreconditions(args)
 
 	if err == nil {
 		return
@@ -166,7 +166,7 @@ func updateOrgSetCredentialsPreRunOutput(cmd *cobra.Command, cmdLineArgs []strin
 	os.Exit(1)
 }
 
-func verifyUpdateOrgSetCredentialsPreconditions(args updateOrgSetCredentialsArguments) error {
+func verifyPreconditions(args cmdArguments) error {
 	if args.organizationID == "" {
 		return microerror.Mask(errors.OrganizationNotSpecifiedError)
 	}
@@ -272,11 +272,11 @@ func verifyUpdateOrgSetCredentialsPreconditions(args updateOrgSetCredentialsArgu
 	return nil
 }
 
-// updateOrgSetCredentialsRunOutput calls the busniness function and produces
+// printResult calls the busniness function and produces
 // meanigful terminal output.
-func updateOrgSetCredentialsRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultUpdateOrgSetCredentialsArguments()
-	result, err := updateOrgSetCredentials(args)
+func printResult(cmd *cobra.Command, cmdLineArgs []string) {
+	args := defaultArguments()
+	result, err := setOrgCredentials(args)
 
 	if err != nil {
 		errors.HandleCommonErrors(err)
@@ -307,8 +307,8 @@ func updateOrgSetCredentialsRunOutput(cmd *cobra.Command, cmdLineArgs []string) 
 	fmt.Printf("The credentials are stored with the unique ID '%s'.\n", result.credentialID)
 }
 
-// updateOrgSetCredentials performs the API call and provides a result.
-func updateOrgSetCredentials(args updateOrgSetCredentialsArguments) (*updateOrgSetCredentialsResult, error) {
+// setOrgCredentials performs the API call and provides a result.
+func setOrgCredentials(args cmdArguments) (*setOrgCredentialsResult, error) {
 	// build request body based on provider
 	requestBody := &models.V4AddCredentialsRequest{Provider: &provider}
 	if provider == "aws" {
@@ -354,7 +354,7 @@ func updateOrgSetCredentials(args updateOrgSetCredentialsArguments) (*updateOrgS
 	// Location header returned is in the format
 	// /v4/organizations/myorg/credentials/{credential_id}/
 	segments := strings.Split(response.Location, "/")
-	result := &updateOrgSetCredentialsResult{
+	result := &setOrgCredentialsResult{
 		credentialID: segments[len(segments)-2],
 	}
 
