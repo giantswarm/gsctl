@@ -31,18 +31,18 @@ jobs:
       - run:
           name: Execute the built binary
           command: ./gsctl info
-      - run:
-          name: Post coverage to Codecov.io
-          command: |
-            bash ./test_coverage.sh
-            bash <(curl -s https://codecov.io/bash)
       # - run:
-      #     name: Update Coveralls
+      #     name: Post coverage to Codecov.io
       #     command: |
-      #       go get golang.org/x/tools/cmd/cover
-      #       go get github.com/mattn/goveralls
-      #       go test ./... -v -covermode=count -coverprofile=coverage.out
-      #       goveralls -coverprofile=coverage.out -service=circle-ci -repotoken $COVERALLS_TOKEN
+      #       bash ./test_coverage.sh
+      #       bash <(curl -s https://codecov.io/bash)
+      - run:
+          name: Update Coveralls
+          command: |
+            go get golang.org/x/tools/cmd/cover
+            go get github.com/mattn/goveralls
+            go test ./... -v -covermode=count -coverprofile=coverage.out
+            goveralls -coverprofile=coverage.out -service=circle-ci -repotoken $COVERALLS_TOKEN
   dist:
     machine: true
     steps:
