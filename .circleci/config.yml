@@ -3,7 +3,10 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.12.5
+
+    # We use 'medium+' because with 'medium' we saw tests fail due to memory problems.
     resource_class: medium+
+
     working_directory: /go/src/github.com/giantswarm/gsctl
     steps:
       - checkout

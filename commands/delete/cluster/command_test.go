@@ -7,6 +7,7 @@ import (
 
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
 // TestDeleteClusterSuccess runs test case that are supposed to succeed
@@ -32,7 +33,13 @@ func TestDeleteClusterSuccess(t *testing.T) {
 	flags.CmdAPIEndpoint = mockServer.URL
 
 	for i, testCase := range testCases {
-		validateErr := validateDeleteClusterPreConditions(testCase)
+
+		flags.CmdToken = testCase.token
+		flags.CmdForce = testCase.force
+
+		args := defaultArguments([]string{testCase.clusterID})
+
+		validateErr := validatePreconditions(args)
 		if validateErr != nil {
 			t.Errorf("Validation error in testCase %v: %s", i, validateErr.Error())
 		} else {
@@ -69,9 +76,32 @@ func TestDeleteClusterFailures(t *testing.T) {
 	}
 
 	for i, ftc := range failTestCases {
-		validateErr := validateDeleteClusterPreConditions(ftc.arguments)
+		validateErr := validatePreconditions(ftc.arguments)
 		if validateErr == nil {
 			t.Errorf("Didn't get an error where we expected '%s' in testCase %v", ftc.expectedError, i)
 		}
 	}
+}
+
+func TestCommandExecutionHelp(t *testing.T) {
+	testutils.CaptureOutput(func() {
+		Command.SetArgs([]string{"--help"})
+		Command.Execute()
+	})
+}
+
+func TestCommandExecution(t *testing.T) {
+	// mock server always responds positively
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Log("mockServer request: ", r.Method, r.URL)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+		w.Write([]byte(`{"code": "RESOURCE_DELETION_STARTED", "message": "We'll soon nuke this cluster"}`))
+	}))
+	defer mockServer.Close()
+
+	testutils.CaptureOutput(func() {
+		Command.SetArgs([]string{"--force", "--endpoint", mockServer.URL})
+		Command.Execute()
+	})
 }

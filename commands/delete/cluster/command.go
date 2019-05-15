@@ -35,7 +35,7 @@ type deleteClusterArguments struct {
 	verbose bool
 }
 
-func defaultDeleteClusterArguments(positionalArgs []string) deleteClusterArguments {
+func defaultArguments(positionalArgs []string) deleteClusterArguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
@@ -89,9 +89,9 @@ func init() {
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
 func printValidation(cmd *cobra.Command, args []string) {
-	dca := defaultDeleteClusterArguments(args)
+	dca := defaultArguments(args)
 
-	err := validateDeleteClusterPreConditions(dca)
+	err := validatePreconditions(dca)
 	if err != nil {
 		errors.HandleCommonErrors(err)
 
@@ -123,8 +123,8 @@ func printValidation(cmd *cobra.Command, args []string) {
 	}
 }
 
-// validateDeleteClusterPreConditions checks preconditions and returns an error in case
-func validateDeleteClusterPreConditions(args deleteClusterArguments) error {
+// validatePreconditions checks preconditions and returns an error in case
+func validatePreconditions(args deleteClusterArguments) error {
 	if args.clusterID == "" && args.legacyClusterID == "" {
 		return microerror.Mask(errors.ClusterIDMissingError)
 	}
@@ -139,7 +139,7 @@ func validateDeleteClusterPreConditions(args deleteClusterArguments) error {
 
 // interprets arguments/flags, eventually submits delete request
 func printResult(cmd *cobra.Command, args []string) {
-	dca := defaultDeleteClusterArguments(args)
+	dca := defaultArguments(args)
 	deleted, err := deleteCluster(dca)
 	if err != nil {
 		errors.HandleCommonErrors(err)
