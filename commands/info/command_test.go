@@ -2,6 +2,7 @@ package info
 
 import (
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -35,8 +36,15 @@ selected_endpoint: https://other.endpoint`
 	output := testutils.CaptureOutput(func() {
 		Command.Execute()
 	})
+	t.Log(output)
+
 	if strings.Contains(output, "Auth token:") {
 		t.Error("Verbose Command output did not contain 'Auth token'")
+	}
+
+	re := regexp.MustCompile(`Email:\s+n/a`)
+	if re.Find([]byte(output)) == nil {
+		t.Error("Output did not contain expected chunk 'Email: n/a'")
 	}
 }
 
