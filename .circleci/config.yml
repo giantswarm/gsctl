@@ -3,6 +3,7 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.12.5
+    resource_class: medium+
     working_directory: /go/src/github.com/giantswarm/gsctl
     steps:
       - checkout
@@ -20,10 +21,10 @@ jobs:
       - run:
           name: go test
           command: |
-            #go test -v ./...
-            for d in $(go list ./...); do
-              go test $d
-            done
+            go test -v ./...
+            #for d in $(go list ./...); do
+            #  go test $d
+            #done
       - run:
           name: Execute the built binary
           command: ./gsctl info
