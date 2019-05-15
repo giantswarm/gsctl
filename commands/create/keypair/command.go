@@ -49,7 +49,7 @@ type createKeypairArguments struct {
 }
 
 // function to create arguments based on command line flags and config
-func defaultCreateKeypairArguments() (createKeypairArguments, error) {
+func defaultArguments() (createKeypairArguments, error) {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
@@ -106,7 +106,7 @@ func init() {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	args, argsErr := defaultCreateKeypairArguments()
+	args, argsErr := defaultArguments()
 	if argsErr != nil {
 		if errors.IsInvalidDurationError(argsErr) {
 			fmt.Println(color.RedString("The value passed with --ttl is invalid."))
@@ -120,7 +120,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 		os.Exit(1)
 	}
 
-	err := verifyCreateKeypairPreconditions(args)
+	err := verifyPreconditions(args)
 
 	if err == nil {
 		return
@@ -150,7 +150,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	os.Exit(1)
 }
 
-func verifyCreateKeypairPreconditions(args createKeypairArguments) error {
+func verifyPreconditions(args createKeypairArguments) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
@@ -173,7 +173,7 @@ func verifyCreateKeypairPreconditions(args createKeypairArguments) error {
 }
 
 func printResult(cmd *cobra.Command, cmdLineArgs []string) {
-	args, _ := defaultCreateKeypairArguments()
+	args, _ := defaultArguments()
 
 	result, err := createKeypair(args)
 
