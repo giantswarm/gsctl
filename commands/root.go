@@ -1,14 +1,12 @@
 package commands
 
 import (
-	"time"
+	"fmt"
 
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/create"
 	deletecmd "github.com/giantswarm/gsctl/commands/delete"
-	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/info"
 	"github.com/giantswarm/gsctl/commands/list"
 	"github.com/giantswarm/gsctl/commands/login"
@@ -30,14 +28,6 @@ var RootCommand = &cobra.Command{
 	// this is inherited by all child commands
 	PersistentPreRunE: initConfig,
 }
-
-var (
-	// ClientV2 is the latest client wrapper we create for all commands to use
-	ClientV2 *client.WrapperV2
-
-	// ClientConfig is a client configuration we apply when creating a new clients
-	ClientConfig *client.Configuration
-)
 
 func init() {
 	// Replaced by "endpoint" flag
@@ -65,37 +55,14 @@ func init() {
 }
 
 // initConfig calls the config.Initialize() function
-// before any command is executed.
+// before any command is executed (see PersistentPreRunE above).
 func initConfig(cmd *cobra.Command, args []string) error {
 	err := config.Initialize(flags.CmdConfigDirPath)
 	if err != nil {
+		if flags.CmdVerbose {
+			fmt.Printf("Error initializing configuration: %#v\n", err)
+		}
 		return microerror.Mask(err)
-	}
-
-	err = InitClient()
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	return nil
-}
-
-// InitClient initializes the client wrapper.
-// TODO: let every command initialize its own client, then remove this.
-func InitClient() error {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-
-	ClientConfig = &client.Configuration{
-		AuthHeaderGetter: config.Config.AuthHeaderGetter(endpoint, flags.CmdToken),
-		Endpoint:         endpoint,
-		Timeout:          20 * time.Second,
-		UserAgent:        config.UserAgent(),
-	}
-
-	var err error
-	ClientV2, err = client.NewV2(ClientConfig)
-	if err != nil {
-		return microerror.Maskf(errors.CouldNotCreateClientError, err.Error())
 	}
 
 	return nil
