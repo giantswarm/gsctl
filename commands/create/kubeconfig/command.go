@@ -251,7 +251,7 @@ func verifyCreateKubeconfigPreconditions(args createKubeconfigArguments, cmdLine
 	// ask for confirmation to overwrite existing file
 	if args.selfContainedPath != "" && !args.force {
 		if _, err := os.Stat(args.selfContainedPath); !os.IsNotExist(err) {
-			confirmed := confirm.AskForConfirmation("Do you want to overwrite " + args.selfContainedPath + " ?")
+			confirmed := confirm.Ask("Do you want to overwrite " + args.selfContainedPath + " ?")
 			if !confirmed {
 				return microerror.Mask(errors.CommandAbortedError)
 			}

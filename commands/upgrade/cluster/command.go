@@ -280,7 +280,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 
 	// Confirmation
 	if !args.force {
-		confirmed := confirm.AskForConfirmation("Do you want to start the upgrade now?")
+		confirmed := confirm.Ask("Do you want to start the upgrade now?")
 		if !confirmed {
 			return result, microerror.Mask(errors.CommandAbortedError)
 		}

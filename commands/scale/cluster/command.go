@@ -94,13 +94,13 @@ func init() {
 // confirmScaleCluster asks the user for confirmation for scaling actions.
 func confirmScaleCluster(args scaleClusterArguments, maxBefore int64, minBefore int64, currentWorkers int64) error {
 	if currentWorkers > args.workersMax && args.workersMax == args.workersMin {
-		confirmed := confirm.AskForConfirmation(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to pin the number of worker nodes to %d?", currentWorkers, args.workersMin))
+		confirmed := confirm.Ask(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to pin the number of worker nodes to %d?", currentWorkers, args.workersMin))
 		if !confirmed {
 			return microerror.Mask(errors.CommandAbortedError)
 		}
 	}
 	if currentWorkers > args.workersMax && args.workersMax != args.workersMin {
-		confirmed := confirm.AskForConfirmation(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to change the limits to be min=%d, max=%d?", currentWorkers, args.workersMin, args.workersMax))
+		confirmed := confirm.Ask(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to change the limits to be min=%d, max=%d?", currentWorkers, args.workersMin, args.workersMax))
 		if !confirmed {
 			return microerror.Mask(errors.CommandAbortedError)
 		}
