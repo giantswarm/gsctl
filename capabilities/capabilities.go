@@ -68,7 +68,7 @@ type ReleaseProviderPair struct {
 
 // GetCapabilities returns the capabilities available in the current context
 func GetCapabilities(provider, releaseVersion string) ([]CapabilityDefinition, error) {
-	cap := []CapabilityDefinition{}
+	capabilities := []CapabilityDefinition{}
 
 	// iterate all capabilities and find the ones that apply
 	for _, capability := range AllCapabilityDefinitions {
@@ -77,11 +77,11 @@ func GetCapabilities(provider, releaseVersion string) ([]CapabilityDefinition, e
 			return []CapabilityDefinition{}, microerror.Mask(err)
 		}
 		if hasCap {
-			cap = append(cap, capability)
+			capabilities = append(capabilities, capability)
 		}
 	}
 
-	return cap, nil
+	return capabilities, nil
 }
 
 // HasCapability returns true if the current context (provider, release) provides
