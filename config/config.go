@@ -15,7 +15,6 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/giantswarm/gsctl/oidc"
 	"github.com/giantswarm/microerror"
-
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -111,6 +110,11 @@ type configStruct struct {
 	// endpoint's entry.
 	Email string `yaml:"-"`
 
+	// Provider is the provider found for the selected endpoint. Might be empty.
+	// Not marshalled back to the config file, as it is contained in the
+	// endpoint's entry.
+	Provider string `yaml:"-"`
+
 	endpoints      map[string]*endpointConfig
 	endpointsMutex *sync.RWMutex
 }
@@ -152,6 +156,9 @@ type endpointConfig struct {
 	// Email is the email address of the authenticated user.
 	Email string `yaml:"email"`
 
+	// Provider is the cloud provider used in the installation.
+	Provider string `yaml:"provider"`
+
 	// RefreshToken for acquiring a new token when using the bearer scheme.
 	RefreshToken string `yaml:"refresh_token,omitempty"`
 
@@ -164,7 +171,7 @@ type endpointConfig struct {
 
 // StoreEndpointAuth adds an endpoint to the configStruct.Endpoints field
 // (if not yet there). This should only be done after successful authentication.
-func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email string, scheme string, token string, refreshToken string) error {
+func (c *configStruct) StoreEndpointAuth(endpointURL, alias, provider, email, scheme, token, refreshToken string) error {
 	ep := normalizeEndpoint(endpointURL)
 
 	if email == "" || token == "" {
@@ -194,9 +201,14 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email
 		aliasBefore = c.endpoints[ep].Alias
 	}
 
+	if provider == "" && c.endpoints[ep] != nil {
+		provider = c.endpoints[ep].Provider
+	}
+
 	c.endpoints[ep] = &endpointConfig{
 		Alias:        aliasBefore,
 		Email:        email,
+		Provider:     provider,
 		RefreshToken: refreshToken,
 		Scheme:       scheme,
 		Token:        token,
@@ -364,6 +376,7 @@ func (c *configStruct) EndpointByAlias(alias string) (string, error) {
 	return "", microerror.Maskf(endpointNotDefinedError, "no endpoint for this alias")
 }
 
+// Endpoints returns a slice of endpoint URLs.
 func (c *configStruct) Endpoints() []string {
 	c.endpointsMutex.RLock()
 	defer c.endpointsMutex.RUnlock()
@@ -374,6 +387,26 @@ func (c *configStruct) Endpoints() []string {
 	}
 
 	return endpoints
+}
+
+// SetProvider sets the provider information for the current endpoint.
+// This fails if a provider is already set.
+func (c *configStruct) SetProvider(provider string) error {
+	if c.SelectedEndpoint == "" {
+		return microerror.Mask(noEndpointSelectedError)
+	}
+	if c.Provider != "" {
+		return microerror.Mask(endpointProviderIsImmuttableError)
+	}
+
+	c.endpointsMutex.Lock()
+	defer c.endpointsMutex.Unlock()
+
+	c.endpoints[c.SelectedEndpoint].Provider = provider
+	c.Provider = provider
+	WriteToFile()
+
+	return nil
 }
 
 // NumEndpoints returns the number of endpoints stored in the configuration
@@ -438,7 +471,7 @@ func (c *configStruct) AuthHeaderGetter(endpoint string, overridingToken string)
 				}
 
 				// Update the config file with the new access token.
-				if err := Config.StoreEndpointAuth(endpoint, endpointConfig.Alias, idToken.Email, "Bearer", refreshTokenResponse.AccessToken, refreshToken); err != nil {
+				if err := Config.StoreEndpointAuth(endpoint, endpointConfig.Alias, "", idToken.Email, "Bearer", refreshTokenResponse.AccessToken, refreshToken); err != nil {
 					return "", microerror.Maskf(err, "Error while attempting to store the token in the config file")
 				}
 
@@ -576,6 +609,7 @@ func populateConfigStruct(cs *configStruct) {
 		endpointConfig := cs.EndpointConfig(cs.SelectedEndpoint)
 		if endpointConfig != nil {
 			Config.Email = endpointConfig.Email
+			Config.Provider = endpointConfig.Provider
 			Config.Token = endpointConfig.Token
 		}
 	}

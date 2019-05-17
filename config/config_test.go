@@ -70,7 +70,7 @@ func Test_Initialize_Empty(t *testing.T) {
 
 	// directly set some configuration
 	Config.LastVersionCheck = time.Time{}
-	err = Config.StoreEndpointAuth(testEndpointURL, testAlias, testEmail, testScheme, testToken, testRefreshToken)
+	err = Config.StoreEndpointAuth(testEndpointURL, testAlias, "", testEmail, testScheme, testToken, testRefreshToken)
 	if err != nil {
 		t.Error(err)
 	}
@@ -153,6 +153,7 @@ endpoints:
   https://myapi.domain.tld:
     email: email@example.com
     token: some-token
+    provider: testprovider
 selected_endpoint: https://myapi.domain.tld`
 	email := "email@example.com"
 	token := "some-token"
@@ -168,6 +169,9 @@ selected_endpoint: https://myapi.domain.tld`
 	}
 	if Config.Token != "some-token" {
 		t.Errorf("Expected token '%s', got '%s'", token, Config.Token)
+	}
+	if Config.Provider != "testprovider" {
+		t.Errorf("Expected provider testprovider, got '%s'", Config.Provider)
 	}
 
 	// test what happens after logout
@@ -276,4 +280,45 @@ selected_endpoint: https://other.endpoint`
 		t.Errorf("Expected endpointNotDefinedError, got '%s'", err)
 	}
 
+}
+
+func Test_SetProvider(t *testing.T) {
+	var testCases = []struct {
+		configYAML           string
+		expectedErrorMatcher func(error) bool
+	}{
+		{
+			// selected endpoint already has a provider set
+			configYAML: `endpoints:
+  https://myapi.domain.tld:
+    provider: foo
+selected_endpoint: https://myapi.domain.tld`,
+			expectedErrorMatcher: IsEndpointProviderIsImmuttableError,
+		},
+		{
+			// no provider selected
+			configYAML: `endpoints:
+  "https://myapi.domain.tld":
+    provider: ""
+selected_endpoint: ""`,
+			expectedErrorMatcher: IsNoEndpointSelectedError,
+		},
+	}
+
+	for index, tc := range testCases {
+		dir, err := tempConfig(tc.configYAML)
+		if err != nil {
+			t.Errorf("Error creating temporary config for test case %d: %q", index, err)
+		}
+		defer os.RemoveAll(dir)
+
+		t.Logf("Config: %#v", Config)
+
+		err = Config.SetProvider("aws")
+		if err == nil {
+			t.Errorf("Test case %d: Expected error, but got nil", index)
+		} else if tc.expectedErrorMatcher(err) == false {
+			t.Errorf("Test case %d: Unexpected error: %q", index, err)
+		}
+	}
 }
