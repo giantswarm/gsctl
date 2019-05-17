@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/Jeffail/gabs"
@@ -11,6 +12,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
 // TestScaleClusterNotLoggedIn tests if we can prevent an attempt to do things
@@ -133,6 +135,21 @@ func TestScaleCluster(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
+	// config
+	yamlText := `
+endpoints:
+  ` + mockServer.URL + `:
+    email: email@example.com
+    token: some-token
+    provider: aws
+selected_endpoint: ` + mockServer.URL
+	dir, err := testutils.TempConfig(yamlText)
+	defer os.RemoveAll(dir)
+
+	if err != nil {
+		t.Error(err)
+	}
+
 	testArgs := scaleClusterArguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "cluster-id",
@@ -143,7 +160,7 @@ func TestScaleCluster(t *testing.T) {
 
 	flags.CmdAPIEndpoint = mockServer.URL
 
-	err := validateScaleCluster(testArgs, []string{testArgs.clusterID}, 3, 3, 3)
+	err = validateScaleCluster(testArgs, []string{testArgs.clusterID}, 3, 3, 3)
 	if err != nil {
 		t.Error(err)
 	}
