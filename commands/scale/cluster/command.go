@@ -11,6 +11,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/capabilities"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/scale/cluster/defaulting"
@@ -19,7 +20,6 @@ import (
 	"github.com/giantswarm/gsctl/confirm"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/limits"
-	"github.com/giantswarm/gsctl/util"
 )
 
 var (
@@ -47,7 +47,7 @@ Examples:
 `,
 
 		// Run calls the business function and prints results and errors.
-		Run: scaleClusterRunOutput,
+		Run: printResult,
 	}
 
 	//Flag names.
@@ -91,8 +91,8 @@ func init() {
 	Command.Flags().MarkDeprecated(cmdWorkerStorageSizeGBName, "Changing the amount of Storage is no longer supported while scaling.")
 }
 
-// confirmScaleCluster asks the user for confirmation for scaling actions.
-func confirmScaleCluster(args scaleClusterArguments, maxBefore int64, minBefore int64, currentWorkers int64) error {
+// getConfirmation asks the user for confirmation for scaling actions.
+func getConfirmation(args scaleClusterArguments, maxBefore int64, minBefore int64, currentWorkers int64) error {
 	if currentWorkers > args.workersMax && args.workersMax == args.workersMin {
 		confirmed := confirm.Ask(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to pin the number of worker nodes to %d?", currentWorkers, args.workersMin))
 		if !confirmed {
@@ -110,7 +110,7 @@ func confirmScaleCluster(args scaleClusterArguments, maxBefore int64, minBefore 
 
 }
 
-func defaultScaleClusterArguments(ctx context.Context, cmd *cobra.Command, clusterID string, autoScalingEnabled bool, currentScalingMax int64, currentScalingMin int64, desiredScalingMax int64, desiredScalingMin int64, desiredNumWorkers int64) (scaleClusterArguments, error) {
+func defaultArguments(ctx context.Context, cmd *cobra.Command, clusterID string, autoScalingEnabled bool, currentScalingMax int64, currentScalingMin int64, desiredScalingMax int64, desiredScalingMin int64, desiredNumWorkers int64) (scaleClusterArguments, error) {
 	var err error
 
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
@@ -163,19 +163,6 @@ func defaultScaleClusterArguments(ctx context.Context, cmd *cobra.Command, clust
 	return scaleArgs, nil
 }
 
-func isAutoscalingEnabled(version string) (bool, error) {
-	{
-		n, err := util.CompareVersions(version, "6.3.0")
-		if err != nil {
-			return false, err
-		}
-		if n == 0 || n == 1 {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
 // getClusterStatus returns the status for one cluster.
 func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, error) {
 	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
@@ -183,10 +170,26 @@ func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, er
 		return nil, microerror.Mask(err)
 	}
 
-	// perform API call
 	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
+	// Make sure we have provider info in the current endpoint
+	if config.Config.Provider == "" {
+		if flags.CmdVerbose {
+			fmt.Println(color.WhiteString("Fetching provider information"))
+		}
+
+		info, err := clientV2.GetInfo(auxParams)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+		config.Config.SetProvider(info.Payload.General.Provider)
+	}
+
+	// perform API call
+	if flags.CmdVerbose {
+		fmt.Println(color.WhiteString("Fetching current cluster size"))
+	}
 	status, err := clientV2.GetClusterStatus(clusterID, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -207,7 +210,7 @@ func scaleCluster(args scaleClusterArguments) (*models.V4ClusterDetailsResponse,
 
 	// perform API call
 	if args.verbose {
-		fmt.Println("Sending API request to modify cluster")
+		fmt.Println(color.WhiteString("Sending API request to modify cluster"))
 	}
 
 	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
@@ -226,8 +229,10 @@ func scaleCluster(args scaleClusterArguments) (*models.V4ClusterDetailsResponse,
 	return response.Payload, nil
 }
 
-// scaleClusterRunOutput invokes the actual cluster scaling and prints the result and/or errors.
-func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+// printResult invokes the actual cluster scaling and prints the result and/or errors.
+// TODO: split into a testable business function and one that handles confirmation
+// and prints results.
+func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	if len(cmdLineArgs) == 0 {
 		errors.HandleCommonErrors(errors.ClusterIDMissingError)
 	}
@@ -253,7 +258,21 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			errors.HandleCommonErrors(err)
 			client.HandleErrors(err)
 
-			fmt.Println(color.RedString(err.Error()))
+			var headline string
+			var subtext string
+
+			switch {
+			case errors.IsCommandAbortedError(err):
+				headline = "Cancelled"
+				subtext = "Scaling settings of this cluster stay as they are."
+			default:
+				headline = err.Error()
+			}
+
+			fmt.Println(color.RedString(headline))
+			if subtext != "" {
+				fmt.Println(subtext)
+			}
 			os.Exit(1)
 		}
 
@@ -270,7 +289,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		desiredScalingMin = flags.CmdWorkersMin
 	}
 
-	autoScalingEnabled, err := isAutoscalingEnabled(releaseVersion)
+	autoScalingEnabled, err := capabilities.HasCapability(config.Config.Provider, releaseVersion, capabilities.Autoscaling)
 	if err != nil {
 		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
@@ -315,7 +334,7 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	// Default all necessary information from flags.
-	args, err := defaultScaleClusterArguments(context.Background(), cmd, clusterID, autoScalingEnabled, currentScalingMax, currentScalingMin, desiredScalingMax, desiredScalingMin, int64(desiredNumWorkers))
+	args, err := defaultArguments(context.Background(), cmd, clusterID, autoScalingEnabled, currentScalingMax, currentScalingMin, desiredScalingMax, desiredScalingMin, int64(desiredNumWorkers))
 	if err != nil {
 		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
@@ -357,13 +376,11 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	// Ask for confirmation for the scaling action.
 	if !flags.CmdForce {
-		err = confirmScaleCluster(args, currentScalingMax, currentScalingMin, statusWorkers)
+		// get confirmation and handle result
+		err = getConfirmation(args, currentScalingMax, currentScalingMin, statusWorkers)
 		if err != nil {
-			errors.HandleCommonErrors(err)
-			client.HandleErrors(err)
-
-			fmt.Println(color.RedString(err.Error()))
-			os.Exit(1)
+			fmt.Println(color.GreenString("Scaling cancelled"))
+			os.Exit(0)
 		}
 	}
 
@@ -374,8 +391,6 @@ func scaleClusterRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		client.HandleErrors(err)
 
 		switch {
-		case errors.IsCommandAbortedError(err):
-			headline = "Scaling cancelled."
 		case errors.IsCannotScaleBelowMinimumWorkersError(err):
 			headline = "Desired worker node count is too low."
 			subtext = fmt.Sprintf("Please set the -w|--%s or --%s flag to a value greater than 0.", cmdWorkersNumName, cmdWorkersMinName)
