@@ -30,7 +30,6 @@ _testmain.go
 bin-dist
 build
 /go-build-cache
-release
 /gsctl
 /gsctl.exe
 /gsctl-completion-bash.sh

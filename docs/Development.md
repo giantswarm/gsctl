@@ -102,11 +102,11 @@ See [Command Blueprint](https://github.com/giantswarm/gsctl/blob/master/docs/Com
 We use specific error objects and dedicated matcher functions to assert them. Example:
 
 ```go
-var notLoggedInError = errgo.New("user not logged in")
+var NotLoggedInError = errgo.New("user not logged in")
 
-// IsNotLoggedInError asserts notLoggedInError.
+// IsNotLoggedInError asserts NotLoggedInError.
 func IsNotLoggedInError(err error) bool {
-	return errgo.Cause(err) == notLoggedInError
+	return errgo.Cause(err) == NotLoggedInError
 }
 ```
 

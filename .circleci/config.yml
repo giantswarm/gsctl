@@ -2,7 +2,11 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.11.5
+      - image: circleci/golang:1.12.5
+
+    # We use 'medium+' because with 'medium' we saw tests fail due to memory problems.
+    resource_class: medium+
+
     working_directory: /go/src/github.com/giantswarm/gsctl
     steps:
       - checkout
@@ -13,23 +17,17 @@ jobs:
             curl -s -LO https://storage.googleapis.com/kubernetes-release/release/${kubectl_version}/bin/linux/amd64/kubectl
             chmod +x ./kubectl
             sudo mv ./kubectl /usr/local/bin/kubectl
-      # tests
-      - run:
-          name: go test
-          command: |
-            go test -v ./...
       - run:
           name: go build
           command: |
             go build -v
       - run:
+          name: go test
+          command: |
+            go test -v ./...
+      - run:
           name: Execute the built binary
           command: ./gsctl info
-      - run:
-          name: Post coverage to Codecov.io
-          command: |
-            bash ./test_coverage.sh
-            bash <(curl -s https://codecov.io/bash)
       - run:
           name: Update Coveralls
           command: |

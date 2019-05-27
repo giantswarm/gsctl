@@ -59,9 +59,9 @@ type verbNounArguments struct {
 
 // function to create arguments based on command line flags and config
 func defaultVerbNounArguments() verbNounArguments {
-	endpoint := config.Config.ChooseEndpoint(cmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, cmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, cmdToken)
+	endpoint := config.Config.ChooseEndpoint(CmdAPIEndpoint)
+	token := config.Config.ChooseToken(endpoint, CmdToken)
+	scheme := config.Config.ChooseScheme(endpoint, CmdToken)
 
 	return verbNounArguments{
 		apiEndpoint:       endpoint,
@@ -95,7 +95,7 @@ func verbNounPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
   // Handles many errors that can occur in validation and execution,
   // e. g. user not logged in.
-  handleCommonErrors(err)
+  HandleCommonErrors(err)
 
   // From here on we handle errors that can only occur in this command
 	headline := ""
@@ -121,7 +121,7 @@ func verbNounPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 // our business function
 func verifyVerbNounPreconditions(args verbNounArguments, cmdLineArgs []string) error {
 	if config.Config.Token == "" && args.authToken == "" {
-		return microerror.Mask(notLoggedInError)
+		return microerror.Mask(NotLoggedInError)
 	}
 	return nil
 }
@@ -133,7 +133,7 @@ func verbNounRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	result, err := verbNoun()
 
 	if err != nil {
-    handleCommonErrors(err)
+    HandleCommonErrors(err)
 
 		var headline = ""
 		var subtext = ""
@@ -172,7 +172,7 @@ func verbNoun(args verbNoundArguments) (verbNounResult, error) {
 	}
 	apiClient, clientErr := client.NewClient(clientConfig)
 	if clientErr != nil {
-		return result, microerror.Mask(couldNotCreateClientError)
+		return result, microerror.Mask(CouldNotCreateClientError)
 	}
 
 	authHeader := "giantswarm " + args.token
@@ -180,7 +180,7 @@ func verbNoun(args verbNoundArguments) (verbNounResult, error) {
 		requestIDHeader, verbNounActivityName, cmdLine)
 
 	if rawResponse == nil || rawResponse.Response == nil {
-		return result, microerror.Mask(noResponseError)
+		return result, microerror.Mask(NoResponseError)
 	}
 
 	// handle request errors
@@ -188,15 +188,15 @@ func verbNoun(args verbNoundArguments) (verbNounResult, error) {
 
 		switch rawResponse.StatusCode {
 		case http.StatusNotFound:
-			return result, microerror.Mask(clusterNotFoundError)
+			return result, microerror.Mask(ClusterNotFoundError)
 		case http.StatusUnauthorized:
-			return result, microerror.Mask(notAuthorizedError)
+			return result, microerror.Mask(NotAuthorizedError)
 		case http.StatusForbidden:
-			return result, microerror.Mask(accessForbiddenError)
+			return result, microerror.Mask(AccessForbiddenError)
 		}
 
 		if rawResponse.StatusCode >= 500 {
-			return result, microerror.Maskf(internalServerError, err.Error())
+			return result, microerror.Maskf(InternalServerError, err.Error())
 		}
 
 		return result, microerror.Mask(err)

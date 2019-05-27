@@ -44,12 +44,12 @@ func IsInvalidDurationStringError(err error) bool {
 	return microerror.Cause(err) == InvalidDurationStringError
 }
 
-// durationExceededError is thrown when a duration value is larger than can be represented internally
-var durationExceededError = &microerror.Error{
-	Kind: "durationExceededError",
+// DurationExceededError is thrown when a duration value is larger than can be represented internally
+var DurationExceededError = &microerror.Error{
+	Kind: "DurationExceededError",
 }
 
-// IsDurationExceededError asserts durationExceededError
+// IsDurationExceededError asserts DurationExceededError
 func IsDurationExceededError(err error) bool {
-	return microerror.Cause(err) == durationExceededError
+	return microerror.Cause(err) == DurationExceededError
 }

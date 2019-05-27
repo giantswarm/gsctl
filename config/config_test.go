@@ -2,8 +2,6 @@ package config
 
 import (
 	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path"
 	"strings"
@@ -72,7 +70,7 @@ func Test_Initialize_Empty(t *testing.T) {
 
 	// directly set some configuration
 	Config.LastVersionCheck = time.Time{}
-	err = Config.StoreEndpointAuth(testEndpointURL, testAlias, testEmail, testScheme, testToken, testRefreshToken)
+	err = Config.StoreEndpointAuth(testEndpointURL, testAlias, "", testEmail, testScheme, testToken, testRefreshToken)
 	if err != nil {
 		t.Error(err)
 	}
@@ -155,6 +153,7 @@ endpoints:
   https://myapi.domain.tld:
     email: email@example.com
     token: some-token
+    provider: testprovider
 selected_endpoint: https://myapi.domain.tld`
 	email := "email@example.com"
 	token := "some-token"
@@ -170,6 +169,9 @@ selected_endpoint: https://myapi.domain.tld`
 	}
 	if Config.Token != "some-token" {
 		t.Errorf("Expected token '%s', got '%s'", token, Config.Token)
+	}
+	if Config.Provider != "testprovider" {
+		t.Errorf("Expected provider testprovider, got '%s'", Config.Provider)
 	}
 
 	// test what happens after logout
@@ -204,47 +206,6 @@ func Test_Kubeconfig_Env_Nonexisting(t *testing.T) {
 func Test_UserAgent(t *testing.T) {
 	ua := UserAgent()
 	t.Log(ua)
-}
-
-// Test_GetDefaultCluster tests the GetDefaultCluster function
-// for the case that only one cluster exists
-func Test_GetDefaultCluster(t *testing.T) {
-	// returns one cluster
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`[
-      {
-        "create_date": "2017-04-16T09:30:31.192170835Z",
-        "id": "cluster-id",
-        "name": "Some random test cluster",
-				"owner": "acme"
-      }
-    ]`))
-	}))
-	defer mockServer.Close()
-
-	// config
-	yamlText := `last_version_check: 0001-01-01T00:00:00Z
-updated: 2017-09-29T11:23:15+02:00
-endpoints:
-  ` + mockServer.URL + `:
-    email: email@example.com
-    token: some-token
-selected_endpoint: ` + mockServer.URL
-	dir, err := tempConfig(yamlText)
-	defer os.RemoveAll(dir)
-	if err != nil {
-		t.Error(err)
-	}
-
-	clusterID, err := GetDefaultCluster("", mockServer.URL)
-	if err != nil {
-		t.Error(err)
-	}
-	if clusterID != "cluster-id" {
-		t.Errorf("Expected 'cluster-id', got %#v", clusterID)
-	}
 }
 
 var normalizeEndpointTests = []struct {
@@ -319,4 +280,45 @@ selected_endpoint: https://other.endpoint`
 		t.Errorf("Expected endpointNotDefinedError, got '%s'", err)
 	}
 
+}
+
+func Test_SetProvider(t *testing.T) {
+	var testCases = []struct {
+		configYAML           string
+		expectedErrorMatcher func(error) bool
+	}{
+		{
+			// selected endpoint already has a provider set
+			configYAML: `endpoints:
+  https://myapi.domain.tld:
+    provider: foo
+selected_endpoint: https://myapi.domain.tld`,
+			expectedErrorMatcher: IsEndpointProviderIsImmuttableError,
+		},
+		{
+			// no provider selected
+			configYAML: `endpoints:
+  "https://myapi.domain.tld":
+    provider: ""
+selected_endpoint: ""`,
+			expectedErrorMatcher: IsNoEndpointSelectedError,
+		},
+	}
+
+	for index, tc := range testCases {
+		dir, err := tempConfig(tc.configYAML)
+		if err != nil {
+			t.Errorf("Error creating temporary config for test case %d: %q", index, err)
+		}
+		defer os.RemoveAll(dir)
+
+		t.Logf("Config: %#v", Config)
+
+		err = Config.SetProvider("aws")
+		if err == nil {
+			t.Errorf("Test case %d: Expected error, but got nil", index)
+		} else if tc.expectedErrorMatcher(err) == false {
+			t.Errorf("Test case %d: Unexpected error: %q", index, err)
+		}
+	}
 }

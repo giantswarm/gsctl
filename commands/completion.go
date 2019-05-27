@@ -1,10 +1,15 @@
 package commands
 
+// The 'completion' command is defined on the top leve of the commands
+// package, as it has to have access to the root command.
+
 import (
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/flags"
 )
 
 var (
@@ -66,13 +71,13 @@ func init() {
 // generateCompletionFiles creates bash and zsh completion files
 func generateCompletionFiles(cmd *cobra.Command, args []string) {
 
-	if cmdVerbose {
+	if flags.CmdVerbose {
 		fmt.Printf("Creating completion file for bash in %s\n", completionFileNameBash)
 	}
 	RootCommand.GenBashCompletionFile(completionFileNameBash)
 	os.Chmod(completionFileNameBash, 0777)
 
-	if cmdVerbose {
+	if flags.CmdVerbose {
 		fmt.Printf("Creating completion file for zsh in %s\n", completionFileNameZsh)
 	}
 	RootCommand.GenZshCompletionFile(completionFileNameZsh)

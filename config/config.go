@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -14,10 +13,8 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/oidc"
 	"github.com/giantswarm/microerror"
-
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -113,6 +110,11 @@ type configStruct struct {
 	// endpoint's entry.
 	Email string `yaml:"-"`
 
+	// Provider is the provider found for the selected endpoint. Might be empty.
+	// Not marshalled back to the config file, as it is contained in the
+	// endpoint's entry.
+	Provider string `yaml:"-"`
+
 	endpoints      map[string]*endpointConfig
 	endpointsMutex *sync.RWMutex
 }
@@ -154,6 +156,9 @@ type endpointConfig struct {
 	// Email is the email address of the authenticated user.
 	Email string `yaml:"email"`
 
+	// Provider is the cloud provider used in the installation.
+	Provider string `yaml:"provider"`
+
 	// RefreshToken for acquiring a new token when using the bearer scheme.
 	RefreshToken string `yaml:"refresh_token,omitempty"`
 
@@ -166,7 +171,7 @@ type endpointConfig struct {
 
 // StoreEndpointAuth adds an endpoint to the configStruct.Endpoints field
 // (if not yet there). This should only be done after successful authentication.
-func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email string, scheme string, token string, refreshToken string) error {
+func (c *configStruct) StoreEndpointAuth(endpointURL, alias, provider, email, scheme, token, refreshToken string) error {
 	ep := normalizeEndpoint(endpointURL)
 
 	if email == "" || token == "" {
@@ -196,9 +201,14 @@ func (c *configStruct) StoreEndpointAuth(endpointURL string, alias string, email
 		aliasBefore = c.endpoints[ep].Alias
 	}
 
+	if provider == "" && c.endpoints[ep] != nil {
+		provider = c.endpoints[ep].Provider
+	}
+
 	c.endpoints[ep] = &endpointConfig{
 		Alias:        aliasBefore,
 		Email:        email,
+		Provider:     provider,
 		RefreshToken: refreshToken,
 		Scheme:       scheme,
 		Token:        token,
@@ -315,10 +325,10 @@ func (c *configStruct) ChooseToken(endpoint, overridingToken string) string {
 //   then always return "giantswarm".
 // - If we have an auth scheme for the given endpoint, we return that.
 // - otherwise we return "giantswarm"
-func (c *configStruct) ChooseScheme(endpoint string, cmdToken string) string {
+func (c *configStruct) ChooseScheme(endpoint string, CmdToken string) string {
 	ep := normalizeEndpoint(endpoint)
 
-	if cmdToken != "" {
+	if CmdToken != "" {
 		return "giantswarm"
 	}
 
@@ -366,16 +376,37 @@ func (c *configStruct) EndpointByAlias(alias string) (string, error) {
 	return "", microerror.Maskf(endpointNotDefinedError, "no endpoint for this alias")
 }
 
+// Endpoints returns a slice of endpoint URLs.
 func (c *configStruct) Endpoints() []string {
 	c.endpointsMutex.RLock()
 	defer c.endpointsMutex.RUnlock()
 
 	var endpoints []string
-	for k, _ := range c.endpoints {
+	for k := range c.endpoints {
 		endpoints = append(endpoints, k)
 	}
 
 	return endpoints
+}
+
+// SetProvider sets the provider information for the current endpoint.
+// This fails if a provider is already set.
+func (c *configStruct) SetProvider(provider string) error {
+	if c.SelectedEndpoint == "" {
+		return microerror.Mask(noEndpointSelectedError)
+	}
+	if c.Provider != "" {
+		return microerror.Mask(endpointProviderIsImmuttableError)
+	}
+
+	c.endpointsMutex.Lock()
+	defer c.endpointsMutex.Unlock()
+
+	c.endpoints[c.SelectedEndpoint].Provider = provider
+	c.Provider = provider
+	WriteToFile()
+
+	return nil
 }
 
 // NumEndpoints returns the number of endpoints stored in the configuration
@@ -440,7 +471,7 @@ func (c *configStruct) AuthHeaderGetter(endpoint string, overridingToken string)
 				}
 
 				// Update the config file with the new access token.
-				if err := Config.StoreEndpointAuth(endpoint, endpointConfig.Alias, idToken.Email, "Bearer", refreshTokenResponse.AccessToken, refreshToken); err != nil {
+				if err := Config.StoreEndpointAuth(endpoint, endpointConfig.Alias, "", idToken.Email, "Bearer", refreshTokenResponse.AccessToken, refreshToken); err != nil {
 					return "", microerror.Maskf(err, "Error while attempting to store the token in the config file")
 				}
 
@@ -578,6 +609,7 @@ func populateConfigStruct(cs *configStruct) {
 		endpointConfig := cs.EndpointConfig(cs.SelectedEndpoint)
 		if endpointConfig != nil {
 			Config.Email = endpointConfig.Email
+			Config.Provider = endpointConfig.Provider
 			Config.Token = endpointConfig.Token
 		}
 	}
@@ -642,46 +674,6 @@ func getKubeconfigPaths(homeDir string) []string {
 
 	// No kubeconfig file. Return empty slice.
 	return nil
-}
-
-// GetDefaultCluster determines which is the default cluster
-//
-// This can be either the only cluster accessible, or a cluster selected explicitly.
-//
-// @param requestIDHeader  Request ID to pass with API requests
-// @param activityName     Name of the activity calling this function (for tracking)
-// @param cmdLine          Command line content used to run the CLI (for tracking)
-// @param apiEndpoint      Endpoint URL
-func GetDefaultCluster(activityName, apiEndpoint string) (clusterID string, err error) {
-	// Go through available orgs and clusters to find all clusters
-	if Config.Token == "" {
-		return "", errors.New("user not logged in")
-	}
-
-	clientConfig := &client.Configuration{
-		AuthHeaderGetter: Config.AuthHeaderGetter(apiEndpoint, Config.Token),
-		Endpoint:         apiEndpoint,
-		Timeout:          10 * time.Second,
-		UserAgent:        UserAgent(),
-	}
-	apiClient, err := client.NewV2(clientConfig)
-	if err != nil {
-		return "", microerror.Mask(err)
-	}
-
-	auxParams := apiClient.DefaultAuxiliaryParams()
-	auxParams.ActivityName = activityName
-
-	response, err := apiClient.GetClusters(auxParams)
-	if err != nil {
-		return "", err
-	}
-
-	if len(response.Payload) == 1 {
-		return response.Payload[0].ID, nil
-	}
-
-	return "", nil
 }
 
 // normalizeEndpoint sanitizes a user-entered endpoint URL.
