@@ -4,7 +4,6 @@ package cluster
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/juju/errgo"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	yaml "gopkg.in/yaml.v2"
 
@@ -32,44 +32,47 @@ type arguments struct {
 	clusterName             string
 	dryRun                  bool
 	inputYAMLFile           string
+	fileSystem              afero.Fs
 	numWorkers              int
 	owner                   string
 	releaseVersion          string
 	scheme                  string
 	token                   string
+	verbose                 bool
 	wokerAwsEc2InstanceType string
 	wokerAzureVMSize        string
-	workerNumCPUs           int
 	workerMemorySizeGB      float32
-	workerStorageSizeGB     float32
+	workerNumCPUs           int
 	workersMax              int64
 	workersMin              int64
-	verbose                 bool
+	workerStorageSizeGB     float32
 }
 
 func defaultArguments() arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+
 	return arguments{
-		apiEndpoint:       endpoint,
-		availabilityZones: cmdAvailabilityZones,
-		clusterName:       cmdClusterName,
-		dryRun:            cmdDryRun,
-		inputYAMLFile:     cmdInputYAMLFile,
-		numWorkers:        flags.CmdNumWorkers,
-		owner:             cmdOwner,
-		releaseVersion:    flags.CmdRelease,
-		scheme:            scheme,
-		token:             token,
+		apiEndpoint:             endpoint,
+		availabilityZones:       cmdAvailabilityZones,
+		clusterName:             cmdClusterName,
+		dryRun:                  cmdDryRun,
+		inputYAMLFile:           cmdInputYAMLFile,
+		fileSystem:              config.FileSystem,
+		numWorkers:              flags.CmdNumWorkers,
+		owner:                   cmdOwner,
+		releaseVersion:          flags.CmdRelease,
+		scheme:                  scheme,
+		token:                   token,
+		verbose:                 flags.CmdVerbose,
 		wokerAwsEc2InstanceType: cmdWorkerAwsEc2InstanceType,
 		wokerAzureVMSize:        cmdWorkerAzureVMSize,
-		workerNumCPUs:           flags.CmdWorkerNumCPUs,
 		workerMemorySizeGB:      flags.CmdWorkerMemorySizeGB,
-		workerStorageSizeGB:     flags.CmdWorkerStorageSizeGB,
+		workerNumCPUs:           flags.CmdWorkerNumCPUs,
 		workersMax:              flags.CmdWorkersMax,
 		workersMin:              flags.CmdWorkersMin,
-		verbose:                 flags.CmdVerbose,
+		workerStorageSizeGB:     flags.CmdWorkerStorageSizeGB,
 	}
 }
 
@@ -361,10 +364,10 @@ func validatePreConditions(args arguments) error {
 }
 
 // readDefinitionFromFile reads a cluster definition from a YAML config file
-func readDefinitionFromFile(path string) (types.ClusterDefinition, error) {
+func readDefinitionFromFile(fs afero.Fs, path string) (types.ClusterDefinition, error) {
 	def := types.ClusterDefinition{}
 
-	data, err := ioutil.ReadFile(path)
+	data, err := afero.ReadFile(fs, path)
 	if err != nil {
 		return types.ClusterDefinition{}, microerror.Mask(err)
 	}
@@ -489,7 +492,7 @@ func addCluster(args arguments) (creationResult, error) {
 
 	if args.inputYAMLFile != "" {
 		// definition from file (and optionally flags)
-		result.definition, err = readDefinitionFromFile(args.inputYAMLFile)
+		result.definition, err = readDefinitionFromFile(args.fileSystem, args.inputYAMLFile)
 		if err != nil {
 			return creationResult{}, microerror.Maskf(errors.YAMLFileNotReadableError, err.Error())
 		}
