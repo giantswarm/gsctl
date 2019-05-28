@@ -3,9 +3,10 @@ package setcredentials
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
+
+	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
@@ -53,11 +54,11 @@ func Test_UpdateOrgSetCredentials_Success(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	dir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	flags.CmdAPIEndpoint = mockServer.URL
 	flags.CmdOrganizationID = "acme"

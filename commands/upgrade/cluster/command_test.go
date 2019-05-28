@@ -7,8 +7,11 @@ import (
 	"testing"
 
 	"github.com/Jeffail/gabs"
+	"github.com/spf13/afero"
+
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
 var successorVersionTests = []struct {
@@ -39,8 +42,10 @@ func TestSuccessorReleaseVersion(t *testing.T) {
 }
 
 func TestUpgradeCluster(t *testing.T) {
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	// temp config
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

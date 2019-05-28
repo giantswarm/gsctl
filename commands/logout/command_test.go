@@ -3,10 +3,10 @@ package logout
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/giantswarm/microerror"
+	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/flags"
@@ -15,11 +15,11 @@ import (
 
 // Test_LogoutValidToken tests the logout for a valid token
 func Test_LogoutValidToken(t *testing.T) {
-	dir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -43,11 +43,11 @@ func Test_LogoutValidToken(t *testing.T) {
 
 // Test_LogoutInvalidToken tests the logout for an invalid token
 func Test_LogoutInvalidToken(t *testing.T) {
-	dir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -76,11 +76,11 @@ func Test_LogoutInvalidToken(t *testing.T) {
 // Test_LogoutCommand simply calls the functions cobra would call,
 // with a temporary config path and mock server as endpoint.
 func Test_LogoutCommand(t *testing.T) {
-	dir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

@@ -1,8 +1,6 @@
 package config
 
 import (
-	"io/ioutil"
-	"os"
 	"testing"
 
 	"github.com/spf13/afero"
@@ -93,13 +91,14 @@ func TestGarbageCollectKeyPairs(t *testing.T) {
 
 	// copy test files over to temporary certs dir
 	basePath := "testdata"
-	files, _ := ioutil.ReadDir(basePath)
+	testdataFs := afero.NewOsFs()
+	files, _ := afero.ReadDir(testdataFs, basePath)
 	for _, f := range files {
 		originPath := basePath + "/" + f.Name()
 		targetPath := CertsDirPath + "/" + f.Name()
 		t.Logf("Copying %s to %s", originPath, targetPath)
 
-		from, oerr := os.Open(originPath)
+		from, oerr := testdataFs.Open(originPath)
 		if oerr != nil {
 			t.Error(oerr)
 		}

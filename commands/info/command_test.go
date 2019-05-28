@@ -1,10 +1,11 @@
 package info
 
 import (
-	"os"
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
@@ -27,11 +28,11 @@ endpoints:
     alias: ""
 selected_endpoint: https://other.endpoint`
 
-	dir, err := testutils.TempConfig(yamlText)
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, yamlText)
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	output := testutils.CaptureOutput(func() {
 		Command.Execute()
@@ -65,11 +66,11 @@ endpoints:
     alias: ""
 selected_endpoint: https://other.endpoint`
 
-	dir, err := testutils.TempConfig(yamlText)
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, yamlText)
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	flags.CmdVerbose = true
 
@@ -84,11 +85,11 @@ selected_endpoint: https://other.endpoint`
 // Test_InfoWithTempDirAndToken tests the info() function with a custom
 // configuration path and an auth-token
 func Test_InfoWithTempDirAndToken(t *testing.T) {
-	dir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	dir, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	flags.CmdAPIEndpoint = ""
 	args := defaultInfoArguments()

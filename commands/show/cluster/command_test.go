@@ -1,15 +1,17 @@
 package cluster
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/spf13/afero"
+
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
 // TestShowAWSCluster tests fetching cluster details for AWS
@@ -38,8 +40,9 @@ func TestShowAWSCluster(t *testing.T) {
 	defer mockServer.Close()
 
 	// temp config
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
 
 	testArgs := showClusterArguments{
 		apiEndpoint: mockServer.URL,
@@ -81,8 +84,9 @@ func TestShowClusterNotAuthorized(t *testing.T) {
 	defer mockServer.Close()
 
 	// temp config
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
 
 	testArgs := showClusterArguments{
 		apiEndpoint: mockServer.URL,
@@ -124,8 +128,9 @@ func TestShowClusterNotFound(t *testing.T) {
 	defer mockServer.Close()
 
 	// temp config
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
 
 	testArgs := showClusterArguments{
 		apiEndpoint: mockServer.URL,
@@ -167,8 +172,9 @@ func TestShowClusterInternalServerError(t *testing.T) {
 	defer mockServer.Close()
 
 	// temp config
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
 
 	testArgs := showClusterArguments{
 		apiEndpoint: mockServer.URL,
@@ -198,8 +204,9 @@ func TestShowClusterInternalServerError(t *testing.T) {
 // TestShowClusterNotLoggedIn tests the case where the client is not logged in
 func TestShowClusterNotLoggedIn(t *testing.T) {
 	// temp config
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
 
 	testArgs := showClusterArguments{
 		apiEndpoint: "foo.bar",
@@ -217,8 +224,9 @@ func TestShowClusterNotLoggedIn(t *testing.T) {
 // TestShowClusterMissingID tests the case where the cluster ID is missing
 func TestShowClusterMissingID(t *testing.T) {
 	// temp config
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
 
 	testArgs := showClusterArguments{
 		apiEndpoint: "foo.bar",
@@ -300,8 +308,9 @@ func TestShowAWSBYOCCluster(t *testing.T) {
 	defer mockServer.Close()
 
 	// temp config
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
 
 	testArgs := showClusterArguments{
 		apiEndpoint: mockServer.URL,

@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
+
+	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
@@ -30,16 +31,17 @@ func Test_CreateKeypair(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	dir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
-	args := createKeypairArguments{
+	args := commandArguments{
 		apiEndpoint: mockServer.URL,
-		clusterID:   "test-cluster-id",
 		authToken:   "test-token",
+		clusterID:   "test-cluster-id",
+		fileSystem:  fs,
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
@@ -79,11 +81,11 @@ func TestCommandExecution(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	configDir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	configDir, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(configDir)
 
 	flags.CmdAPIEndpoint = mockServer.URL
 	flags.CmdConfigDirPath = configDir

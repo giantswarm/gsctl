@@ -1,10 +1,11 @@
 package release
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/config"
@@ -145,8 +146,9 @@ func TestShowRelease(t *testing.T) {
 	defer releasesMockServer.Close()
 
 	// temp config
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
 
 	testArgs := showReleaseArguments{
 		apiEndpoint:    releasesMockServer.URL,
@@ -200,8 +202,9 @@ func TestShowReleaseNotAuthorized(t *testing.T) {
 	defer releasesMockServer.Close()
 
 	// temp config
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
 
 	testArgs := showReleaseArguments{
 		apiEndpoint:    releasesMockServer.URL,
@@ -257,8 +260,9 @@ func TestShowReleaseNotFound(t *testing.T) {
 	defer releasesMockServer.Close()
 
 	// temp config
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
 
 	testArgs := showReleaseArguments{
 		apiEndpoint:    releasesMockServer.URL,
@@ -301,8 +305,9 @@ func TestShowReleaseInternalServerError(t *testing.T) {
 	defer releasesMockServer.Close()
 
 	// temp config
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
 
 	testArgs := showReleaseArguments{
 		apiEndpoint:    releasesMockServer.URL,
@@ -333,8 +338,9 @@ func TestShowReleaseInternalServerError(t *testing.T) {
 // TestShowReleaseNotLoggedIn tests the case where the client is not logged in
 func TestShowReleaseNotLoggedIn(t *testing.T) {
 	// temp config
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
 
 	testArgs := showReleaseArguments{
 		apiEndpoint:    "foo.bar",
@@ -352,8 +358,9 @@ func TestShowReleaseNotLoggedIn(t *testing.T) {
 // TestShowReleaseMissingID tests the case where the release version is missing
 func TestShowReleaseMissingID(t *testing.T) {
 	// temp config
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
 
 	testArgs := showReleaseArguments{
 		apiEndpoint:    "foo.bar",

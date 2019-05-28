@@ -3,8 +3,9 @@ package releases
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
+
+	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
@@ -13,11 +14,11 @@ import (
 // Test_ListReleases_Empty simulates the situation where there are no releases
 // (which is an exception)
 func Test_ListReleases_Empty(t *testing.T) {
-	dir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	// mock service returning empty release array.
 	releasesMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -52,11 +53,11 @@ func Test_ListReleases_Empty(t *testing.T) {
 // Test_ListReleases_Nonempty simulates listing releases where several
 // items are returned.
 func Test_ListReleases_Nonempty(t *testing.T) {
-	dir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	// mock service returning releases. For the sake of simplicity,
 	// it doesn't care about auth tokens.

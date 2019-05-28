@@ -1,13 +1,13 @@
 package cluster
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/giantswarm/microerror"
+	"github.com/spf13/afero"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/giantswarm/gsctl/commands/errors"
@@ -19,10 +19,11 @@ import (
 // YAML files in the testdata directory.
 func TestReadFiles(t *testing.T) {
 	basePath := "testdata"
-	files, _ := ioutil.ReadDir(basePath)
+	fs := afero.NewOsFs()
+	files, _ := afero.ReadDir(fs, basePath)
 	for _, f := range files {
 		path := basePath + "/" + f.Name()
-		_, err := readDefinitionFromFile(path)
+		_, err := readDefinitionFromFile(fs, path)
 		if err != nil {
 			t.Error(err)
 		}
@@ -182,9 +183,10 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			description: "Definition from YAML file",
 			inputArgs: &arguments{
 				clusterName:   "Cluster Name from Args",
+				fileSystem:    afero.NewOsFs(), // needed for YAML file access
+				inputYAMLFile: "testdata/minimal.yaml",
 				owner:         "acme",
 				token:         "fake token",
-				inputYAMLFile: "testdata/minimal.yaml",
 				verbose:       true,
 			},
 		},
@@ -278,6 +280,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 			inputArgs: &arguments{
 				owner:         "owner",
 				token:         "some-token",
+				fileSystem:    afero.NewOsFs(),
 				inputYAMLFile: "does/not/exist.yaml",
 				dryRun:        true,
 			},
