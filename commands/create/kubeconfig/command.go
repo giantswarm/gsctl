@@ -4,7 +4,6 @@ package kubeconfig
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
@@ -16,6 +15,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/giantswarm/micrologger"
 	"github.com/giantswarm/operatorkit/client/k8srestconfig"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
@@ -82,16 +82,17 @@ const (
 // function and to the validation function
 type createKubeconfigArguments struct {
 	apiEndpoint       string
-	scheme            string
 	authToken         string
-	clusterID         string
-	description       string
-	cnPrefix          string
 	certOrgs          string
-	ttlHours          int32
-	selfContainedPath string
-	force             bool
+	clusterID         string
+	cnPrefix          string
 	contextName       string
+	description       string
+	fileSystem        afero.Fs
+	force             bool
+	scheme            string
+	selfContainedPath string
+	ttlHours          int32
 }
 
 // defaultCreateKubeconfigArguments creates arguments based on command line
@@ -122,16 +123,17 @@ func defaultCreateKubeconfigArguments() (createKubeconfigArguments, error) {
 
 	return createKubeconfigArguments{
 		apiEndpoint:       endpoint,
-		scheme:            scheme,
 		authToken:         token,
-		clusterID:         flags.CmdClusterID,
-		description:       description,
-		cnPrefix:          flags.CmdCNPrefix,
 		certOrgs:          flags.CmdCertificateOrganizations,
-		ttlHours:          int32(ttl.Hours()),
-		selfContainedPath: cmdKubeconfigSelfContained,
-		force:             flags.CmdForce,
+		clusterID:         flags.CmdClusterID,
+		cnPrefix:          flags.CmdCNPrefix,
 		contextName:       contextName,
+		description:       description,
+		fileSystem:        config.FileSystem,
+		force:             flags.CmdForce,
+		scheme:            scheme,
+		selfContainedPath: cmdKubeconfigSelfContained,
+		ttlHours:          int32(ttl.Hours()),
 	}, nil
 }
 
@@ -398,11 +400,11 @@ func createKubeconfig(ctx context.Context, args createKubeconfigArguments) (crea
 
 	if args.selfContainedPath == "" {
 		// modify the given kubeconfig file
-		result.caCertPath = util.StoreCaCertificate(config.CertsDirPath,
+		result.caCertPath = util.StoreCaCertificate(args.fileSystem, config.CertsDirPath,
 			args.clusterID, response.Payload.CertificateAuthorityData)
-		result.clientCertPath = util.StoreClientCertificate(config.CertsDirPath,
+		result.clientCertPath = util.StoreClientCertificate(args.fileSystem, config.CertsDirPath,
 			args.clusterID, response.Payload.ID, response.Payload.ClientCertificateData)
-		result.clientKeyPath = util.StoreClientKey(config.CertsDirPath,
+		result.clientKeyPath = util.StoreClientKey(args.fileSystem, config.CertsDirPath,
 			args.clusterID, response.Payload.ID, response.Payload.ClientKeyData)
 		result.contextName = args.contextName
 
@@ -449,7 +451,7 @@ func createKubeconfig(ctx context.Context, args createKubeconfigArguments) (crea
 			}
 		}
 
-		err = ioutil.WriteFile(args.selfContainedPath, yamlBytes, 0600)
+		err = afero.WriteFile(args.fileSystem, args.selfContainedPath, yamlBytes, 0600)
 		if err != nil {
 			return result, microerror.Maskf(errors.CouldNotWriteFileError, "could not write self-contained kubeconfig file")
 		}
