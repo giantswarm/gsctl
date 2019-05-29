@@ -153,7 +153,7 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 		clusterID:         "test-cluster-id",
 		contextName:       "giantswarm-test-cluster-id",
 		fileSystem:        fs,
-		selfContainedPath: tmpdir + "/kubeconfig",
+		selfContainedPath: path.Join(tmpdir, "kubeconfig"),
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL

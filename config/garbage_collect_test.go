@@ -1,6 +1,7 @@
 package config
 
 import (
+	"path"
 	"testing"
 
 	"github.com/spf13/afero"
@@ -116,7 +117,7 @@ func TestGarbageCollectKeyPairs(t *testing.T) {
 
 	// Check remaining files.
 	// test1 should be removed
-	exists, err := afero.Exists(fs, CertsDirPath+"/test1-client.crt")
+	exists, err := afero.Exists(fs, path.Join(CertsDirPath, "/test1-client.crt"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -124,7 +125,7 @@ func TestGarbageCollectKeyPairs(t *testing.T) {
 		t.Error("test1-client.crt should have been deleted, is still there")
 	}
 
-	exists, err = afero.Exists(fs, CertsDirPath+"/test1-client.key")
+	exists, err = afero.Exists(fs, path.Join(CertsDirPath, "/test1-client.key"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -133,7 +134,7 @@ func TestGarbageCollectKeyPairs(t *testing.T) {
 	}
 
 	// test2 should still exist
-	exists, err = afero.Exists(fs, CertsDirPath+"/test2-client.crt")
+	exists, err = afero.Exists(fs, path.Join(CertsDirPath, "/test2-client.crt"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -141,7 +142,7 @@ func TestGarbageCollectKeyPairs(t *testing.T) {
 		t.Error("test2-client.crt should have been kept, was deleted")
 	}
 
-	exists, err = afero.Exists(fs, CertsDirPath+"/test2-client.key")
+	exists, err = afero.Exists(fs, path.Join(CertsDirPath, "/test2-client.key"))
 	if err != nil {
 		t.Error(err)
 	}
