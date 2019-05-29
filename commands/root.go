@@ -30,10 +30,6 @@ var RootCommand = &cobra.Command{
 }
 
 func init() {
-	// Replaced by "endpoint" flag
-	RootCommand.PersistentFlags().StringVarP(&flags.CmdAPIEndpoint, "api-endpoint", "", "", "The URL base path, to access the API (deprecated)")
-	RootCommand.PersistentFlags().MarkDeprecated("api-endpoint", "please use --endpoint or -e instead.")
-
 	RootCommand.PersistentFlags().StringVarP(&flags.CmdAPIEndpoint, "endpoint", "e", "", "The API endpoint to use")
 	RootCommand.PersistentFlags().StringVarP(&flags.CmdToken, "auth-token", "", "", "Authorization token to use")
 	RootCommand.PersistentFlags().StringVarP(&flags.CmdConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
