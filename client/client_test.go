@@ -5,10 +5,11 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/testutils"
@@ -44,8 +45,7 @@ func TestRedactPasswordArgs(t *testing.T) {
 
 // TestV2NoConnection checks out how the latest client deals with a missing
 // server connection.
-func TestV2NoConnection(t *testing.T) { // Our test server.
-
+func TestV2NoConnection(t *testing.T) {
 	// a non-existing endpoint (must use an IP, not a hostname)
 	config := &Configuration{
 		Endpoint: "http://127.0.0.1:55555",
@@ -468,8 +468,8 @@ endpoints:
     email: email@example.com
     token: some-token
 selected_endpoint: ` + mockServer.URL
-	dir, err := testutils.TempConfig(yamlText)
-	defer os.RemoveAll(dir)
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, yamlText)
 	if err != nil {
 		t.Error(err)
 	}

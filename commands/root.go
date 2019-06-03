@@ -3,6 +3,8 @@ package commands
 import (
 	"fmt"
 
+	"github.com/giantswarm/microerror"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/commands/create"
@@ -19,7 +21,6 @@ import (
 	"github.com/giantswarm/gsctl/commands/version"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
-	"github.com/giantswarm/microerror"
 )
 
 // RootCommand is the main command of the CLI
@@ -53,7 +54,8 @@ func init() {
 // initConfig calls the config.Initialize() function
 // before any command is executed (see PersistentPreRunE above).
 func initConfig(cmd *cobra.Command, args []string) error {
-	err := config.Initialize(flags.CmdConfigDirPath)
+	fs := afero.NewOsFs()
+	err := config.Initialize(fs, flags.CmdConfigDirPath)
 	if err != nil {
 		if flags.CmdVerbose {
 			fmt.Printf("Error initializing configuration: %#v\n", err)

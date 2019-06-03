@@ -34,5 +34,3 @@ build
 /gsctl.exe
 /gsctl-completion-bash.sh
 /gsctl-completion-zsh.sh
-
-/certs

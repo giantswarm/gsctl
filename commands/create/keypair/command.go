@@ -10,6 +10,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
@@ -32,24 +33,25 @@ var (
 )
 
 const (
-	addKeyPairActivityName = "add-keypair"
+	activityName = "add-keypair"
 )
 
 // argument struct to pass to our business function and
 // to the validation function
-type createKeypairArguments struct {
+type commandArguments struct {
 	apiEndpoint              string
-	scheme                   string
 	authToken                string
 	certificateOrganizations string
 	clusterID                string
 	commonNamePrefix         string
 	description              string
+	fileSystem               afero.Fs
+	scheme                   string
 	ttlHours                 int32
 }
 
 // function to create arguments based on command line flags and config
-func defaultArguments() (createKeypairArguments, error) {
+func defaultArguments() (commandArguments, error) {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
@@ -61,21 +63,22 @@ func defaultArguments() (createKeypairArguments, error) {
 
 	ttl, err := util.ParseDuration(flags.CmdTTL)
 	if errors.IsInvalidDurationError(err) {
-		return createKeypairArguments{}, microerror.Mask(errors.InvalidDurationError)
+		return commandArguments{}, microerror.Mask(errors.InvalidDurationError)
 	} else if errors.IsDurationExceededError(err) {
-		return createKeypairArguments{}, microerror.Mask(errors.DurationExceededError)
+		return commandArguments{}, microerror.Mask(errors.DurationExceededError)
 	} else if err != nil {
-		return createKeypairArguments{}, microerror.Mask(errors.DurationExceededError)
+		return commandArguments{}, microerror.Mask(errors.DurationExceededError)
 	}
 
-	return createKeypairArguments{
+	return commandArguments{
 		apiEndpoint:              endpoint,
-		scheme:                   scheme,
 		authToken:                token,
 		certificateOrganizations: flags.CmdCertificateOrganizations,
 		clusterID:                flags.CmdClusterID,
 		commonNamePrefix:         flags.CmdCNPrefix,
 		description:              description,
+		fileSystem:               config.FileSystem,
+		scheme:                   scheme,
 		ttlHours:                 int32(ttl.Hours()),
 	}, nil
 }
@@ -150,7 +153,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	os.Exit(1)
 }
 
-func verifyPreconditions(args createKeypairArguments) error {
+func verifyPreconditions(args commandArguments) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
@@ -215,7 +218,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 
 // createKeypair is our business function talking to the API to create a keypair
 // and return result or error
-func createKeypair(args createKeypairArguments) (createKeypairResult, error) {
+func createKeypair(args commandArguments) (createKeypairResult, error) {
 	result := createKeypairResult{
 		apiEndpoint: args.apiEndpoint,
 	}
@@ -233,7 +236,7 @@ func createKeypair(args createKeypairArguments) (createKeypairResult, error) {
 	}
 
 	auxParams := clientV2.DefaultAuxiliaryParams()
-	auxParams.ActivityName = addKeyPairActivityName
+	auxParams.ActivityName = activityName
 
 	response, err := clientV2.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
 	if err != nil {
@@ -258,11 +261,11 @@ func createKeypair(args createKeypairArguments) (createKeypairResult, error) {
 	result.ttlHours = uint(response.Payload.TTLHours)
 
 	// store credentials to file
-	result.caCertPath = util.StoreCaCertificate(config.CertsDirPath,
+	result.caCertPath = util.StoreCaCertificate(args.fileSystem, config.CertsDirPath,
 		args.clusterID, response.Payload.CertificateAuthorityData)
-	result.clientCertPath = util.StoreClientCertificate(config.CertsDirPath,
+	result.clientCertPath = util.StoreClientCertificate(args.fileSystem, config.CertsDirPath,
 		args.clusterID, response.Payload.ID, response.Payload.ClientCertificateData)
-	result.clientKeyPath = util.StoreClientKey(config.CertsDirPath,
+	result.clientKeyPath = util.StoreClientKey(args.fileSystem, config.CertsDirPath,
 		args.clusterID, response.Payload.ID, response.Payload.ClientKeyData)
 
 	return result, nil

@@ -3,12 +3,14 @@ package kubeconfig
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path"
 	"strings"
 	"testing"
+
+	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
@@ -57,24 +59,30 @@ func Test_CreateKubeconfig(t *testing.T) {
 	defer mockServer.Close()
 
 	// temporary kubeconfig file
-	kubeConfigPath, err := testutils.TempKubeconfig()
+	// Headsup: Here we use a OS filesystem instead of memmap to allow the
+	// kubeconfig lib to access the file.
+	fs := afero.NewOsFs()
+	kubeConfigPath, err := testutils.TempKubeconfig(fs)
 	if err != nil {
 		t.Error(err)
 	}
 	os.Setenv("KUBECONFIG", kubeConfigPath)
 	defer os.Unsetenv("KUBECONFIG")
 
-	configDir, err := testutils.TempConfig("")
+	configDir, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(configDir)
+
+	defer fs.RemoveAll(configDir)
+	defer fs.RemoveAll(path.Dir(kubeConfigPath))
 
 	args := createKubeconfigArguments{
 		authToken:   "auth-token",
 		apiEndpoint: mockServer.URL,
 		clusterID:   "test-cluster-id",
 		contextName: "giantswarm-test-cluster-id",
+		fileSystem:  fs,
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
@@ -104,7 +112,7 @@ func Test_CreateKubeconfig(t *testing.T) {
 	}
 
 	// check kubeconfig content
-	content, err := ioutil.ReadFile(kubeConfigPath)
+	content, err := afero.ReadFile(fs, kubeConfigPath)
 	if err != nil {
 		t.Error(err)
 	}
@@ -130,22 +138,22 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 	defer mockServer.Close()
 
 	// temporary config
-	configDir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(configDir)
 
 	// output folder
-	tmpdir := testutils.TempDir()
-	defer os.RemoveAll(tmpdir)
+	tmpdir := testutils.TempDir(fs)
 
 	args := createKubeconfigArguments{
 		apiEndpoint:       mockServer.URL,
 		authToken:         "auth-token",
 		clusterID:         "test-cluster-id",
 		contextName:       "giantswarm-test-cluster-id",
-		selfContainedPath: tmpdir + string(os.PathSeparator) + "kubeconfig",
+		fileSystem:        fs,
+		selfContainedPath: path.Join(tmpdir, "kubeconfig"),
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
@@ -178,7 +186,7 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 	}
 
 	// check kubeconfig content
-	content, err := ioutil.ReadFile(result.selfContainedPath)
+	content, err := afero.ReadFile(fs, result.selfContainedPath)
 	if err != nil {
 		t.Error(err)
 	}
@@ -203,8 +211,11 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 	mockServer := makeMockServer()
 	defer mockServer.Close()
 
-	// temporary kubeconfig file
-	kubeConfigPath, err := testutils.TempKubeconfig()
+	// Temporary kubeconfig file.
+	// Headsup: Here we use a OS filesystem instead of memmap to allow the
+	// kubeconfig lib to access the file.
+	fs := afero.NewOsFs()
+	kubeConfigPath, err := testutils.TempKubeconfig(fs)
 	if err != nil {
 		t.Error(err)
 	}
@@ -212,17 +223,19 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 	defer os.Unsetenv("KUBECONFIG")
 
 	// temporary config
-	configDir, err := testutils.TempConfig("")
+	dir, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(configDir)
+	defer fs.RemoveAll(dir)
+	defer fs.RemoveAll(path.Dir(kubeConfigPath))
 
 	args := createKubeconfigArguments{
 		apiEndpoint: mockServer.URL,
 		authToken:   "auth-token",
 		clusterID:   "test-cluster-id",
 		contextName: "test-context",
+		fileSystem:  fs,
 	}
 
 	flags.CmdAPIEndpoint = mockServer.URL
@@ -243,10 +256,12 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 	}
 
 	// check kubeconfig content
-	content, err := ioutil.ReadFile(kubeConfigPath)
+	content, err := afero.ReadFile(fs, kubeConfigPath)
 	if err != nil {
 		t.Error(err)
 	}
+
+	t.Logf("File content: %#v", string(content))
 
 	if !strings.Contains(string(content), "current-context: "+args.contextName) {
 		t.Error("Kubeconfig doesn't contain the expected context name")
@@ -256,24 +271,25 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 // Test_CreateKubeconfigNoConnection tests what happens if there is no API connection
 func Test_CreateKubeconfigNoConnection(t *testing.T) {
 	// temporary kubeconfig file
-	kubeConfigPath, err := testutils.TempKubeconfig()
+	fs := afero.NewMemMapFs()
+	kubeConfigPath, err := testutils.TempKubeconfig(fs)
 	if err != nil {
 		t.Error(err)
 	}
 	os.Setenv("KUBECONFIG", kubeConfigPath)
 	defer os.Unsetenv("KUBECONFIG")
 
-	configDir, err := testutils.TempConfig("")
+	_, err = testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(configDir)
 
 	args := createKubeconfigArguments{
 		authToken:   "auth-token",
 		apiEndpoint: "http://0.0.0.0:12345",
 		clusterID:   "test-cluster-id",
 		contextName: "giantswarm-test-cluster-id",
+		fileSystem:  fs,
 	}
 
 	err = verifyCreateKubeconfigPreconditions(args, []string{})

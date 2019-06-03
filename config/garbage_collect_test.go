@@ -1,10 +1,10 @@
 package config
 
 import (
-	"io"
-	"io/ioutil"
-	"os"
+	"path"
 	"testing"
+
+	"github.com/spf13/afero"
 )
 
 func TestIsCertExpired(t *testing.T) {
@@ -84,61 +84,73 @@ WGnPiXqCuccNAHWN9e5ULL3WoKfoLdshSyA9aQ44F3nJ
 
 func TestGarbageCollectKeyPairs(t *testing.T) {
 	// temporary config dir
-	dir, tempConfigErr := tempConfig("")
+	fs := afero.NewMemMapFs()
+	_, tempConfigErr := tempConfig(fs, "")
 	if tempConfigErr != nil {
 		t.Error(tempConfigErr)
 	}
-	defer os.RemoveAll(dir)
 
 	// copy test files over to temporary certs dir
 	basePath := "testdata"
-	files, _ := ioutil.ReadDir(basePath)
+	testdataFs := afero.NewOsFs()
+	files, _ := afero.ReadDir(testdataFs, basePath)
 	for _, f := range files {
 		originPath := basePath + "/" + f.Name()
 		targetPath := CertsDirPath + "/" + f.Name()
 		t.Logf("Copying %s to %s", originPath, targetPath)
 
-		from, oerr := os.Open(originPath)
+		from, oerr := testdataFs.Open(originPath)
 		if oerr != nil {
 			t.Error(oerr)
 		}
 
-		to, oerr := os.OpenFile(targetPath, os.O_RDWR|os.O_CREATE, 0755)
-		if oerr != nil {
-			t.Error(oerr)
+		err := afero.WriteReader(fs, targetPath, from)
+		if err != nil {
+			t.Error(err)
 		}
-
-		_, cerr := io.Copy(to, from)
-		if cerr != nil {
-			t.Error(cerr)
-		}
-
-		to.Close()
-		from.Close()
 	}
 
-	err := GarbageCollectKeyPairs()
+	err := GarbageCollectKeyPairs(fs)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Check remaining files.
 	// test1 should be removed
-	if _, err = os.Stat(CertsDirPath + "/test1-client.crt"); err == nil {
+	exists, err := afero.Exists(fs, path.Join(CertsDirPath, "/test1-client.crt"))
+	if err != nil {
+		t.Error(err)
+	}
+	if exists {
 		t.Error("test1-client.crt should have been deleted, is still there")
 	}
-	if _, err = os.Stat(CertsDirPath + "/test1-client.key"); err == nil {
+
+	exists, err = afero.Exists(fs, path.Join(CertsDirPath, "/test1-client.key"))
+	if err != nil {
+		t.Error(err)
+	}
+	if exists {
 		t.Error("test1-client.key should have been deleted, is still there")
 	}
+
 	// test2 should still exist
-	if _, err = os.Stat(CertsDirPath + "/test2-client.crt"); err != nil {
+	exists, err = afero.Exists(fs, path.Join(CertsDirPath, "/test2-client.crt"))
+	if err != nil {
+		t.Error(err)
+	}
+	if !exists {
 		t.Error("test2-client.crt should have been kept, was deleted")
 	}
-	if _, err = os.Stat(CertsDirPath + "/test2-client.key"); err != nil {
+
+	exists, err = afero.Exists(fs, path.Join(CertsDirPath, "/test2-client.key"))
+	if err != nil {
+		t.Error(err)
+	}
+	if !exists {
 		t.Error("test2-client.key should have been kept, was deleted")
 	}
 
-	files, err = ioutil.ReadDir(CertsDirPath)
+	files, err = afero.ReadDir(fs, CertsDirPath)
 	if err != nil {
 		t.Error(err)
 	}

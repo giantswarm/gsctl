@@ -5,17 +5,16 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/giantswarm/microerror"
+	"github.com/spf13/afero"
 )
 
 // GarbageCollectKeyPairs removes files from expired key pairs
-func GarbageCollectKeyPairs() error {
-	files, err := ioutil.ReadDir(CertsDirPath)
+func GarbageCollectKeyPairs(fs afero.Fs) error {
+	files, err := afero.ReadDir(fs, CertsDirPath)
 	if err != nil {
 		return microerror.Maskf(err, "could not list files in certs folder "+CertsDirPath)
 	}
@@ -29,7 +28,7 @@ func GarbageCollectKeyPairs() error {
 			path := CertsDirPath + "/" + name
 
 			// read file content
-			content, err := ioutil.ReadFile(path)
+			content, err := afero.ReadFile(fs, path)
 			if err != nil {
 				return microerror.Maskf(err, "could not read file "+path)
 			}
@@ -49,13 +48,13 @@ func GarbageCollectKeyPairs() error {
 
 	for _, file := range expiredCerts {
 		certPath := CertsDirPath + "/" + file
-		err := os.Remove(certPath)
+		err := fs.Remove(certPath)
 		if err != nil {
 			errorInfo = append(errorInfo, fmt.Sprintf("Certificate file %s could not be deleted (%s)", certPath, err.Error()))
 		}
 
 		keyPath := CertsDirPath + "/" + strings.Replace(file, ".crt", ".key", 1)
-		err = os.Remove(keyPath)
+		err = fs.Remove(keyPath)
 		if err != nil {
 			errorInfo = append(errorInfo, fmt.Sprintf("Key file %s could not be deleted (%s)", keyPath, err.Error()))
 		}

@@ -3,9 +3,10 @@ package testutils
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
+
+	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/config"
 )
@@ -35,8 +36,8 @@ func CaptureOutput(f func()) (printed string) {
 }
 
 // TempDir creates a temporary directory for a temporary config file in tests.
-func TempDir() string {
-	dir, err := ioutil.TempDir("", config.ProgramName)
+func TempDir(fs afero.Fs) string {
+	dir, err := afero.TempDir(fs, "", config.ProgramName)
 	if err != nil {
 		panic(err)
 	}
@@ -46,12 +47,12 @@ func TempDir() string {
 // TempConfig creates a temporary config directory with config.yaml file
 // containing the given YAML content and initializes our config from it.
 // The directory path is returned.
-func TempConfig(configYAML string) (string, error) {
-	dir := TempDir()
+func TempConfig(fs afero.Fs, configYAML string) (string, error) {
+	dir := TempDir(fs)
 	filePath := path.Join(dir, config.ConfigFileName+"."+config.ConfigFileType)
 
 	if configYAML != "" {
-		file, fileErr := os.Create(filePath)
+		file, fileErr := fs.Create(filePath)
 		if fileErr != nil {
 			return dir, fileErr
 		}
@@ -59,7 +60,7 @@ func TempConfig(configYAML string) (string, error) {
 		file.Close()
 	}
 
-	err := config.Initialize(dir)
+	err := config.Initialize(fs, dir)
 	if err != nil {
 		return dir, err
 	}
@@ -68,9 +69,9 @@ func TempConfig(configYAML string) (string, error) {
 }
 
 // TempKubeconfig creates a temporary kubectl config file for testing.
-func TempKubeconfig() (string, error) {
+func TempKubeconfig(fs afero.Fs) (string, error) {
 	// override standard paths for testing
-	dir := TempDir()
+	dir := TempDir(fs)
 	config.HomeDirPath = dir
 	config.DefaultConfigDirPath = path.Join(config.HomeDirPath, ".config", config.ProgramName)
 
@@ -85,9 +86,9 @@ clusters:
 users:
 contexts:
 `)
-	fileErr := ioutil.WriteFile(kubeConfigPath, kubeConfig, 0700)
-	if fileErr != nil {
-		return "", fileErr
+	err := afero.WriteFile(fs, kubeConfigPath, kubeConfig, 0700)
+	if err != nil {
+		return "", err
 	}
 
 	return kubeConfigPath, nil

@@ -1,39 +1,41 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/spf13/afero"
 )
 
-func tempDir() string {
-	dir, err := ioutil.TempDir("", ProgramName)
+func tempDir(fs afero.Fs) string {
+	dir, err := afero.TempDir(fs, "", ProgramName)
 	if err != nil {
 		panic(err)
 	}
+
 	return dir
 }
 
 // tempConfig creates a temporary config directory with config.yaml file
 // containing the given YAML content and initializes our config from it.
 // The directory path ist returned.
-func tempConfig(configYAML string) (string, error) {
-	dir := tempDir()
+func tempConfig(fs afero.Fs, configYAML string) (string, error) {
+	dir := tempDir(fs)
 	filePath := path.Join(dir, ConfigFileName+"."+ConfigFileType)
 
 	if configYAML != "" {
-		file, fileErr := os.Create(filePath)
-		if fileErr != nil {
-			return dir, fileErr
+		file, err := fs.Create(filePath)
+		if err != nil {
+			return dir, err
 		}
 		file.WriteString(configYAML)
 		file.Close()
 	}
 
-	err := Initialize(dir)
+	err := Initialize(fs, dir)
 	if err != nil {
 		return dir, err
 	}
@@ -46,12 +48,13 @@ func tempConfig(configYAML string) (string, error) {
 // Configuration is created and then serialized to the YAML file.
 // We roughtly check the YAML whether it contains the expected info.
 func Test_Initialize_Empty(t *testing.T) {
-	dir := tempDir()
-	defer os.RemoveAll(dir)
+	fs := afero.NewMemMapFs()
+	dir := tempDir(fs)
+
 	// additional non-existing sub directory
 	dir = path.Join(dir, "subdir")
 
-	err := Initialize(dir)
+	err := Initialize(fs, dir)
 	if err != nil {
 		t.Error("Error in Initialize:", err)
 	}
@@ -66,6 +69,11 @@ func Test_Initialize_Empty(t *testing.T) {
 	// check initial enpoint count
 	if Config.NumEndpoints() != 0 {
 		t.Error("Expected zero endpoints, got", Config.NumEndpoints())
+	}
+
+	// check selected endpoint
+	if Config.SelectedEndpoint != "" {
+		t.Errorf("Expected selected endpoint to be '', got %q", Config.SelectedEndpoint)
 	}
 
 	// directly set some configuration
@@ -100,7 +108,7 @@ func Test_Initialize_Empty(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	content, readErr := ioutil.ReadFile(ConfigFilePath)
+	content, readErr := afero.ReadFile(fs, ConfigFilePath)
 	if readErr != nil {
 		t.Error(readErr)
 	}
@@ -131,7 +139,7 @@ func Test_Initialize_Empty(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	content, readErr = ioutil.ReadFile(ConfigFilePath)
+	content, readErr = afero.ReadFile(fs, ConfigFilePath)
 	if readErr != nil {
 		t.Error(readErr)
 	}
@@ -158,11 +166,20 @@ selected_endpoint: https://myapi.domain.tld`
 	email := "email@example.com"
 	token := "some-token"
 
-	dir, err := tempConfig(yamlText)
+	fs := afero.NewMemMapFs()
+	dir, err := tempConfig(fs, yamlText)
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
+
+	t.Logf("Config dir: %s", dir)
+
+	err = Initialize(fs, dir)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Logf("Config: %#v", Config)
 
 	if Config.Email != email {
 		t.Errorf("Expected email '%s', got '%s'", email, Config.Email)
@@ -177,7 +194,7 @@ selected_endpoint: https://myapi.domain.tld`
 	// test what happens after logout
 	Config.Logout("https://myapi.domain.tld")
 
-	content, readErr := ioutil.ReadFile(ConfigFilePath)
+	content, readErr := afero.ReadFile(fs, ConfigFilePath)
 	if readErr != nil {
 		t.Error(readErr)
 	}
@@ -194,10 +211,10 @@ selected_endpoint: https://myapi.domain.tld`
 // when the KUBECONFIG env variable points to the
 // same dir as we use for config, and it's empty
 func Test_Kubeconfig_Env_Nonexisting(t *testing.T) {
-	dir := tempDir()
-	defer os.RemoveAll(dir)
+	fs := afero.NewMemMapFs()
+	dir := tempDir(fs)
 	os.Setenv("KUBECONFIG", dir)
-	err := Initialize(dir)
+	err := Initialize(fs, dir)
 	if err != nil {
 		t.Error("Error in Initialize:", err)
 	}
@@ -248,11 +265,16 @@ endpoints:
     alias:
 selected_endpoint: https://other.endpoint`
 
-	dir, err := tempConfig(yamlText)
+	fs := afero.NewMemMapFs()
+	dir, err := tempConfig(fs, yamlText)
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
+
+	err = Initialize(fs, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// first, selected endpoint must have empty alias
 	if Config.EndpointConfig(Config.SelectedEndpoint).Alias != "" {
@@ -306,11 +328,11 @@ selected_endpoint: ""`,
 	}
 
 	for index, tc := range testCases {
-		dir, err := tempConfig(tc.configYAML)
+		fs := afero.NewMemMapFs()
+		_, err := tempConfig(fs, tc.configYAML)
 		if err != nil {
 			t.Errorf("Error creating temporary config for test case %d: %q", index, err)
 		}
-		defer os.RemoveAll(dir)
 
 		t.Logf("Config: %#v", Config)
 

@@ -3,8 +3,9 @@ package keypairs
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
+
+	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
@@ -15,11 +16,11 @@ import (
 // is logged in or provides an auth token. Here we use an empty config to have
 // an unauthorized user.
 func Test_ListKeypairs_NotLoggedIn(t *testing.T) {
-	dir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	args := listKeypairsArguments{}
 
@@ -34,11 +35,11 @@ func Test_ListKeypairs_NotLoggedIn(t *testing.T) {
 // Test_ListKeypairs_Empty simulates the situation where there are no
 // key pairs for a given cluster.
 func Test_ListKeypairs_Empty(t *testing.T) {
-	dir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	// mock service returning empty key pair array.
 	keyPairsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -73,11 +74,11 @@ func Test_ListKeypairs_Empty(t *testing.T) {
 // Test_ListKeypairs_NotFound simulates the situation where the cluster
 // to list key pairs for is not found
 func Test_ListKeypairs_NotFound(t *testing.T) {
-	dir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	keyPairsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -109,11 +110,11 @@ func Test_ListKeypairs_NotFound(t *testing.T) {
 // Test_ListKeyPairs_Nonempty simulates listing key pairs where several
 // items are returned.
 func Test_ListKeyPairs_Nonempty(t *testing.T) {
-	dir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	// mock service returning key pairs. For the sake of simplicity,
 	// it doesn't care about auth tokens.

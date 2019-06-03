@@ -4,17 +4,17 @@ package util
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 
 	"github.com/fatih/color"
+	"github.com/spf13/afero"
 )
 
-func writeCredentialFile(certsDirPath, fileName, certificateData string) string {
+func writeCredentialFile(fs afero.Fs, certsDirPath, fileName, certificateData string) string {
 	data := []byte(certificateData)
 	filePath := path.Join(certsDirPath, fileName)
-	writeErr := ioutil.WriteFile(filePath, data, 0600)
+	writeErr := afero.WriteFile(fs, filePath, data, 0600)
 	if writeErr != nil {
 		fmt.Println(color.RedString("Could not create credential file", filePath))
 		fmt.Println("Error:")
@@ -27,23 +27,23 @@ func writeCredentialFile(certsDirPath, fileName, certificateData string) string 
 // StoreCaCertificate writes a CA certificate to a file
 //
 // The file will have the name format `<clusterID>-ca.crt`
-func StoreCaCertificate(certsDirPath, clusterID, data string) string {
+func StoreCaCertificate(fs afero.Fs, certsDirPath, clusterID, data string) string {
 	fileName := clusterID + "-ca.crt"
-	return writeCredentialFile(certsDirPath, fileName, data)
+	return writeCredentialFile(fs, certsDirPath, fileName, data)
 }
 
 // StoreClientCertificate writes a client certificate to a file
 //
 // The file will have the name format `<clusterID>-<keypair-id>-client.crt`
-func StoreClientCertificate(certsDirPath, clusterID, keyPairID, data string) string {
+func StoreClientCertificate(fs afero.Fs, certsDirPath, clusterID, keyPairID, data string) string {
 	fileName := clusterID + "-" + CleanKeypairID(keyPairID)[:10] + "-client.crt"
-	return writeCredentialFile(certsDirPath, fileName, data)
+	return writeCredentialFile(fs, certsDirPath, fileName, data)
 }
 
 // StoreClientKey writes a client key to a file
 //
 // The file will have the name format `<clusterID>-<keypair-id>-client.key`
-func StoreClientKey(certsDirPath, clusterID, keyPairID, data string) string {
+func StoreClientKey(fs afero.Fs, certsDirPath, clusterID, keyPairID, data string) string {
 	fileName := clusterID + "-" + CleanKeypairID(keyPairID)[:10] + "-client.key"
-	return writeCredentialFile(certsDirPath, fileName, data)
+	return writeCredentialFile(fs, certsDirPath, fileName, data)
 }

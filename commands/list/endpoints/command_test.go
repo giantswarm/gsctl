@@ -1,9 +1,10 @@
 package endpoints
 
 import (
-	"os"
 	"strings"
 	"testing"
+
+	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/testutils"
@@ -24,11 +25,12 @@ endpoints:
     token: some-other-token
 selected_endpoint: https://my.second.endpoint
 `
-	dir, err := testutils.TempConfig(yamlText)
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, yamlText)
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	args := listEndpointsArguments{
 		// "" here means that we don't override the selected endpoint

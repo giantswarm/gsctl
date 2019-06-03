@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/url"
 	"os"
@@ -15,6 +14,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/giantswarm/gsctl/oidc"
 	"github.com/giantswarm/microerror"
+	"github.com/spf13/afero"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -54,6 +54,9 @@ var (
 
 	// Commit is the latest git commit hash, to be set on build by the go linker
 	Commit string
+
+	// FileSystem is the afero filesystem used to store the config file and certificates.
+	FileSystem afero.Fs
 
 	// HomeDirPath is the path to the user's home directory
 	HomeDirPath string
@@ -127,16 +130,25 @@ func newConfigStruct() *configStruct {
 }
 
 // readFromFile reads configuration from the YAML config file
-func readFromFile(filePath string) (*configStruct, error) {
+func readFromFile(fs afero.Fs, filePath string) (*configStruct, error) {
 	myConfig := newConfigStruct()
-	data, readErr := ioutil.ReadFile(filePath)
-	if readErr != nil {
-		if os.IsNotExist(readErr) {
+
+	doesExist, err := afero.Exists(fs, filePath)
+	if err != nil {
+		return myConfig, microerror.Mask(err)
+	}
+	if !doesExist {
+		return myConfig, nil
+	}
+
+	data, err := afero.ReadFile(fs, filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
 			// ignore if file does not exist,
 			// as this is not an error.
 			return myConfig, nil
 		}
-		return myConfig, microerror.Mask(readErr)
+		return myConfig, microerror.Mask(err)
 	}
 
 	yamlErr := yaml.Unmarshal(data, myConfig)
@@ -528,7 +540,8 @@ func init() {
 // execution can be triggered in a controlled way.
 // It's supposed to be called after init().
 // The configDirPath argument can be given to override the DefaultConfigDirPath.
-func Initialize(configDirPath string) error {
+func Initialize(fs afero.Fs, configDirPath string) error {
+	FileSystem = fs
 	// Reset our Config object. This is particularly necessary for running
 	// multiple tests in a row.
 	Config = newConfigStruct()
@@ -543,34 +556,37 @@ func Initialize(configDirPath string) error {
 	ConfigFilePath = path.Join(ConfigDirPath, ConfigFileName+"."+ConfigFileType)
 
 	// if config file doesn't exist, create empty one
-	_, err := os.Stat(ConfigFilePath)
-	if os.IsNotExist(err) {
+	exists, err := afero.Exists(fs, ConfigFilePath)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+	if !exists {
 		// ensure directory exists
-		dirErr := os.MkdirAll(ConfigDirPath, 0700)
-		if dirErr != nil {
-			return microerror.Mask(dirErr)
+		err := fs.MkdirAll(ConfigDirPath, 0700)
+		if err != nil {
+			return microerror.Mask(err)
 		}
 		// ensure file exists
-		file, fileErr := os.Create(ConfigFilePath)
-		if fileErr != nil {
-			return microerror.Mask(fileErr)
+		file, err := fs.Create(ConfigFilePath)
+		if err != nil {
+			return microerror.Mask(err)
 		}
 		file.Close()
 
-		err = os.Chmod(ConfigFilePath, ConfigFilePermission)
+		err = fs.Chmod(ConfigFilePath, ConfigFilePermission)
 		if err != nil {
 			return microerror.Mask(err)
 		}
 	}
 
-	myConfig, err := readFromFile(ConfigFilePath)
+	myConfig, err := readFromFile(fs, ConfigFilePath)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 	populateConfigStruct(myConfig)
 
 	CertsDirPath = path.Join(ConfigDirPath, "certs")
-	os.MkdirAll(CertsDirPath, 0700)
+	fs.MkdirAll(CertsDirPath, 0700)
 
 	KubeConfigPaths = getKubeconfigPaths(HomeDirPath)
 
@@ -578,7 +594,7 @@ func Initialize(configDirPath string) error {
 	randSource := rand.NewSource(time.Now().UnixNano())
 	randGenerator := rand.New(randSource)
 	if randGenerator.Float32() < garbageCollectionLikelihood {
-		err := GarbageCollectKeyPairs()
+		err := GarbageCollectKeyPairs(fs)
 		if err != nil {
 			// print error message, but don't interrupt the user
 			if IsGarbageCollectionFailedError(err) {
@@ -631,13 +647,13 @@ func WriteToFile() error {
 		return microerror.Mask(err)
 	}
 
-	err = ioutil.WriteFile(ConfigFilePath, yamlBytes, ConfigFilePermission)
+	err = afero.WriteFile(FileSystem, ConfigFilePath, yamlBytes, ConfigFilePermission)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
 	// finally update permissions, in case they weren't right before
-	err = os.Chmod(ConfigFilePath, ConfigFilePermission)
+	err = FileSystem.Chmod(ConfigFilePath, ConfigFilePermission)
 	if err != nil {
 		return microerror.Mask(err)
 	}

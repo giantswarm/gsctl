@@ -85,7 +85,7 @@
   version = "v2.0.2"
 
 [[projects]]
-  branch = "upgrade-goswagger"
+  branch = "master"
   digest = "1:81d0e7b22cee4346d4160298a2bf3354254bd996832a70ccff4175c58b311223"
   name = "github.com/giantswarm/gsclientgen"
   packages = [
@@ -101,7 +101,7 @@
     "models",
   ]
   pruneopts = "NUT"
-  revision = "76fa17003e5a587ef082531228e602c62dba70a7"
+  revision = "ba654d487d14bca6cca527a6981d0bc729740339"
 
 [[projects]]
   branch = "master"
@@ -552,6 +552,17 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:6792bb72ea0e7112157d02e4e175cd421b43d004a853f56316a19beca6e0c074"
+  name = "github.com/spf13/afero"
+  packages = [
+    ".",
+    "mem",
+  ]
+  pruneopts = "NUT"
+  revision = "588a75ec4f32903aa5e39a2619ba6a4631e28424"
+
+[[projects]]
+  branch = "master"
   digest = "1:dfd5e4b70ef5c1b9a30f342bf0ce02a03fe8f8d412205af824db361e99548610"
   name = "github.com/spf13/cobra"
   packages = ["."]
@@ -886,6 +897,7 @@
     "github.com/howeyc/gopass",
     "github.com/juju/errgo",
     "github.com/skratchdot/open-golang/open",
+    "github.com/spf13/afero",
     "github.com/spf13/cobra",
     "gopkg.in/yaml.v2",
   ]

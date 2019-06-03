@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
+	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/config"
@@ -36,11 +36,11 @@ var regularInfoResponse = []byte(`{
 // Test_LoginValidPassword simulates a login with a valid email/password combination
 func Test_LoginValidPassword(t *testing.T) {
 	// we start with an empty config
-	dir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	// this server will respond positively in any case
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -89,11 +89,11 @@ func Test_LoginValidPassword(t *testing.T) {
 
 // Test_LoginInvalidPassword simulates a login with a bad email/password combination
 func Test_LoginInvalidPassword(t *testing.T) {
-	dir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -146,12 +146,12 @@ func Test_LoginWhenUserLoggedInBefore(t *testing.T) {
     token: token
 selected_endpoint: "` + mockServer.URL + `"
 `
-	dir, err := testutils.TempConfig(yamlText)
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, yamlText)
 	if err != nil {
 		fmt.Printf(yamlText)
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	args := loginArguments{
 		apiEndpoint: mockServer.URL,
@@ -182,11 +182,11 @@ selected_endpoint: "` + mockServer.URL + `"
 // Test_LoginInactiveAccount simulates a login with an inactive/expired account
 func Test_LoginInactiveAccount(t *testing.T) {
 	// we start with an empty config
-	dir, err := testutils.TempConfig("")
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.RemoveAll(dir)
 
 	// mock server responding with a 400 Bad request
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

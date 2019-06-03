@@ -4,10 +4,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/Jeffail/gabs"
+	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/config"
@@ -26,8 +26,9 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	configDir, _ := ioutil.TempDir("", config.ProgramName)
-	config.Initialize(configDir)
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
 
 	testArgs := scaleClusterArguments{
 		apiEndpoint: mockServer.URL,
@@ -143,9 +144,8 @@ endpoints:
     token: some-token
     provider: aws
 selected_endpoint: ` + mockServer.URL
-	dir, err := testutils.TempConfig(yamlText)
-	defer os.RemoveAll(dir)
-
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, yamlText)
 	if err != nil {
 		t.Error(err)
 	}
