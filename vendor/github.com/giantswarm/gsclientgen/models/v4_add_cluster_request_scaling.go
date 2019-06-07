@@ -11,18 +11,19 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// V4AddClusterRequestScaling Attributes specific to cluster node scaling. To have full control of
-// the cluster size, min and max can be set to the same value. If only
-// `min` or only `max` is specified, `min` and `max` will be set equally.
+// V4AddClusterRequestScaling Attributes specific to cluster node scaling on KVM and Azure. To have
+// full control of the cluster size, min and max can be set to the same
+// value. If only `min` or only `max` is specified, `min` and `max` will
+// be set equally. Not available on AWS.
 //
 // swagger:model v4AddClusterRequestScaling
 type V4AddClusterRequestScaling struct {
 
-	// The maximum number of cluster nodes
+	// Maximum number of cluster nodes
 	//
 	Max int64 `json:"max,omitempty"`
 
-	// The minimum number of cluster nodes
+	// Minimum number of cluster nodes
 	//
 	Min int64 `json:"min,omitempty"`
 }

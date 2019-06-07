@@ -17,11 +17,11 @@ import (
 // swagger:model v4ModifyClusterRequestScaling
 type V4ModifyClusterRequestScaling struct {
 
-	// The maximum number of cluster nodes
+	// Maximum number of cluster nodes
 	//
 	Max int64 `json:"max,omitempty"`
 
-	// The minimum number of cluster nodes
+	// Minimum number of cluster nodes
 	//
 	Min int64 `json:"min,omitempty"`
 }

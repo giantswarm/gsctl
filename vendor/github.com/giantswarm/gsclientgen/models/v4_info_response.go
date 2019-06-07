@@ -21,6 +21,9 @@ type V4InfoResponse struct {
 	// Required: true
 	General *V4InfoResponseGeneral `json:"general"`
 
+	// stats
+	Stats *V4InfoResponseStats `json:"stats,omitempty"`
+
 	// workers
 	Workers *V4InfoResponseWorkers `json:"workers,omitempty"`
 }
@@ -30,6 +33,10 @@ func (m *V4InfoResponse) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateGeneral(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStats(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -53,6 +60,24 @@ func (m *V4InfoResponse) validateGeneral(formats strfmt.Registry) error {
 		if err := m.General.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("general")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V4InfoResponse) validateStats(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Stats) { // not required
+		return nil
+	}
+
+	if m.Stats != nil {
+		if err := m.Stats.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("stats")
 			}
 			return err
 		}

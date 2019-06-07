@@ -25,91 +25,35 @@ type Client struct {
 }
 
 /*
-AddCluster creates cluster
+AddCluster creates cluster v4
 
-This operation is used to create a new Kubernetes cluster for an
-organization. The desired configuration can be specified using the
-__cluster definition format__ (see
-[external documentation](https://github.com/giantswarm/api-spec/blob/master/details/CLUSTER_DEFINITION.md)
-for details).
+This operation is used to create a new Kubernetes cluster or
+"tenant cluster".
+
+__Providers__:
+<span class="badge azure">Azure</span>
+<span class="badge kvm">KVM</span>
+<span class="badge aws">AWS*</span>
+&ndash; AWS support ends with release version `TODO`. For AWS clusters using
+release `TODO` and higher, please refer to the
+[v5 equivalent](#operation/addClusterV5).
 
 ### Cluster definition
 
 The cluster definition format allows to set a number of optional
-configuration details, like memory size and number of CPU cores.
-However, one attribute is __mandatory__ upon creation: The `owner`
+configuration details, like worker node configuration, with node
+specification depending on the provider (e. g. on <span class="badge azure">Azure</span> the
+VM size, or on <span class="badge kvm">KVM</span> the memory size and number of CPU cores).
+
+One attribute is __mandatory__ upon creation: The `owner`
 attribute must carry the name of the organization the cluster will
 belong to. Note that the acting user must be a member of that
 organization in order to create a cluster.
 
-It is *recommended* to also specify the `name` attribute to give the
-cluster a friendly name, like e. g. "Development Cluster".
-
-Additional definition attributes can be used. Where attributes are
-omitted, default configuration values will be applied. For example, if
-no `release_version` is specified, the most recent version is used.
-
-The specification of worker nodes, for example the instance type on AWS,
-can be provided via the `workers` array. Here, the first item of the
-array is used as a specification for all worker nodes. For any missing
-specification attribute, defaults are assumed. Check out the
-[getInfo](#operation/getInfo) operation for more info about defaults.
-
-### Availability Zones (AWS only)
-
-The number of `availability_zones` affects the total number of nodes
-that can be created in the cluster. The number of availability zones
-splits the IP range that can be used for the cluster in multiple smaller
-IP ranges. The [getInfo](#operation/getInfo) endpoint provides more
-details about the cluster IP range.
-
-__IP range example:__
-
-If a cluster gets a `/22` range (1022 hosts) and the cluster should be
-spawned across 3 availability zones, the range will then be split up
-into four `/24` (254 hosts) that can be assigned to four different
-availability zones. One range will stay unused because network
-addresses must be powers of two. See [CIDR addressing](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).
-Each of the `/24` will then be split into two `/25` (126 hosts) for
-public and private subnets. The private subnet is used for nodes and
-internal loadbalancer (only if you create them within Kubernetes). The
-public subnet will be used by the public loadbalancers. Tenant cluster
-come with two public loadbalancers by default. One for the Kubernetes API
-and one for Ingress.
-
-__Note:__ AWS ELBs can take up to 8 IP addresses due to the way how
-they scale. In addition to this, every AWS subnet has four first
-addresses (.1-.4) reserved for internal use.
-
-### Initial cluster size and autoscaling
-
-The API allows to define the cluster size on creation using the
-`scaling` attribute, setting a minimum and maximum worker node count.
-
-For releases starting from 6.2.0 (on AWS), the cluster size is controlled
-by the [Kubernetes Autoscaler](https://github.com/kubernetes/autoscaler)
-within the limits defined by the `scaling` setting. This setting can
-also be modified any time later in the cluster lifecycle.
-
-By setting both the minimum and maximum to the same value, autoscaling
-is effectively disabled. This is also the default behaviour when no
-initial cluster size is given, or when clusters are upgraded from
-releases before 6.2.0.
-
-Until autoscaling is available on providers other than AWS, for Azure
-and KVM (on-premises) the `min` and `max` scaling value must be
-identical. The same is true for tenant clusters using a release
-before 6.2.0 on AWS.
-
-### Backward compatibility note
-
-Before the introduction of autoscaling and the `scaling` attribute, the
-number of worker nodes could be determined via the number of items
-contained in the `workers` array. This behaviour will be still accepted
-for a transition period, but only if the `scaling` attribute is _not_
-provided in the request. In this case, a `workers` array length of 5,
-for example, will be translated to a scaling where both `min` and `max`
-are set to 5, which effectively turns off autoscaling.
+For all other attributes, defaults will be applied if the attribute
+is not set. Check out the [getInfo](#operation/getInfo) operation for
+more info about defaults. If no `release_version` is set, the latest
+release version available for the provider will be used.
 
 */
 func (a *Client) AddCluster(params *AddClusterParams, authInfo runtime.ClientAuthInfoWriter) (*AddClusterCreated, error) {
@@ -139,11 +83,73 @@ func (a *Client) AddCluster(params *AddClusterParams, authInfo runtime.ClientAut
 }
 
 /*
+AddClusterV5 creates cluster v5
+
+Allows to create most recent clusters on AWS installations.
+
+__Providers__:
+<span class="badge aws">AWS*</span>
+&ndash; Only supports release `TODO` and higher on AWS. For other
+providers, please refer to the [v4 equivalent](#operation/addCluster).
+
+### Node pools
+
+In the Giant Swarm API v5, worker nodes are grouped into pools of worker
+nodes where all nodes share the same configuration.
+
+When creating a cluster without submitting the `nodepools` attribute,
+or with its value being an empty array, one node pool with default
+configuration will be created.
+
+Node pools can be created, deleted and modified during the entire
+lifetime of a cluster.
+
+See
+[node pools](#tag/nodepools) and
+[Create node pool](#operation/addNodePool) for details.
+
+*/
+func (a *Client) AddClusterV5(params *AddClusterV5Params, authInfo runtime.ClientAuthInfoWriter) (*AddClusterV5Created, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewAddClusterV5Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "addClusterV5",
+		Method:             "POST",
+		PathPattern:        "/v5/clusters/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &AddClusterV5Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*AddClusterV5Created), nil
+
+}
+
+/*
 DeleteCluster deletes cluster
 
-This operation allows to delete a cluster.
+This operation triggers deleting a cluster with all resources attached to it.
 
-__Caution:__ Deleting a cluster causes the termination of all workloads running on the cluster. Data stored on the worker nodes will be lost. There is no way to undo this operation.
+__Providers__:
+<span class="badge azure">Azure</span>
+<span class="badge kvm">KVM</span>
+<span class="badge aws">AWS</span>
+&ndash; All providers supported.
+
+Deleting a cluster causes the termination of all workloads running on
+the cluster. Data stored on the worker nodes will be lost. On AWS, node
+pools belonging to the cluster are deleted, too. There is no way to undo
+this operation.
 
 The response is sent as soon as the request is validated.
 At that point, workloads might still be running on the cluster and may be accessible for a little wile, until the cluster is actually deleted.
@@ -176,15 +182,17 @@ func (a *Client) DeleteCluster(params *DeleteClusterParams, authInfo runtime.Cli
 }
 
 /*
-GetCluster gets cluster details
+GetCluster gets cluster details v4
 
-This operation allows to obtain most available details on a particular
-cluster.
+This operation allows to obtain basic details on a particular cluster.
 
-__Deprecation note:__ The `workers` attribute will be removed by
-from this operation's response in the near future. Please use the
-[getClusterStatus](#operation/getClusterStatus) operation instead to
-get up-to-date details on the workers nodes in a cluster.
+__Providers__:
+<span class="badge azure">Azure</span>
+<span class="badge kvm">KVM</span>
+<span class="badge aws">AWS*</span>
+&ndash; AWS support ends with release version `TODO`. For AWS clusters
+using release `TODO` and higher, please refer to the
+[v5 equivalent](#operation/getClusterV5).
 
 */
 func (a *Client) GetCluster(params *GetClusterParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterOK, error) {
@@ -218,12 +226,18 @@ GetClusterStatus gets cluster status
 
 Returns an object about a cluster's current state and past status transitions.
 
+__Providers__:
+<span class="badge azure">Azure</span>
+<span class="badge kvm">KVM</span>
+<span class="badge aws">AWS</span>
+&ndash; All providers supported.
+
 This endpoint exposes the status content of the Kubernetes resources representing
 a cluster in the corresponding custom resource. That is, depending on the provider:
 
-- [awsconfig.provider.giantswarm.io](https://godoc.org/github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1#AWSConfig)
-- [azureconfig.provider.giantswarm.io](https://godoc.org/github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1#AzureConfig)
-- [kvmconfig.provider.giantswarm.io](https://godoc.org/github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1#KVMConfig)
+- [`awsconfig.provider.giantswarm.io`](https://godoc.org/github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1#AWSConfig)
+- [`azureconfig.provider.giantswarm.io`](https://godoc.org/github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1#AzureConfig)
+- [`kvmconfig.provider.giantswarm.io`](https://godoc.org/github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1#KVMConfig)
 
 Note that structure and style differ from the rest of the v4 API. Also note that
 the structure depends on the release version and changes can be expected frequently.
@@ -256,9 +270,52 @@ func (a *Client) GetClusterStatus(params *GetClusterStatusParams, authInfo runti
 }
 
 /*
+GetClusterV5 gets cluster details v5
+
+Allows to retrieve cluster details on AWS installations.
+
+__Providers__:
+<span class="badge aws">AWS*</span>
+&ndash; Only supports release `TODO` and higher on AWS. For other
+providers, please refer to the [v4 equivalent](#operation/getCluster).
+
+*/
+func (a *Client) GetClusterV5(params *GetClusterV5Params, authInfo runtime.ClientAuthInfoWriter) (*GetClusterV5OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterV5Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "getClusterV5",
+		Method:             "GET",
+		PathPattern:        "/v5/clusters/{cluster_id}/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &GetClusterV5Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetClusterV5OK), nil
+
+}
+
+/*
 GetClusters gets clusters
 
 This operation fetches a list of clusters.
+
+__Providers__:
+<span class="badge aws">AWS</span>
+<span class="badge azure">Azure</span>
+<span class="badge kvm">KVM</span>
+&ndash; All providers supported
 
 The result depends on the permissions of the user.
 A normal user will get all the clusters the user has access
@@ -266,10 +323,13 @@ to, via organization membership.
 A user with admin permission will receive a list of all existing
 clusters.
 
-The result array items are sparse representations of the cluster objects.
-To fetch more details on a cluster, use the
-[getCluster](#operation/getCluster) and
-[getClusterStatus](#operation/getClusterStatus) operations.
+The result array items are sparse representations of the cluster
+objects. To fetch more details on a cluster, use the following
+operations:
+
+- [getCluster](#operation/getCluster) or [getClusterV5](#operation/getClusterV5) for cluster details
+- [getNodePools](#operation/getNodePools) for node pool details
+- [getClusterStatus](#operation/getClusterStatus) operations.
 
 */
 func (a *Client) GetClusters(params *GetClustersParams, authInfo runtime.ClientAuthInfoWriter) (*GetClustersOK, error) {
@@ -299,9 +359,17 @@ func (a *Client) GetClusters(params *GetClustersParams, authInfo runtime.ClientA
 }
 
 /*
-ModifyCluster modifies cluster
+ModifyCluster modifies cluster v4
 
 This operation allows to modify an existing cluster.
+
+__Providers__:
+<span class="badge azure">Azure</span>
+<span class="badge kvm">KVM</span>
+<span class="badge aws">AWS*</span>
+&ndash; AWS support ends with release version `TODO`. For AWS clusters
+using release `TODO` and higher, please refer to the
+[v5 equivalent](#operation/modifyClusterV5).
 
 A cluster modification is performed by submitting a `PATCH` request
 to the cluster resource (as described in the
@@ -328,7 +396,7 @@ achieved by setting `min` and `max` to the same values. Note that
 setting `min` and `max` to different values (effectively enabling
 autoscaling) is only available on AWS with releases from 6.2.0.
 
-- `workers` (deprecated): For backward compatibility reasons, it is
+ - `workers` (deprecated): For backward compatibility reasons, it is
 possible to provide this attribute as an array, where the number of
 items contained in the array determines the intended number of worker
 nodes in the cluster. The item count will be applied as both `min` and
@@ -367,6 +435,43 @@ func (a *Client) ModifyCluster(params *ModifyClusterParams, authInfo runtime.Cli
 		return nil, err
 	}
 	return result.(*ModifyClusterOK), nil
+
+}
+
+/*
+ModifyClusterV5 modifies cluster v5
+
+Allows to change cluster properties on AWS installations.
+
+__Providers__:
+<span class="badge aws">AWS*</span>
+&ndash; Only supports release `TODO` and higher on AWS. For other
+providers, please refer to the [v4 equivalent](#operation/modifyCluster).
+
+*/
+func (a *Client) ModifyClusterV5(params *ModifyClusterV5Params, authInfo runtime.ClientAuthInfoWriter) (*ModifyClusterV5OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewModifyClusterV5Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "modifyClusterV5",
+		Method:             "PATCH",
+		PathPattern:        "/v5/clusters/{cluster_id}/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ModifyClusterV5Reader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ModifyClusterV5OK), nil
 
 }
 
