@@ -387,8 +387,8 @@ func (w *WrapperV2) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, er
 	return response, nil
 }
 
-// GetCluster fetches details on a cluster using the V2 client.
-func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.GetClusterOK, error) {
+// GetClusterV4 fetches details on a V4 cluster.
+func (w *WrapperV2) GetClusterV4(clusterID string, p *AuxiliaryParams) (*clusters.GetClusterOK, error) {
 	params := clusters.NewGetClusterParams().WithClusterID(clusterID)
 	err := setParamsWithAuthorization(p, w, params)
 	if err != nil {
@@ -396,6 +396,22 @@ func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.
 	}
 
 	response, err := w.gsclient.Clusters.GetCluster(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+// GetClusterV5 fetches details on a V5 cluster.
+func (w *WrapperV2) GetClusterV5(clusterID string, p *AuxiliaryParams) (*clusters.GetClusterV5OK, error) {
+	params := clusters.NewGetClusterV5Params().WithClusterID(clusterID)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Clusters.GetClusterV5(params, nil)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}

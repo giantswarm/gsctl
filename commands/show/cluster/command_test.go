@@ -58,7 +58,7 @@ func TestShowAWSCluster(t *testing.T) {
 		t.Error(err)
 	}
 
-	details, showErr := getClusterDetails(testArgs.clusterID, showClusterActivityName)
+	details, showErr := getClusterDetailsV4(testArgs.clusterID, showClusterActivityName)
 	if showErr != nil {
 		t.Error(showErr)
 	}
@@ -102,7 +102,7 @@ func TestShowClusterNotAuthorized(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = getClusterDetails(testArgs.clusterID, showClusterActivityName)
+	_, err = getClusterDetailsV4(testArgs.clusterID, showClusterActivityName)
 
 	if err == nil {
 		t.Fatal("Expected NotAuthorizedError, got nil")
@@ -146,7 +146,7 @@ func TestShowClusterNotFound(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = getClusterDetails(testArgs.clusterID, showClusterActivityName)
+	_, err = getClusterDetailsV4(testArgs.clusterID, showClusterActivityName)
 
 	if err == nil {
 		t.Fatal("Expected ClusterNotFoundError, got nil")
@@ -190,7 +190,7 @@ func TestShowClusterInternalServerError(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = getClusterDetails(testArgs.clusterID, showClusterActivityName)
+	_, err = getClusterDetailsV4(testArgs.clusterID, showClusterActivityName)
 
 	if err == nil {
 		t.Fatal("Expected InternalServerError, got nil")
@@ -326,7 +326,7 @@ func TestShowAWSBYOCCluster(t *testing.T) {
 		t.Error(err)
 	}
 
-	details, showErr := getClusterDetails(testArgs.clusterID, showClusterActivityName)
+	details, showErr := getClusterDetailsV4(testArgs.clusterID, showClusterActivityName)
 	if showErr != nil {
 		t.Error(showErr)
 	}
@@ -347,6 +347,68 @@ func TestShowAWSBYOCCluster(t *testing.T) {
 	parts := strings.Split(credentialDetails.Aws.Roles.Awsoperator, ":")
 	if parts[4] != "123456789012" {
 		t.Errorf("Did not get the expected AWS account ID, instead got %s from %s", parts[4], credentialDetails.Aws.Roles.Awsoperator)
+	}
+
+}
+
+// TestV5 tests access to a V5 cluster
+func TestV5(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == "GET" {
+			if r.URL.Path == "/v5/clusters/cluster-id/" {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{
+					"api_endpoint": "https://api.k8s.cluster-id.example.com",
+					"credential_id": "",
+					"create_date": "2019-06-07T05:07:20.0315969Z",
+					"id": "cluster-id",
+					"master": {
+						"availability_zone": "europe-west-1c"
+					},
+					"name": "Test cluster",
+					"owner": "acme",
+					"release_version": "9.0.0"
+				}`))
+			} else {
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte(`{
+					"code": "RESOURCE_NOT_FOUND",
+					"message": "The cluster could not be found."
+				}`))
+			}
+		}
+	}))
+	defer mockServer.Close()
+
+	// temp config
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
+
+	testArgs := showClusterArguments{
+		apiEndpoint: mockServer.URL,
+		clusterID:   "cluster-id",
+		scheme:      "giantswarm",
+		authToken:   "my-token",
+	}
+
+	flags.CmdAPIEndpoint = mockServer.URL
+
+	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	if err != nil {
+		t.Error(err)
+	}
+
+	details, showErr := getClusterDetailsV5(testArgs.clusterID, showClusterActivityName)
+	if showErr != nil {
+		t.Error(showErr)
+	}
+
+	if details == nil {
+		t.Error("details is nil")
+	} else if details.ID != testArgs.clusterID {
+		t.Errorf("Expected cluster ID '%s', got '%s'", testArgs.clusterID, details.ID)
 	}
 
 }

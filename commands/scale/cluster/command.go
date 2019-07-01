@@ -253,7 +253,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 		auxParams := clientV2.DefaultAuxiliaryParams()
 		auxParams.ActivityName = scaleClusterActivityName
 
-		response, err := clientV2.GetCluster(clusterID, auxParams)
+		response, err := clientV2.GetClusterV4(clusterID, auxParams)
 		if err != nil {
 			errors.HandleCommonErrors(err)
 			client.HandleErrors(err)

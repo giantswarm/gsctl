@@ -48,7 +48,7 @@ Examples:
 )
 
 const (
-	showClusterActivityName = "show-cluster"
+	activityName = "show-cluster"
 )
 
 type showClusterArguments struct {
@@ -59,7 +59,7 @@ type showClusterArguments struct {
 	verbose     bool
 }
 
-func defaultShowClusterArguments() showClusterArguments {
+func defaultArguments() showClusterArguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
@@ -74,7 +74,7 @@ func defaultShowClusterArguments() showClusterArguments {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultShowClusterArguments()
+	args := defaultArguments()
 	err := verifyShowClusterPreconditions(args, cmdLineArgs)
 
 	if err == nil {
@@ -98,8 +98,8 @@ func verifyShowClusterPreconditions(args showClusterArguments, cmdLineArgs []str
 	return nil
 }
 
-// getClusterDetails returns details for one cluster.
-func getClusterDetails(clusterID, activityName string) (*models.V4ClusterDetailsResponse, error) {
+// getClusterDetailsV4 returns details for one cluster.
+func getClusterDetailsV4(clusterID string) (*models.V4ClusterDetailsResponse, error) {
 	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -109,7 +109,7 @@ func getClusterDetails(clusterID, activityName string) (*models.V4ClusterDetails
 	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientV2.GetCluster(clusterID, auxParams)
+	response, err := clientV2.GetClusterV4(clusterID, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			switch clientErr.HTTPStatusCode {
@@ -130,7 +130,39 @@ func getClusterDetails(clusterID, activityName string) (*models.V4ClusterDetails
 	return response.Payload, nil
 }
 
-func getOrgCredentials(orgName, credentialID, activityName string) (*models.V4GetCredentialResponse, error) {
+// getClusterDetailsV5 returns details for one cluster, supporting node pools.
+func getClusterDetailsV5(clusterID string) (*models.V5ClusterDetailsResponse, error) {
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	// perform API call
+	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = activityName
+
+	response, err := clientV2.GetClusterV5(clusterID, auxParams)
+	if err != nil {
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			switch clientErr.HTTPStatusCode {
+			case http.StatusForbidden:
+				return nil, microerror.Mask(errors.AccessForbiddenError)
+			case http.StatusUnauthorized:
+				return nil, microerror.Mask(errors.NotAuthorizedError)
+			case http.StatusNotFound:
+				return nil, microerror.Mask(errors.ClusterNotFoundError)
+			case http.StatusInternalServerError:
+				return nil, microerror.Mask(errors.InternalServerError)
+			}
+		}
+
+		return nil, microerror.Mask(err)
+	}
+
+	return response.Payload, nil
+}
+
+func getOrgCredentials(orgName, credentialID string) (*models.V4GetCredentialResponse, error) {
 	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -160,6 +192,74 @@ func getOrgCredentials(orgName, credentialID, activityName string) (*models.V4Ge
 	return response.Payload, nil
 }
 
+// getClusterDetails returns all cluster details that are of interest to this command.
+func getClusterDetails(args showClusterArguments) (
+	*models.V4ClusterDetailsResponse,
+	*models.V5ClusterDetailsResponse,
+	*client.ClusterStatus,
+	*models.V4GetCredentialResponse,
+	error) {
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	if err != nil {
+		fmt.Println(color.RedString(err.Error()))
+		os.Exit(1)
+	}
+
+	clusterDetailsV4Chan := make(chan *models.V4ClusterDetailsResponse)
+	clusterDetailsV4ErrChan := make(chan error)
+
+	go func(chan *models.V4ClusterDetailsResponse, chan error) {
+		clusterDetails, err := getClusterDetailsV4(args.clusterID)
+		clusterDetailsV4Chan <- clusterDetails
+		clusterDetailsV4ErrChan <- err
+	}(clusterDetailsV4Chan, clusterDetailsV4ErrChan)
+
+	clusterDetailsV5Chan := make(chan *models.V5ClusterDetailsResponse)
+	clusterDetailsV5ErrChan := make(chan error)
+
+	go func(chan *models.V5ClusterDetailsResponse, chan error) {
+		clusterDetails, err := getClusterDetailsV5(args.clusterID)
+		clusterDetailsV5Chan <- clusterDetails
+		clusterDetailsV5ErrChan <- err
+	}(clusterDetailsV5Chan, clusterDetailsV5ErrChan)
+
+	clusterStatusChan := make(chan *client.ClusterStatus)
+	clusterStatusErrChan := make(chan error)
+
+	go func(chan *client.ClusterStatus, chan error) {
+		auxParams := clientV2.DefaultAuxiliaryParams()
+		auxParams.ActivityName = activityName
+
+		status, err := clientV2.GetClusterStatus(args.clusterID, auxParams)
+		clusterStatusChan <- status
+		clusterStatusErrChan <- err
+	}(clusterStatusChan, clusterStatusErrChan)
+
+	clusterDetailsV4 := <-clusterDetailsV4Chan
+	clusterDetailsV4Err := <-clusterDetailsV4ErrChan
+	clusterDetailsV5 := <-clusterDetailsV5Chan
+	clusterDetailsV5Err := <-clusterDetailsV5ErrChan
+	clusterStatus := <-clusterStatusChan
+	clusterStatusErr := <-clusterStatusErrChan
+
+	// cluster could not be fetched via v4 nor v5
+	if clusterDetailsV4Err != nil && clusterDetailsV5Err != nil {
+		// we use the v4 err as a representative
+		return nil, nil, nil, nil, clusterDetailsV4Err
+	}
+
+	var credentialDetails *models.V4GetCredentialResponse
+	if clusterDetailsV4Err == nil && clusterDetailsV4.CredentialID != "" {
+		if args.verbose {
+			fmt.Println(color.WhiteString("Fetching details for credential %s", clusterDetailsV4.CredentialID))
+		}
+
+		credentialDetails, _ = getOrgCredentials(clusterDetailsV4.Owner, clusterDetailsV4.CredentialID)
+	}
+
+	return clusterDetailsV4, clusterDetailsV5, clusterStatus, credentialDetails, err
+}
+
 // sumWorkerCPUs adds up the worker's CPU cores
 func sumWorkerCPUs(numWorkers int, workerDetails []*models.V4ClusterDetailsResponseWorkersItems) uint {
 	sum := numWorkers * int(workerDetails[0].CPU.Cores)
@@ -181,82 +281,14 @@ func sumWorkerMemory(numWorkers int, workerDetails []*models.V4ClusterDetailsRes
 // printResult fetches cluster info from the API, which involves
 // several API calls, and prints the output.
 func printResult(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultShowClusterArguments()
+	args := defaultArguments()
 	args.clusterID = cmdLineArgs[0]
 
 	if args.verbose {
 		fmt.Println(color.WhiteString("Fetching details for cluster %s", args.clusterID))
 	}
 
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
-	if err != nil {
-		fmt.Println(color.RedString(err.Error()))
-		os.Exit(1)
-	}
-
-	clusterDetailsChan := make(chan *models.V4ClusterDetailsResponse)
-	clusterDetailsErrChan := make(chan error)
-
-	go func(chan *models.V4ClusterDetailsResponse, chan error) {
-		clusterDetails, err := getClusterDetails(args.clusterID, showClusterActivityName)
-		clusterDetailsChan <- clusterDetails
-		clusterDetailsErrChan <- err
-	}(clusterDetailsChan, clusterDetailsErrChan)
-
-	clusterStatusChan := make(chan *client.ClusterStatus)
-	clusterStatusErrChan := make(chan error)
-
-	go func(chan *client.ClusterStatus, chan error) {
-		auxParams := clientV2.DefaultAuxiliaryParams()
-		auxParams.ActivityName = showClusterActivityName
-
-		status, err := clientV2.GetClusterStatus(args.clusterID, auxParams)
-		clusterStatusChan <- status
-		clusterStatusErrChan <- err
-	}(clusterStatusChan, clusterStatusErrChan)
-
-	clusterDetails := <-clusterDetailsChan
-	clusterDetailsErr := <-clusterDetailsErrChan
-	clusterStatus := <-clusterStatusChan
-	clusterStatusErr := <-clusterStatusErrChan
-
-	if clusterDetailsErr != nil {
-		errors.HandleCommonErrors(clusterDetailsErr)
-		client.HandleErrors(clusterDetailsErr)
-
-		var headline = ""
-		var subtext = ""
-
-		switch {
-		case errors.IsClusterNotFoundError(clusterDetailsErr):
-			headline = "Cluster not found"
-			subtext = "The cluster with this ID could not be found. Please use 'gsctl list clusters' to list all available clusters."
-		case errors.IsCredentialNotFoundError(clusterDetailsErr):
-			headline = "Credential not found"
-			subtext = "Credentials with the given ID could not be found."
-		case clusterDetailsErr.Error() == "":
-			return
-		default:
-			headline = clusterDetailsErr.Error()
-		}
-
-		// Print error output
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
-		os.Exit(1)
-	}
-
-	var credentialDetails *models.V4GetCredentialResponse
-	//var credentialDetailsErr error
-	if clusterDetailsErr == nil && clusterDetails.CredentialID != "" {
-		if args.verbose {
-			fmt.Println(color.WhiteString("Fetching details for credential %s", clusterDetails.CredentialID))
-		}
-
-		credentialDetails, _ = getOrgCredentials(clusterDetails.Owner, clusterDetails.CredentialID, showClusterActivityName)
-	}
+	clusterDetailsV4, clusterDetailsV5, clusterStatus, credentialDetails, err := getClusterDetails(args)
 
 	// Calculate worker node count.
 	numWorkers := 0
@@ -279,17 +311,17 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	// print table
 	output := []string{}
 
-	created := util.ParseDate(clusterDetails.CreateDate)
+	created := util.ParseDate(clusterDetailsV4.CreateDate)
 
-	output = append(output, color.YellowString("ID:")+"|"+clusterDetails.ID)
+	output = append(output, color.YellowString("ID:")+"|"+clusterDetailsV4.ID)
 
-	if clusterDetails.Name != "" {
-		output = append(output, color.YellowString("Name:")+"|"+clusterDetails.Name)
+	if clusterDetailsV4.Name != "" {
+		output = append(output, color.YellowString("Name:")+"|"+clusterDetailsV4.Name)
 	} else {
 		output = append(output, color.YellowString("Name:")+"|n/a")
 	}
 	output = append(output, color.YellowString("Created:")+"|"+util.ShortDate(created))
-	output = append(output, color.YellowString("Organization:")+"|"+clusterDetails.Owner)
+	output = append(output, color.YellowString("Organization:")+"|"+clusterDetailsV4.Owner)
 
 	if credentialDetails != nil && credentialDetails.ID != "" {
 		if credentialDetails.Aws != nil {
@@ -305,54 +337,54 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 		}
 	}
 
-	output = append(output, color.YellowString("Kubernetes API endpoint:")+"|"+clusterDetails.APIEndpoint)
+	output = append(output, color.YellowString("Kubernetes API endpoint:")+"|"+clusterDetailsV4.APIEndpoint)
 
-	if len(clusterDetails.AvailabilityZones) > 0 {
-		sort.Strings(clusterDetails.AvailabilityZones)
-		output = append(output, color.YellowString("Availability Zones:")+"|"+strings.Join(clusterDetails.AvailabilityZones, ", "))
+	if len(clusterDetailsV4.AvailabilityZones) > 0 {
+		sort.Strings(clusterDetailsV4.AvailabilityZones)
+		output = append(output, color.YellowString("Availability Zones:")+"|"+strings.Join(clusterDetailsV4.AvailabilityZones, ", "))
 	}
 
-	if clusterDetails.ReleaseVersion != "" {
-		output = append(output, color.YellowString("Release version:")+"|"+clusterDetails.ReleaseVersion)
+	if clusterDetailsV4.ReleaseVersion != "" {
+		output = append(output, color.YellowString("Release version:")+"|"+clusterDetailsV4.ReleaseVersion)
 	} else {
 		output = append(output, color.YellowString("Release version:")+"|n/a")
 	}
 
 	// Instance type / VM size
-	if clusterDetails.Workers[0].Aws != nil && clusterDetails.Workers[0].Aws.InstanceType != "" {
-		output = append(output, color.YellowString("Worker EC2 instance type:")+"|"+clusterDetails.Workers[0].Aws.InstanceType)
-	} else if clusterDetails.Workers[0].Azure != nil && clusterDetails.Workers[0].Azure.VMSize != "" {
-		output = append(output, color.YellowString("Worker VM size:")+"|"+clusterDetails.Workers[0].Azure.VMSize)
+	if clusterDetailsV4.Workers[0].Aws != nil && clusterDetailsV4.Workers[0].Aws.InstanceType != "" {
+		output = append(output, color.YellowString("Worker EC2 instance type:")+"|"+clusterDetailsV4.Workers[0].Aws.InstanceType)
+	} else if clusterDetailsV4.Workers[0].Azure != nil && clusterDetailsV4.Workers[0].Azure.VMSize != "" {
+		output = append(output, color.YellowString("Worker VM size:")+"|"+clusterDetailsV4.Workers[0].Azure.VMSize)
 	}
 
 	// scaling info
 	scalingInfo := "n/a"
-	if clusterDetails.Scaling != nil {
-		if clusterDetails.Scaling.Min == clusterDetails.Scaling.Max {
-			scalingInfo = fmt.Sprintf("pinned at %d", clusterDetails.Scaling.Min)
+	if clusterDetailsV4.Scaling != nil {
+		if clusterDetailsV4.Scaling.Min == clusterDetailsV4.Scaling.Max {
+			scalingInfo = fmt.Sprintf("pinned at %d", clusterDetailsV4.Scaling.Min)
 		} else {
-			scalingInfo = fmt.Sprintf("autoscaling between %d and %d", clusterDetails.Scaling.Min, clusterDetails.Scaling.Max)
+			scalingInfo = fmt.Sprintf("autoscaling between %d and %d", clusterDetailsV4.Scaling.Min, clusterDetailsV4.Scaling.Max)
 		}
 	}
 	output = append(output, color.YellowString("Worker node scaling:")+"|"+scalingInfo)
 
 	// what the autoscaler tries to reach as a target (only interesting if not pinned)
-	if clusterStatus != nil && clusterStatus.Cluster != nil && clusterDetails.Scaling != nil && clusterDetails.Scaling.Min != clusterDetails.Scaling.Max {
+	if clusterStatus != nil && clusterStatus.Cluster != nil && clusterDetailsV4.Scaling != nil && clusterDetailsV4.Scaling.Min != clusterDetailsV4.Scaling.Max {
 		output = append(output, color.YellowString("Desired worker node count:")+"|"+fmt.Sprintf("%d", clusterStatus.Cluster.Scaling.DesiredCapacity))
 	}
 
 	// current number of workers
 	output = append(output, color.YellowString("Worker nodes running:")+"|"+fmt.Sprintf("%d", numWorkers))
 
-	output = append(output, color.YellowString("CPU cores in workers:")+"|"+fmt.Sprintf("%d", sumWorkerCPUs(numWorkers, clusterDetails.Workers)))
-	output = append(output, color.YellowString("RAM in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerMemory(numWorkers, clusterDetails.Workers)))
+	output = append(output, color.YellowString("CPU cores in workers:")+"|"+fmt.Sprintf("%d", sumWorkerCPUs(numWorkers, clusterDetailsV4.Workers)))
+	output = append(output, color.YellowString("RAM in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerMemory(numWorkers, clusterDetailsV4.Workers)))
 
-	if clusterDetails.Kvm != nil {
-		output = append(output, color.YellowString("Storage in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerStorage(numWorkers, clusterDetails.Workers)))
+	if clusterDetailsV4.Kvm != nil {
+		output = append(output, color.YellowString("Storage in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerStorage(numWorkers, clusterDetailsV4.Workers)))
 	}
 
-	if clusterDetails.Kvm != nil && len(clusterDetails.Kvm.PortMappings) > 0 {
-		for _, portMapping := range clusterDetails.Kvm.PortMappings {
+	if clusterDetailsV4.Kvm != nil && len(clusterDetailsV4.Kvm.PortMappings) > 0 {
+		for _, portMapping := range clusterDetailsV4.Kvm.PortMappings {
 			output = append(output, color.YellowString(fmt.Sprintf("Ingress port for %s:", portMapping.Protocol))+"|"+fmt.Sprintf("%d", portMapping.Port))
 		}
 	}
