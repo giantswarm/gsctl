@@ -18,7 +18,7 @@ type V4InfoResponseStatsClusterCreationDuration struct {
 	// Median of the value distribution
 	Median int64 `json:"median,omitempty"`
 
-	// 75th percentile of the value distribution
+	// 25th percentile of the value distribution
 	P25 int64 `json:"p25,omitempty"`
 
 	// 75th percentile of the value distribution

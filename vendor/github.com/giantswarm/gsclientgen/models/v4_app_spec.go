@@ -8,6 +8,7 @@ package models
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
 )
 
@@ -24,12 +25,42 @@ type V4AppSpec struct {
 	// Namespace that this app is installed to
 	Namespace string `json:"namespace,omitempty"`
 
+	// user config
+	UserConfig *V4AppSpecUserConfig `json:"user_config,omitempty"`
+
 	// Version of the chart that was used to install this app
 	Version string `json:"version,omitempty"`
 }
 
 // Validate validates this v4 app spec
 func (m *V4AppSpec) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateUserConfig(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *V4AppSpec) validateUserConfig(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.UserConfig) { // not required
+		return nil
+	}
+
+	if m.UserConfig != nil {
+		if err := m.UserConfig.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("user_config")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 

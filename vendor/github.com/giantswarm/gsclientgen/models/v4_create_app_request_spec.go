@@ -29,6 +29,9 @@ type V4CreateAppRequestSpec struct {
 	// Required: true
 	Namespace *string `json:"namespace"`
 
+	// user config
+	UserConfig *V4CreateAppRequestSpecUserConfig `json:"user_config,omitempty"`
+
 	// Version of the chart that should be used to install this app
 	// Required: true
 	Version *string `json:"version"`
@@ -47,6 +50,10 @@ func (m *V4CreateAppRequestSpec) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateNamespace(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateUserConfig(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -82,6 +89,24 @@ func (m *V4CreateAppRequestSpec) validateNamespace(formats strfmt.Registry) erro
 
 	if err := validate.Required("namespace", "body", m.Namespace); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *V4CreateAppRequestSpec) validateUserConfig(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.UserConfig) { // not required
+		return nil
+	}
+
+	if m.UserConfig != nil {
+		if err := m.UserConfig.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("user_config")
+			}
+			return err
+		}
 	}
 
 	return nil

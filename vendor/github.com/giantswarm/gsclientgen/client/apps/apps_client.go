@@ -47,7 +47,13 @@ and check the status field of the app.
       "catalog": "sample-catalog",
       "name": "prometheus-chart",
       "namespace": "prometheus",
-      "version": "0.2.0"
+      "version": "0.2.0",
+      "user_config": {
+        "configmap": {
+          "name": "prometheus-user-values",
+          "namespace": "123ab"
+        }
+      }
     }
   }
 ```
@@ -80,6 +86,54 @@ func (a *Client) CreateClusterApp(params *CreateClusterAppParams, authInfo runti
 }
 
 /*
+CreateClusterAppConfig creates app config
+
+This operation allows you to create a values configmap for a specific app. The app does
+not have to exist before hand.
+
+
+### Example POST request
+```json
+  {
+    "agent": {
+      "key": "secret-key-here",
+      "endpointHost": "saas-eu-west-1.instana.io",
+      "endpointPort": "443",
+    },
+    "zone": {
+      "name": "giantswarm-cluster"
+    }
+  }
+```
+
+*/
+func (a *Client) CreateClusterAppConfig(params *CreateClusterAppConfigParams, authInfo runtime.ClientAuthInfoWriter) (*CreateClusterAppConfigOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCreateClusterAppConfigParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "createClusterAppConfig",
+		Method:             "PUT",
+		PathPattern:        "/v4/clusters/{cluster_id}/apps/{app_name}/config/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &CreateClusterAppConfigReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CreateClusterAppConfigOK), nil
+
+}
+
+/*
 DeleteClusterApp deletes an app
 
 This operation allows a user to delete an app.
@@ -108,6 +162,46 @@ func (a *Client) DeleteClusterApp(params *DeleteClusterAppParams, authInfo runti
 		return nil, err
 	}
 	return result.(*DeleteClusterAppOK), nil
+
+}
+
+/*
+DeleteClusterAppConfig deletes an app config
+
+This operation allows a user to delete an app's user config if it has been named according to the convention of {app-name}-user-values and
+stored in the cluster ID namespace.
+
+Calling this endpoint will delete the ConfigMap, but it does not remove the reference to the ConfigMap in the (spec.user_config.configmap field) from the app.
+
+Do make sure you also update the app and remove the reference.
+
+The preferred order is to first remove the reference to the configmap by
+updating the app, and only then delete the configmap using this endpoint.
+
+*/
+func (a *Client) DeleteClusterAppConfig(params *DeleteClusterAppConfigParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteClusterAppConfigOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewDeleteClusterAppConfigParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "deleteClusterAppConfig",
+		Method:             "DELETE",
+		PathPattern:        "/v4/clusters/{cluster_id}/apps/{app_name}/config/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &DeleteClusterAppConfigReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DeleteClusterAppConfigOK), nil
 
 }
 
@@ -168,6 +262,39 @@ func (a *Client) GetAppCatalogs(params *GetAppCatalogsParams, authInfo runtime.C
 }
 
 /*
+GetClusterAppConfig gets app config
+
+This operation allows you to fetch the user values configmap associated
+with an app.
+
+*/
+func (a *Client) GetClusterAppConfig(params *GetClusterAppConfigParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterAppConfigOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetClusterAppConfigParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "getClusterAppConfig",
+		Method:             "GET",
+		PathPattern:        "/v4/clusters/{cluster_id}/apps/{app_name}/config/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &GetClusterAppConfigReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetClusterAppConfigOK), nil
+
+}
+
+/*
 GetClusterApps gets cluster apps
 
 Returns an array of apps installed on a given cluster.
@@ -184,7 +311,13 @@ Returns an array of apps installed on a given cluster.
         "catalog": "sample-catalog"
         "name": "prometheus-chart",
         "namespace": "giantswarm",
-        "version": "0.2.0"
+        "version": "0.2.0",
+        "user_config": {
+          "configmap": {
+            "name": "prometheus-user-values",
+            "namespace": "123ab"
+          }
+        }
       },
 
       "status": {

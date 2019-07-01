@@ -357,7 +357,7 @@ func createKubeconfig(ctx context.Context, args createKubeconfigArguments) (crea
 	auxParams.ActivityName = createKubeconfigActivityName
 
 	// get cluster details
-	clusterDetailsResponse, err := clientV2.GetCluster(args.clusterID, auxParams)
+	clusterDetailsResponse, err := clientV2.GetClusterV4(args.clusterID, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			return result, microerror.Maskf(clientErr,

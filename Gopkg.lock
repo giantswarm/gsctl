@@ -86,7 +86,7 @@
 
 [[projects]]
   branch = "node-pools"
-  digest = "1:2519f10a89177cff2ef1b995ef6520e6d344414d828418e201bb138916fb0033"
+  digest = "1:50a61027760cb46f86154e0d58c827c2547c910ab9a8f951db5c58cb297cfb2c"
   name = "github.com/giantswarm/gsclientgen"
   packages = [
     "client",
@@ -102,7 +102,7 @@
     "models",
   ]
   pruneopts = "NUT"
-  revision = "45b165d31b14c13e72bf9fe1c4c57265413b3e25"
+  revision = "2ce3a7e59dafaaac749a4ccdd63f665346516db8"
 
 [[projects]]
   branch = "master"
