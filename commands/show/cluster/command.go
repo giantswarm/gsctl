@@ -192,72 +192,114 @@ func getOrgCredentials(orgName, credentialID string) (*models.V4GetCredentialRes
 	return response.Payload, nil
 }
 
-// getClusterDetails returns all cluster details that are of interest to this command.
+// getClusterDetails returns all cluster details that are of interest
+// in the context of this command:
+//
+// - cluster details (v4 or v5)
+// - cluster status (v4 only)
+// - credential details, in case this is a BYOC cluster
 func getClusterDetails(args showClusterArguments) (
 	*models.V4ClusterDetailsResponse,
 	*models.V5ClusterDetailsResponse,
 	*client.ClusterStatus,
 	*models.V4GetCredentialResponse,
 	error) {
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
-	if err != nil {
-		fmt.Println(color.RedString(err.Error()))
-		os.Exit(1)
+
+	var clusterDetailsV4 *models.V4ClusterDetailsResponse
+	var clusterDetailsV5 *models.V5ClusterDetailsResponse
+	var clusterStatus *client.ClusterStatus
+
+	// first try v5
+	if args.verbose {
+		fmt.Println(color.WhiteString("Fetching details for cluster via v5 API endpoint"))
 	}
+	clusterDetailsV5, v5Err := getClusterDetailsV5(args.clusterID)
+	if v5Err != nil {
+		// TODO: If this is a 404 error, continue with v4 fallback below.
+		// Otherwise return error.
+		if convertedErr, ok := v5Err.(*clienterror.APIError); ok {
+			fmt.Printf("DEBUG: V5 cluster details throws error %#v\n", convertedErr)
+			if convertedErr.HTTPStatusCode != http.StatusNotFound {
+				return nil, nil, nil, nil, microerror.Mask(convertedErr)
+			}
+		} else {
+			return nil, nil, nil, nil, microerror.Mask(v5Err)
+		}
 
-	clusterDetailsV4Chan := make(chan *models.V4ClusterDetailsResponse)
-	clusterDetailsV4ErrChan := make(chan error)
+		// Fall back to v4.
+		if args.verbose {
+			fmt.Println(color.WhiteString("Fetching details for cluster via v4 API endpoint"))
+		}
 
-	go func(chan *models.V4ClusterDetailsResponse, chan error) {
-		clusterDetails, err := getClusterDetailsV4(args.clusterID)
-		clusterDetailsV4Chan <- clusterDetails
-		clusterDetailsV4ErrChan <- err
-	}(clusterDetailsV4Chan, clusterDetailsV4ErrChan)
+		var clusterDetailsV4Err error
+		clusterDetailsV4, clusterDetailsV4Err = getClusterDetailsV4(args.clusterID)
+		if clusterDetailsV4Err != nil {
+			// At this point, every error is a sign of something unexpected, so
+			// simply return.
+			return nil, nil, nil, nil, microerror.Mask(clusterDetailsV4Err)
+		}
 
-	clusterDetailsV5Chan := make(chan *models.V5ClusterDetailsResponse)
-	clusterDetailsV5ErrChan := make(chan error)
+		clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+		if err != nil {
+			return nil, nil, nil, nil, microerror.Mask(err)
+		}
 
-	go func(chan *models.V5ClusterDetailsResponse, chan error) {
-		clusterDetails, err := getClusterDetailsV5(args.clusterID)
-		clusterDetailsV5Chan <- clusterDetails
-		clusterDetailsV5ErrChan <- err
-	}(clusterDetailsV5Chan, clusterDetailsV5ErrChan)
-
-	clusterStatusChan := make(chan *client.ClusterStatus)
-	clusterStatusErrChan := make(chan error)
-
-	go func(chan *client.ClusterStatus, chan error) {
+		if args.verbose {
+			fmt.Println(color.WhiteString("Fetching status for v4 cluster"))
+		}
 		auxParams := clientV2.DefaultAuxiliaryParams()
 		auxParams.ActivityName = activityName
-
-		status, err := clientV2.GetClusterStatus(args.clusterID, auxParams)
-		clusterStatusChan <- status
-		clusterStatusErrChan <- err
-	}(clusterStatusChan, clusterStatusErrChan)
-
-	clusterDetailsV4 := <-clusterDetailsV4Chan
-	clusterDetailsV4Err := <-clusterDetailsV4ErrChan
-	clusterDetailsV5 := <-clusterDetailsV5Chan
-	clusterDetailsV5Err := <-clusterDetailsV5ErrChan
-	clusterStatus := <-clusterStatusChan
-	clusterStatusErr := <-clusterStatusErrChan
-
-	// cluster could not be fetched via v4 nor v5
-	if clusterDetailsV4Err != nil && clusterDetailsV5Err != nil {
-		// we use the v4 err as a representative
-		return nil, nil, nil, nil, clusterDetailsV4Err
+		var clusterStatusErr error
+		clusterStatus, clusterStatusErr = clientV2.GetClusterStatus(args.clusterID, auxParams)
+		if clusterStatusErr != nil {
+			// Return an error if it is something else than 404 Not Found,
+			// as 404s are expected during cluster creation.
+			if convertedErr, ok := clusterStatusErr.(*clienterror.APIError); ok {
+				if convertedErr.HTTPStatusCode != http.StatusNotFound {
+					return nil, nil, nil, nil, microerror.Mask(convertedErr)
+				}
+			} else {
+				// non-HTTP error, e. g. JSON Marshalling of response
+				return nil, nil, nil, nil, microerror.Mask(clusterStatusErr)
+			}
+		}
 	}
 
 	var credentialDetails *models.V4GetCredentialResponse
-	if clusterDetailsV4Err == nil && clusterDetailsV4.CredentialID != "" {
-		if args.verbose {
-			fmt.Println(color.WhiteString("Fetching details for credential %s", clusterDetailsV4.CredentialID))
+	{
+		credentialID := ""
+		clusterOwner := ""
+		var created time.Time
+
+		if clusterDetailsV4 != nil {
+			credentialID = clusterDetailsV4.CredentialID
+			clusterOwner = clusterDetailsV4.Owner
+			created = util.ParseDate(clusterDetailsV4.CreateDate)
+		} else if clusterDetailsV5 != nil {
+			credentialID = clusterDetailsV5.CredentialID
+			clusterOwner = clusterDetailsV5.Owner
+			created = util.ParseDate(clusterDetailsV5.CreateDate)
 		}
 
-		credentialDetails, _ = getOrgCredentials(clusterDetailsV4.Owner, clusterDetailsV4.CredentialID)
+		if credentialID != "" {
+			if args.verbose {
+				fmt.Println(color.WhiteString("Fetching credential details for organization %s", clusterOwner))
+			}
+
+			var credentialDetailsErr error
+			credentialDetails, credentialDetailsErr = getOrgCredentials(clusterOwner, credentialID)
+			if credentialDetailsErr != nil {
+				if time.Since(created) < clusterCreationExpectedDuration {
+					fmt.Println("This is expected for clusters which are most likely still in creation.")
+				}
+				// Print any error occurring here, but don't return, as this is non-critical.
+				fmt.Printf(color.YellowString("Warning: credential details for org %s (credential ID %s) could not be fetched.\n", clusterOwner, credentialID))
+				fmt.Printf("Error details: %s\n", credentialDetailsErr)
+			}
+		}
 	}
 
-	return clusterDetailsV4, clusterDetailsV5, clusterStatus, credentialDetails, err
+	return clusterDetailsV4, clusterDetailsV5, clusterStatus, credentialDetails, nil
 }
 
 // sumWorkerCPUs adds up the worker's CPU cores
@@ -288,7 +330,10 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println(color.WhiteString("Fetching details for cluster %s", args.clusterID))
 	}
 
-	clusterDetailsV4, clusterDetailsV5, clusterStatus, credentialDetails, err := getClusterDetails(args)
+	clusterDetailsV4, _, clusterStatus, credentialDetails, err := getClusterDetails(args)
+	if err != nil {
+		errors.HandleCommonErrors(err)
+	}
 
 	// Calculate worker node count.
 	numWorkers := 0
@@ -390,14 +435,4 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	fmt.Println(columnize.SimpleFormat(output))
-
-	// Here we inform about problems fetching the cluster status, which happens regularly for new clusters
-	// and isn't a problem.
-	if clusterStatusErr != nil {
-		fmt.Println("\nInfo: Could not fetch cluster status, so the worker node count displayed might derive from the actual number.")
-
-		if time.Since(created) < clusterCreationExpectedDuration {
-			fmt.Println("This is expected for clusters which are most likely still in creation.")
-		}
-	}
 }

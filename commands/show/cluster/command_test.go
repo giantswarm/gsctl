@@ -14,27 +14,37 @@ import (
 	"github.com/giantswarm/gsctl/testutils"
 )
 
-// TestShowAWSCluster tests fetching cluster details for AWS
-func TestShowAWSCluster(t *testing.T) {
+// TestShowAWSCluster tests fetching V4 cluster details for AWS,
+// for a cluster that does not have BYOC credentials and no status yet.
+func TestShowAWSClusterV4(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
 		if r.Method == "GET" {
-			w.Write([]byte(`{
-				"id": "cluster-id",
-				"name": "Name of the cluster",
-				"api_endpoint": "https://api.foo.bar",
-				"create_date": "2017-11-20T12:00:00.000000Z",
-				"owner": "acmeorg",
-				"release_version": "0.3.0",
-				"scaling": {"min": 3, "max": 3},
-				"credential_id": "",
-				"workers": [
-					{"aws": {"instance_type": "m3.large"}, "memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
-					{"aws": {"instance_type": "m3.large"}, "memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
-					{"aws": {"instance_type": "m3.large"}, "memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}}
-				]
-			}`))
+			switch uri := r.URL.Path; uri {
+			case "/v4/clusters/cluster-id/":
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{
+					"id": "cluster-id",
+					"name": "Name of the cluster",
+					"api_endpoint": "https://api.foo.bar",
+					"create_date": "2017-11-20T12:00:00.000000Z",
+					"owner": "acmeorg",
+					"release_version": "0.3.0",
+					"scaling": {"min": 3, "max": 3},
+					"credential_id": "",
+					"workers": [
+						{"aws": {"instance_type": "m3.large"}, "memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
+						{"aws": {"instance_type": "m3.large"}, "memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}},
+						{"aws": {"instance_type": "m3.large"}, "memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}}
+					]
+				}`))
+			case "/v4/clusters/cluster-id/status/":
+				// simulating the case where cluster status is not yet available,
+				// to keep it simple here
+				w.WriteHeader(http.StatusNotFound)
+			case "/v5/clusters/cluster-id/":
+				w.WriteHeader(http.StatusNotFound)
+			}
 		}
 	}))
 	defer mockServer.Close()
@@ -55,16 +65,32 @@ func TestShowAWSCluster(t *testing.T) {
 
 	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
-		t.Error(err)
+		t.Errorf("Unexpected error: %s", err)
 	}
 
-	details, showErr := getClusterDetailsV4(testArgs.clusterID, showClusterActivityName)
-	if showErr != nil {
-		t.Error(showErr)
+	detailsV4, detailsV5, status, credentials, err := getClusterDetails(testArgs)
+	if err != nil {
+		t.Fatalf("Unexpected error: %s", err)
 	}
 
-	if details.ID != testArgs.clusterID {
-		t.Errorf("Expected cluster ID '%s', got '%s'", testArgs.clusterID, details.ID)
+	if detailsV5 != nil {
+		t.Errorf("Expected detailsV5 to be nil, got %#v", detailsV5)
+	}
+
+	if status != nil {
+		t.Errorf("Expected status to be nil, got %v", status)
+	}
+
+	if credentials != nil {
+		t.Errorf("Expected credentials to be nil, got %v", credentials)
+	}
+
+	if detailsV4 == nil {
+		t.Fatal("Expected V4 cluster details, got nil")
+	}
+
+	if detailsV4.ID != testArgs.clusterID {
+		t.Errorf("Expected cluster ID '%s', got '%s'", testArgs.clusterID, detailsV4.ID)
 	}
 
 }
@@ -102,7 +128,7 @@ func TestShowClusterNotAuthorized(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = getClusterDetailsV4(testArgs.clusterID, showClusterActivityName)
+	_, err = getClusterDetailsV4(testArgs.clusterID)
 
 	if err == nil {
 		t.Fatal("Expected NotAuthorizedError, got nil")
@@ -146,7 +172,7 @@ func TestShowClusterNotFound(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = getClusterDetailsV4(testArgs.clusterID, showClusterActivityName)
+	_, err = getClusterDetailsV4(testArgs.clusterID)
 
 	if err == nil {
 		t.Fatal("Expected ClusterNotFoundError, got nil")
@@ -190,7 +216,7 @@ func TestShowClusterInternalServerError(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = getClusterDetailsV4(testArgs.clusterID, showClusterActivityName)
+	_, err = getClusterDetailsV4(testArgs.clusterID)
 
 	if err == nil {
 		t.Fatal("Expected InternalServerError, got nil")
@@ -326,7 +352,7 @@ func TestShowAWSBYOCCluster(t *testing.T) {
 		t.Error(err)
 	}
 
-	details, showErr := getClusterDetailsV4(testArgs.clusterID, showClusterActivityName)
+	details, showErr := getClusterDetailsV4(testArgs.clusterID)
 	if showErr != nil {
 		t.Error(showErr)
 	}
@@ -335,7 +361,7 @@ func TestShowAWSBYOCCluster(t *testing.T) {
 		t.Errorf("Expected cluster ID '%s', got '%s'", testArgs.clusterID, details.ID)
 	}
 
-	credentialDetails, err := getOrgCredentials(details.Owner, details.CredentialID, showClusterActivityName)
+	credentialDetails, err := getOrgCredentials(details.Owner, details.CredentialID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -400,7 +426,7 @@ func TestV5(t *testing.T) {
 		t.Error(err)
 	}
 
-	details, showErr := getClusterDetailsV5(testArgs.clusterID, showClusterActivityName)
+	details, showErr := getClusterDetailsV5(testArgs.clusterID)
 	if showErr != nil {
 		t.Error(showErr)
 	}

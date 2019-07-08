@@ -39,8 +39,29 @@ func (o *GetClusterV5Reader) ReadResponse(response runtime.ClientResponse, consu
 		}
 		return nil, result
 
+	case 401:
+		result := NewGetClusterV5Unauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
+	case 404:
+		result := NewGetClusterV5NotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewGetClusterV5Default(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -98,6 +119,102 @@ func (o *GetClusterV5MovedPermanently) readResponse(response runtime.ClientRespo
 
 	// response header Location
 	o.Location = response.GetHeader("Location")
+
+	return nil
+}
+
+// NewGetClusterV5Unauthorized creates a GetClusterV5Unauthorized with default headers values
+func NewGetClusterV5Unauthorized() *GetClusterV5Unauthorized {
+	return &GetClusterV5Unauthorized{}
+}
+
+/*GetClusterV5Unauthorized handles this case with default header values.
+
+Permission denied
+*/
+type GetClusterV5Unauthorized struct {
+	Payload *models.V4GenericResponse
+}
+
+func (o *GetClusterV5Unauthorized) Error() string {
+	return fmt.Sprintf("[GET /v5/clusters/{cluster_id}/][%d] getClusterV5Unauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetClusterV5Unauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.V4GenericResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetClusterV5NotFound creates a GetClusterV5NotFound with default headers values
+func NewGetClusterV5NotFound() *GetClusterV5NotFound {
+	return &GetClusterV5NotFound{}
+}
+
+/*GetClusterV5NotFound handles this case with default header values.
+
+Cluster not found
+*/
+type GetClusterV5NotFound struct {
+	Payload *models.V4GenericResponse
+}
+
+func (o *GetClusterV5NotFound) Error() string {
+	return fmt.Sprintf("[GET /v5/clusters/{cluster_id}/][%d] getClusterV5NotFound  %+v", 404, o.Payload)
+}
+
+func (o *GetClusterV5NotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.V4GenericResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetClusterV5Default creates a GetClusterV5Default with default headers values
+func NewGetClusterV5Default(code int) *GetClusterV5Default {
+	return &GetClusterV5Default{
+		_statusCode: code,
+	}
+}
+
+/*GetClusterV5Default handles this case with default header values.
+
+error
+*/
+type GetClusterV5Default struct {
+	_statusCode int
+
+	Payload *models.V4GenericResponse
+}
+
+// Code gets the status code for the get cluster v5 default response
+func (o *GetClusterV5Default) Code() int {
+	return o._statusCode
+}
+
+func (o *GetClusterV5Default) Error() string {
+	return fmt.Sprintf("[GET /v5/clusters/{cluster_id}/][%d] getClusterV5 default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *GetClusterV5Default) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.V4GenericResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

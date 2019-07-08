@@ -197,7 +197,7 @@ func New(err error) *APIError {
 		}
 	}
 
-	// get cluster
+	// get cluster V4
 	if getClusterUnauthorizedErr, ok := err.(*clusters.GetClusterUnauthorized); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
@@ -215,6 +215,31 @@ func New(err error) *APIError {
 		}
 	}
 	if getClusterDefaultErr, ok := err.(*clusters.GetClusterDefault); ok {
+		return &APIError{
+			HTTPStatusCode: getClusterDefaultErr.Code(),
+			OriginalError:  getClusterDefaultErr,
+			ErrorMessage:   getClusterDefaultErr.Error(),
+		}
+	}
+
+	// get cluster V5
+	if getClusterUnauthorizedErr, ok := err.(*clusters.GetClusterV5Unauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  getClusterUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to access this cluster's details.",
+		}
+	}
+	if getClusterNotFoundErr, ok := err.(*clusters.GetClusterV5NotFound); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusNotFound,
+			OriginalError:  getClusterNotFoundErr,
+			ErrorMessage:   "Cluster not found",
+			ErrorDetails:   "The cluster with the given ID does not exist.",
+		}
+	}
+	if getClusterDefaultErr, ok := err.(*clusters.GetClusterV5Default); ok {
 		return &APIError{
 			HTTPStatusCode: getClusterDefaultErr.Code(),
 			OriginalError:  getClusterDefaultErr,
