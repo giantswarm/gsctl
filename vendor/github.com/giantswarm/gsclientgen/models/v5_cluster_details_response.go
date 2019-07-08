@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"strconv"
+
 	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/go-openapi/errors"
@@ -18,6 +20,9 @@ type V5ClusterDetailsResponse struct {
 
 	// URI of the Kubernetes API endpoint
 	APIEndpoint string `json:"api_endpoint,omitempty"`
+
+	// List of conditions the cluster has gone through
+	Conditions []*V5ClusterDetailsResponseConditionsItems `json:"conditions"`
 
 	// Date/time of cluster creation
 	CreateDate string `json:"create_date,omitempty"`
@@ -44,19 +49,55 @@ type V5ClusterDetailsResponse struct {
 	// used by the cluster
 	//
 	ReleaseVersion string `json:"release_version,omitempty"`
+
+	// versions
+	Versions []*V5ClusterDetailsResponseVersionsItems `json:"versions"`
 }
 
 // Validate validates this v5 cluster details response
 func (m *V5ClusterDetailsResponse) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateConditions(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateMaster(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateVersions(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *V5ClusterDetailsResponse) validateConditions(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Conditions) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Conditions); i++ {
+		if swag.IsZero(m.Conditions[i]) { // not required
+			continue
+		}
+
+		if m.Conditions[i] != nil {
+			if err := m.Conditions[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("conditions" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 
@@ -73,6 +114,31 @@ func (m *V5ClusterDetailsResponse) validateMaster(formats strfmt.Registry) error
 			}
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *V5ClusterDetailsResponse) validateVersions(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Versions) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Versions); i++ {
+		if swag.IsZero(m.Versions[i]) { // not required
+			continue
+		}
+
+		if m.Versions[i] != nil {
+			if err := m.Versions[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("versions" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil

@@ -11,9 +11,9 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// V5GetClusterStatusResponseConditionsItems v5 get cluster status response conditions items
-// swagger:model v5GetClusterStatusResponseConditionsItems
-type V5GetClusterStatusResponseConditionsItems struct {
+// V5ClusterDetailsResponseConditionsItems v5 cluster details response conditions items
+// swagger:model v5ClusterDetailsResponseConditionsItems
+type V5ClusterDetailsResponseConditionsItems struct {
 
 	// A string describing the condition, e. g. 'Created'
 	Condition string `json:"condition,omitempty"`
@@ -22,13 +22,13 @@ type V5GetClusterStatusResponseConditionsItems struct {
 	LastTransitionTime string `json:"last_transition_time,omitempty"`
 }
 
-// Validate validates this v5 get cluster status response conditions items
-func (m *V5GetClusterStatusResponseConditionsItems) Validate(formats strfmt.Registry) error {
+// Validate validates this v5 cluster details response conditions items
+func (m *V5ClusterDetailsResponseConditionsItems) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *V5GetClusterStatusResponseConditionsItems) MarshalBinary() ([]byte, error) {
+func (m *V5ClusterDetailsResponseConditionsItems) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -36,8 +36,8 @@ func (m *V5GetClusterStatusResponseConditionsItems) MarshalBinary() ([]byte, err
 }
 
 // UnmarshalBinary interface implementation
-func (m *V5GetClusterStatusResponseConditionsItems) UnmarshalBinary(b []byte) error {
-	var res V5GetClusterStatusResponseConditionsItems
+func (m *V5ClusterDetailsResponseConditionsItems) UnmarshalBinary(b []byte) error {
+	var res V5ClusterDetailsResponseConditionsItems
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

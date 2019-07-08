@@ -31,6 +31,9 @@ type V5GetNodePoolResponse struct {
 
 	// scaling
 	Scaling *V5GetNodePoolResponseScaling `json:"scaling,omitempty"`
+
+	// IP address block used by the node pool
+	Subnet string `json:"subnet,omitempty"`
 }
 
 // Validate validates this v5 get node pool response

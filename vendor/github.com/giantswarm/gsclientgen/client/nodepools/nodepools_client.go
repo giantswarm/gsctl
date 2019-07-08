@@ -152,50 +152,6 @@ func (a *Client) GetNodePool(params *GetNodePoolParams, authInfo runtime.ClientA
 }
 
 /*
-GetNodePoolStatus gets node pool status
-
-Returns information on a node pool and the nodes in it.
-
-__Providers__:
-<span class="badge aws">AWS</span>
-&ndash; Only supports release `TODO` and higher on AWS.
-
-This endpoint exposes the status content of the Kubernetes resources representing
-a node pool in the corresponding custom resource. That is, depending on the provider:
-
-TODO: link to resources, as we do in `getClusterStatus`
-
-Note that structure and style differ from the rest of the v4 API. Also note that
-the structure depends on the release version and changes can be expected frequently.
-
-*/
-func (a *Client) GetNodePoolStatus(params *GetNodePoolStatusParams, authInfo runtime.ClientAuthInfoWriter) (*GetNodePoolStatusOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetNodePoolStatusParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "getNodePoolStatus",
-		Method:             "GET",
-		PathPattern:        "/v5/clusters/{cluster_id}/nodepools/{nodepool_id}/status/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"https"},
-		Params:             params,
-		Reader:             &GetNodePoolStatusReader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetNodePoolStatusOK), nil
-
-}
-
-/*
 GetNodePools gets node pools
 
 Returns a list of node pools from a given cluster.

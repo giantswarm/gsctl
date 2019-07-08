@@ -270,55 +270,6 @@ func (a *Client) GetClusterStatus(params *GetClusterStatusParams, authInfo runti
 }
 
 /*
-GetClusterStatusV5 gets cluster status
-
-Returns an object about a cluster's current state and past status transitions.
-
-__Providers__:
-<span class="badge aws">AWS</span>
-&ndash; Only supports release `TODO` and higher on AWS.
-
-This endpoint exposes the status content of the Kubernetes resources representing
-a cluster in the corresponding custom resource:
-
-[`awsconfig.provider.giantswarm.io`](https://godoc.org/github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1#AWSConfig)
-
-Note that structure and style differ from the rest of the v5 API. Also note that
-the structure depends on the release version and changes can be expected frequently.
-
-## TODO
-
-- Adapt the link above, as the current one is not correct
-- Give response 200 example
-
-*/
-func (a *Client) GetClusterStatusV5(params *GetClusterStatusV5Params, authInfo runtime.ClientAuthInfoWriter) (*GetClusterStatusV5OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetClusterStatusV5Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "getClusterStatusV5",
-		Method:             "GET",
-		PathPattern:        "/v5/clusters/{cluster_id}/status/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"https"},
-		Params:             params,
-		Reader:             &GetClusterStatusV5Reader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetClusterStatusV5OK), nil
-
-}
-
-/*
 GetClusterV5 gets cluster details v5
 
 Allows to retrieve cluster details on AWS installations.

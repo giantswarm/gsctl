@@ -11,9 +11,9 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// V5GetClusterStatusResponseVersionsItems v5 get cluster status response versions items
-// swagger:model v5GetClusterStatusResponseVersionsItems
-type V5GetClusterStatusResponseVersionsItems struct {
+// V5ClusterDetailsResponseVersionsItems v5 cluster details response versions items
+// swagger:model v5ClusterDetailsResponseVersionsItems
+type V5ClusterDetailsResponseVersionsItems struct {
 
 	// Date and time when the cluster got created with or upgrated to this version
 	LastTransitionTime string `json:"last_transition_time,omitempty"`
@@ -22,13 +22,13 @@ type V5GetClusterStatusResponseVersionsItems struct {
 	Version string `json:"version,omitempty"`
 }
 
-// Validate validates this v5 get cluster status response versions items
-func (m *V5GetClusterStatusResponseVersionsItems) Validate(formats strfmt.Registry) error {
+// Validate validates this v5 cluster details response versions items
+func (m *V5ClusterDetailsResponseVersionsItems) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *V5GetClusterStatusResponseVersionsItems) MarshalBinary() ([]byte, error) {
+func (m *V5ClusterDetailsResponseVersionsItems) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -36,8 +36,8 @@ func (m *V5GetClusterStatusResponseVersionsItems) MarshalBinary() ([]byte, error
 }
 
 // UnmarshalBinary interface implementation
-func (m *V5GetClusterStatusResponseVersionsItems) UnmarshalBinary(b []byte) error {
-	var res V5GetClusterStatusResponseVersionsItems
+func (m *V5ClusterDetailsResponseVersionsItems) UnmarshalBinary(b []byte) error {
+	var res V5ClusterDetailsResponseVersionsItems
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}
