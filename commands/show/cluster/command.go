@@ -215,14 +215,9 @@ func getClusterDetails(args showClusterArguments) (
 	}
 	clusterDetailsV5, v5Err := getClusterDetailsV5(args.clusterID)
 	if v5Err != nil {
-		// TODO: If this is a 404 error, continue with v4 fallback below.
+		// If this is a 404 error, continue with v4 fallback below.
 		// Otherwise return error.
-		if convertedErr, ok := v5Err.(*clienterror.APIError); ok {
-			fmt.Printf("DEBUG: V5 cluster details throws error %#v\n", convertedErr)
-			if convertedErr.HTTPStatusCode != http.StatusNotFound {
-				return nil, nil, nil, nil, microerror.Mask(convertedErr)
-			}
-		} else {
+		if !errors.IsClusterNotFoundError(v5Err) {
 			return nil, nil, nil, nil, microerror.Mask(v5Err)
 		}
 
@@ -254,12 +249,7 @@ func getClusterDetails(args showClusterArguments) (
 		if clusterStatusErr != nil {
 			// Return an error if it is something else than 404 Not Found,
 			// as 404s are expected during cluster creation.
-			if convertedErr, ok := clusterStatusErr.(*clienterror.APIError); ok {
-				if convertedErr.HTTPStatusCode != http.StatusNotFound {
-					return nil, nil, nil, nil, microerror.Mask(convertedErr)
-				}
-			} else {
-				// non-HTTP error, e. g. JSON Marshalling of response
+			if !errors.IsClusterNotFoundError(clusterStatusErr) {
 				return nil, nil, nil, nil, microerror.Mask(clusterStatusErr)
 			}
 		}

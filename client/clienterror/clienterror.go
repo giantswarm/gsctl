@@ -222,6 +222,15 @@ func New(err error) *APIError {
 		}
 	}
 
+	// get v4 cluster status
+	if getClusterStatusDefaultErr, ok := err.(*clusters.GetClusterStatusDefault); ok {
+		return &APIError{
+			HTTPStatusCode: getClusterStatusDefaultErr.Code(),
+			OriginalError:  getClusterStatusDefaultErr,
+			ErrorMessage:   getClusterStatusDefaultErr.Error(),
+		}
+	}
+
 	// get cluster V5
 	if getClusterUnauthorizedErr, ok := err.(*clusters.GetClusterV5Unauthorized); ok {
 		return &APIError{
