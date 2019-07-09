@@ -37,6 +37,7 @@ func init() {
 	RootCommand.PersistentFlags().BoolVarP(&flags.CmdVerbose, "verbose", "v", false, "Print more information")
 
 	// add subcommands
+	RootCommand.AddCommand(CompletionCommand)
 	RootCommand.AddCommand(create.Command)
 	RootCommand.AddCommand(deletecmd.Command)
 	RootCommand.AddCommand(info.Command)
