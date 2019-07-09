@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/list"
 	"github.com/giantswarm/gsctl/commands/login"
 	"github.com/giantswarm/gsctl/commands/logout"
+	"github.com/giantswarm/gsctl/commands/ping"
 	"github.com/giantswarm/gsctl/commands/scale"
 	selectcmd "github.com/giantswarm/gsctl/commands/select"
 	"github.com/giantswarm/gsctl/commands/show"
@@ -44,6 +45,7 @@ func init() {
 	RootCommand.AddCommand(list.Command)
 	RootCommand.AddCommand(login.Command)
 	RootCommand.AddCommand(logout.Command)
+	RootCommand.AddCommand(ping.Command)
 	RootCommand.AddCommand(scale.Command)
 	RootCommand.AddCommand(selectcmd.Command)
 	RootCommand.AddCommand(show.Command)
