@@ -320,11 +320,20 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println(color.WhiteString("Fetching details for cluster %s", args.clusterID))
 	}
 
-	clusterDetailsV4, _, clusterStatus, credentialDetails, err := getClusterDetails(args)
+	clusterDetailsV4, clusterDetailsV5, clusterStatus, credentialDetails, err := getClusterDetails(args)
 	if err != nil {
 		errors.HandleCommonErrors(err)
 	}
 
+	if clusterDetailsV4 != nil {
+		printV4Result(args, clusterDetailsV4, clusterStatus, credentialDetails)
+	} else if clusterDetailsV5 != nil {
+		printV5Result(args, clusterDetailsV5, credentialDetails)
+	}
+}
+
+// printV4Result prints the detils for a V4 cluster.
+func printV4Result(args showClusterArguments, clusterDetails *models.V4ClusterDetailsResponse, clusterStatus *client.ClusterStatus, credentialDetails *models.V4GetCredentialResponse) {
 	// Calculate worker node count.
 	numWorkers := 0
 	if clusterStatus != nil && clusterStatus.Cluster.Nodes != nil {
@@ -346,17 +355,17 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	// print table
 	output := []string{}
 
-	created := util.ParseDate(clusterDetailsV4.CreateDate)
+	created := util.ParseDate(clusterDetails.CreateDate)
 
-	output = append(output, color.YellowString("ID:")+"|"+clusterDetailsV4.ID)
+	output = append(output, color.YellowString("ID:")+"|"+clusterDetails.ID)
 
-	if clusterDetailsV4.Name != "" {
-		output = append(output, color.YellowString("Name:")+"|"+clusterDetailsV4.Name)
+	if clusterDetails.Name != "" {
+		output = append(output, color.YellowString("Name:")+"|"+clusterDetails.Name)
 	} else {
 		output = append(output, color.YellowString("Name:")+"|n/a")
 	}
 	output = append(output, color.YellowString("Created:")+"|"+util.ShortDate(created))
-	output = append(output, color.YellowString("Organization:")+"|"+clusterDetailsV4.Owner)
+	output = append(output, color.YellowString("Organization:")+"|"+clusterDetails.Owner)
 
 	if credentialDetails != nil && credentialDetails.ID != "" {
 		if credentialDetails.Aws != nil {
@@ -372,57 +381,62 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 		}
 	}
 
-	output = append(output, color.YellowString("Kubernetes API endpoint:")+"|"+clusterDetailsV4.APIEndpoint)
+	output = append(output, color.YellowString("Kubernetes API endpoint:")+"|"+clusterDetails.APIEndpoint)
 
-	if len(clusterDetailsV4.AvailabilityZones) > 0 {
-		sort.Strings(clusterDetailsV4.AvailabilityZones)
-		output = append(output, color.YellowString("Availability Zones:")+"|"+strings.Join(clusterDetailsV4.AvailabilityZones, ", "))
+	if len(clusterDetails.AvailabilityZones) > 0 {
+		sort.Strings(clusterDetails.AvailabilityZones)
+		output = append(output, color.YellowString("Availability Zones:")+"|"+strings.Join(clusterDetails.AvailabilityZones, ", "))
 	}
 
-	if clusterDetailsV4.ReleaseVersion != "" {
-		output = append(output, color.YellowString("Release version:")+"|"+clusterDetailsV4.ReleaseVersion)
+	if clusterDetails.ReleaseVersion != "" {
+		output = append(output, color.YellowString("Release version:")+"|"+clusterDetails.ReleaseVersion)
 	} else {
 		output = append(output, color.YellowString("Release version:")+"|n/a")
 	}
 
 	// Instance type / VM size
-	if clusterDetailsV4.Workers[0].Aws != nil && clusterDetailsV4.Workers[0].Aws.InstanceType != "" {
-		output = append(output, color.YellowString("Worker EC2 instance type:")+"|"+clusterDetailsV4.Workers[0].Aws.InstanceType)
-	} else if clusterDetailsV4.Workers[0].Azure != nil && clusterDetailsV4.Workers[0].Azure.VMSize != "" {
-		output = append(output, color.YellowString("Worker VM size:")+"|"+clusterDetailsV4.Workers[0].Azure.VMSize)
+	if clusterDetails.Workers[0].Aws != nil && clusterDetails.Workers[0].Aws.InstanceType != "" {
+		output = append(output, color.YellowString("Worker EC2 instance type:")+"|"+clusterDetails.Workers[0].Aws.InstanceType)
+	} else if clusterDetails.Workers[0].Azure != nil && clusterDetails.Workers[0].Azure.VMSize != "" {
+		output = append(output, color.YellowString("Worker VM size:")+"|"+clusterDetails.Workers[0].Azure.VMSize)
 	}
 
 	// scaling info
 	scalingInfo := "n/a"
-	if clusterDetailsV4.Scaling != nil {
-		if clusterDetailsV4.Scaling.Min == clusterDetailsV4.Scaling.Max {
-			scalingInfo = fmt.Sprintf("pinned at %d", clusterDetailsV4.Scaling.Min)
+	if clusterDetails.Scaling != nil {
+		if clusterDetails.Scaling.Min == clusterDetails.Scaling.Max {
+			scalingInfo = fmt.Sprintf("pinned at %d", clusterDetails.Scaling.Min)
 		} else {
-			scalingInfo = fmt.Sprintf("autoscaling between %d and %d", clusterDetailsV4.Scaling.Min, clusterDetailsV4.Scaling.Max)
+			scalingInfo = fmt.Sprintf("autoscaling between %d and %d", clusterDetails.Scaling.Min, clusterDetails.Scaling.Max)
 		}
 	}
 	output = append(output, color.YellowString("Worker node scaling:")+"|"+scalingInfo)
 
 	// what the autoscaler tries to reach as a target (only interesting if not pinned)
-	if clusterStatus != nil && clusterStatus.Cluster != nil && clusterDetailsV4.Scaling != nil && clusterDetailsV4.Scaling.Min != clusterDetailsV4.Scaling.Max {
+	if clusterStatus != nil && clusterStatus.Cluster != nil && clusterDetails.Scaling != nil && clusterDetails.Scaling.Min != clusterDetails.Scaling.Max {
 		output = append(output, color.YellowString("Desired worker node count:")+"|"+fmt.Sprintf("%d", clusterStatus.Cluster.Scaling.DesiredCapacity))
 	}
 
 	// current number of workers
 	output = append(output, color.YellowString("Worker nodes running:")+"|"+fmt.Sprintf("%d", numWorkers))
 
-	output = append(output, color.YellowString("CPU cores in workers:")+"|"+fmt.Sprintf("%d", sumWorkerCPUs(numWorkers, clusterDetailsV4.Workers)))
-	output = append(output, color.YellowString("RAM in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerMemory(numWorkers, clusterDetailsV4.Workers)))
+	output = append(output, color.YellowString("CPU cores in workers:")+"|"+fmt.Sprintf("%d", sumWorkerCPUs(numWorkers, clusterDetails.Workers)))
+	output = append(output, color.YellowString("RAM in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerMemory(numWorkers, clusterDetails.Workers)))
 
-	if clusterDetailsV4.Kvm != nil {
-		output = append(output, color.YellowString("Storage in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerStorage(numWorkers, clusterDetailsV4.Workers)))
+	if clusterDetails.Kvm != nil {
+		output = append(output, color.YellowString("Storage in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerStorage(numWorkers, clusterDetails.Workers)))
 	}
 
-	if clusterDetailsV4.Kvm != nil && len(clusterDetailsV4.Kvm.PortMappings) > 0 {
-		for _, portMapping := range clusterDetailsV4.Kvm.PortMappings {
+	if clusterDetails.Kvm != nil && len(clusterDetails.Kvm.PortMappings) > 0 {
+		for _, portMapping := range clusterDetails.Kvm.PortMappings {
 			output = append(output, color.YellowString(fmt.Sprintf("Ingress port for %s:", portMapping.Protocol))+"|"+fmt.Sprintf("%d", portMapping.Port))
 		}
 	}
 
 	fmt.Println(columnize.SimpleFormat(output))
+}
+
+// printV5Result prints details for a v5 clsuter.
+func printV5Result(args showClusterArguments, details *models.V5ClusterDetailsResponse, credentialDetails *models.V4GetCredentialResponse) {
+
 }
