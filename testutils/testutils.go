@@ -6,9 +6,8 @@ import (
 	"os"
 	"path"
 
+	"github.com/giantswarm/gscliauth/config"
 	"github.com/spf13/afero"
-
-	"github.com/giantswarm/gsctl/config"
 )
 
 // CaptureOutput runs a function and captures returns STDOUT output as a string.

@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/giantswarm/gscliauth/config"
 	"github.com/spf13/afero"
 
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/testutils"
 )
 

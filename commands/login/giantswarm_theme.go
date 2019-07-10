@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/microerror"
 
 	"github.com/giantswarm/gsctl/client"
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
 )
 

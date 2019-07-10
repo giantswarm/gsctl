@@ -8,9 +8,9 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
+	"github.com/giantswarm/gscliauth/config"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
 )
 

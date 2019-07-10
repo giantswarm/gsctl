@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/microerror"
 	rootcerts "github.com/hashicorp/go-rootcerts"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/commands/errors"
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
 )
 
