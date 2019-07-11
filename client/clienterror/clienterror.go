@@ -14,6 +14,7 @@ import (
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/client/info"
 	"github.com/giantswarm/gsclientgen/client/key_pairs"
+	"github.com/giantswarm/gsclientgen/client/nodepools"
 	"github.com/giantswarm/gsclientgen/client/organizations"
 	"github.com/giantswarm/gsclientgen/client/releases"
 )
@@ -253,6 +254,31 @@ func New(err error) *APIError {
 			HTTPStatusCode: getClusterDefaultErr.Code(),
 			OriginalError:  getClusterDefaultErr,
 			ErrorMessage:   getClusterDefaultErr.Error(),
+		}
+	}
+
+	// get node pools
+	if getNodePoolsUnauthorizedErr, ok := err.(*nodepools.GetNodePoolsUnauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  getNodePoolsUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to access this cluster's node pools.",
+		}
+	}
+	if getNodePoolsNotFoundErr, ok := err.(*nodepools.GetNodePoolsNotFound); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusNotFound,
+			OriginalError:  getNodePoolsNotFoundErr,
+			ErrorMessage:   "Not found",
+			ErrorDetails:   "The cluster was not found or you daon't have access to it.",
+		}
+	}
+	if getNodePoolsDefaultErr, ok := err.(*nodepools.GetNodePoolsDefault); ok {
+		return &APIError{
+			HTTPStatusCode: getNodePoolsDefaultErr.Code(),
+			OriginalError:  getNodePoolsDefaultErr,
+			ErrorMessage:   getNodePoolsDefaultErr.Error(),
 		}
 	}
 

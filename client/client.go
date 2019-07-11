@@ -17,6 +17,7 @@ import (
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/client/info"
 	"github.com/giantswarm/gsclientgen/client/key_pairs"
+	"github.com/giantswarm/gsclientgen/client/nodepools"
 	"github.com/giantswarm/gsclientgen/client/organizations"
 	"github.com/giantswarm/gsclientgen/client/releases"
 	"github.com/giantswarm/gsclientgen/models"
@@ -412,6 +413,22 @@ func (w *WrapperV2) GetClusterV5(clusterID string, p *AuxiliaryParams) (*cluster
 	}
 
 	response, err := w.gsclient.Clusters.GetClusterV5(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+// GetNodePools fetches a list of node pools.
+func (w *WrapperV2) GetNodePools(clusterID string, p *AuxiliaryParams) (*nodepools.GetNodePoolsOK, error) {
+	params := nodepools.NewGetNodePoolsParams().WithClusterID(clusterID)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Nodepools.GetNodePools(params, nil)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
