@@ -32,6 +32,9 @@ type V5GetNodePoolsResponseItems struct {
 	// scaling
 	Scaling *V5GetNodePoolsResponseItemsScaling `json:"scaling,omitempty"`
 
+	// status
+	Status *V5GetNodePoolsResponseItemsStatus `json:"status,omitempty"`
+
 	// IP address block used by the node pool
 	Subnet string `json:"subnet,omitempty"`
 }
@@ -45,6 +48,10 @@ func (m *V5GetNodePoolsResponseItems) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateScaling(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStatus(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -82,6 +89,24 @@ func (m *V5GetNodePoolsResponseItems) validateScaling(formats strfmt.Registry) e
 		if err := m.Scaling.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("scaling")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V5GetNodePoolsResponseItems) validateStatus(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Status) { // not required
+		return nil
+	}
+
+	if m.Status != nil {
+		if err := m.Status.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("status")
 			}
 			return err
 		}
