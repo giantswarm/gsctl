@@ -355,43 +355,21 @@ func printV4Result(args showClusterArguments, clusterDetails *models.V4ClusterDe
 	// print table
 	output := []string{}
 
-	created := util.ParseDate(clusterDetails.CreateDate)
-
 	output = append(output, color.YellowString("ID:")+"|"+clusterDetails.ID)
-
-	if clusterDetails.Name != "" {
-		output = append(output, color.YellowString("Name:")+"|"+clusterDetails.Name)
-	} else {
-		output = append(output, color.YellowString("Name:")+"|n/a")
-	}
-	output = append(output, color.YellowString("Created:")+"|"+util.ShortDate(created))
+	output = append(output, color.YellowString("Name:")+"|"+stringOrPlaceholder(clusterDetails.Name))
+	output = append(output, color.YellowString("Created:")+"|"+formatDate(clusterDetails.CreateDate))
 	output = append(output, color.YellowString("Organization:")+"|"+clusterDetails.Owner)
-
-	if credentialDetails != nil && credentialDetails.ID != "" {
-		if credentialDetails.Aws != nil {
-			parts := strings.Split(credentialDetails.Aws.Roles.Awsoperator, ":")
-			if len(parts) > 3 {
-				output = append(output, color.YellowString("AWS account:")+"|"+parts[4])
-			} else {
-				output = append(output, color.YellowString("AWS account:")+"|n/a")
-			}
-		} else if credentialDetails.Azure != nil {
-			output = append(output, color.YellowString("Azure subscription:")+"|"+credentialDetails.Azure.Credential.SubscriptionID)
-			output = append(output, color.YellowString("Azure tenant:")+"|"+credentialDetails.Azure.Credential.TenantID)
-		}
-	}
-
 	output = append(output, color.YellowString("Kubernetes API endpoint:")+"|"+clusterDetails.APIEndpoint)
+	output = append(output, color.YellowString("Release version:")+"|"+stringOrPlaceholder(clusterDetails.ReleaseVersion))
+
+	// BYOC credentials.
+	if credentialDetails != nil && credentialDetails.ID != "" {
+		output = append(output, formatCredentialDetails(credentialDetails)...)
+	}
 
 	if len(clusterDetails.AvailabilityZones) > 0 {
 		sort.Strings(clusterDetails.AvailabilityZones)
 		output = append(output, color.YellowString("Availability Zones:")+"|"+strings.Join(clusterDetails.AvailabilityZones, ", "))
-	}
-
-	if clusterDetails.ReleaseVersion != "" {
-		output = append(output, color.YellowString("Release version:")+"|"+clusterDetails.ReleaseVersion)
-	} else {
-		output = append(output, color.YellowString("Release version:")+"|n/a")
 	}
 
 	// Instance type / VM size
@@ -438,5 +416,61 @@ func printV4Result(args showClusterArguments, clusterDetails *models.V4ClusterDe
 
 // printV5Result prints details for a v5 clsuter.
 func printV5Result(args showClusterArguments, details *models.V5ClusterDetailsResponse, credentialDetails *models.V4GetCredentialResponse) {
+	// clusterTable is the table for cluster information.
+	clusterTable := []string{}
 
+	clusterTable = append(clusterTable, color.YellowString("Cluster ID:")+"|"+details.ID)
+	clusterTable = append(clusterTable, color.YellowString("Name:")+"|"+stringOrPlaceholder(details.Name))
+	clusterTable = append(clusterTable, color.YellowString("Created:")+"|"+formatDate(details.CreateDate))
+	clusterTable = append(clusterTable, color.YellowString("Organization:")+"|"+details.Owner)
+	clusterTable = append(clusterTable, color.YellowString("Kubernetes API endpoint:")+"|"+details.APIEndpoint)
+	clusterTable = append(clusterTable, color.YellowString("Master availability zone:")+"|"+details.Master.AvailabilityZone)
+	clusterTable = append(clusterTable, color.YellowString("Release version:")+"|"+details.ReleaseVersion)
+
+	// TODO: based on node pools
+	clusterTable = append(clusterTable, color.YellowString("Size:")+"|TODO nodes in TODO node pools")
+	clusterTable = append(clusterTable, color.YellowString("CPUs in nodes:")+"|TODO")
+	clusterTable = append(clusterTable, color.YellowString("RAM in nodes (GB):")+"|TODO")
+
+	// BYOC credentials.
+	if credentialDetails != nil && credentialDetails.ID != "" {
+		clusterTable = append(clusterTable, formatCredentialDetails(credentialDetails)...)
+	}
+
+	fmt.Println(columnize.SimpleFormat(clusterTable))
+}
+
+// formatDate takes a date/time string from the API and returns a formated version.
+func formatDate(dt string) string {
+	created := util.ParseDate(dt)
+	return util.ShortDate(created)
+}
+
+// stringOrPlaceholder takes an input string and returns either the string or,
+// if string is empty, or the "n/a" placeholder.
+func stringOrPlaceholder(s string) string {
+	if s == "" {
+		return "n/a"
+	}
+	return s
+}
+
+// formatCredentialDetails returns the info table rows erquired to print details about
+// the credential given.
+func formatCredentialDetails(credentialDetails *models.V4GetCredentialResponse) []string {
+	rows := []string{}
+
+	if credentialDetails.Aws != nil {
+		parts := strings.Split(credentialDetails.Aws.Roles.Awsoperator, ":")
+		if len(parts) > 3 {
+			rows = append(rows, color.YellowString("AWS account:")+"|"+parts[4])
+		} else {
+			rows = append(rows, color.YellowString("AWS account:")+"|n/a")
+		}
+	} else if credentialDetails.Azure != nil {
+		rows = append(rows, color.YellowString("Azure subscription:")+"|"+credentialDetails.Azure.Credential.SubscriptionID)
+		rows = append(rows, color.YellowString("Azure tenant:")+"|"+credentialDetails.Azure.Credential.TenantID)
+	}
+
+	return rows
 }
