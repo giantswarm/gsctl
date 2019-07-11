@@ -20,6 +20,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/nodespec"
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -201,6 +202,7 @@ func getOrgCredentials(orgName, credentialID string) (*models.V4GetCredentialRes
 func getClusterDetails(args showClusterArguments) (
 	*models.V4ClusterDetailsResponse,
 	*models.V5ClusterDetailsResponse,
+	*models.V5GetNodePoolsResponse,
 	*client.ClusterStatus,
 	*models.V4GetCredentialResponse,
 	error) {
@@ -208,17 +210,34 @@ func getClusterDetails(args showClusterArguments) (
 	var clusterDetailsV4 *models.V4ClusterDetailsResponse
 	var clusterDetailsV5 *models.V5ClusterDetailsResponse
 	var clusterStatus *client.ClusterStatus
+	var nodePools *models.V5GetNodePoolsResponse
 
 	// first try v5
 	if args.verbose {
 		fmt.Println(color.WhiteString("Fetching details for cluster via v5 API endpoint"))
 	}
 	clusterDetailsV5, v5Err := getClusterDetailsV5(args.clusterID)
-	if v5Err != nil {
+	if v5Err == nil {
+		// fetch node pools
+		clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+		if err != nil {
+			return nil, nil, nil, nil, nil, microerror.Mask(err)
+		}
+
+		// perform API call
+		auxParams := clientV2.DefaultAuxiliaryParams()
+		auxParams.ActivityName = activityName
+		response, err := clientV2.GetNodePools(args.clusterID, auxParams)
+		if err != nil {
+			return nil, nil, nil, nil, nil, microerror.Mask(err)
+		}
+		nodePools = &response.Payload
+
+	} else {
 		// If this is a 404 error, continue with v4 fallback below.
 		// Otherwise return error.
 		if !errors.IsClusterNotFoundError(v5Err) {
-			return nil, nil, nil, nil, microerror.Mask(v5Err)
+			return nil, nil, nil, nil, nil, microerror.Mask(v5Err)
 		}
 
 		// Fall back to v4.
@@ -231,12 +250,12 @@ func getClusterDetails(args showClusterArguments) (
 		if clusterDetailsV4Err != nil {
 			// At this point, every error is a sign of something unexpected, so
 			// simply return.
-			return nil, nil, nil, nil, microerror.Mask(clusterDetailsV4Err)
+			return nil, nil, nil, nil, nil, microerror.Mask(clusterDetailsV4Err)
 		}
 
 		clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 		if err != nil {
-			return nil, nil, nil, nil, microerror.Mask(err)
+			return nil, nil, nil, nil, nil, microerror.Mask(err)
 		}
 
 		if args.verbose {
@@ -250,7 +269,7 @@ func getClusterDetails(args showClusterArguments) (
 			// Return an error if it is something else than 404 Not Found,
 			// as 404s are expected during cluster creation.
 			if !errors.IsClusterNotFoundError(clusterStatusErr) {
-				return nil, nil, nil, nil, microerror.Mask(clusterStatusErr)
+				return nil, nil, nil, nil, nil, microerror.Mask(clusterStatusErr)
 			}
 		}
 	}
@@ -289,7 +308,7 @@ func getClusterDetails(args showClusterArguments) (
 		}
 	}
 
-	return clusterDetailsV4, clusterDetailsV5, clusterStatus, credentialDetails, nil
+	return clusterDetailsV4, clusterDetailsV5, nodePools, clusterStatus, credentialDetails, nil
 }
 
 // sumWorkerCPUs adds up the worker's CPU cores
@@ -320,7 +339,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println(color.WhiteString("Fetching details for cluster %s", args.clusterID))
 	}
 
-	clusterDetailsV4, clusterDetailsV5, clusterStatus, credentialDetails, err := getClusterDetails(args)
+	clusterDetailsV4, clusterDetailsV5, nodePools, clusterStatus, credentialDetails, err := getClusterDetails(args)
 	if err != nil {
 		errors.HandleCommonErrors(err)
 	}
@@ -328,7 +347,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	if clusterDetailsV4 != nil {
 		printV4Result(args, clusterDetailsV4, clusterStatus, credentialDetails)
 	} else if clusterDetailsV5 != nil {
-		printV5Result(args, clusterDetailsV5, credentialDetails)
+		printV5Result(args, clusterDetailsV5, credentialDetails, nodePools)
 	}
 }
 
@@ -380,7 +399,7 @@ func printV4Result(args showClusterArguments, clusterDetails *models.V4ClusterDe
 	}
 
 	// scaling info
-	scalingInfo := "n/a"
+	scalingInfo := ""
 	if clusterDetails.Scaling != nil {
 		if clusterDetails.Scaling.Min == clusterDetails.Scaling.Max {
 			scalingInfo = fmt.Sprintf("pinned at %d", clusterDetails.Scaling.Min)
@@ -388,7 +407,7 @@ func printV4Result(args showClusterArguments, clusterDetails *models.V4ClusterDe
 			scalingInfo = fmt.Sprintf("autoscaling between %d and %d", clusterDetails.Scaling.Min, clusterDetails.Scaling.Max)
 		}
 	}
-	output = append(output, color.YellowString("Worker node scaling:")+"|"+scalingInfo)
+	output = append(output, color.YellowString("Worker node scaling:")+"|"+stringOrPlaceholder(scalingInfo))
 
 	// what the autoscaler tries to reach as a target (only interesting if not pinned)
 	if clusterStatus != nil && clusterStatus.Cluster != nil && clusterDetails.Scaling != nil && clusterDetails.Scaling.Min != clusterDetails.Scaling.Max {
@@ -405,6 +424,7 @@ func printV4Result(args showClusterArguments, clusterDetails *models.V4ClusterDe
 		output = append(output, color.YellowString("Storage in worker nodes (GB):")+"|"+fmt.Sprintf("%.2f", sumWorkerStorage(numWorkers, clusterDetails.Workers)))
 	}
 
+	// KVM ingress port mappings
 	if clusterDetails.Kvm != nil && len(clusterDetails.Kvm.PortMappings) > 0 {
 		for _, portMapping := range clusterDetails.Kvm.PortMappings {
 			output = append(output, color.YellowString(fmt.Sprintf("Ingress port for %s:", portMapping.Protocol))+"|"+fmt.Sprintf("%d", portMapping.Port))
@@ -415,7 +435,10 @@ func printV4Result(args showClusterArguments, clusterDetails *models.V4ClusterDe
 }
 
 // printV5Result prints details for a v5 clsuter.
-func printV5Result(args showClusterArguments, details *models.V5ClusterDetailsResponse, credentialDetails *models.V4GetCredentialResponse) {
+func printV5Result(args showClusterArguments, details *models.V5ClusterDetailsResponse,
+	credentialDetails *models.V4GetCredentialResponse,
+	nodePools *models.V5GetNodePoolsResponse) {
+
 	// clusterTable is the table for cluster information.
 	clusterTable := []string{}
 
@@ -427,14 +450,17 @@ func printV5Result(args showClusterArguments, details *models.V5ClusterDetailsRe
 	clusterTable = append(clusterTable, color.YellowString("Master availability zone:")+"|"+details.Master.AvailabilityZone)
 	clusterTable = append(clusterTable, color.YellowString("Release version:")+"|"+details.ReleaseVersion)
 
-	// TODO: based on node pools
-	clusterTable = append(clusterTable, color.YellowString("Size:")+"|TODO nodes in TODO node pools")
-	clusterTable = append(clusterTable, color.YellowString("CPUs in nodes:")+"|TODO")
-	clusterTable = append(clusterTable, color.YellowString("RAM in nodes (GB):")+"|TODO")
-
 	// BYOC credentials.
 	if credentialDetails != nil && credentialDetails.ID != "" {
 		clusterTable = append(clusterTable, formatCredentialDetails(credentialDetails)...)
+	}
+
+	// TODO: Add KVM ingress port mappings here
+	// once KVM is supported in V5.
+
+	// Aggregate of node pools.
+	if nodePools != nil && len(*nodePools) > 0 {
+		clusterTable = append(clusterTable, formatNodePoolDetails(nodePools)...)
 	}
 
 	fmt.Println(columnize.SimpleFormat(clusterTable))
@@ -471,6 +497,43 @@ func formatCredentialDetails(credentialDetails *models.V4GetCredentialResponse) 
 		rows = append(rows, color.YellowString("Azure subscription:")+"|"+credentialDetails.Azure.Credential.SubscriptionID)
 		rows = append(rows, color.YellowString("Azure tenant:")+"|"+credentialDetails.Azure.Credential.TenantID)
 	}
+
+	return rows
+}
+
+func formatNodePoolDetails(nodePools *models.V5GetNodePoolsResponse) []string {
+	rows := []string{}
+
+	cpus := 0
+	ramGB := 0
+	numNodes := 0
+	numNodePools := len(*nodePools)
+
+	awsInfo, err := nodespec.NewAWS()
+	if err != nil {
+		fmt.Println(color.RedString("Error: Cannot provide info on AWS instance types. Details: %s", err))
+	}
+
+	if nodePools != nil && numNodePools > 0 {
+		for _, np := range *nodePools {
+			numNodes += int(np.Status.NodesReady)
+
+			// Provider: AWS
+			if np.NodeSpec.Aws != nil && np.NodeSpec.Aws.InstanceType != "" {
+				it, err := awsInfo.GetInstanceTypeDetails(np.NodeSpec.Aws.InstanceType)
+				if err != nil {
+					fmt.Println(color.YellowString("Warning: Cannot provide info on AWS instance type '%s'. Please kindly report this to the Giant Swarm support team.", np.NodeSpec.Aws.InstanceType))
+				} else {
+					cpus += it.CPUCores * int(np.Status.NodesReady)
+					ramGB += it.MemorySizeGB * int(np.Status.NodesReady)
+				}
+			}
+		}
+	}
+
+	rows = append(rows, color.YellowString("Size:")+fmt.Sprintf("|%d nodes in %d node pools", numNodes, numNodePools))
+	rows = append(rows, color.YellowString("CPUs in nodes:")+fmt.Sprintf("|%d", cpus))
+	rows = append(rows, color.YellowString("RAM in nodes (GB):")+fmt.Sprintf("|%d", ramGB))
 
 	return rows
 }
