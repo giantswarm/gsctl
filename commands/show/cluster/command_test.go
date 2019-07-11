@@ -114,8 +114,39 @@ func TestShowAWSClusterV5(t *testing.T) {
 					"create_date": "2019-07-09T12:00:00.000000Z",
 					"owner": "acmeorg",
 					"release_version": "9.1.2",
-					"credential_id": ""
+					"credential_id": "",
+					"master": {
+						"availability_zone": "eu-west-1d"
+					}
 				}`))
+			case "/v5/clusters/cluster-id/nodepools/":
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`[
+					{
+						"id": "a7r",
+						"name": "Node pool name",
+						"availability_zones": [
+							"eu-west-1d"
+						],
+						"scaling": {
+							"min": 2,
+							"max": 5
+						},
+						"node_spec": {
+							"aws": {
+								"instance_type": "p3.8xlarge"
+							},
+							"volume_sizes_gb": {
+								"docker": 100,
+								"kubelet": 100
+							}
+						},
+						"status": {
+							"nodes": 2,
+							"nodes_ready": 2
+						}
+					}
+				]`))
 			case "/v4/clusters/cluster-id/":
 				w.WriteHeader(http.StatusNotFound)
 				w.Write([]byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Cluster does not exist or is not accessible."}`))
