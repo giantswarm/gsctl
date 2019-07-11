@@ -9,6 +9,8 @@ import (
 var (
 	// specYAML is the raw data on all necessary AWS instance types taken from
 	// https://github.com/giantswarm/installations/blob/master/default-draughtsman-configmap-values.yaml
+	// Warning: YAML in Golang is super fragile. There must not be any tabs in this string, otherwise
+	// the marshalling will fail. However we will likely detect this in CI when running tests.
 	awsInstanceTypesYAML = `
 c5.large:
   cpu_cores: 2

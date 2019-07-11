@@ -21,3 +21,15 @@ func TestAWS(t *testing.T) {
 	}
 
 }
+
+func TestAWSError(t *testing.T) {
+	p, err := NewAWS()
+	if err != nil {
+		t.Errorf("Unexpected error: %s", err)
+	}
+
+	_, err = p.GetInstanceTypeDetails("non-existing")
+	if !IsInstanceTypeNotFoundErr(err) {
+		t.Errorf("Expected 'instance type not found' error, got: %v", err)
+	}
+}
