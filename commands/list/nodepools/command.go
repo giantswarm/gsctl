@@ -4,9 +4,12 @@ package nodepools
 import (
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/gsclientgen/client/nodepools"
+	"github.com/giantswarm/columnize"
+	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -97,10 +100,35 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Node pools: %#v\n", nodePools)
+	table := []string{}
+
+	headers := []string{
+		color.CyanString("ID"),
+		color.CyanString("NAME"),
+		color.CyanString("AZ"),
+		color.CyanString("INSTANCE TYPE"),
+		color.CyanString("NODES MIN/MAX"),
+		color.CyanString("NODES DESIRED"),
+		color.CyanString("NODES READY"),
+	}
+	table = append(table, strings.Join(headers, "|"))
+
+	for _, np := range nodePools {
+		table = append(table, strings.Join([]string{
+			np.ID,
+			np.Name,
+			formatAvailabilityZones(np.AvailabilityZones),
+			np.NodeSpec.Aws.InstanceType,
+			"TODO",
+			string(np.Status.Nodes),
+			string(np.Status.NodesReady),
+		}, "|"))
+	}
+
+	fmt.Println(columnize.SimpleFormat(table))
 }
 
-func fetchNodePools(args arguments) (*nodepools.GetNodePoolsOK, error) {
+func fetchNodePools(args arguments) (models.V5GetNodePoolsResponse, error) {
 	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -114,6 +142,26 @@ func fetchNodePools(args arguments) (*nodepools.GetNodePoolsOK, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	return response, nil
+	// sort node pools by ID
+	sort.Slice(response.Payload[:], func(i, j int) bool {
+		return response.Payload[i].ID < response.Payload[j].ID
+	})
 
+	return response.Payload, nil
+
+}
+
+// formatAvailabilityZones returns the list of availability zones
+// as one string consisting of uppercase letters only, e. g. "A,B,C".
+func formatAvailabilityZones(az []string) string {
+	shortened := []string{}
+
+	for _, az := range az {
+		// last character of each item
+		shortened = append(shortened, az[len(az)-1:])
+	}
+
+	sort.Strings(shortened)
+
+	return strings.ToUpper(strings.Join(shortened, ","))
 }
