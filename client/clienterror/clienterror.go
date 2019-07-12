@@ -271,7 +271,7 @@ func New(err error) *APIError {
 			HTTPStatusCode: http.StatusNotFound,
 			OriginalError:  getNodePoolsNotFoundErr,
 			ErrorMessage:   "Not found",
-			ErrorDetails:   "The cluster was not found or you daon't have access to it.",
+			ErrorDetails:   "The cluster was not found or you don't have access to it.",
 		}
 	}
 	if getNodePoolsDefaultErr, ok := err.(*nodepools.GetNodePoolsDefault); ok {
