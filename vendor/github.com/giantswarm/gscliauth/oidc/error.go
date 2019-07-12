@@ -20,7 +20,7 @@ func IsRefreshError(err error) bool {
 	return microerror.Cause(err) == refreshError
 }
 
-// To be used when a token's signature or syntax is invalid
+// To be used when a token's signature or syntax is invalid.
 var tokenInvalidError = &microerror.Error{
 	Kind: "tokenInvalidError",
 }
@@ -30,7 +30,7 @@ func IsTokenInvalidError(err error) bool {
 	return microerror.Cause(err) == tokenInvalidError
 }
 
-// To be used when a token's iat claim (issued at) is bad
+// To be used when a token's iat claim (issued at) is bad.
 var tokenIssuedAtError = &microerror.Error{
 	Kind: "tokenIssuedAtError",
 }

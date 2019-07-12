@@ -2,7 +2,7 @@ package config
 
 import "github.com/giantswarm/microerror"
 
-// endpointNotDefinedError means the user tries to use an endpoint that is not defined
+// endpointNotDefinedError means the user tries to use an endpoint that is not defined.
 var endpointNotDefinedError = &microerror.Error{
 	Kind: "endpointNotDefinedError",
 }
@@ -33,7 +33,7 @@ func IsEndpointProviderIsImmuttableError(err error) bool {
 }
 
 // aliasMustBeUniqueError should be used if the user tries to add an alias to
-// an endpoint, but the alias is already in use
+// an endpoint, but the alias is already in use.
 var aliasMustBeUniqueError = &microerror.Error{
 	Kind: "aliasMustBeUniqueError",
 }
@@ -43,7 +43,7 @@ func IsAliasMustBeUniqueError(err error) bool {
 	return microerror.Cause(err) == aliasMustBeUniqueError
 }
 
-// credentialsRequiredError means an attempt to store incomplete credentials in the config
+// credentialsRequiredError means an attempt to store incomplete credentials in the config.
 var credentialsRequiredError = &microerror.Error{
 	Kind: "credentialsRequiredError",
 	Desc: "email, password, or token must not be empty",
@@ -73,7 +73,7 @@ func IsGarbageCollectionPartiallyFailedError(err error) bool {
 }
 
 // unableToRefreshToken indicates that we were not able to get a new access token
-// when we attempted to do so
+// when we attempted to do so.
 var unableToRefreshTokenError = &microerror.Error{
 	Kind: "IsUnableToRefreshTokenError",
 }

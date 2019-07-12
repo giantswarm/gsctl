@@ -12,15 +12,15 @@ import (
 	"github.com/spf13/afero"
 )
 
-// GarbageCollectKeyPairs removes files from expired key pairs
+// GarbageCollectKeyPairs removes files from expired key pairs.
 func GarbageCollectKeyPairs(fs afero.Fs) error {
 	files, err := afero.ReadDir(fs, CertsDirPath)
 	if err != nil {
 		return microerror.Maskf(err, "could not list files in certs folder "+CertsDirPath)
 	}
 
-	// find out which certificates in certs folder have expired
-	expiredCerts := []string{}
+	// find out which certificates in certs folder have expired.
+	var expiredCerts []string
 
 	for _, file := range files {
 		name := file.Name()
@@ -44,7 +44,7 @@ func GarbageCollectKeyPairs(fs afero.Fs) error {
 		}
 	}
 
-	errorInfo := []string{}
+	var errorInfo []string
 
 	for _, file := range expiredCerts {
 		certPath := CertsDirPath + "/" + file
@@ -63,37 +63,35 @@ func GarbageCollectKeyPairs(fs afero.Fs) error {
 	if len(errorInfo) > 0 {
 
 		if len(expiredCerts)*2 == len(errorInfo) {
-			// all deletions failed (2 files per certificate)
+			// all deletions failed (2 files per certificate).
 			return microerror.Maskf(garbageCollectionFailedError, "%d files not deleted", len(errorInfo))
 		}
 
-		// some deletions failed
+		// some deletions failed.
 		annotation := strings.Join(errorInfo, ", ")
 		return microerror.Maskf(garbageCollectionPartiallyFailedError, annotation)
 	}
 
-	// success
+	// success.
 	return nil
 }
 
 // isCertExpired returns true if the given PEM content represents
-// an expired certificate
+// an expired certificate.
 func isCertExpired(pemContent []byte) (bool, error) {
-	expired := false
-
 	block, _ := pem.Decode(pemContent)
 	if block == nil {
-		return expired, microerror.Mask(errors.New("could not parse PEM"))
+		return false, microerror.Mask(errors.New("could not parse PEM"))
 	}
 
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return expired, microerror.Maskf(errors.New("could not parse certificate"), err.Error())
+		return false, microerror.Maskf(errors.New("could not parse certificate"), err.Error())
 	}
 
-	if cert.NotAfter.Before(time.Now()) {
-		expired = true
+	if cert.NotAfter.After(time.Now()) {
+		return false, nil
 	}
 
-	return expired, nil
+	return true, nil
 }

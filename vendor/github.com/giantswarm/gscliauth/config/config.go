@@ -11,77 +11,77 @@ import (
 	"sync"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/giantswarm/gscliauth/oidc"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/afero"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 const (
-	// ConfigFileType is the type of config file we use
+	// ConfigFileType is the type of config file we use.
 	ConfigFileType = "yaml"
 
-	// ConfigFileName is the name of the configuration file, without ending
+	// ConfigFileName is the name of the configuration file, without ending.
 	ConfigFileName = "config"
 
-	// ConfigFilePermission is the rights mask for the config file
+	// ConfigFilePermission is the rights mask for the config file.
 	ConfigFilePermission = 0600
 
-	// ProgramName is the name of this program
+	// ProgramName is the name of this program.
 	ProgramName = "gsctl"
 
-	// VersionCheckURL is the URL telling us what the latest gsctl version is
+	// VersionCheckURL is the URL telling us what the latest gsctl version is.
 	VersionCheckURL = "https://github.com/giantswarm/gsctl/releases/latest"
 
-	// VersionCheckInterval is the minimum time to wait between two version checks
+	// VersionCheckInterval is the minimum time to wait between two version checks.
 	VersionCheckInterval = time.Hour * 24
 
 	// garbageCollectionLikelihood is a number between 0 and 1 that sets the
-	// likelihood that we will execute garbage collection functions.
+	// likelihood that we will execute garbage collection functions..
 	garbageCollectionLikelihood = .2
 )
 
 var (
-	// Config is an object holding all configuration fields
+	// Config is an object holding all configuration fields.
 	Config = newConfigStruct()
 
-	// Version is the version number, to be set on build by the go linker
+	// Version is the version number, to be set on build by the go linker.
 	Version string
 
-	// BuildDate is the build date, to be set on build by the go linker
+	// BuildDate is the build date, to be set on build by the go linker.
 	BuildDate string
 
-	// Commit is the latest git commit hash, to be set on build by the go linker
+	// Commit is the latest git commit hash, to be set on build by the go linker.
 	Commit string
 
 	// FileSystem is the afero filesystem used to store the config file and certificates.
 	FileSystem afero.Fs
 
-	// HomeDirPath is the path to the user's home directory
+	// HomeDirPath is the path to the user's home directory.
 	HomeDirPath string
 
-	// DefaultConfigDirPath is the default config dir path to use
+	// DefaultConfigDirPath is the default config dir path to use.
 	DefaultConfigDirPath string
 
-	// ConfigDirPath is the actual path of the config dir
+	// ConfigDirPath is the actual path of the config dir.
 	ConfigDirPath string
 
-	// CertsDirPath is the path of the directory holding certificates
+	// CertsDirPath is the path of the directory holding certificates.
 	CertsDirPath string
 
-	// ConfigFilePath is the path of the configuration file
+	// ConfigFilePath is the path of the configuration file.
 	ConfigFilePath string
 
-	// KubeConfigPaths is the path(s) of kubeconfig files as slice of strings
+	// KubeConfigPaths is the path(s) of kubeconfig files as slice of strings.
 	KubeConfigPaths []string
 
-	// SystemUser is the current system user as user.User (os/user)
+	// SystemUser is the current system user as user.User (os/user).
 	SystemUser *user.User
 )
 
 // configStruct is the top-level data structure used to serialize and
-// deserialize our configuration from/to a YAML file
+// deserialize our configuration from/to a YAML file.
 type configStruct struct {
 	// LastVersionCheck is the last time when we successfully checked for a gsctl update.
 	// It has no "omitempty", to enforce the output. Marshaling failed otherwise.
@@ -90,7 +90,7 @@ type configStruct struct {
 	// Updated is the time when the config has last been written.
 	Updated string `yaml:"updated"`
 
-	// SelectedEndpoint is the URL of the selected endpoint
+	// SelectedEndpoint is the URL of the selected endpoint.
 	SelectedEndpoint string `yaml:"selected_endpoint"`
 
 	// RefreshToken is the refresh token found for the selected endpoint. Might be empty.
@@ -129,16 +129,16 @@ func newConfigStruct() *configStruct {
 	}
 }
 
-// readFromFile reads configuration from the YAML config file
+// readFromFile reads configuration from the YAML config file.
 func readFromFile(fs afero.Fs, filePath string) (*configStruct, error) {
-	myConfig := newConfigStruct()
+	config := newConfigStruct()
 
 	doesExist, err := afero.Exists(fs, filePath)
 	if err != nil {
-		return myConfig, microerror.Mask(err)
+		return config, microerror.Mask(err)
 	}
 	if !doesExist {
-		return myConfig, nil
+		return config, nil
 	}
 
 	data, err := afero.ReadFile(fs, filePath)
@@ -146,23 +146,23 @@ func readFromFile(fs afero.Fs, filePath string) (*configStruct, error) {
 		if os.IsNotExist(err) {
 			// ignore if file does not exist,
 			// as this is not an error.
-			return myConfig, nil
+			return config, nil
 		}
-		return myConfig, microerror.Mask(err)
+		return config, microerror.Mask(err)
 	}
 
-	yamlErr := yaml.Unmarshal(data, myConfig)
-	if yamlErr != nil {
-		return myConfig, microerror.Mask(yamlErr)
+	err = yaml.Unmarshal(data, config)
+	if err != nil {
+		return config, microerror.Mask(err)
 	}
 
-	return myConfig, nil
+	return config, nil
 }
 
 // endpointConfig is used to serialize/deserialize endpoint configuration
-// to/from a config file
+// to/from a config file.
 type endpointConfig struct {
-	// Alias is a friendly shortcut for the endpoint
+	// Alias is a friendly shortcut for the endpoint.
 	Alias string `yaml:"alias,omitempty"`
 
 	// Email is the email address of the authenticated user.
@@ -207,7 +207,7 @@ func (c *configStruct) StoreEndpointAuth(endpointURL, alias, provider, email, sc
 	c.endpointsMutex.Lock()
 	defer c.endpointsMutex.Unlock()
 
-	// keep current Alias, if there
+	// keep current Alias, if there.
 	aliasBefore := ""
 	if _, ok := c.endpoints[ep]; ok {
 		aliasBefore = c.endpoints[ep].Alias
@@ -237,7 +237,7 @@ func (c *configStruct) StoreEndpointAuth(endpointURL, alias, provider, email, sc
 
 // SelectEndpoint makes the given endpoint the selected one. The argument
 // can either be an alias (that will be used as is) or
-// a URL which will undergo normalization.s
+// a URL which will undergo normalization.
 func (c *configStruct) SelectEndpoint(endpointAliasOrURL string) error {
 
 	if endpointAliasOrURL == "" {
@@ -268,7 +268,7 @@ func (c *configStruct) SelectEndpoint(endpointAliasOrURL string) error {
 		}
 	}
 
-	// Migrate empty scheme to 'giantswarm'
+	// Migrate empty scheme to 'giantswarm'.
 	if c.endpoints[ep].Scheme == "" {
 		c.endpoints[ep].Scheme = "giantswarm"
 	}
@@ -290,13 +290,13 @@ func (c *configStruct) SelectEndpoint(endpointAliasOrURL string) error {
 // it will be the used endpoint URL.
 func (c *configStruct) ChooseEndpoint(overridingEndpointAliasOrURL string) string {
 
-	// if no local param is given, try the environment variable
+	// if no local param is given, try the environment variable.
 	if overridingEndpointAliasOrURL == "" {
 		overridingEndpointAliasOrURL = os.Getenv("GSCTL_ENDPOINT")
 	}
 
 	if overridingEndpointAliasOrURL != "" {
-		// check if overridingEndpointAliasOrURL is an alias
+		// check if overridingEndpointAliasOrURL is an alias.
 		if c.HasEndpointAlias(overridingEndpointAliasOrURL) {
 			ep, _ := c.EndpointByAlias(overridingEndpointAliasOrURL)
 			return ep
@@ -306,7 +306,7 @@ func (c *configStruct) ChooseEndpoint(overridingEndpointAliasOrURL string) strin
 		return ep
 	}
 
-	// as a last resort, return the currently selected endpoint
+	// as a last resort, return the currently selected endpoint.
 	return c.SelectedEndpoint
 }
 
@@ -323,10 +323,8 @@ func (c *configStruct) ChooseToken(endpoint, overridingToken string) string {
 	}
 
 	endpointConfig := c.EndpointConfig(ep)
-	if endpointConfig != nil {
-		if endpointConfig != nil && endpointConfig.Token != "" {
-			return endpointConfig.Token
-		}
+	if endpointConfig != nil && endpointConfig.Token != "" {
+		return endpointConfig.Token
 	}
 
 	return ""
@@ -345,16 +343,14 @@ func (c *configStruct) ChooseScheme(endpoint string, CmdToken string) string {
 	}
 
 	endpointConfig := c.EndpointConfig(ep)
-	if endpointConfig != nil {
-		if endpointConfig != nil && endpointConfig.Scheme != "" {
-			return endpointConfig.Scheme
-		}
+	if endpointConfig != nil && endpointConfig.Scheme != "" {
+		return endpointConfig.Scheme
 	}
 
 	return "giantswarm"
 }
 
-// HasEndpointAlias returns whether the given alias is used for an endpoint
+// HasEndpointAlias returns whether the given alias is used for an endpoint.
 func (c *configStruct) HasEndpointAlias(alias string) bool {
 	c.endpointsMutex.RLock()
 	defer c.endpointsMutex.RUnlock()
@@ -375,7 +371,7 @@ func (c *configStruct) EndpointConfig(ep string) *endpointConfig {
 }
 
 // EndpointByAlias performs a lookup by alias and returns the according endpoint URL
-// (if the alias is assigned) or an error (if not found)
+// (if the alias is assigned) or an error (if not found).
 func (c *configStruct) EndpointByAlias(alias string) (string, error) {
 	c.endpointsMutex.RLock()
 	defer c.endpointsMutex.RUnlock()
@@ -421,7 +417,7 @@ func (c *configStruct) SetProvider(provider string) error {
 	return nil
 }
 
-// NumEndpoints returns the number of endpoints stored in the configuration
+// NumEndpoints returns the number of endpoints stored in the configuration.
 func (c *configStruct) NumEndpoints() int {
 	c.endpointsMutex.RLock()
 	defer c.endpointsMutex.RUnlock()
@@ -518,7 +514,7 @@ func isTokenValid(token string) (expired bool) {
 	return true
 }
 
-// init sets defaults and initializes config paths
+// init sets defaults and initializes config paths.
 func init() {
 	SystemUser, err := user.Current()
 	if err != nil {
@@ -546,7 +542,7 @@ func Initialize(fs afero.Fs, configDirPath string) error {
 	// multiple tests in a row.
 	Config = newConfigStruct()
 
-	// configDirPath argument overrides default, if given
+	// configDirPath argument overrides default, if given.
 	if configDirPath != "" {
 		ConfigDirPath = configDirPath
 	} else {
@@ -555,23 +551,26 @@ func Initialize(fs afero.Fs, configDirPath string) error {
 
 	ConfigFilePath = path.Join(ConfigDirPath, ConfigFileName+"."+ConfigFileType)
 
-	// if config file doesn't exist, create empty one
+	// if config file doesn't exist, create empty one.
 	exists, err := afero.Exists(fs, ConfigFilePath)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 	if !exists {
-		// ensure directory exists
+		// ensure directory exists.
 		err := fs.MkdirAll(ConfigDirPath, 0700)
 		if err != nil {
 			return microerror.Mask(err)
 		}
-		// ensure file exists
+		// ensure file exists.
 		file, err := fs.Create(ConfigFilePath)
 		if err != nil {
 			return microerror.Mask(err)
 		}
-		file.Close()
+		err = file.Close()
+		if err != nil {
+			return microerror.Mask(err)
+		}
 
 		err = fs.Chmod(ConfigFilePath, ConfigFilePermission)
 		if err != nil {
@@ -586,17 +585,20 @@ func Initialize(fs afero.Fs, configDirPath string) error {
 	populateConfigStruct(myConfig)
 
 	CertsDirPath = path.Join(ConfigDirPath, "certs")
-	fs.MkdirAll(CertsDirPath, 0700)
+	err = fs.MkdirAll(CertsDirPath, 0700)
+	if err != nil {
+		return microerror.Mask(err)
+	}
 
 	KubeConfigPaths = getKubeconfigPaths(HomeDirPath)
 
-	// apply garbage collection
+	// apply garbage collection.
 	randSource := rand.NewSource(time.Now().UnixNano())
 	randGenerator := rand.New(randSource)
 	if randGenerator.Float32() < garbageCollectionLikelihood {
 		err := GarbageCollectKeyPairs(fs)
 		if err != nil {
-			// print error message, but don't interrupt the user
+			// print error message, but don't interrupt the user.
 			if IsGarbageCollectionFailedError(err) {
 				fmt.Printf("Error in key pair garbage collection - no files deleted: %s\n", err.Error())
 			} else if IsGarbageCollectionPartiallyFailedError(err) {
@@ -632,12 +634,12 @@ func populateConfigStruct(cs *configStruct) {
 
 }
 
-// UserAgent returns the user agent string identifying us in HTTP requests
+// UserAgent returns the user agent string identifying us in HTTP requests.
 func UserAgent() string {
 	return fmt.Sprintf("%s/%s", ProgramName, Version)
 }
 
-// WriteToFile writes the configuration data to a YAML file
+// WriteToFile writes the configuration data to a YAML file.
 func WriteToFile() error {
 	data := Config
 	data.Updated = time.Now().Format(time.RFC3339)
@@ -652,7 +654,7 @@ func WriteToFile() error {
 		return microerror.Mask(err)
 	}
 
-	// finally update permissions, in case they weren't right before
+	// finally update permissions, in case they weren't right before.
 	err = FileSystem.Chmod(ConfigFilePath, ConfigFilePermission)
 	if err != nil {
 		return microerror.Mask(err)
@@ -661,16 +663,14 @@ func WriteToFile() error {
 	return nil
 }
 
-// getKubeconfigPaths returns a slice of paths to known kubeconfig files
+// getKubeconfigPaths returns a slice of paths to known kubeconfig files.
 func getKubeconfigPaths(homeDir string) []string {
 	// check if KUBECONFIG environment variable is set
 	kubeconfigEnv := os.Getenv("KUBECONFIG")
 	if kubeconfigEnv != "" {
-		// KUBECONFIG is set.
-		// Now check all the paths included for file existence
-
+		// Now check all the paths included for file existence.
 		paths := strings.Split(kubeconfigEnv, string(os.PathListSeparator))
-		out := []string{}
+		var out []string
 		for _, myPath := range paths {
 			if _, err := os.Stat(myPath); err == nil {
 				out = append(out, myPath)
@@ -698,21 +698,21 @@ func getKubeconfigPaths(homeDir string) []string {
 // - Removes path and other junk
 // Errors are printed immediately here, to simplify handling of this function.
 func normalizeEndpoint(u string) string {
-	// lowercase
+	// lowercase.
 	u = strings.ToLower(u)
 
-	// if URL has no scheme, prefix it with the default scheme
+	// if URL has no scheme, prefix it with the default scheme.
 	if !strings.HasPrefix(u, "https://") && !strings.HasPrefix(u, "http://") {
 		u = "https://" + u
 	}
 
-	// strip extra stuff
+	// strip extra stuff.
 	p, err := url.Parse(u)
 	if err != nil {
 		fmt.Printf("[Warning] Endpoint URL normalization yielded: %s\n", err)
 	}
 
-	// remove everything but scheme and host
+	// remove everything but scheme and host.
 	u = p.Scheme + "://" + p.Host
 
 	return u
