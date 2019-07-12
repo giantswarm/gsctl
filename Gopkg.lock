@@ -872,6 +872,7 @@
     "github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1",
     "github.com/giantswarm/columnize",
     "github.com/giantswarm/gscliauth/config",
+    "github.com/giantswarm/gscliauth/oidc",
     "github.com/giantswarm/gsclientgen/client",
     "github.com/giantswarm/gsclientgen/client/auth_tokens",
     "github.com/giantswarm/gsclientgen/client/clusters",
