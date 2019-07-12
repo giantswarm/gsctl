@@ -39,7 +39,7 @@
   version = "=2.0.2"
 
 [[constraint]]
-  branch = "gscliauth-impl"
+  branch = "master"
   name = "github.com/giantswarm/gscliauth"
 
 [[constraint]]

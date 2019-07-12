@@ -85,7 +85,7 @@
   version = "v2.0.2"
 
 [[projects]]
-  branch = "gscliauth-impl"
+  branch = "master"
   digest = "1:57e2e2f78f4ee18d20d20f556325cd1159e99232d90921b242a9a35cad02b752"
   name = "github.com/giantswarm/gscliauth"
   packages = [
@@ -93,7 +93,7 @@
     "oidc",
   ]
   pruneopts = "NUT"
-  revision = "f8c22a93c56d13ec77a673b61b0b4ff7b90d903a"
+  revision = "91654ee25dbaeafcc7135ad14ec8eaac44579f8f"
 
 [[projects]]
   branch = "master"
