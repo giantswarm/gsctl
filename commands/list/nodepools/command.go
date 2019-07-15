@@ -63,6 +63,16 @@ type arguments struct {
 	clusterID   string
 }
 
+// resultRow represents one nope pool row as returned by fetchNodePools.
+type resultRow struct {
+	// nodePool contains all the node pool details as returned from the API.
+	nodePool *models.V5GetNodePoolsResponseItems
+	// instanceTypeDetails contains details on the instance type.
+	instanceTypeDetails *nodespec.InstanceType
+	sumCPUs             int64
+	sumMemory           float64
+}
+
 // defaultArgs creates arguments based on command line flags and config.
 func defaultArgs(cmdLineArgs []string) arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
@@ -95,7 +105,9 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	errors.HandleCommonErrors(err)
 }
 
-func fetchNodePools(args arguments) (models.V5GetNodePoolsResponse, error) {
+// fetchNodePools collects all information we would want to display
+// on the node pools of a cluster.
+func fetchNodePools(args arguments) ([]*resultRow, error) {
 	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -114,7 +126,27 @@ func fetchNodePools(args arguments) (models.V5GetNodePoolsResponse, error) {
 		return response.Payload[i].ID < response.Payload[j].ID
 	})
 
-	return response.Payload, nil
+	awsInfo, err := nodespec.NewAWS()
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	// create combined output data structure.
+	rows := []*resultRow{}
+
+	for _, np := range response.Payload {
+		it, err := awsInfo.GetInstanceTypeDetails(np.NodeSpec.Aws.InstanceType)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		sumCPUs := np.Status.NodesReady * int64(it.CPUCores)
+		sumMemory := float64(np.Status.NodesReady) * float64(it.MemorySizeGB)
+
+		rows = append(rows, &resultRow{np, it, sumCPUs, sumMemory})
+	}
+
+	return rows, nil
 
 }
 
@@ -136,11 +168,6 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		os.Exit(1)
 	}
 
-	awsInfo, err := nodespec.NewAWS()
-	if err != nil {
-		fmt.Println(color.RedString("Error: Cannot provide info on AWS instance types. Details: %s", err))
-	}
-
 	table := []string{}
 
 	headers := []string{
@@ -156,26 +183,17 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 	table = append(table, strings.Join(headers, "|"))
 
-	for _, np := range nodePools {
-		var cpus int64
-		var ram float64
-		it, err := awsInfo.GetInstanceTypeDetails(np.NodeSpec.Aws.InstanceType)
-		if err != nil {
-			fmt.Println(color.YellowString("Warning: Cannot provide info on AWS instance type '%s'. Please kindly report this to the Giant Swarm support team.", np.NodeSpec.Aws.InstanceType))
-		} else {
-			cpus = np.Status.NodesReady * int64(it.CPUCores)
-			ram = float64(np.Status.NodesReady) * float64(it.MemorySizeGB)
-		}
+	for _, row := range nodePools {
 		table = append(table, strings.Join([]string{
-			np.ID,
-			np.Name,
-			formatAvailabilityZones(np.AvailabilityZones),
-			np.NodeSpec.Aws.InstanceType,
-			strconv.FormatInt(np.Scaling.Min, 10) + "/" + strconv.FormatInt(np.Scaling.Max, 10),
-			strconv.FormatInt(np.Status.Nodes, 10),
-			formatNodesReady(np.Status.Nodes, np.Status.NodesReady),
-			strconv.FormatInt(cpus, 10),
-			strconv.FormatFloat(ram, 'f', 1, 64),
+			row.nodePool.ID,
+			row.nodePool.Name,
+			formatAvailabilityZones(row.nodePool.AvailabilityZones),
+			row.nodePool.NodeSpec.Aws.InstanceType,
+			strconv.FormatInt(row.nodePool.Scaling.Min, 10) + "/" + strconv.FormatInt(row.nodePool.Scaling.Max, 10),
+			strconv.FormatInt(row.nodePool.Status.Nodes, 10),
+			formatNodesReady(row.nodePool.Status.Nodes, row.nodePool.Status.NodesReady),
+			strconv.FormatInt(row.sumCPUs, 10),
+			strconv.FormatFloat(row.sumMemory, 'f', 1, 64),
 		}, "|"))
 	}
 
