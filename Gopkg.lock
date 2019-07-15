@@ -46,8 +46,8 @@
   name = "github.com/cenkalti/backoff"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "1e4cf3da559842a91afcb6ea6141451e6c30c618"
-  version = "v2.1.1"
+  revision = "2146c93394225c3732078705043ce9f26584d334"
+  version = "v2.2.0"
 
 [[projects]]
   digest = "1:7a6852b35eb5bbc184561443762d225116ae630c26a7c4d90546619f1e7d2ad2"
@@ -83,6 +83,17 @@
   pruneopts = "NUT"
   revision = "677ded9e47e75ca49bd2541794a7281a49a2f17b"
   version = "v2.0.2"
+
+[[projects]]
+  branch = "master"
+  digest = "1:1edfe9fcabf577c43034b234e31ac46bb94cec7bcaee4fe86f523e0e0ca74d0c"
+  name = "github.com/giantswarm/gscliauth"
+  packages = [
+    "config",
+    "oidc",
+  ]
+  pruneopts = "NUT"
+  revision = "1fa93e8e469507f86070fc64a5727a085f118e41"
 
 [[projects]]
   branch = "master"
@@ -282,28 +293,23 @@
   version = "v1.7.0"
 
 [[projects]]
-  digest = "1:adde1a9684109c5f92be52d2ffdb46901fd15c11405bf7174c3287f6a711670f"
+  digest = "1:aeb8d51f4224133eb54a81ee7963a39fb9154819fa912ef4b1f4f34bc3a1fd66"
   name = "github.com/gobuffalo/packd"
-  packages = ["."]
+  packages = [
+    ".",
+    "internal/takeon/github.com/markbates/errx",
+  ]
   pruneopts = "NUT"
-  revision = "9efbb667f2024a9370cadda45a57a0657c88a6fb"
-  version = "v0.1.0"
+  revision = "54ea459691466cfb630ccc276723fe3963f3e9d5"
+  version = "v0.3.0"
 
 [[projects]]
-  digest = "1:3abdd02264e6294dc3c956bad747b453393d6e542a1913897e5e4ac9b72517a4"
+  digest = "1:94f9e7d86cc17101d2b64cf714ef48ee40b3fd720c60be1bc3a598d19241bfa8"
   name = "github.com/gobuffalo/packr"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "cda4ac25577350dac682c8715dc6659327232596"
-  version = "v2.2.0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:cc66a6ea07a8c9a8b95da5b0a78b90cd33cdbe3198ff9698f5b388876eee5464"
-  name = "github.com/gobuffalo/syncx"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "33c29581e754bd354236e977dfe426e55331c45d"
+  revision = "9eb7a3d310e89e471c2cdf1ea3ec8d7fc1ab969c"
+  version = "v2.5.2"
 
 [[projects]]
   digest = "1:a1b2a5e38f79688ee8250942d5fa960525fceb1024c855c7bc76fa77b0f3cca2"
@@ -523,14 +529,6 @@
   version = "v3.0.0"
 
 [[projects]]
-  digest = "1:14715f705ff5dfe0ffd6571d7d201dd8e921030f8070321a79380d8ca4ec1a24"
-  name = "github.com/pkg/errors"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
-  version = "v0.8.1"
-
-[[projects]]
   digest = "1:e09ada96a5a41deda4748b1659cc8953961799e798aea557257b56baee4ecaf3"
   name = "github.com/rogpeppe/go-internal"
   packages = [
@@ -551,7 +549,6 @@
   revision = "79abb63cd66e41cb1473e26d11ebdcd68b04c8e5"
 
 [[projects]]
-  branch = "master"
   digest = "1:6792bb72ea0e7112157d02e4e175cd421b43d004a853f56316a19beca6e0c074"
   name = "github.com/spf13/afero"
   packages = [
@@ -560,6 +557,7 @@
   ]
   pruneopts = "NUT"
   revision = "588a75ec4f32903aa5e39a2619ba6a4631e28424"
+  version = "v1.2.2"
 
 [[projects]]
   branch = "master"
@@ -870,11 +868,11 @@
   input-imports = [
     "github.com/Jeffail/gabs",
     "github.com/Masterminds/semver",
-    "github.com/cenkalti/backoff",
-    "github.com/dgrijalva/jwt-go",
     "github.com/fatih/color",
     "github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1",
     "github.com/giantswarm/columnize",
+    "github.com/giantswarm/gscliauth/config",
+    "github.com/giantswarm/gscliauth/oidc",
     "github.com/giantswarm/gsclientgen/client",
     "github.com/giantswarm/gsclientgen/client/auth_tokens",
     "github.com/giantswarm/gsclientgen/client/clusters",
@@ -891,12 +889,10 @@
     "github.com/go-openapi/runtime",
     "github.com/go-openapi/runtime/client",
     "github.com/go-openapi/strfmt",
-    "github.com/gobuffalo/packr",
     "github.com/google/go-cmp/cmp",
     "github.com/hashicorp/go-rootcerts",
     "github.com/howeyc/gopass",
     "github.com/juju/errgo",
-    "github.com/skratchdot/open-golang/open",
     "github.com/spf13/afero",
     "github.com/spf13/cobra",
     "gopkg.in/yaml.v2",

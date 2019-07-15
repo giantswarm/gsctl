@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
@@ -16,7 +17,6 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/scale/cluster/defaulting"
 	"github.com/giantswarm/gsctl/commands/scale/cluster/request"
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/confirm"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/limits"

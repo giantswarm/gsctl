@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
+	"github.com/giantswarm/gscliauth/config"
 	gsclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 	"github.com/giantswarm/gsclientgen/client/clusters"
@@ -26,7 +27,6 @@ import (
 	rootcerts "github.com/hashicorp/go-rootcerts"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
-	"github.com/giantswarm/gsctl/config"
 )
 
 var (

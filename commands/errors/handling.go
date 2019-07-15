@@ -5,10 +5,10 @@ import (
 	"os"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/gscliauth/oidc"
 	"github.com/giantswarm/microerror"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
-	"github.com/giantswarm/gsctl/oidc"
 )
 
 // HandleCommonErrors is a common function to handle certain errors happening in

@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 
+	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -20,7 +21,6 @@ import (
 	"github.com/giantswarm/gsctl/commands/update"
 	"github.com/giantswarm/gsctl/commands/upgrade"
 	"github.com/giantswarm/gsctl/commands/version"
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
 )
 

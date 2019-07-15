@@ -40,6 +40,10 @@
 
 [[constraint]]
   branch = "master"
+  name = "github.com/giantswarm/gscliauth"
+
+[[constraint]]
+  branch = "master"
   name = "github.com/giantswarm/gsclientgen"
 
 [[constraint]]
@@ -68,7 +72,7 @@
 
 [[constraint]]
   name = "github.com/spf13/afero"
-  branch = "master"
+  version = "1.2.2"
 
 [prune]
   non-go = true

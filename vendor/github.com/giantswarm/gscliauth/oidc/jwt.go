@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/giantswarm/microerror"
 )
 
@@ -15,9 +15,9 @@ const (
 	jwksURL = "https://giantswarm.eu.auth0.com/.well-known/jwks.json"
 )
 
-// IDToken is our custom representation of the details of a JWT we care about
+// IDToken is our custom representation of the details of a JWT we care about.
 type IDToken struct {
-	// Email claim
+	// Email claim.
 	Email string
 }
 
@@ -26,7 +26,10 @@ type IDToken struct {
 // for now.
 func ParseIDToken(tokenString string) (token *IDToken, err error) {
 	// Wait a bit of the tokens IAT is ahead of current time.
-	waitIfNeeded(tokenString)
+	err = waitIfNeeded(tokenString)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
 
 	// Parse takes the token string and a function for looking up the key. The latter is especially
 	// useful if you use multiple keys for your application.  The standard is to use 'kid' in the
@@ -43,7 +46,7 @@ func ParseIDToken(tokenString string) (token *IDToken, err error) {
 		return result, nil
 	})
 	if err != nil {
-		// handle some validation errors specifically
+		// handle some validation errors specifically.
 		valErr, valErrOK := err.(*jwt.ValidationError)
 		if valErrOK && valErr.Errors == jwt.ValidationErrorIssuedAt {
 			claims, ok := t.Claims.(jwt.MapClaims)
