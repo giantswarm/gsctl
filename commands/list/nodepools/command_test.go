@@ -49,15 +49,20 @@ func Test_ListNodePools(t *testing.T) {
 		t.Error(err)
 	}
 
-	nodePools, err := fetchNodePools(args)
+	results, err := fetchNodePools(args)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if len(nodePools) != 3 {
-		t.Errorf("Expected length 2, got %d", len(nodePools))
+	if len(results) != 3 {
+		t.Errorf("Expected length 3, got %d", len(results))
 	}
 
-	// execute the command
-	printResult(Command, positionalArgs)
+	if results[0].nodePool.ID != "6feel" {
+		t.Errorf("Expected NP ID 6feel in the front, got %s", results[0].nodePool.ID)
+	}
+
+	if results[2].sumCPUs != 128 {
+		t.Errorf("Expected 128 CPUs in the third row, got %d", results[2].sumCPUs)
+	}
 }
