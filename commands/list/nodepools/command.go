@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/fatih/color"
@@ -18,6 +19,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/nodespec"
 )
 
 var (
@@ -100,6 +102,11 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		os.Exit(1)
 	}
 
+	awsInfo, err := nodespec.NewAWS()
+	if err != nil {
+		fmt.Println(color.RedString("Error: Cannot provide info on AWS instance types. Details: %s", err))
+	}
+
 	table := []string{}
 
 	headers := []string{
@@ -110,18 +117,31 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		color.CyanString("NODES MIN/MAX"),
 		color.CyanString("NODES DESIRED"),
 		color.CyanString("NODES READY"),
+		color.CyanString("CPUS"),
+		color.CyanString("RAM (GB)"),
 	}
 	table = append(table, strings.Join(headers, "|"))
 
 	for _, np := range nodePools {
+		var cpus int64
+		var ram float64
+		it, err := awsInfo.GetInstanceTypeDetails(np.NodeSpec.Aws.InstanceType)
+		if err != nil {
+			fmt.Println(color.YellowString("Warning: Cannot provide info on AWS instance type '%s'. Please kindly report this to the Giant Swarm support team.", np.NodeSpec.Aws.InstanceType))
+		} else {
+			cpus = np.Status.NodesReady * int64(it.CPUCores)
+			ram = float64(np.Status.NodesReady) * float64(it.MemorySizeGB)
+		}
 		table = append(table, strings.Join([]string{
 			np.ID,
 			np.Name,
 			formatAvailabilityZones(np.AvailabilityZones),
 			np.NodeSpec.Aws.InstanceType,
-			"TODO",
-			string(np.Status.Nodes),
-			string(np.Status.NodesReady),
+			strconv.FormatInt(np.Scaling.Min, 10) + "/" + strconv.FormatInt(np.Scaling.Max, 10),
+			strconv.FormatInt(np.Status.Nodes, 10),
+			formatNodesReady(np.Status.Nodes, np.Status.NodesReady),
+			strconv.FormatInt(cpus, 10),
+			strconv.FormatFloat(ram, 'f', 1, 64),
 		}, "|"))
 	}
 
@@ -164,4 +184,12 @@ func formatAvailabilityZones(az []string) string {
 	sort.Strings(shortened)
 
 	return strings.ToUpper(strings.Join(shortened, ","))
+}
+
+func formatNodesReady(nodes, nodesReady int64) string {
+	if nodes == nodesReady {
+		return strconv.FormatInt(nodesReady, 10)
+	}
+
+	return color.YellowString(strconv.FormatInt(nodesReady, 10))
 }
