@@ -1,4 +1,4 @@
-// Package nodepools implements the 'list organizations' sub-command.
+// Package nodepools implements the 'list nodepools' sub-command.
 package nodepools
 
 import (
@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	// Command performs the "list organizations" function
+	// Command performs the "list nodepools" function
 	Command = &cobra.Command{
 		Use:     "nodepools <cluster-id>",
 		Aliases: []string{"nps", "np"},
