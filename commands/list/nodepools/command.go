@@ -95,6 +95,29 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	errors.HandleCommonErrors(err)
 }
 
+func fetchNodePools(args arguments) (models.V5GetNodePoolsResponse, error) {
+	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams.ActivityName = activityName
+
+	response, err := clientV2.GetNodePools(args.clusterID, auxParams)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	// sort node pools by ID
+	sort.Slice(response.Payload[:], func(i, j int) bool {
+		return response.Payload[i].ID < response.Payload[j].ID
+	})
+
+	return response.Payload, nil
+
+}
+
 func printResult(cmd *cobra.Command, positionalArgs []string) {
 	args := defaultArgs(positionalArgs)
 	nodePools, err := fetchNodePools(args)
@@ -157,29 +180,6 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 
 	fmt.Println(columnize.SimpleFormat(table))
-}
-
-func fetchNodePools(args arguments) (models.V5GetNodePoolsResponse, error) {
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	auxParams := clientV2.DefaultAuxiliaryParams()
-	auxParams.ActivityName = activityName
-
-	response, err := clientV2.GetNodePools(args.clusterID, auxParams)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	// sort node pools by ID
-	sort.Slice(response.Payload[:], func(i, j int) bool {
-		return response.Payload[i].ID < response.Payload[j].ID
-	})
-
-	return response.Payload, nil
-
 }
 
 // formatAvailabilityZones returns the list of availability zones
