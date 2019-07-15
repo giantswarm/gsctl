@@ -33,7 +33,18 @@ var (
 		Short: "List node pools",
 		Long: `Prints a list of the node pools of a cluster.
 
-The result will be a table of all node pools of a specific cluster with some details.
+The result will be a table of all node pools of a specific cluster with the following details in
+columns:
+
+	ID:             Node pool identifier (unique within the cluster)
+	NAME:           Name specified for the node pool, usually indicating the purpose
+	AZ:             Availability zone letters used by the node pool, separated by comma
+	INSTANCE TYPE:  EC2 instance type used for worker nodes
+	NODES MIN/MAX:  The minimum and maximum number of worker nodes in this pool
+	NODES DESIRED:  Current desired number of nodes as determined by the autoscaler
+	NODES READY:    Number of nodes that are in the Ready state in kubernetes
+	CPUS:           Sum of CPU cores in nodes that are in state Ready
+	RAM (GB):       Sum of memory in GB of all nodes that are in state Ready
 
 To see all available details for a cluster, use 'gsctl show nodepool <cluster-id>/<nodepool-id>'.
 
