@@ -54,7 +54,7 @@ func Test_ListNodePools(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(nodePools) != 2 {
+	if len(nodePools) != 3 {
 		t.Errorf("Expected length 2, got %d", len(nodePools))
 	}
 
