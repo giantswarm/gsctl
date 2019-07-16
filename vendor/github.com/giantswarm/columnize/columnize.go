@@ -17,24 +17,43 @@ type Config struct {
 	// The string by which columns of output will be prefixed.
 	Prefix string
 
-	// A replacement string to replace empty fields
+	// A replacement string to replace empty fields.
 	Empty string
+
+	// ColumnSpec can contain extra specifications for the columns.
+	ColumnSpec []*ColumnSpecification
 }
 
 // Regular expression used to find/remove ANSII escape codes for color
 var ansiiColorCodeRegexp *regexp.Regexp
 
+// Regular expression used to find/remove ANSII escape codes for urls
+var ansiiURLRegexp *regexp.Regexp
+
+// AlignLeft means that a column should be left-aligned (default).
+var AlignLeft = "AlignLeft"
+
+// AlignRight means that a column should be aligned to the right.
+var AlignRight = "AlignRight"
+
 func init() {
 	ansiiColorCodeRegexp = regexp.MustCompile("\x1b\\[[^m]+m")
+	ansiiURLRegexp = regexp.MustCompile("\033]8;;.*?\033\\\\")
 }
 
 // DefaultConfig returns a Config with default values.
 func DefaultConfig() *Config {
 	return &Config{
-		Delim:  "|",
-		Glue:   "  ",
-		Prefix: "",
+		Delim:      "|",
+		Glue:       "  ",
+		Prefix:     "",
+		ColumnSpec: []*ColumnSpecification{},
 	}
+}
+
+// ColumnSpecification specifies alignment for a column.
+type ColumnSpecification struct {
+	Alignment string
 }
 
 // Returns a list of elements, each representing a single item which will
@@ -64,6 +83,7 @@ func runeLen(s string) int {
 // not counting ANSII escape codes for color
 func runeLenWithoutANSII(s string) int {
 	s = ansiiColorCodeRegexp.ReplaceAllString(s, "")
+	s = ansiiURLRegexp.ReplaceAllString(s, "")
 	return runeLen(s)
 }
 
@@ -93,17 +113,41 @@ func (c *Config) getStringFormat(widths []int, elems []interface{}) string {
 
 	// Create the format string from the discovered widths
 	for i := 0; i < len(elems) && i < len(widths); i++ {
-		if i == len(elems)-1 {
-			stringfmt += "%s\n"
-		} else {
-			if containsColorCode(elems[i]) {
-				addOn := runeLen(elems[i].(string)) - runeLenWithoutANSII(elems[i].(string))
-				stringfmt += fmt.Sprintf("%%-%ds%s", widths[i]+addOn, c.Glue)
+		alignment := AlignLeft
+		fmtSuffix := "%%-%ds%s"
+		fmtSuffixLast := "%s\n"
+		if len(c.ColumnSpec) > i {
+			alignment = c.ColumnSpec[i].Alignment
+			if alignment == AlignRight {
+				fmtSuffix = "%%%ds%s"
+				fmtSuffixLast = "%%%ds\n"
+			}
+		}
+
+		if containsANSIICode(elems[i]) {
+			addOn := runeLen(elems[i].(string)) - runeLenWithoutANSII(elems[i].(string))
+			if i == len(elems)-1 {
+				if alignment == AlignRight {
+					stringfmt += fmt.Sprintf(fmtSuffixLast, widths[i]+addOn)
+				} else {
+					stringfmt += fmtSuffixLast
+				}
 			} else {
-				stringfmt += fmt.Sprintf("%%-%ds%s", widths[i], c.Glue)
+				stringfmt += fmt.Sprintf(fmtSuffix, widths[i]+addOn, c.Glue)
+			}
+		} else {
+			if i == len(elems)-1 {
+				if alignment == AlignRight {
+					stringfmt += fmt.Sprintf(fmtSuffixLast, widths[i])
+				} else {
+					stringfmt += fmtSuffixLast
+				}
+			} else {
+				stringfmt += fmt.Sprintf(fmtSuffix, widths[i], c.Glue)
 			}
 		}
 	}
+
 	return stringfmt
 }
 
@@ -128,6 +172,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Empty != "" {
 		result.Empty = b.Empty
+	}
+	if b.ColumnSpec != nil {
+		result.ColumnSpec = b.ColumnSpec
 	}
 
 	return &result
@@ -161,11 +208,11 @@ func SimpleFormat(lines []string) string {
 	return Format(lines, nil)
 }
 
-// containsColorCode returns true if the string contains an ANSII escape code
-func containsColorCode(i interface{}) bool {
+// containsANSIICode returns true if the string contains an ANSII escape code
+func containsANSIICode(i interface{}) bool {
 	s, ok := i.(string)
 	if ok {
-		return strings.Contains(s, "\x1b[")
+		return strings.Contains(s, "\x1b")
 	}
 	return false
 }
