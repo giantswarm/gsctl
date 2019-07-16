@@ -24,6 +24,7 @@ import (
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/confirm"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/formatting"
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -316,7 +317,7 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	// Success output
 
 	msg := fmt.Sprintf("New key pair created with ID %s and expiry of %v",
-		util.Truncate(util.CleanKeypairID(result.id), 10, true),
+		util.Truncate(formatting.CleanKeypairID(result.id), 10, true),
 		util.DurationPhrase(int(result.ttlHours)))
 	fmt.Println(color.GreenString(msg))
 
