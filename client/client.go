@@ -420,6 +420,22 @@ func (w *WrapperV2) GetClusterV5(clusterID string, p *AuxiliaryParams) (*cluster
 	return response, nil
 }
 
+// GetNodePool fetches a node pool.
+func (w *WrapperV2) GetNodePool(clusterID, nodePoolID string, p *AuxiliaryParams) (*nodepools.GetNodePoolOK, error) {
+	params := nodepools.NewGetNodePoolParams().WithClusterID(clusterID).WithNodepoolID(nodePoolID)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Nodepools.GetNodePool(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
 // GetNodePools fetches a list of node pools.
 func (w *WrapperV2) GetNodePools(clusterID string, p *AuxiliaryParams) (*nodepools.GetNodePoolsOK, error) {
 	params := nodepools.NewGetNodePoolsParams().WithClusterID(clusterID)

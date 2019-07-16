@@ -19,6 +19,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/formatting"
 	"github.com/giantswarm/gsctl/nodespec"
 )
 
@@ -187,7 +188,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		table = append(table, strings.Join([]string{
 			row.nodePool.ID,
 			row.nodePool.Name,
-			formatAvailabilityZones(row.nodePool.AvailabilityZones),
+			formatting.AvailabilityZonesList(row.nodePool.AvailabilityZones),
 			row.nodePool.NodeSpec.Aws.InstanceType,
 			strconv.FormatInt(row.nodePool.Scaling.Min, 10) + "/" + strconv.FormatInt(row.nodePool.Scaling.Max, 10),
 			strconv.FormatInt(row.nodePool.Status.Nodes, 10),
@@ -198,21 +199,6 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 
 	fmt.Println(columnize.SimpleFormat(table))
-}
-
-// formatAvailabilityZones returns the list of availability zones
-// as one string consisting of uppercase letters only, e. g. "A,B,C".
-func formatAvailabilityZones(az []string) string {
-	shortened := []string{}
-
-	for _, az := range az {
-		// last character of each item
-		shortened = append(shortened, az[len(az)-1:])
-	}
-
-	sort.Strings(shortened)
-
-	return strings.ToUpper(strings.Join(shortened, ","))
 }
 
 func formatNodesReady(nodes, nodesReady int64) string {

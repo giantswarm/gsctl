@@ -25,7 +25,7 @@ func Test_ListNodePools(t *testing.T) {
 					{"id": "a6bf4", "name": "New node pool", "availability_zones": ["eu-west-1c"], "scaling": {"min": 3, "max": 3}, "node_spec": {"aws": {"instance_type": "m5.2xlarge"}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}}
 				]`))
 			default:
-				t.Errorf("Unsupported route %scalled in mock server", r.URL.Path)
+				t.Errorf("Unsupported route %s called in mock server", r.URL.Path)
 				w.WriteHeader(http.StatusNotFound)
 				w.Write([]byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Status for this cluster is not yet available."}`))
 			}
