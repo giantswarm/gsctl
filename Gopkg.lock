@@ -77,12 +77,12 @@
   revision = "5294df621fba91f5e5b45730904a377623752242"
 
 [[projects]]
-  branch = "right-alignment"
+  branch = "master"
   digest = "1:10073b2acb12a3325039f2ac5cfd50039584ad5913ed7147a391f3f6d9005ef1"
   name = "github.com/giantswarm/columnize"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "eb87b5036530adbfa273551408069fd53b047814"
+  revision = "cc99d98ffb296b079c11bc555aa8f55842601b7b"
 
 [[projects]]
   branch = "node-pools"
