@@ -174,16 +174,9 @@ func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, er
 	auxParams.ActivityName = activityName
 
 	// Make sure we have provider info in the current endpoint
-	if config.Config.Provider == "" {
-		if flags.CmdVerbose {
-			fmt.Println(color.WhiteString("Fetching provider information"))
-		}
-
-		info, err := clientV2.GetInfo(auxParams)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-		config.Config.SetProvider(info.Payload.General.Provider)
+	err = clientV2.EnsureProviderInConfig()
+	if err != nil {
+		return nil, microerror.Mask(err)
 	}
 
 	// perform API call

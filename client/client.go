@@ -295,6 +295,21 @@ func setParamsWithAuthorization(p *AuxiliaryParams, w *WrapperV2, params paramSe
 	return nil
 }
 
+// EnsureProviderInConfig ensures that the config file has a valid provider entry
+// for the configured endpoint.
+func (w *WrapperV2) EnsureProviderInConfig() error {
+	if config.Config.Provider == "" {
+		auxParams := w.DefaultAuxiliaryParams()
+		info, err := w.GetInfo(auxParams)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+		config.Config.SetProvider(info.Payload.General.Provider)
+	}
+
+	return nil
+}
+
 // CreateAuthToken creates an auth token using the V2 client.
 func (w *WrapperV2) CreateAuthToken(email, password string, p *AuxiliaryParams) (*auth_tokens.CreateAuthTokenOK, error) {
 	params := auth_tokens.NewCreateAuthTokenParams().WithBody(&models.V4CreateAuthTokenRequest{
