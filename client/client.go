@@ -122,13 +122,20 @@ func NewV2(conf *Configuration) (*WrapperV2, error) {
 		Timeout:   conf.Timeout,
 	}
 
-	return &WrapperV2{
+	c := &WrapperV2{
 		conf:        conf,
 		gsclient:    gsclient.New(transport, strfmt.Default),
 		requestID:   randomRequestID(),
 		commandLine: getCommandLine(),
 		rawClient:   rawClient,
-	}, nil
+	}
+
+	err = c.ensureProviderInConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
 // NewWithConfig creates a new client wrapper for a certain endpoint, optionally
@@ -295,9 +302,9 @@ func setParamsWithAuthorization(p *AuxiliaryParams, w *WrapperV2, params paramSe
 	return nil
 }
 
-// EnsureProviderInConfig ensures that the config file has a valid provider entry
+// ensureProviderInConfig ensures that the config file has a valid provider entry
 // for the configured endpoint.
-func (w *WrapperV2) EnsureProviderInConfig() error {
+func (w *WrapperV2) ensureProviderInConfig() error {
 	if config.Config.Provider == "" {
 		auxParams := w.DefaultAuxiliaryParams()
 		info, err := w.GetInfo(auxParams)
