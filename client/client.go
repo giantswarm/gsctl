@@ -132,7 +132,7 @@ func NewV2(conf *Configuration) (*WrapperV2, error) {
 
 	err = c.ensureProviderInConfig()
 	if err != nil {
-		return nil, err
+		return nil, microerror.Mask(err)
 	}
 
 	return c, nil
