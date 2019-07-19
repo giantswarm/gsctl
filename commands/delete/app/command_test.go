@@ -16,7 +16,7 @@ func TestDeleteAppSuccess(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Log("mockServer request: ", r.Method, r.URL)
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusAccepted)
+		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"code": "RESOURCE_DELETED", "message": ""}`))
 	}))
 	defer mockServer.Close()
@@ -35,6 +35,7 @@ func TestDeleteAppSuccess(t *testing.T) {
 
 	for i, testCase := range testCases {
 
+		flags.CmdClusterID = testCase.clusterID
 		flags.CmdToken = testCase.token
 		flags.CmdForce = testCase.force
 
