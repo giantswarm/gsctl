@@ -14,6 +14,7 @@ import (
 	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
 	"github.com/giantswarm/gscliauth/config"
 	gsclient "github.com/giantswarm/gsclientgen/client"
+	"github.com/giantswarm/gsclientgen/client/apps"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/client/info"
@@ -316,6 +317,22 @@ func (w *WrapperV2) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth
 	setParams(p, w, params)
 
 	response, err := w.gsclient.AuthTokens.DeleteAuthToken(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+// DeleteApp calls the API's deleteApp operation using the V2 client.
+func (w *WrapperV2) DeleteApp(clusterID string, appName string, p *AuxiliaryParams) (*apps.DeleteClusterAppOK, error) {
+	params := apps.NewDeleteClusterAppParams().WithAppName(appName).WithClusterID(clusterID)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Apps.DeleteClusterApp(params, nil)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}

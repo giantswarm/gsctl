@@ -4,6 +4,9 @@ var (
 	// CmdAPIEndpoint represents the API endpoint URL flag.
 	CmdAPIEndpoint string
 
+	// CmdAppName represents the App Name passed as a flag.
+	CmdAppName string
+
 	// CmdToken represents the auth token passed as a flag.
 	CmdToken string
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-openapi/runtime"
 
+	"github.com/giantswarm/gsclientgen/client/apps"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/client/info"
@@ -89,6 +90,24 @@ func New(err error) *APIError {
 		}
 
 		return ae
+	}
+
+	// deleteApp
+	if deleteAppUnauthorizedErr, ok := err.(*apps.CreateClusterAppUnauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  deleteAppUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to delete this app.",
+		}
+	}
+	if deleteAppNotFoundErr, ok := err.(*apps.DeleteClusterAppNotFound); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusNotFound,
+			OriginalError:  deleteAppNotFoundErr,
+			ErrorMessage:   "App or Cluster not found",
+			ErrorDetails:   "Please check the app name and cluster ID.",
+		}
 	}
 
 	// create cluster

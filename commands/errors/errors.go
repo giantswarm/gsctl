@@ -19,6 +19,16 @@ func IsUnknownError(err error) bool {
 	return microerror.Cause(err) == UnknownError
 }
 
+// AppNameMissingError means that required app name argument was missing.
+var AppNameMissingError = &microerror.Error{
+	Kind: "AppNameMissingError",
+}
+
+// IsAppNameMissingError asserts AppNameMissingError.
+func IsAppNameMissingError(err error) bool {
+	return microerror.Cause(err) == AppNameMissingError
+}
+
 // CouldNotCreateClientError means that a client could not be created
 var CouldNotCreateClientError = &microerror.Error{
 	Kind: "CouldNotCreateClientError",
@@ -331,6 +341,19 @@ var BadRequestError = &microerror.Error{
 // IsBadRequestError asserts BadRequestError
 func IsBadRequestError(err error) bool {
 	return microerror.Cause(err) == BadRequestError
+}
+
+// errors for app deletion
+
+// CouldNotDeleteAppError should be used if the API call to delete a
+// app has been responded with status >= 400
+var CouldNotDeleteAppError = &microerror.Error{
+	Kind: "CouldNotDeleteAppError",
+}
+
+// IsCouldNotDeleteAppError asserts CouldNotDeleteAppError.
+func IsCouldNotDeleteAppError(err error) bool {
+	return microerror.Cause(err) == CouldNotDeleteAppError
 }
 
 // errors for cluster deletion
