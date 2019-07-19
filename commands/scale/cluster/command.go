@@ -173,12 +173,6 @@ func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, er
 	auxParams := clientV2.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	// Make sure we have provider info in the current endpoint
-	err = clientV2.EnsureProviderInConfig()
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
 	// perform API call
 	if flags.CmdVerbose {
 		fmt.Println(color.WhiteString("Fetching current cluster size"))
