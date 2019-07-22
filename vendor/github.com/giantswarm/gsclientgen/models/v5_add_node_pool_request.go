@@ -20,7 +20,7 @@ type V5AddNodePoolRequest struct {
 	// availability zones
 	AvailabilityZones *V5AddNodePoolRequestAvailabilityZones `json:"availability_zones,omitempty"`
 
-	// Node pool name
+	// Node pool name. _(Length between 1-100, cannot contain control codes such as newline.)_
 	//
 	Name string `json:"name,omitempty"`
 

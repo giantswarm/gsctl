@@ -38,7 +38,6 @@ likely that the fields in this status object will be all empty values.
 
 To check on the status of your app, perform a GET to /v4/clusters/{cluster_id}/apps/,
 and check the status field of the app.
-###
 
 ### Example PUT request
 ```json
@@ -48,15 +47,33 @@ and check the status field of the app.
       "name": "prometheus-chart",
       "namespace": "prometheus",
       "version": "0.2.0",
-      "user_config": {
-        "configmap": {
-          "name": "prometheus-user-values",
-          "namespace": "123ab"
-        }
-      }
     }
   }
 ```
+
+### About the user_config field in the response
+This field is not editable by you, but is set automatically by the API
+if a configmap named `{app_name}-user-values` exists in the tenant cluster
+namespace on the control plane.
+
+The `/v4/clusters/{cluster_id}/apps/{app_name}/config/` endpoints allows
+you to create such a configmap using this API.
+
+It is recommended to create your config before creating your app. This
+will result in a faster deploy.
+
+However, you can create your config after creating the app if you wish,
+this API will take care of setting the `user_config` field of the app
+correctly for you.
+
+### Why can't I just set the `user_config` value myself?
+It simplifies usage while also being a security measure.
+
+Furthermore it is also a security measure and ensures that users of this
+API can't access arbitrary configmaps of the control plane.
+
+This API will only allow you to edit or access configmaps that adhere
+to a strict naming convention.
 
 */
 func (a *Client) CreateClusterApp(params *CreateClusterAppParams, authInfo runtime.ClientAuthInfoWriter) (*CreateClusterAppOK, error) {
@@ -82,54 +99,6 @@ func (a *Client) CreateClusterApp(params *CreateClusterAppParams, authInfo runti
 		return nil, err
 	}
 	return result.(*CreateClusterAppOK), nil
-
-}
-
-/*
-CreateClusterAppConfig creates app config
-
-This operation allows you to create a values configmap for a specific app. The app does
-not have to exist before hand.
-
-
-### Example POST request
-```json
-  {
-    "agent": {
-      "key": "secret-key-here",
-      "endpointHost": "saas-eu-west-1.instana.io",
-      "endpointPort": "443",
-    },
-    "zone": {
-      "name": "giantswarm-cluster"
-    }
-  }
-```
-
-*/
-func (a *Client) CreateClusterAppConfig(params *CreateClusterAppConfigParams, authInfo runtime.ClientAuthInfoWriter) (*CreateClusterAppConfigOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewCreateClusterAppConfigParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "createClusterAppConfig",
-		Method:             "PUT",
-		PathPattern:        "/v4/clusters/{cluster_id}/apps/{app_name}/config/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"https"},
-		Params:             params,
-		Reader:             &CreateClusterAppConfigReader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*CreateClusterAppConfigOK), nil
 
 }
 
@@ -162,46 +131,6 @@ func (a *Client) DeleteClusterApp(params *DeleteClusterAppParams, authInfo runti
 		return nil, err
 	}
 	return result.(*DeleteClusterAppOK), nil
-
-}
-
-/*
-DeleteClusterAppConfig deletes an app config
-
-This operation allows a user to delete an app's user config if it has been named according to the convention of {app-name}-user-values and
-stored in the cluster ID namespace.
-
-Calling this endpoint will delete the ConfigMap, but it does not remove the reference to the ConfigMap in the (spec.user_config.configmap field) from the app.
-
-Do make sure you also update the app and remove the reference.
-
-The preferred order is to first remove the reference to the configmap by
-updating the app, and only then delete the configmap using this endpoint.
-
-*/
-func (a *Client) DeleteClusterAppConfig(params *DeleteClusterAppConfigParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteClusterAppConfigOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewDeleteClusterAppConfigParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "deleteClusterAppConfig",
-		Method:             "DELETE",
-		PathPattern:        "/v4/clusters/{cluster_id}/apps/{app_name}/config/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"https"},
-		Params:             params,
-		Reader:             &DeleteClusterAppConfigReader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DeleteClusterAppConfigOK), nil
 
 }
 
@@ -258,39 +187,6 @@ func (a *Client) GetAppCatalogs(params *GetAppCatalogsParams, authInfo runtime.C
 		return nil, err
 	}
 	return result.(*GetAppCatalogsOK), nil
-
-}
-
-/*
-GetClusterAppConfig gets app config
-
-This operation allows you to fetch the user values configmap associated
-with an app.
-
-*/
-func (a *Client) GetClusterAppConfig(params *GetClusterAppConfigParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterAppConfigOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetClusterAppConfigParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "getClusterAppConfig",
-		Method:             "GET",
-		PathPattern:        "/v4/clusters/{cluster_id}/apps/{app_name}/config/",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"https"},
-		Params:             params,
-		Reader:             &GetClusterAppConfigReader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetClusterAppConfigOK), nil
 
 }
 
@@ -356,6 +252,47 @@ func (a *Client) GetClusterApps(params *GetClusterAppsParams, authInfo runtime.C
 		return nil, err
 	}
 	return result.(*GetClusterAppsOK), nil
+
+}
+
+/*
+ModifyClusterApp modifies an app
+
+This operation allows you to modify an existing app.
+
+The following attributes can be modified:
+
+- `version`: Changing this field lets you upgrade or downgrade an app.
+
+`catalog`, `name`, `namespace`, and `user_config` are not editable. If you need to move or rename an app, you should instead delete the app and make it again.
+
+The request body must conform with the [JSON Patch Merge (RFC 7386)](https://tools.ietf.org/html/rfc7386) standard.
+Requests have to be sent with the `Content-Type: application/merge-patch+json` header.
+
+*/
+func (a *Client) ModifyClusterApp(params *ModifyClusterAppParams, authInfo runtime.ClientAuthInfoWriter) (*ModifyClusterAppOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewModifyClusterAppParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "modifyClusterApp",
+		Method:             "PATCH",
+		PathPattern:        "/v4/clusters/{cluster_id}/apps/{app_name}/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ModifyClusterAppReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ModifyClusterAppOK), nil
 
 }
 

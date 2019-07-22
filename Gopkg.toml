@@ -43,7 +43,7 @@
   name = "github.com/giantswarm/gscliauth"
 
 [[constraint]]
-  branch = "node-pools"
+  branch = "master"
   name = "github.com/giantswarm/gsclientgen"
 
 [[constraint]]

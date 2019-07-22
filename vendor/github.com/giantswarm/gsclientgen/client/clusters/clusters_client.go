@@ -30,14 +30,6 @@ AddCluster creates cluster v4
 This operation is used to create a new Kubernetes cluster or
 "tenant cluster".
 
-__Providers__:
-<span class="badge azure">Azure</span>
-<span class="badge kvm">KVM</span>
-<span class="badge aws">AWS*</span>
-&ndash; AWS support ends with release version `TODO`. For AWS clusters using
-release `TODO` and higher, please refer to the
-[v5 equivalent](#operation/addClusterV5).
-
 ### Cluster definition
 
 The cluster definition format allows to set a number of optional
@@ -87,11 +79,6 @@ AddClusterV5 creates cluster v5
 
 Allows to create most recent clusters on AWS installations.
 
-__Providers__:
-<span class="badge aws">AWS*</span>
-&ndash; Only supports release `TODO` and higher on AWS. For other
-providers, please refer to the [v4 equivalent](#operation/addCluster).
-
 ### Node pools
 
 In the Giant Swarm API v5, worker nodes are grouped into pools of worker
@@ -140,16 +127,9 @@ DeleteCluster deletes cluster
 
 This operation triggers deleting a cluster with all resources attached to it.
 
-__Providers__:
-<span class="badge azure">Azure</span>
-<span class="badge kvm">KVM</span>
-<span class="badge aws">AWS</span>
-&ndash; All providers supported.
-
 Deleting a cluster causes the termination of all workloads running on
-the cluster. Data stored on the worker nodes will be lost. On AWS, node
-pools belonging to the cluster are deleted, too. There is no way to undo
-this operation.
+the cluster. Data stored on the worker nodes will be lost. There is no
+way to undo this operation.
 
 The response is sent as soon as the request is validated.
 At that point, workloads might still be running on the cluster and may be accessible for a little wile, until the cluster is actually deleted.
@@ -186,14 +166,6 @@ GetCluster gets cluster details v4
 
 This operation allows to obtain basic details on a particular cluster.
 
-__Providers__:
-<span class="badge azure">Azure</span>
-<span class="badge kvm">KVM</span>
-<span class="badge aws">AWS*</span>
-&ndash; AWS support ends with release version `TODO`. For AWS clusters
-using release `TODO` and higher, please refer to the
-[v5 equivalent](#operation/getClusterV5).
-
 */
 func (a *Client) GetCluster(params *GetClusterParams, authInfo runtime.ClientAuthInfoWriter) (*GetClusterOK, error) {
 	// TODO: Validate the params before sending
@@ -225,12 +197,6 @@ func (a *Client) GetCluster(params *GetClusterParams, authInfo runtime.ClientAut
 GetClusterStatus gets cluster status
 
 Returns an object about a cluster's current state and past status transitions.
-
-__Providers__:
-<span class="badge azure">Azure</span>
-<span class="badge kvm">KVM</span>
-<span class="badge aws">AWS</span>
-&ndash; All providers supported.
 
 This endpoint exposes the status content of the Kubernetes resources representing
 a cluster in the corresponding custom resource. That is, depending on the provider:
@@ -274,11 +240,6 @@ GetClusterV5 gets cluster details v5
 
 Allows to retrieve cluster details on AWS installations.
 
-__Providers__:
-<span class="badge aws">AWS*</span>
-&ndash; Only supports release `TODO` and higher on AWS. For other
-providers, please refer to the [v4 equivalent](#operation/getCluster).
-
 */
 func (a *Client) GetClusterV5(params *GetClusterV5Params, authInfo runtime.ClientAuthInfoWriter) (*GetClusterV5OK, error) {
 	// TODO: Validate the params before sending
@@ -311,12 +272,6 @@ GetClusters gets clusters
 
 This operation fetches a list of clusters.
 
-__Providers__:
-<span class="badge aws">AWS</span>
-<span class="badge azure">Azure</span>
-<span class="badge kvm">KVM</span>
-&ndash; All providers supported
-
 The result depends on the permissions of the user.
 A normal user will get all the clusters the user has access
 to, via organization membership.
@@ -324,12 +279,8 @@ A user with admin permission will receive a list of all existing
 clusters.
 
 The result array items are sparse representations of the cluster
-objects. To fetch more details on a cluster, use the following
-operations:
-
-- [getCluster](#operation/getCluster) or [getClusterV5](#operation/getClusterV5) for cluster details
-- [getNodePools](#operation/getNodePools) for node pool details
-- [getClusterStatus](#operation/getClusterStatus) operations.
+objects. To fetch more details on a cluster, use the
+[getClusterStatus](#operation/getClusterStatus) operation.
 
 */
 func (a *Client) GetClusters(params *GetClustersParams, authInfo runtime.ClientAuthInfoWriter) (*GetClustersOK, error) {
@@ -362,14 +313,6 @@ func (a *Client) GetClusters(params *GetClustersParams, authInfo runtime.ClientA
 ModifyCluster modifies cluster v4
 
 This operation allows to modify an existing cluster.
-
-__Providers__:
-<span class="badge azure">Azure</span>
-<span class="badge kvm">KVM</span>
-<span class="badge aws">AWS*</span>
-&ndash; AWS support ends with release version `TODO`. For AWS clusters
-using release `TODO` and higher, please refer to the
-[v5 equivalent](#operation/modifyClusterV5).
 
 A cluster modification is performed by submitting a `PATCH` request
 to the cluster resource (as described in the
@@ -442,11 +385,6 @@ func (a *Client) ModifyCluster(params *ModifyClusterParams, authInfo runtime.Cli
 ModifyClusterV5 modifies cluster v5
 
 Allows to change cluster properties on AWS installations.
-
-__Providers__:
-<span class="badge aws">AWS*</span>
-&ndash; Only supports release `TODO` and higher on AWS. For other
-providers, please refer to the [v4 equivalent](#operation/modifyCluster).
 
 */
 func (a *Client) ModifyClusterV5(params *ModifyClusterV5Params, authInfo runtime.ClientAuthInfoWriter) (*ModifyClusterV5OK, error) {

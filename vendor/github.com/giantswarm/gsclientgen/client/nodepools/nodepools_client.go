@@ -29,10 +29,6 @@ AddNodePool creates node pool
 
 This allows to add a node pool to a cluster.
 
-__Providers__:
-<span class="badge aws">AWS</span>
-&ndash; Only supports release `TODO` and higher on AWS.
-
 Some, but not all, node pool configuration can be changed after
 creation. The following settings will have a permanent effect:
 
@@ -70,10 +66,6 @@ func (a *Client) AddNodePool(params *AddNodePoolParams, authInfo runtime.ClientA
 DeleteNodePool deletes node pool
 
 Triggers the deletion of a node pool.
-
-__Providers__:
-<span class="badge aws">AWS</span>
-&ndash; Only supports release `TODO` and higher on AWS.
 
 Nodes in the pool will first be cordoned and drained. Note that it is
 your responsibililty to make sure that workloads using the node pool can
@@ -120,10 +112,6 @@ GetNodePool gets node pool details
 
 Returns all available details on a specific node pool.
 
-__Providers__:
-<span class="badge aws">AWS</span>
-&ndash; Only supports release `TODO` and higher on AWS.
-
 */
 func (a *Client) GetNodePool(params *GetNodePoolParams, authInfo runtime.ClientAuthInfoWriter) (*GetNodePoolOK, error) {
 	// TODO: Validate the params before sending
@@ -156,10 +144,6 @@ GetNodePools gets node pools
 
 Returns a list of node pools from a given cluster.
 
-__Providers__:
-<span class="badge aws">AWS</span>
-&ndash; Only supports release `TODO` and higher on AWS.
-
 */
 func (a *Client) GetNodePools(params *GetNodePoolsParams, authInfo runtime.ClientAuthInfoWriter) (*GetNodePoolsOK, error) {
 	// TODO: Validate the params before sending
@@ -191,10 +175,6 @@ func (a *Client) GetNodePools(params *GetNodePoolsParams, authInfo runtime.Clien
 ModifyNodePool modifies node pool
 
 Allows to rename a node pool or change its scaling settings.
-
-__Providers__:
-<span class="badge aws">AWS</span>
-&ndash; Only supports release `TODO` and higher on AWS.
 
 */
 func (a *Client) ModifyNodePool(params *ModifyNodePoolParams, authInfo runtime.ClientAuthInfoWriter) (*ModifyNodePoolOK, error) {

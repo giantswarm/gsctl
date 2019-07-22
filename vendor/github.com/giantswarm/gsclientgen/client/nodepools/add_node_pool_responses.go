@@ -32,6 +32,13 @@ func (o *AddNodePoolReader) ReadResponse(response runtime.ClientResponse, consum
 		}
 		return result, nil
 
+	case 400:
+		result := NewAddNodePoolBadRequest()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
 	case 401:
 		result := NewAddNodePoolUnauthorized()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -85,6 +92,35 @@ func (o *AddNodePoolCreated) readResponse(response runtime.ClientResponse, consu
 	o.Location = response.GetHeader("Location")
 
 	o.Payload = new(models.V5GetNodePoolResponse)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewAddNodePoolBadRequest creates a AddNodePoolBadRequest with default headers values
+func NewAddNodePoolBadRequest() *AddNodePoolBadRequest {
+	return &AddNodePoolBadRequest{}
+}
+
+/*AddNodePoolBadRequest handles this case with default header values.
+
+Bad request
+*/
+type AddNodePoolBadRequest struct {
+	Payload *models.V4GenericResponse
+}
+
+func (o *AddNodePoolBadRequest) Error() string {
+	return fmt.Sprintf("[POST /v5/clusters/{cluster_id}/nodepools/][%d] addNodePoolBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *AddNodePoolBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.V4GenericResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

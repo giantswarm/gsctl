@@ -96,11 +96,12 @@
   revision = "1fa93e8e469507f86070fc64a5727a085f118e41"
 
 [[projects]]
-  branch = "node-pools"
-  digest = "1:cce0d0fc45e61df938f630d0d34afb6c887f570f146b68ca5d0fa97f7b945129"
+  branch = "master"
+  digest = "1:9b4b616e842dba2ab6fb7b6333addd4efbdd5f51f5bbe09c58fec420493426ff"
   name = "github.com/giantswarm/gsclientgen"
   packages = [
     "client",
+    "client/app_configs",
     "client/apps",
     "client/auth_tokens",
     "client/clusters",
@@ -113,7 +114,7 @@
     "models",
   ]
   pruneopts = "NUT"
-  revision = "3fca98ce4657187ba9d79455563b2027254d448c"
+  revision = "6276a39df6f890f2558c5269a3b421f00397ff1d"
 
 [[projects]]
   branch = "master"

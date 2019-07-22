@@ -12,16 +12,17 @@ import (
 )
 
 // V5AddClusterRequestNodepoolsItemsScaling Attributes specific to cluster node scaling. To have full control of
-// the cluster size, min and max can be set to the same value. If only
-// `min` or only `max` is specified, `min` and `max` will be set equally.
+// the cluster size, min and max can be set to the same value, however `max`
+// must be greater or equal to `min`. If only `min` or only `max` is specified,
+// `min` and `max` will be set equally.
 //
 // swagger:model v5AddClusterRequestNodepoolsItemsScaling
 type V5AddClusterRequestNodepoolsItemsScaling struct {
 
-	// Maximum number of nodes in the pool
+	// Maximum number of nodes in the pool.
 	Max int64 `json:"max,omitempty"`
 
-	// Minimum number of nodes in the pool
+	// Minimum number of nodes in the pool.
 	Min int64 `json:"min,omitempty"`
 }
 

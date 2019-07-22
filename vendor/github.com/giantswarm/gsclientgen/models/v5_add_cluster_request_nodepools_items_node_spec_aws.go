@@ -16,7 +16,7 @@ import (
 // swagger:model v5AddClusterRequestNodepoolsItemsNodeSpecAws
 type V5AddClusterRequestNodepoolsItemsNodeSpecAws struct {
 
-	// EC2 instance type to use for all nodes in the node pool
+	// EC2 instance type to use for all nodes in the node pool. _(Validated against available instance types.)_
 	//
 	InstanceType string `json:"instance_type,omitempty"`
 }

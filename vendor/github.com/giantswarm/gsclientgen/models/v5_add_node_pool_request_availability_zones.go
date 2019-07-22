@@ -14,17 +14,19 @@ import (
 // V5AddNodePoolRequestAvailabilityZones Specifies how the nodes of a pool are spread over availability zones.
 // The object must contain either the `number` attribute or the `zones`
 // attribute, but not both.
+// The maximum `number` of availbility zones is the same as that found
+// under `general.availability_zones.max` from the `/v4/info/` endpoint.
 // When not given, availability zones assignment is handled automatically.
 //
 // swagger:model v5AddNodePoolRequestAvailabilityZones
 type V5AddNodePoolRequestAvailabilityZones struct {
 
 	// Number of zones to use. If given, the zones are picked
-	// automatically.
+	// automatically. _(Maximum limit of 4 supported.)_
 	//
 	Number int64 `json:"number,omitempty"`
 
-	// Names of the availability zones to use.
+	// Names of the availability zones to use. _(Must be same region as the cluster.)_
 	//
 	Zones []string `json:"zones"`
 }
