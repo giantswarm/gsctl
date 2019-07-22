@@ -25,6 +25,7 @@ import (
 var (
 	// Command performs the "list nodepools" function
 	Command = &cobra.Command{
+		Hidden:  true,
 		Use:     "nodepools <cluster-id>",
 		Aliases: []string{"nps", "np"},
 
