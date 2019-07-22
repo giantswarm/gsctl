@@ -42,10 +42,7 @@ func startCallbackServer(port string, redirectURI string, callback func(w http.R
 	go startServer(s)
 
 	// Block till the callback gives us a result.
-	var r CallbackResult
-	select {
-	case r = <-resultCh:
-	}
+	r := <-resultCh
 
 	// Shutdown the server.
 	s.Shutdown(context.Background())

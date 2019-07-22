@@ -64,10 +64,6 @@ const (
 	completionFileNameZsh  string = "gsctl-completion-zsh.sh"
 )
 
-func init() {
-	RootCommand.AddCommand(CompletionCommand)
-}
-
 // generateCompletionFiles creates bash and zsh completion files
 func generateCompletionFiles(cmd *cobra.Command, args []string) {
 

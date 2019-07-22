@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 
+	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -13,13 +14,13 @@ import (
 	"github.com/giantswarm/gsctl/commands/list"
 	"github.com/giantswarm/gsctl/commands/login"
 	"github.com/giantswarm/gsctl/commands/logout"
+	"github.com/giantswarm/gsctl/commands/ping"
 	"github.com/giantswarm/gsctl/commands/scale"
 	selectcmd "github.com/giantswarm/gsctl/commands/select"
 	"github.com/giantswarm/gsctl/commands/show"
 	"github.com/giantswarm/gsctl/commands/update"
 	"github.com/giantswarm/gsctl/commands/upgrade"
 	"github.com/giantswarm/gsctl/commands/version"
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/flags"
 )
 
@@ -37,12 +38,14 @@ func init() {
 	RootCommand.PersistentFlags().BoolVarP(&flags.CmdVerbose, "verbose", "v", false, "Print more information")
 
 	// add subcommands
+	RootCommand.AddCommand(CompletionCommand)
 	RootCommand.AddCommand(create.Command)
 	RootCommand.AddCommand(deletecmd.Command)
 	RootCommand.AddCommand(info.Command)
 	RootCommand.AddCommand(list.Command)
 	RootCommand.AddCommand(login.Command)
 	RootCommand.AddCommand(logout.Command)
+	RootCommand.AddCommand(ping.Command)
 	RootCommand.AddCommand(scale.Command)
 	RootCommand.AddCommand(selectcmd.Command)
 	RootCommand.AddCommand(show.Command)

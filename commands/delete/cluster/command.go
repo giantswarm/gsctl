@@ -7,13 +7,13 @@ import (
 	"os"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/commands/errors"
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/confirm"
 	"github.com/giantswarm/gsctl/flags"
 )

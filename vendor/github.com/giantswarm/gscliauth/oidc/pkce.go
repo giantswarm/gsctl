@@ -160,8 +160,8 @@ func getToken(code, codeVerifier string) (pkceResponse PKCEResponse, err error) 
 		pkceResponse.ErrorDescription = "Unable to perform POST request to Auth0."
 		return pkceResponse, microerror.Maskf(authorizationError, pkceResponse.Error)
 	}
-
 	defer res.Body.Close()
+
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		pkceResponse.Error = "unknown error"
@@ -169,7 +169,12 @@ func getToken(code, codeVerifier string) (pkceResponse PKCEResponse, err error) 
 		return pkceResponse, microerror.Maskf(authorizationError, pkceResponse.Error)
 	}
 
-	json.Unmarshal(body, &pkceResponse)
+	err = json.Unmarshal(body, &pkceResponse)
+	if err != nil {
+		pkceResponse.Error = "unknown error"
+		pkceResponse.ErrorDescription = "Unable to parse response. Possibly Auth0 service is having trouble. Try again later."
+		return pkceResponse, microerror.Maskf(authorizationError, pkceResponse.ErrorDescription)
+	}
 
 	// This is a real error from Auth0, in this case we have Error and ErrorDescription
 	// set by what Auth0 sent us.

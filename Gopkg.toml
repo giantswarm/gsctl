@@ -39,6 +39,10 @@
   version = "=2.0.2"
 
 [[constraint]]
+  branch = "master"
+  name = "github.com/giantswarm/gscliauth"
+
+[[constraint]]
   branch = "node-pools"
   name = "github.com/giantswarm/gsclientgen"
 
@@ -68,7 +72,7 @@
 
 [[constraint]]
   name = "github.com/spf13/afero"
-  branch = "master"
+  version = "1.2.2"
 
 [prune]
   non-go = true
