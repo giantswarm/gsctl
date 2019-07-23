@@ -484,3 +484,26 @@ selected_endpoint: ` + mockServer.URL
 		t.Errorf("Expected 'cluster-id', got %#v", clusterID)
 	}
 }
+
+func TestMalformedResponse(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`<html>This is not a JSON page</html>`))
+	}))
+	defer mockServer.Close()
+
+	config := &Configuration{
+		Endpoint: mockServer.URL,
+	}
+
+	gsClient, err := NewV2(config)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = gsClient.GetClusterV4("cluster-id", nil)
+	if !clienterror.IsMalformedResponseError(err) {
+		t.Errorf("Expected 'Malformed response' error, got %s", err.Error())
+	}
+}
