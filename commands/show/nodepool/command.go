@@ -22,6 +22,7 @@ import (
 var (
 	// ShowNodepoolCommand is the cobra command for 'gsctl show nodepool'
 	ShowNodepoolCommand = &cobra.Command{
+		Hidden:  true,
 		Use:     "nodepool <cluster-id>/<nodepool-id>",
 		Aliases: []string{"np"},
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
