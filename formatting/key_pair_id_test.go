@@ -5,13 +5,11 @@ import (
 	"testing"
 )
 
-type KeypairIDTest struct {
-	input  string
-	output string
-}
-
 func TestCleanKeypairID(t *testing.T) {
-	testCases := []KeypairIDTest{
+	testCases := []struct {
+		input  string
+		output string
+	}{
 		{"a1:b2:c3:d4:e5:f6:g7:00", "a1b2c3d4e5f6g700"},
 	}
 
