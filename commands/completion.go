@@ -7,24 +7,22 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-
-	"github.com/giantswarm/gsctl/flags"
 )
 
 var (
 	// CompletionCommand is the command to create things
 	CompletionCommand = &cobra.Command{
-		Use:   "completion",
-		Short: "Create completion file for bash, and (experimentally) for zsh",
+		Use:                   "completion <bash|zsh> [--stdout]",
+		Args:                  cobra.ExactArgs(1),
+		DisableFlagsInUseLine: true,
+		Short:                 "Create completion file for bash, and (experimentally) for zsh",
 		Long: `Generates shell completion code to tab-complete gsctl's commands and
 some required flags.
 
-The generated completion files will be output in the current folder
-with these names:
-
-- gsctl-completion-bash.sh
-- gsctl-completion-zsh.sh
+The completion file will either be written to the current directory
+or, when adding the --stdout flag, be written to the standard output.
 
 Zsh
 ---
@@ -35,8 +33,10 @@ https://github.com/giantswarm/gsctl/issues/152
 
 The generic installation procedure for zsh is:
 
-1. Rename gsctl-completion-zsh.sh to _gsctl and move it into a directory
-   that is part of your $fpath
+1. Decide for a target directory from your $FPATH, e. g. ~/.my_completion
+   and execute this:
+
+   gsctl completion zsh --stdout > ~/.my_completion/_gsctl
 
 2. Re-initialize your completion files:
 
@@ -47,36 +47,62 @@ Bash
 
 To enable bash completion for gsctl:
 
-1. Place gsctl-completion-bash.sh somewhere permanently
+1. Edit your ~/.bash_profile and add a line like this:
 
-2. Edit your ~/.bash_profile and add a line like this:
+   source $(gsctl completion bash --stdout)
 
-   source /path/to/gsctl-completion-bash.sh
-
-3. Start a new terminal session
+2. Start a new terminal session
 `,
-		Run: generateCompletionFiles,
+		PreRun: validateCompletionPreconditions,
+		Run:    generateCompletionFile,
 	}
+
+	// cmdStdOut is the --stdout flag.
+	cmdStdOut bool
 )
 
 const (
 	completionFileNameBash string = "gsctl-completion-bash.sh"
 	completionFileNameZsh  string = "gsctl-completion-zsh.sh"
+
+	shellBash = "bash"
+	shellZsh  = "zsh"
 )
 
-// generateCompletionFiles creates bash and zsh completion files
-func generateCompletionFiles(cmd *cobra.Command, args []string) {
+func init() {
+	CompletionCommand.Flags().BoolVarP(&cmdStdOut, "stdout", "", false, "Write to standard output instead of a file.")
+}
 
-	if flags.CmdVerbose {
-		fmt.Printf("Creating completion file for bash in %s\n", completionFileNameBash)
+// validateCompletionPreconditions validates user input.
+func validateCompletionPreconditions(cmd *cobra.Command, args []string) {
+	shell := args[0]
+	if shell != shellBash && shell != shellZsh {
+		fmt.Println(color.RedString("Shell not supported"))
+		fmt.Println("We only provide shell completion support for bash and zsh at this time.")
+		os.Exit(1)
 	}
-	RootCommand.GenBashCompletionFile(completionFileNameBash)
-	os.Chmod(completionFileNameBash, 0777)
+}
 
-	if flags.CmdVerbose {
-		fmt.Printf("Creating completion file for zsh in %s\n", completionFileNameZsh)
+// generateCompletionFile creates bash or zsh completion files.
+func generateCompletionFile(cmd *cobra.Command, args []string) {
+	shell := args[0]
+
+	switch shell {
+	case shellBash:
+		if cmdStdOut {
+			RootCommand.GenBashCompletion(os.Stdout)
+		} else {
+			RootCommand.GenBashCompletionFile(completionFileNameBash)
+			fmt.Printf("Created completion file for %s in %s\n", shell, completionFileNameBash)
+			os.Chmod(completionFileNameBash, 0777)
+		}
+	case shellZsh:
+		if cmdStdOut {
+			RootCommand.GenZshCompletion(os.Stdout)
+		} else {
+			RootCommand.GenZshCompletionFile(completionFileNameZsh)
+			fmt.Printf("Created completion file for %s in %s\n", shell, completionFileNameZsh)
+			os.Chmod(completionFileNameZsh, 0777)
+		}
 	}
-	RootCommand.GenZshCompletionFile(completionFileNameZsh)
-	os.Chmod(completionFileNameZsh, 0777)
-
 }
