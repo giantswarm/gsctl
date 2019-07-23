@@ -55,6 +55,9 @@ func HandleCommonErrors(err error) {
 		case IsClusterIDMissingError(err):
 			headline = "No cluster ID specified."
 			subtext = "Please specify a cluster ID. Use --help for details."
+		case IsNodePoolIDMissingError(err):
+			headline = "No node pool ID specified."
+			subtext = "Please specify a node pool ID. Use --help for details."
 		case IsCouldNotCreateClientError(err):
 			headline = "Failed to create API client."
 			subtext = fmt.Sprintf("Details: %s", err.Error())

@@ -20,6 +20,7 @@ import (
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/formatting"
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -178,7 +179,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 			row := []string{
 				util.ShortDate(createdTime),
 				expires,
-				util.Truncate(util.CleanKeypairID(keypair.ID), 10, !args.full),
+				util.Truncate(formatting.CleanKeypairID(keypair.ID), 10, !args.full),
 				keypair.Description,
 				util.Truncate(keypair.CommonName, 24, !args.full),
 				keypair.CertificateOrganizations,

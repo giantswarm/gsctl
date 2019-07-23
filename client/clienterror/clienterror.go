@@ -257,6 +257,24 @@ func New(err error) *APIError {
 		}
 	}
 
+	// get node pool
+	if getNodePoolUnauthorizedErr, ok := err.(*nodepools.GetNodePoolUnauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  getNodePoolUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to access this node pool.",
+		}
+	}
+	if getNodePoolNotFoundErr, ok := err.(*nodepools.GetNodePoolNotFound); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusNotFound,
+			OriginalError:  getNodePoolNotFoundErr,
+			ErrorMessage:   "Not found",
+			ErrorDetails:   "The node pool could not be found.",
+		}
+	}
+
 	// get node pools
 	if getNodePoolsUnauthorizedErr, ok := err.(*nodepools.GetNodePoolsUnauthorized); ok {
 		return &APIError{
