@@ -198,7 +198,20 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		}, "|"))
 	}
 
-	fmt.Println(columnize.SimpleFormat(table))
+	colConfig := columnize.DefaultConfig()
+	colConfig.ColumnSpec = []*columnize.ColumnSpecification{
+		&columnize.ColumnSpecification{Alignment: columnize.AlignLeft},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignLeft},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignLeft},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignLeft},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignLeft},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
+	}
+
+	fmt.Println(columnize.Format(table, colConfig))
 }
 
 // formatAvailabilityZones returns the list of availability zones
