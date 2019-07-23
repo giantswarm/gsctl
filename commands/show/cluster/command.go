@@ -214,7 +214,7 @@ func getClusterDetails(args showClusterArguments) (
 
 	// first try v5
 	if args.verbose {
-		fmt.Println(color.WhiteString("Fetching details for cluster via v5 API endpoint"))
+		fmt.Println(color.WhiteString("Fetching details for cluster via v5 API endpoint."))
 	}
 	clusterDetailsV5, v5Err := getClusterDetailsV5(args.clusterID)
 	if v5Err == nil {
@@ -234,15 +234,17 @@ func getClusterDetails(args showClusterArguments) (
 		nodePools = &response.Payload
 
 	} else {
-		// If this is a 404 error, continue with v4 fallback below.
-		// Otherwise return error.
-		if !errors.IsClusterNotFoundError(v5Err) {
+		// If this is a 404 error, we assume the cluster is not a V5 one.
+		// If this is a "Malformed response" error, we assume the API is not capable of
+		// handling V5 yet. TODO: This can be phased out once the API is up-to-date.
+		// In both these case we continue below, otherwise we return the error.
+		if !errors.IsClusterNotFoundError(v5Err) && !clienterror.IsMalformedResponseError(v5Err) {
 			return nil, nil, nil, nil, nil, microerror.Mask(v5Err)
 		}
 
 		// Fall back to v4.
 		if args.verbose {
-			fmt.Println(color.WhiteString("Fetching details for cluster via v4 API endpoint"))
+			fmt.Println(color.WhiteString("No usable v5 response. Fetching details for cluster via v4 API endpoint."))
 		}
 
 		var clusterDetailsV4Err error
@@ -259,7 +261,7 @@ func getClusterDetails(args showClusterArguments) (
 		}
 
 		if args.verbose {
-			fmt.Println(color.WhiteString("Fetching status for v4 cluster"))
+			fmt.Println(color.WhiteString("Fetching status for v4 cluster."))
 		}
 		auxParams := clientV2.DefaultAuxiliaryParams()
 		auxParams.ActivityName = activityName
@@ -336,7 +338,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	args.clusterID = cmdLineArgs[0]
 
 	if args.verbose {
-		fmt.Println(color.WhiteString("Fetching details for cluster %s", args.clusterID))
+		fmt.Println(color.WhiteString("Fetching details for cluster %s.", args.clusterID))
 	}
 
 	clusterDetailsV4, clusterDetailsV5, nodePools, clusterStatus, credentialDetails, err := getClusterDetails(args)
