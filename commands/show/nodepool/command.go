@@ -134,13 +134,13 @@ func fetchNodePool(args arguments) (*result, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	res.instanceTypeDetails, err = awsInfo.GetInstanceTypeDetails(res.nodePool.NodeSpec.Aws.InstanceType)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
+	var nodespecErr error
+	res.instanceTypeDetails, nodespecErr = awsInfo.GetInstanceTypeDetails(res.nodePool.NodeSpec.Aws.InstanceType)
 
-	res.sumCPUs = res.nodePool.Status.NodesReady * int64(res.instanceTypeDetails.CPUCores)
-	res.sumMemory = float64(res.nodePool.Status.NodesReady) * float64(res.instanceTypeDetails.MemorySizeGB)
+	if nodespecErr == nil {
+		res.sumCPUs = res.nodePool.Status.NodesReady * int64(res.instanceTypeDetails.CPUCores)
+		res.sumMemory = float64(res.nodePool.Status.NodesReady) * float64(res.instanceTypeDetails.MemorySizeGB)
+	}
 
 	return res, nil
 
@@ -155,18 +155,46 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 
 	table := []string{}
 
+	fmt.Printf("data: %#v\n", data)
+
 	table = append(table, color.YellowString("ID:")+"|"+data.nodePool.ID)
 	table = append(table, color.YellowString("Name:")+"|"+data.nodePool.Name)
-	table = append(table, color.YellowString("Node instance type:")+fmt.Sprintf("|%s - %d GB RAM, %d CPUs each",
-		data.nodePool.NodeSpec.Aws.InstanceType, data.instanceTypeDetails.MemorySizeGB, data.instanceTypeDetails.CPUCores))
+	table = append(table, color.YellowString("Node instance type:")+"|"+formatInstanceType(data.nodePool.NodeSpec.Aws.InstanceType, data.instanceTypeDetails))
 	table = append(table, color.YellowString("Availability zones:")+"|"+formatting.AvailabilityZonesList(data.nodePool.AvailabilityZones))
 	table = append(table, color.YellowString("Node scaling:")+"|"+formatNodeScaling(data.nodePool.Scaling))
 	table = append(table, color.YellowString("Nodes desired:")+fmt.Sprintf("|%d", data.nodePool.Status.Nodes))
 	table = append(table, color.YellowString("Nodes in state Ready:")+fmt.Sprintf("|%d", data.nodePool.Status.NodesReady))
-	table = append(table, color.YellowString("CPUs:")+fmt.Sprintf("|%d", data.nodePool.Status.NodesReady*int64(data.instanceTypeDetails.CPUCores)))
-	table = append(table, color.YellowString("RAM:")+fmt.Sprintf("|%d GB", data.nodePool.Status.NodesReady*int64(data.instanceTypeDetails.MemorySizeGB)))
+	table = append(table, color.YellowString("CPUs:")+"|"+formatCPUs(data.nodePool.Status.NodesReady, data.instanceTypeDetails))
+	table = append(table, color.YellowString("RAM:")+"|"+formatRAM(data.nodePool.Status.NodesReady, data.instanceTypeDetails))
 
 	fmt.Println(columnize.SimpleFormat(table))
+}
+
+func formatInstanceType(instanceTypeName string, details *nodespec.InstanceType) string {
+	if details != nil {
+		return fmt.Sprintf("%s - %d GB RAM, %d CPUs each",
+			instanceTypeName,
+			details.MemorySizeGB,
+			details.CPUCores)
+	}
+
+	return fmt.Sprintf("%s %s", instanceTypeName, color.RedString("(no information available on this instance type)"))
+}
+
+func formatCPUs(numNodes int64, details *nodespec.InstanceType) string {
+	if details != nil {
+		return fmt.Sprintf("%d", numNodes*int64(details.CPUCores))
+	}
+
+	return "n/a"
+}
+
+func formatRAM(numNodes int64, details *nodespec.InstanceType) string {
+	if details != nil {
+		return fmt.Sprintf("%d GB", numNodes*int64(details.MemorySizeGB))
+	}
+
+	return "n/a"
 }
 
 func formatNodeScaling(scaling *models.V5GetNodePoolResponseScaling) string {
