@@ -46,6 +46,13 @@ prevent creating clusters with more worker nodes than possible.
       "default": 1,
     }
   },
+  "stats": {
+    "cluster_creation_duration": {
+      "median": 750,
+      "p25": 700,
+      "p75": 800
+    }
+  },
   "workers": {
     "count_per_cluster": {
       "max": null,
@@ -72,6 +79,13 @@ prevent creating clusters with more worker nodes than possible.
     "availability_zones": {
       "max": 1,
       "default": 1,
+    }
+  },
+  "stats": {
+    "cluster_creation_duration": {
+      "median": 750,
+      "p25": 700,
+      "p75": 800
     }
   },
   "workers": {

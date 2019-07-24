@@ -9,6 +9,8 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/spf13/afero"
+
+	"github.com/giantswarm/gsctl/formatting"
 )
 
 func writeCredentialFile(fs afero.Fs, certsDirPath, fileName, certificateData string) string {
@@ -36,7 +38,7 @@ func StoreCaCertificate(fs afero.Fs, certsDirPath, clusterID, data string) strin
 //
 // The file will have the name format `<clusterID>-<keypair-id>-client.crt`
 func StoreClientCertificate(fs afero.Fs, certsDirPath, clusterID, keyPairID, data string) string {
-	fileName := clusterID + "-" + CleanKeypairID(keyPairID)[:10] + "-client.crt"
+	fileName := clusterID + "-" + formatting.CleanKeypairID(keyPairID)[:10] + "-client.crt"
 	return writeCredentialFile(fs, certsDirPath, fileName, data)
 }
 
@@ -44,6 +46,6 @@ func StoreClientCertificate(fs afero.Fs, certsDirPath, clusterID, keyPairID, dat
 //
 // The file will have the name format `<clusterID>-<keypair-id>-client.key`
 func StoreClientKey(fs afero.Fs, certsDirPath, clusterID, keyPairID, data string) string {
-	fileName := clusterID + "-" + CleanKeypairID(keyPairID)[:10] + "-client.key"
+	fileName := clusterID + "-" + formatting.CleanKeypairID(keyPairID)[:10] + "-client.key"
 	return writeCredentialFile(fs, certsDirPath, fileName, data)
 }

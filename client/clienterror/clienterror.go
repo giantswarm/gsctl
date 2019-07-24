@@ -14,6 +14,7 @@ import (
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/client/info"
 	"github.com/giantswarm/gsclientgen/client/key_pairs"
+	"github.com/giantswarm/gsclientgen/client/nodepools"
 	"github.com/giantswarm/gsclientgen/client/organizations"
 	"github.com/giantswarm/gsclientgen/client/releases"
 )
@@ -197,7 +198,7 @@ func New(err error) *APIError {
 		}
 	}
 
-	// get cluster
+	// get cluster V4
 	if getClusterUnauthorizedErr, ok := err.(*clusters.GetClusterUnauthorized); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
@@ -219,6 +220,83 @@ func New(err error) *APIError {
 			HTTPStatusCode: getClusterDefaultErr.Code(),
 			OriginalError:  getClusterDefaultErr,
 			ErrorMessage:   getClusterDefaultErr.Error(),
+		}
+	}
+
+	// get v4 cluster status
+	if getClusterStatusDefaultErr, ok := err.(*clusters.GetClusterStatusDefault); ok {
+		return &APIError{
+			HTTPStatusCode: getClusterStatusDefaultErr.Code(),
+			OriginalError:  getClusterStatusDefaultErr,
+			ErrorMessage:   getClusterStatusDefaultErr.Error(),
+		}
+	}
+
+	// get cluster V5
+	if getClusterUnauthorizedErr, ok := err.(*clusters.GetClusterV5Unauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  getClusterUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to access this cluster's details.",
+		}
+	}
+	if getClusterNotFoundErr, ok := err.(*clusters.GetClusterV5NotFound); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusNotFound,
+			OriginalError:  getClusterNotFoundErr,
+			ErrorMessage:   "Cluster not found",
+			ErrorDetails:   "The cluster with the given ID does not exist.",
+		}
+	}
+	if getClusterDefaultErr, ok := err.(*clusters.GetClusterV5Default); ok {
+		return &APIError{
+			HTTPStatusCode: getClusterDefaultErr.Code(),
+			OriginalError:  getClusterDefaultErr,
+			ErrorMessage:   getClusterDefaultErr.Error(),
+		}
+	}
+
+	// get node pool
+	if getNodePoolUnauthorizedErr, ok := err.(*nodepools.GetNodePoolUnauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  getNodePoolUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to access this node pool.",
+		}
+	}
+	if getNodePoolNotFoundErr, ok := err.(*nodepools.GetNodePoolNotFound); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusNotFound,
+			OriginalError:  getNodePoolNotFoundErr,
+			ErrorMessage:   "Not found",
+			ErrorDetails:   "The node pool could not be found.",
+		}
+	}
+
+	// get node pools
+	if getNodePoolsUnauthorizedErr, ok := err.(*nodepools.GetNodePoolsUnauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  getNodePoolsUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to access this cluster's node pools.",
+		}
+	}
+	if getNodePoolsNotFoundErr, ok := err.(*nodepools.GetNodePoolsNotFound); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusNotFound,
+			OriginalError:  getNodePoolsNotFoundErr,
+			ErrorMessage:   "Not found",
+			ErrorDetails:   "The cluster was not found or you don't have access to it.",
+		}
+	}
+	if getNodePoolsDefaultErr, ok := err.(*nodepools.GetNodePoolsDefault); ok {
+		return &APIError{
+			HTTPStatusCode: getNodePoolsDefaultErr.Code(),
+			OriginalError:  getNodePoolsDefaultErr,
+			ErrorMessage:   getNodePoolsDefaultErr.Error(),
 		}
 	}
 

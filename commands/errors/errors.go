@@ -92,6 +92,16 @@ func IsClusterIDMissingError(err error) bool {
 	return microerror.Cause(err) == ClusterIDMissingError
 }
 
+// NodePoolIDMissingError means a required node pool ID has not been given as input
+var NodePoolIDMissingError = &microerror.Error{
+	Kind: "NodePoolIDMissingError",
+}
+
+// IsNodePoolIDMissingError asserts NodePoolIDMissingError.
+func IsNodePoolIDMissingError(err error) bool {
+	return microerror.Cause(err) == NodePoolIDMissingError
+}
+
 // ClusterNotFoundError means that a given cluster does not exist
 var ClusterNotFoundError = &microerror.Error{
 	Kind: "ClusterNotFoundError",

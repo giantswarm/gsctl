@@ -18,6 +18,7 @@ import (
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/client/info"
 	"github.com/giantswarm/gsclientgen/client/key_pairs"
+	"github.com/giantswarm/gsclientgen/client/nodepools"
 	"github.com/giantswarm/gsclientgen/client/organizations"
 	"github.com/giantswarm/gsclientgen/client/releases"
 	"github.com/giantswarm/gsclientgen/models"
@@ -387,8 +388,8 @@ func (w *WrapperV2) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, er
 	return response, nil
 }
 
-// GetCluster fetches details on a cluster using the V2 client.
-func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.GetClusterOK, error) {
+// GetClusterV4 fetches details on a V4 cluster.
+func (w *WrapperV2) GetClusterV4(clusterID string, p *AuxiliaryParams) (*clusters.GetClusterOK, error) {
 	params := clusters.NewGetClusterParams().WithClusterID(clusterID)
 	err := setParamsWithAuthorization(p, w, params)
 	if err != nil {
@@ -396,6 +397,54 @@ func (w *WrapperV2) GetCluster(clusterID string, p *AuxiliaryParams) (*clusters.
 	}
 
 	response, err := w.gsclient.Clusters.GetCluster(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+// GetClusterV5 fetches details on a V5 cluster.
+func (w *WrapperV2) GetClusterV5(clusterID string, p *AuxiliaryParams) (*clusters.GetClusterV5OK, error) {
+	params := clusters.NewGetClusterV5Params().WithClusterID(clusterID)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Clusters.GetClusterV5(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+// GetNodePool fetches a node pool.
+func (w *WrapperV2) GetNodePool(clusterID, nodePoolID string, p *AuxiliaryParams) (*nodepools.GetNodePoolOK, error) {
+	params := nodepools.NewGetNodePoolParams().WithClusterID(clusterID).WithNodepoolID(nodePoolID)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Nodepools.GetNodePool(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+// GetNodePools fetches a list of node pools.
+func (w *WrapperV2) GetNodePools(clusterID string, p *AuxiliaryParams) (*nodepools.GetNodePoolsOK, error) {
+	params := nodepools.NewGetNodePoolsParams().WithClusterID(clusterID)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Nodepools.GetNodePools(params, nil)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}

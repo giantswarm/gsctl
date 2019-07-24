@@ -77,12 +77,12 @@
   revision = "5294df621fba91f5e5b45730904a377623752242"
 
 [[projects]]
-  digest = "1:8f95a926443ce0713334413d2c0307bf4d7c79cc01746b08f6ec999bbc2d6cdc"
+  branch = "master"
+  digest = "1:10073b2acb12a3325039f2ac5cfd50039584ad5913ed7147a391f3f6d9005ef1"
   name = "github.com/giantswarm/columnize"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "677ded9e47e75ca49bd2541794a7281a49a2f17b"
-  version = "v2.0.2"
+  revision = "cc99d98ffb296b079c11bc555aa8f55842601b7b"
 
 [[projects]]
   branch = "master"
@@ -97,22 +97,24 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:81d0e7b22cee4346d4160298a2bf3354254bd996832a70ccff4175c58b311223"
+  digest = "1:9b4b616e842dba2ab6fb7b6333addd4efbdd5f51f5bbe09c58fec420493426ff"
   name = "github.com/giantswarm/gsclientgen"
   packages = [
     "client",
+    "client/app_configs",
     "client/apps",
     "client/auth_tokens",
     "client/clusters",
     "client/info",
     "client/key_pairs",
+    "client/nodepools",
     "client/organizations",
     "client/releases",
     "client/users",
     "models",
   ]
   pruneopts = "NUT"
-  revision = "ba654d487d14bca6cca527a6981d0bc729740339"
+  revision = "6276a39df6f890f2558c5269a3b421f00397ff1d"
 
 [[projects]]
   branch = "master"
@@ -878,6 +880,7 @@
     "github.com/giantswarm/gsclientgen/client/clusters",
     "github.com/giantswarm/gsclientgen/client/info",
     "github.com/giantswarm/gsclientgen/client/key_pairs",
+    "github.com/giantswarm/gsclientgen/client/nodepools",
     "github.com/giantswarm/gsclientgen/client/organizations",
     "github.com/giantswarm/gsclientgen/client/releases",
     "github.com/giantswarm/gsclientgen/models",

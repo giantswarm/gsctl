@@ -48,7 +48,7 @@ build/bin/$(BIN)-darwin-amd64: $(SOURCE)
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		--user ${USERID}:${GROUPID} \
 		golang:$(GOVERSION)-alpine go build -a -installsuffix cgo -o build/bin/$(BIN)-darwin-amd64 \
-		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
+		-ldflags "-X 'github.com/giantswarm/gscliauth/config.Version=$(VERSION)' -X 'github.com/giantswarm/gscliauth/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gscliauth/config.Commit=$(COMMIT)'"
 	rm -rf go-build-cache
 
 # platform-specific build for linux-amd64
@@ -63,7 +63,7 @@ build/bin/$(BIN)-linux-amd64: $(SOURCE)
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		--user ${USERID}:${GROUPID} \
 		golang:$(GOVERSION)-stretch go build -a -installsuffix cgo -o build/bin/$(BIN)-linux-amd64 \
-		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
+		-ldflags "-X 'github.com/giantswarm/gscliauth/config.Version=$(VERSION)' -X 'github.com/giantswarm/gscliauth/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gscliauth/config.Commit=$(COMMIT)'"
 	rm -rf go-build-cache
 
 # platform-specific build
@@ -77,7 +77,7 @@ build/bin/$(BIN)-windows-386: $(SOURCE)
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		--user ${USERID}:${GROUPID} \
 		golang:$(GOVERSION)-alpine go build -a -installsuffix cgo -o build/bin/$(BIN)-windows-386 \
-		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
+		-ldflags "-X 'github.com/giantswarm/gscliauth/config.Version=$(VERSION)' -X 'github.com/giantswarm/gscliauth/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gscliauth/config.Commit=$(COMMIT)'"
 	rm -rf go-build-cache
 
 # platform-specific build
@@ -91,7 +91,7 @@ build/bin/$(BIN)-windows-amd64: $(SOURCE)
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		--user ${USERID}:${GROUPID} \
 		golang:$(GOVERSION)-alpine go build -a -installsuffix cgo -o build/bin/$(BIN)-windows-amd64 \
-		-ldflags "-X 'github.com/giantswarm/gsctl/config.Version=$(VERSION)' -X 'github.com/giantswarm/gsctl/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gsctl/config.Commit=$(COMMIT)'"
+		-ldflags "-X 'github.com/giantswarm/gscliauth/config.Version=$(VERSION)' -X 'github.com/giantswarm/gscliauth/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gscliauth/config.Commit=$(COMMIT)'"
 	rm -rf go-build-cache
 
 gotest:

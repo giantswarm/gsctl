@@ -27,6 +27,9 @@ type V4ClusterListItem struct {
 	// Name of the organization owning the cluster
 	Owner string `json:"owner,omitempty"`
 
+	// API path of the cluster resource
+	Path string `json:"path,omitempty"`
+
 	// The semantic version number of this cluster
 	ReleaseVersion string `json:"release_version,omitempty"`
 }

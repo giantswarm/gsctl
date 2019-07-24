@@ -38,7 +38,6 @@ likely that the fields in this status object will be all empty values.
 
 To check on the status of your app, perform a GET to /v4/clusters/{cluster_id}/apps/,
 and check the status field of the app.
-###
 
 ### Example PUT request
 ```json
@@ -47,10 +46,34 @@ and check the status field of the app.
       "catalog": "sample-catalog",
       "name": "prometheus-chart",
       "namespace": "prometheus",
-      "version": "0.2.0"
+      "version": "0.2.0",
     }
   }
 ```
+
+### About the user_config field in the response
+This field is not editable by you, but is set automatically by the API
+if a configmap named `{app_name}-user-values` exists in the tenant cluster
+namespace on the control plane.
+
+The `/v4/clusters/{cluster_id}/apps/{app_name}/config/` endpoints allows
+you to create such a configmap using this API.
+
+It is recommended to create your config before creating your app. This
+will result in a faster deploy.
+
+However, you can create your config after creating the app if you wish,
+this API will take care of setting the `user_config` field of the app
+correctly for you.
+
+### Why can't I just set the `user_config` value myself?
+It simplifies usage while also being a security measure.
+
+Furthermore it is also a security measure and ensures that users of this
+API can't access arbitrary configmaps of the control plane.
+
+This API will only allow you to edit or access configmaps that adhere
+to a strict naming convention.
 
 */
 func (a *Client) CreateClusterApp(params *CreateClusterAppParams, authInfo runtime.ClientAuthInfoWriter) (*CreateClusterAppOK, error) {
@@ -184,7 +207,13 @@ Returns an array of apps installed on a given cluster.
         "catalog": "sample-catalog"
         "name": "prometheus-chart",
         "namespace": "giantswarm",
-        "version": "0.2.0"
+        "version": "0.2.0",
+        "user_config": {
+          "configmap": {
+            "name": "prometheus-user-values",
+            "namespace": "123ab"
+          }
+        }
       },
 
       "status": {
@@ -223,6 +252,47 @@ func (a *Client) GetClusterApps(params *GetClusterAppsParams, authInfo runtime.C
 		return nil, err
 	}
 	return result.(*GetClusterAppsOK), nil
+
+}
+
+/*
+ModifyClusterApp modifies an app
+
+This operation allows you to modify an existing app.
+
+The following attributes can be modified:
+
+- `version`: Changing this field lets you upgrade or downgrade an app.
+
+`catalog`, `name`, `namespace`, and `user_config` are not editable. If you need to move or rename an app, you should instead delete the app and make it again.
+
+The request body must conform with the [JSON Patch Merge (RFC 7386)](https://tools.ietf.org/html/rfc7386) standard.
+Requests have to be sent with the `Content-Type: application/merge-patch+json` header.
+
+*/
+func (a *Client) ModifyClusterApp(params *ModifyClusterAppParams, authInfo runtime.ClientAuthInfoWriter) (*ModifyClusterAppOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewModifyClusterAppParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "modifyClusterApp",
+		Method:             "PATCH",
+		PathPattern:        "/v4/clusters/{cluster_id}/apps/{app_name}/",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"https"},
+		Params:             params,
+		Reader:             &ModifyClusterAppReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ModifyClusterAppOK), nil
 
 }
 

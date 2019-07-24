@@ -32,6 +32,13 @@ func (o *GetClusterReader) ReadResponse(response runtime.ClientResponse, consume
 		}
 		return result, nil
 
+	case 301:
+		result := NewGetClusterMovedPermanently()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
+
 	case 401:
 		result := NewGetClusterUnauthorized()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -83,6 +90,35 @@ func (o *GetClusterOK) readResponse(response runtime.ClientResponse, consumer ru
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
+
+	return nil
+}
+
+// NewGetClusterMovedPermanently creates a GetClusterMovedPermanently with default headers values
+func NewGetClusterMovedPermanently() *GetClusterMovedPermanently {
+	return &GetClusterMovedPermanently{}
+}
+
+/*GetClusterMovedPermanently handles this case with default header values.
+
+Version mismatch
+*/
+type GetClusterMovedPermanently struct {
+	/*URI of the new path to use for retrying the request, as the one
+	used is not usable for this cluster.
+
+	*/
+	Location string
+}
+
+func (o *GetClusterMovedPermanently) Error() string {
+	return fmt.Sprintf("[GET /v4/clusters/{cluster_id}/][%d] getClusterMovedPermanently ", 301)
+}
+
+func (o *GetClusterMovedPermanently) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	// response header Location
+	o.Location = response.GetHeader("Location")
 
 	return nil
 }

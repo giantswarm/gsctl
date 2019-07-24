@@ -19,7 +19,9 @@ import (
 // swagger:model v4AddClusterRequest
 type V4AddClusterRequest struct {
 
-	// Number of availability zones a cluster should be spread across. The default is provided via the [info](#operation/getInfo) endpoint.
+	// Number of availability zones a cluster should be spread across. The
+	// default is provided via the [info](#operation/getInfo) endpoint.
+	//
 	AvailabilityZones int64 `json:"availability_zones,omitempty"`
 
 	// Cluster name
@@ -37,8 +39,9 @@ type V4AddClusterRequest struct {
 	// scaling
 	Scaling *V4AddClusterRequestScaling `json:"scaling,omitempty"`
 
-	// Worker node definition. If present, the first item of the array is
-	// expected to contain the specification for all worker nodes.
+	// Worker node definition on KVM and Azure. If present, the first item
+	// of the array is expected to contain the specification for all worker
+	// nodes. Not available on AWS.
 	//
 	Workers []*V4AddClusterRequestWorkersItems `json:"workers"`
 }

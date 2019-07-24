@@ -211,7 +211,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 
 	// fetch current cluster details
 	{
-		response, err := clientV2.GetCluster(args.clusterID, auxParams)
+		response, err := clientV2.GetClusterV4(args.clusterID, auxParams)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}

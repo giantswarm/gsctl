@@ -13,11 +13,11 @@ import (
   "fmt"
 
   "github.com/fatih/color"
-	"github.com/spf13/cobra"
+  "github.com/spf13/cobra"
   "github.com/giantswarm/microerror"
+  "github.com/giantswarm/gscliauth/config"
 
   "github.com/giantswarm/gsctl/client"
-	"github.com/giantswarm/gsctl/config"
 	"github.com/giantswarm/gsctl/util"
 )
 

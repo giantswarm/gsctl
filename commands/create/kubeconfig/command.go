@@ -24,6 +24,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/confirm"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/formatting"
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -316,7 +317,7 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	// Success output
 
 	msg := fmt.Sprintf("New key pair created with ID %s and expiry of %v",
-		util.Truncate(util.CleanKeypairID(result.id), 10, true),
+		util.Truncate(formatting.CleanKeypairID(result.id), 10, true),
 		util.DurationPhrase(int(result.ttlHours)))
 	fmt.Println(color.GreenString(msg))
 
@@ -357,7 +358,7 @@ func createKubeconfig(ctx context.Context, args createKubeconfigArguments) (crea
 	auxParams.ActivityName = createKubeconfigActivityName
 
 	// get cluster details
-	clusterDetailsResponse, err := clientV2.GetCluster(args.clusterID, auxParams)
+	clusterDetailsResponse, err := clientV2.GetClusterV4(args.clusterID, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			return result, microerror.Maskf(clientErr,
