@@ -155,8 +155,6 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 
 	table := []string{}
 
-	fmt.Printf("data: %#v\n", data)
-
 	table = append(table, color.YellowString("ID:")+"|"+data.nodePool.ID)
 	table = append(table, color.YellowString("Name:")+"|"+data.nodePool.Name)
 	table = append(table, color.YellowString("Node instance type:")+"|"+formatInstanceType(data.nodePool.NodeSpec.Aws.InstanceType, data.instanceTypeDetails))
