@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.12.5
+      - image: circleci/golang:1.12.7
 
     # We use 'medium+' because with 'medium' we saw tests fail due to memory problems.
     resource_class: medium+
