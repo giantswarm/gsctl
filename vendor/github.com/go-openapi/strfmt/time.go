@@ -16,15 +16,14 @@ package strfmt
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
-	"github.com/mailru/easyjson/jlexer"
-	"github.com/mailru/easyjson/jwriter"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func init() {
@@ -81,7 +80,6 @@ func ParseDateTime(data string) (DateTime, error) {
 			lastError = err
 			continue
 		}
-		lastError = nil
 		return DateTime(dd), nil
 	}
 	return DateTime{}, lastError
@@ -146,14 +144,7 @@ func (t DateTime) Value() (driver.Value, error) {
 
 // MarshalJSON returns the DateTime as JSON
 func (t DateTime) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	t.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the DateTime to a easyjson.Writer
-func (t DateTime) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(time.Time(t).Format(MarshalFormat))
+	return json.Marshal(time.Time(t).Format(MarshalFormat))
 }
 
 // UnmarshalJSON sets the DateTime from JSON
@@ -161,42 +152,39 @@ func (t *DateTime) UnmarshalJSON(data []byte) error {
 	if string(data) == jsonNull {
 		return nil
 	}
-	l := jlexer.Lexer{Data: data}
-	t.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
 
-// UnmarshalEasyJSON sets the DateTime from a easyjson.Lexer
-func (t *DateTime) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		tt, err := ParseDateTime(data)
-		if err != nil {
-			in.AddError(err)
-			return
-		}
-		*t = tt
+	var tstr string
+	if err := json.Unmarshal(data, &tstr); err != nil {
+		return err
 	}
+	tt, err := ParseDateTime(tstr)
+	if err != nil {
+		return err
+	}
+	*t = tt
+	return nil
 }
 
-// GetBSON returns the DateTime as a bson.M{} map.
-func (t *DateTime) GetBSON() (interface{}, error) {
-	return bson.M{"data": t.String()}, nil
+func (t DateTime) MarshalBSON() ([]byte, error) {
+	return bson.Marshal(bson.M{"data": t.String()})
 }
 
-// SetBSON sets the DateTime from raw bson data
-func (t *DateTime) SetBSON(raw bson.Raw) error {
+func (t *DateTime) UnmarshalBSON(data []byte) error {
 	var m bson.M
-	if err := raw.Unmarshal(&m); err != nil {
+	if err := bson.Unmarshal(data, &m); err != nil {
 		return err
 	}
 
 	if data, ok := m["data"].(string); ok {
-		var err error
-		*t, err = ParseDateTime(data)
-		return err
+		rd, err := ParseDateTime(data)
+		if err != nil {
+			return err
+		}
+		*t = rd
+		return nil
 	}
 
-	return errors.New("couldn't unmarshal bson raw value as Duration")
+	return errors.New("couldn't unmarshal bson bytes value as Date")
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
