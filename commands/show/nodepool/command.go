@@ -134,10 +134,8 @@ func fetchNodePool(args arguments) (*result, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	var nodespecErr error
-	res.instanceTypeDetails, nodespecErr = awsInfo.GetInstanceTypeDetails(res.nodePool.NodeSpec.Aws.InstanceType)
-
-	if nodespecErr == nil {
+	res.instanceTypeDetails, err = awsInfo.GetInstanceTypeDetails(res.nodePool.NodeSpec.Aws.InstanceType)
+	if err == nil {
 		res.sumCPUs = res.nodePool.Status.NodesReady * int64(res.instanceTypeDetails.CPUCores)
 		res.sumMemory = float64(res.nodePool.Status.NodesReady) * float64(res.instanceTypeDetails.MemorySizeGB)
 	}
