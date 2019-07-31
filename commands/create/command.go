@@ -6,6 +6,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/create/cluster"
 	"github.com/giantswarm/gsctl/commands/create/keypair"
 	"github.com/giantswarm/gsctl/commands/create/kubeconfig"
+	"github.com/giantswarm/gsctl/commands/create/nodepool"
 )
 
 var (
@@ -21,4 +22,5 @@ func init() {
 	Command.AddCommand(cluster.Command)
 	Command.AddCommand(keypair.Command)
 	Command.AddCommand(kubeconfig.Command)
+	Command.AddCommand(nodepool.Command)
 }
