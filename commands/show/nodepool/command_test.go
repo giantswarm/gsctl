@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/giantswarm/gscliauth/config"
@@ -102,6 +103,15 @@ func Test_ShowNodePool(t *testing.T) {
 			}
 			if result.sumMemory != tc.sumMemory {
 				t.Errorf("Case %d: Got unexpected sum of RAM: %f GB", i, result.sumMemory)
+			}
+
+			// Execute our print function and check for errors.
+			output := testutils.CaptureOutput(func() {
+				ShowNodepoolCommand.SetArgs([]string{"--endpoint", mockServer.URL, "--token", "my-token"})
+				printResult(ShowNodepoolCommand, positionalArgs)
+			})
+			if strings.Contains(output, "Error") {
+				t.Errorf("Case %d: Contained 'Error'", i)
 			}
 		})
 	}
