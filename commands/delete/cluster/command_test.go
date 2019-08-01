@@ -29,12 +29,8 @@ func TestDeleteClusterSuccess(t *testing.T) {
 		},
 	}
 
-	flags.CmdAPIEndpoint = mockServer.URL
-
 	for i, testCase := range testCases {
 
-		flags.CmdToken = testCase.token
-		flags.CmdForce = testCase.force
 		args := testCase
 
 		validateErr := validatePreconditions(args)
