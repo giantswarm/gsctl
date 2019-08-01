@@ -14,14 +14,6 @@ import (
 	"github.com/giantswarm/gsctl/flags"
 )
 
-// listEndpointsArgs are the arguments we pass to the actual functions
-// listing endpoints and printing endpoints lists
-type listEndpointsArguments struct {
-	apiEndpoint string
-	scheme      string
-	token       string
-}
-
 var (
 	// Command performs the "list endpoints" function
 	Command = &cobra.Command{
@@ -33,13 +25,21 @@ var (
 	}
 )
 
-// defaultListEndpointArgs returns listEndpointsArguments
+// Arguments are the arguments we pass to the actual functions
+// listing endpoints and printing endpoints lists
+type Arguments struct {
+	apiEndpoint string
+	scheme      string
+	token       string
+}
+
+// collectArguments returns Arguments
 // with settings loaded from flags etc.
-func defaultListEndpointArguments() listEndpointsArguments {
+func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
-	return listEndpointsArguments{
+	return Arguments{
 		apiEndpoint: endpoint,
 		token:       token,
 		scheme:      scheme,
@@ -48,7 +48,7 @@ func defaultListEndpointArguments() listEndpointsArguments {
 
 // listEndpoints prints a table with all endpoint URLs the user has used
 func listEndpoints(cmd *cobra.Command, args []string) {
-	myArgs := defaultListEndpointArguments()
+	myArgs := collectArguments()
 	output := endpointsTable(myArgs)
 	if output != "" {
 		fmt.Println(output)
@@ -56,7 +56,7 @@ func listEndpoints(cmd *cobra.Command, args []string) {
 }
 
 // endpointsTable returns a table of clusters the user has access to
-func endpointsTable(args listEndpointsArguments) string {
+func endpointsTable(args Arguments) string {
 	if len(config.Config.Endpoints()) == 0 {
 		return fmt.Sprintf("No endpoints configured.\n\nTo add an endpoint and authenticate for it, use\n\n\t%s\n",
 			color.YellowString("gsctl login <email> -e <endpoint>"))
