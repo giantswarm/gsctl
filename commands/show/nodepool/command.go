@@ -135,18 +135,16 @@ func fetchNodePool(args arguments) (*result, error) {
 	}
 
 	res.instanceTypeDetails, err = awsInfo.GetInstanceTypeDetails(res.nodePool.NodeSpec.Aws.InstanceType)
-	if err != nil {
+	if nodespec.IsInstanceTypeNotFoundErr(err) {
 		// We deliberately ignore "instance type not found", but respect all other errors.
-		if !nodespec.IsInstanceTypeNotFoundErr(err) {
-			return nil, microerror.Mask(err)
-		}
+	} else if err != nil {
+		return nil, microerror.Mask(err)
 	} else {
 		res.sumCPUs = res.nodePool.Status.NodesReady * int64(res.instanceTypeDetails.CPUCores)
 		res.sumMemory = float64(res.nodePool.Status.NodesReady) * float64(res.instanceTypeDetails.MemorySizeGB)
 	}
 
 	return res, nil
-
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
