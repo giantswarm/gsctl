@@ -79,9 +79,9 @@ const (
 	kubectlWindowsInstallURL = "https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md"
 )
 
-// createKubeconfigArguments is an argument struct to pass to our business
+// Arguments is an argument struct to pass to our business
 // function and to the validation function
-type createKubeconfigArguments struct {
+type Arguments struct {
 	apiEndpoint       string
 	authToken         string
 	certOrgs          string
@@ -96,9 +96,9 @@ type createKubeconfigArguments struct {
 	ttlHours          int32
 }
 
-// defaultCreateKubeconfigArguments creates arguments based on command line
-// flags and config and applies defaults
-func defaultCreateKubeconfigArguments() (createKubeconfigArguments, error) {
+// collectArguments gathers arguments based on command line
+// flags and config and applies defaults.
+func collectArguments() (Arguments, error) {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
@@ -115,14 +115,14 @@ func defaultCreateKubeconfigArguments() (createKubeconfigArguments, error) {
 
 	ttl, err := util.ParseDuration(flags.CmdTTL)
 	if errors.IsInvalidDurationError(err) {
-		return createKubeconfigArguments{}, microerror.Mask(errors.InvalidDurationError)
+		return Arguments{}, microerror.Mask(errors.InvalidDurationError)
 	} else if errors.IsDurationExceededError(err) {
-		return createKubeconfigArguments{}, microerror.Mask(errors.DurationExceededError)
+		return Arguments{}, microerror.Mask(errors.DurationExceededError)
 	} else if err != nil {
-		return createKubeconfigArguments{}, microerror.Mask(err)
+		return Arguments{}, microerror.Mask(err)
 	}
 
-	return createKubeconfigArguments{
+	return Arguments{
 		apiEndpoint:       endpoint,
 		authToken:         token,
 		certOrgs:          flags.CmdCertificateOrganizations,
@@ -172,7 +172,7 @@ func init() {
 
 // createKubeconfigPreRunOutput shows our pre-check results
 func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
-	args, argsErr := defaultCreateKubeconfigArguments()
+	args, argsErr := collectArguments()
 	if argsErr != nil {
 		if errors.IsInvalidDurationError(argsErr) {
 			fmt.Println(color.RedString("The value passed with --ttl is invalid."))
@@ -227,7 +227,7 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 // verifyCreateKubeconfigPreconditions checks if all preconditions are met and
 // returns nil if yes, error if not
-func verifyCreateKubeconfigPreconditions(args createKubeconfigArguments, cmdLineArgs []string) error {
+func verifyCreateKubeconfigPreconditions(args Arguments, cmdLineArgs []string) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
@@ -268,7 +268,7 @@ func verifyCreateKubeconfigPreconditions(args createKubeconfigArguments, cmdLine
 func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	ctx := context.Background()
 
-	args, _ := defaultCreateKubeconfigArguments()
+	args, _ := collectArguments()
 	result, err := createKubeconfig(ctx, args)
 
 	if err != nil {
@@ -346,10 +346,10 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 // createKubeconfig is our business function talking to the API to create a keypair
 // and creating a new kubectl context
-func createKubeconfig(ctx context.Context, args createKubeconfigArguments) (createKubeconfigResult, error) {
+func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResult, error) {
 	result := createKubeconfigResult{}
 
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
