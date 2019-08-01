@@ -2,7 +2,13 @@
 package nodepool
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
+	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/microerror"
@@ -84,7 +90,7 @@ Examples:
 
 	cmdAwsEc2InstanceType   string
 	cmdName                 string
-	cmdNumAvailabilityZones int
+	cmdAvailabilityZonesNum int
 	cmdAvailabilityZones    []string
 )
 
@@ -94,60 +100,146 @@ const (
 
 func init() {
 	Command.Flags().StringVarP(&cmdName, "name", "n", "", "name or purpose description of the node pool")
-	Command.Flags().IntVarP(&cmdNumAvailabilityZones, "num-availability-zones", "", 0, "Number of availability zones to use. Default is 1.")
-	Command.Flags().StringSliceVarP(&cmdAvailabilityZones, "availability-zones", "", []string{}, "List of availability zones to use, instead of setting a number. Use comma to separate values.")
-	Command.Flags().StringVarP(&cmdAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers, e. g. 'm5.2xlarge'")
-	// TODO: size min/max flags
+	Command.Flags().IntVarP(&cmdAvailabilityZonesNum, "num-availability-zones", "", 0, "Number of availability zones to use. Default is 1.")
+	Command.Flags().StringSliceVarP(&cmdAvailabilityZones, "availability-zones", "", nil, "List of availability zones to use, instead of setting a number. Use comma to separate values.")
+	Command.Flags().StringVarP(&flags.CmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers, e. g. 'm5.2xlarge'")
+	Command.Flags().Int64VarP(&flags.CmdWorkersMin, "nodes-min", "", 0, "Minimum number of worker nodes for the node pool.")
+	Command.Flags().Int64VarP(&flags.CmdWorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool.")
 }
 
-type arguments struct {
-	apiEndpoint           string
-	authToken             string
+// Arguments defines the arguments this command can take into consideration.
+type Arguments struct {
+	APIEndpoint           string
+	AuthToken             string
+	AvailabilityZonesList []string
+	AvailabilityZonesNum  int
+	ClusterID             string
+	InstanceType          string
+	Name                  string
+	ScalingMax            int64
+	ScalingMin            int64
+	Scheme                string
+	Verbose               bool
+}
+
+type result struct {
+	nodePoolID            string
+	nodePoolName          string
 	availabilityZonesList []string
-	availabilityZonesNum  int
-	clusterID             string
-	instanceType          string
-	name                  string
-	scheme                string
-	verbose               bool
 }
 
-func defaultArguments(positionalArgs []string) arguments {
+// collectArguments populates an arguments struct with values both from command flags,
+// from config, and potentially from built-in defaults.
+func collectArguments(positionalArgs []string) Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
-	return arguments{
-		apiEndpoint: endpoint,
-		authToken:   token,
-		scheme:      scheme,
-		clusterID:   positionalArgs[0],
-		verbose:     flags.CmdVerbose,
-		name:        cmdName,
+	return Arguments{
+		APIEndpoint:           endpoint,
+		AuthToken:             token,
+		AvailabilityZonesList: cmdAvailabilityZones,
+		AvailabilityZonesNum:  cmdAvailabilityZonesNum,
+		ClusterID:             positionalArgs[0],
+		InstanceType:          flags.CmdWorkerAwsEc2InstanceType,
+		Name:                  cmdName,
+		ScalingMax:            flags.CmdWorkersMax,
+		ScalingMin:            flags.CmdWorkersMin,
+		Scheme:                scheme,
+		Verbose:               flags.CmdVerbose,
 	}
 }
 
-func verifyPreconditions(args arguments, positionalArgs []string) error {
-	parsedArgs := defaultArguments(positionalArgs)
-	if config.Config.Token == "" && parsedArgs.authToken == "" {
+func verifyPreconditions(args Arguments) error {
+	if config.Config.Token == "" && args.AuthToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 
-	if parsedArgs.clusterID == "" {
+	if args.ClusterID == "" {
 		return microerror.Mask(errors.ClusterIDMissingError)
 	}
 
-	if len(parsedArgs.availabilityZonesList) > 0 && parsedArgs.availabilityZonesNum > 0 {
+	// AZ flags plausibility
+	if len(args.AvailabilityZonesList) > 0 && args.AvailabilityZonesNum > 0 {
 		return microerror.Maskf(errors.ConflictingFlagsError, "the flags --availability-zones and --num-availability-zones cannot be combined.")
+	}
+
+	// Scaling flags plausibility
+	if args.ScalingMin > 0 && args.ScalingMax > 0 {
+		if args.ScalingMin > args.ScalingMax {
+			return microerror.Mask(errors.WorkersMinMaxInvalidError)
+		}
 	}
 
 	return nil
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
+	args := collectArguments(positionalArgs)
+	err := verifyPreconditions(args)
 
+	if err == nil {
+		return
+	}
+
+	errors.HandleCommonErrors(err)
+}
+
+// createNodePool is the business function sending our creation request to the API
+// and returning either a proper result or an error.
+func createNodePool(args Arguments) (result, error) {
+	r := result{}
+
+	requestBody := &models.V5AddNodePoolRequest{}
+
+	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.AuthToken)
+	if err != nil {
+		return r, microerror.Mask(err)
+	}
+
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
+	auxParams.ActivityName = activityName
+
+	response, err := clientWrapper.CreateNodePool(args.ClusterID, requestBody, auxParams)
+	if err != nil {
+		return r, microerror.Mask(err)
+	}
+
+	r.nodePoolID = response.Payload.ID
+	r.nodePoolName = response.Payload.Name
+	r.availabilityZonesList = response.Payload.AvailabilityZones
+
+	return r, nil
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
+	args := collectArguments(positionalArgs)
 
+	r, err := createNodePool(args)
+	if err != nil {
+		fmt.Printf("Error: %#v\n", err)
+		errors.HandleCommonErrors(err)
+
+		headline := ""
+		subtext := ""
+
+		switch {
+		case errors.IsConflictingFlagsError(err):
+			headline = "Conflicting flags used"
+			subtext = "The flags --availability-zones and --num-availability-zones must not be used together."
+		default:
+			headline = err.Error()
+		}
+
+		// print output
+		fmt.Println(color.RedString(headline))
+		if subtext != "" {
+			fmt.Println(subtext)
+		}
+		os.Exit(1)
+	}
+
+	fmt.Println(color.GreenString("New node pool '%s' (ID '%s') in cluster '%s' is launching.", r.nodePoolName, r.nodePoolID, args.ClusterID))
+	fmt.Printf("Use this command to inspect details for the new node pool:\n\n")
+	fmt.Println(color.YellowString("    gsctl show nodepool %s/%s", args.ClusterID, r.nodePoolID))
 }
