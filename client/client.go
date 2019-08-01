@@ -87,8 +87,8 @@ type ClusterStatus struct {
 	Cluster *v1alpha1.StatusCluster `json:"cluster,omitempty"`
 }
 
-// NewV2 creates a client based on the latest gsclientgen version.
-func NewV2(conf *Configuration) (*WrapperV2, error) {
+// New creates a client based on the latest gsclientgen version.
+func New(conf *Configuration) (*Wrapper, error) {
 	if conf.AuthHeaderGetter == nil {
 		conf.AuthHeaderGetter = func() (string, error) { return "", nil }
 	}
@@ -142,7 +142,7 @@ func NewWithConfig(endpointString, token string) (*Wrapper, error) {
 		UserAgent:        config.UserAgent(),
 	}
 
-	return NewV2(ClientConfig)
+	return New(ClientConfig)
 }
 
 type roundTripperWithUserAgent struct {

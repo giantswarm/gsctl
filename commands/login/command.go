@@ -265,7 +265,7 @@ func getInstallationInfo(apiEndpoint string, scheme string, accessToken string) 
 		UserAgent:        config.UserAgent(),
 		AuthHeaderGetter: authHeaderGetter,
 	}
-	clientV2, err := client.NewV2(clientConfig)
+	clientV2, err := client.New(clientConfig)
 	if err != nil {
 		return nil, microerror.Maskf(errors.CouldNotCreateClientError, err.Error())
 	}
