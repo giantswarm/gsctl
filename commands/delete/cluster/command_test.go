@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/giantswarm/gsctl/commands/errors"
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -21,11 +20,11 @@ func TestDeleteClusterSuccess(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	var testCases = []deleteClusterArguments{
+	var testCases = []Arguments{
 		{
 			apiEndpoint: mockServer.URL,
 			clusterID:   "somecluster",
-			token:       "fake token",
+			token:       "fake-token",
 			force:       true,
 		},
 	}
@@ -36,8 +35,7 @@ func TestDeleteClusterSuccess(t *testing.T) {
 
 		flags.CmdToken = testCase.token
 		flags.CmdForce = testCase.force
-
-		args := defaultArguments([]string{testCase.clusterID})
+		args := testCase
 
 		validateErr := validatePreconditions(args)
 		if validateErr != nil {
@@ -52,7 +50,7 @@ func TestDeleteClusterSuccess(t *testing.T) {
 }
 
 type failTestCase struct {
-	arguments     deleteClusterArguments
+	arguments     Arguments
 	expectedError error
 }
 
@@ -60,14 +58,14 @@ type failTestCase struct {
 func TestDeleteClusterFailures(t *testing.T) {
 	var failTestCases = []failTestCase{
 		{
-			arguments: deleteClusterArguments{
+			arguments: Arguments{
 				clusterID: "somecluster",
 				token:     "",
 			},
 			expectedError: errors.NotLoggedInError,
 		},
 		{
-			arguments: deleteClusterArguments{
+			arguments: Arguments{
 				clusterID: "",
 				token:     "some token",
 			},
