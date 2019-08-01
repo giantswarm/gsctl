@@ -8,12 +8,11 @@ import (
 	"github.com/giantswarm/microerror"
 
 	"github.com/giantswarm/gsctl/client"
-	"github.com/giantswarm/gsctl/flags"
 )
 
 // loginGiantSwarm executes the authentication logic.
 // If the user was logged in before, a logout is performed first.
-func loginGiantSwarm(args loginArguments) (loginResult, error) {
+func loginGiantSwarm(args Arguments) (loginResult, error) {
 	result := loginResult{
 		apiEndpoint:        args.apiEndpoint,
 		email:              args.email,
@@ -28,7 +27,7 @@ func loginGiantSwarm(args loginArguments) (loginResult, error) {
 		result.endpointSwitched = true
 	}
 
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, "")
+	clientV2, err := client.NewWithConfig(args.apiEndpoint, "")
 	if err != nil {
 		return result, microerror.Mask(err)
 	}

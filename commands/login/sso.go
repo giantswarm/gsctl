@@ -19,7 +19,7 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-func loginSSO(args loginArguments) (loginResult, error) {
+func loginSSO(args Arguments) (loginResult, error) {
 	numEndpointsBefore := config.Config.NumEndpoints()
 
 	pkceResponse, err := oidc.RunPKCE(args.apiEndpoint)

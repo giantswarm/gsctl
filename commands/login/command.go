@@ -55,6 +55,27 @@ func init() {
 	Command.Flags().MarkHidden("sso")
 }
 
+// Arguments is the argument struct for the business function.
+// Note: the absence of 'token', which is available in all other commands,
+// is by design.
+type Arguments struct {
+	apiEndpoint string
+	email       string
+	password    string
+	verbose     bool
+}
+
+func collectArguments() Arguments {
+	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+
+	return Arguments{
+		apiEndpoint: endpoint,
+		email:       cmdEmail,
+		password:    cmdPassword,
+		verbose:     flags.CmdVerbose,
+	}
+}
+
 type loginResult struct {
 	// apiEndpoint is the API endpoint the user has been logged in to
 	apiEndpoint string
@@ -74,22 +95,6 @@ type loginResult struct {
 	numEndpointsBefore int
 	// numEndpointsAfter is the number of endpoints after login
 	numEndpointsAfter int
-}
-
-type loginArguments struct {
-	apiEndpoint string
-	email       string
-	password    string
-	verbose     bool
-}
-
-func defaultLoginArguments() loginArguments {
-	return loginArguments{
-		apiEndpoint: config.Config.ChooseEndpoint(flags.CmdAPIEndpoint),
-		email:       cmdEmail,
-		password:    cmdPassword,
-		verbose:     flags.CmdVerbose,
-	}
 }
 
 // loginPreRunOutput runs our pre-checks.
@@ -128,6 +133,8 @@ func loginPreRunOutput(cmd *cobra.Command, positionalArgs []string) {
 
 // verifyLoginPreconditions does the pre-checks and returns an error in case something's wrong.
 func verifyLoginPreconditions(positionalArgs []string) error {
+	args := collectArguments()
+
 	// using auth token flag? The 'login' command is the only exception
 	// where we can't accept this argument.
 	if flags.CmdToken != "" {
@@ -146,11 +153,9 @@ func verifyLoginPreconditions(positionalArgs []string) error {
 			return microerror.Mask(errors.NoEmailArgumentGivenError)
 		}
 
-		endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-
 		// interactive password prompt
 		if cmdPassword == "" {
-			fmt.Printf("Password for %s on %s: ", color.CyanString(cmdEmail), color.CyanString(endpoint))
+			fmt.Printf("Password for %s on %s: ", color.CyanString(cmdEmail), color.CyanString(args.apiEndpoint))
 			password, err := gopass.GetPasswd()
 			if err != nil {
 				return err
@@ -165,7 +170,7 @@ func verifyLoginPreconditions(positionalArgs []string) error {
 	return nil
 }
 
-func login(loginArgs loginArguments) (loginResult, error) {
+func login(loginArgs Arguments) (loginResult, error) {
 	var result loginResult
 	var err error
 	if cmdSSO {
@@ -180,7 +185,7 @@ func login(loginArgs loginArguments) (loginResult, error) {
 // loginRunOutput executes the login logic and
 // prints output and sets the exit code.
 func loginRunOutput(cmd *cobra.Command, args []string) {
-	loginArgs := defaultLoginArguments()
+	loginArgs := collectArguments()
 
 	result, err := login(loginArgs)
 
