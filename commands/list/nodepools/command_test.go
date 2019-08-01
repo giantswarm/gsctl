@@ -8,7 +8,6 @@ import (
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/spf13/afero"
 
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -38,13 +37,13 @@ func Test_ListNodePools(t *testing.T) {
 	configDir := testutils.TempDir(fs)
 	config.Initialize(fs, configDir)
 
-	positionalArgs := []string{"cluster-id"}
+	args := Arguments{
+		clusterID:   "cluster-id",
+		apiEndpoint: mockServer.URL,
+		authToken:   "my-token",
+	}
 
-	flags.CmdAPIEndpoint = mockServer.URL
-	flags.CmdToken = "my-token"
-	args := defaultArgs(positionalArgs)
-
-	err := verifyPreconditions(args, positionalArgs)
+	err := verifyPreconditions(args, []string{args.clusterID})
 	if err != nil {
 		t.Error(err)
 	}
