@@ -26,7 +26,7 @@ func Test_ShowNodePool(t *testing.T) {
 				"id": "nodepool-id",
 				"name": "Application servers",
 				"availability_zones": ["eu-west-1a", "eu-west-1c"],
-				"scaling": {"Min": 3, "Max": 10},
+				"scaling": {"min": 3, "max": 10},
 				"node_spec": {"aws": {"instance_type": "c5.large"}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}},
 				"status": {"nodes": 3, "nodes_ready": 3},
 				"subnet": "10.1.0.0/24"
