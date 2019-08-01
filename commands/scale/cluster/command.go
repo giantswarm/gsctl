@@ -165,12 +165,12 @@ func defaultArguments(ctx context.Context, cmd *cobra.Command, clusterID string,
 
 // getClusterStatus returns the status for one cluster.
 func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, error) {
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
 	// Make sure we have provider info in the current endpoint
@@ -179,7 +179,7 @@ func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, er
 			fmt.Println(color.WhiteString("Fetching provider information"))
 		}
 
-		info, err := clientV2.GetInfo(auxParams)
+		info, err := clientWrapper.GetInfo(auxParams)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -190,7 +190,7 @@ func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, er
 	if flags.CmdVerbose {
 		fmt.Println(color.WhiteString("Fetching current cluster size"))
 	}
-	status, err := clientV2.GetClusterStatus(clusterID, auxParams)
+	status, err := clientWrapper.GetClusterStatus(clusterID, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -213,15 +213,15 @@ func scaleCluster(args scaleClusterArguments) (*models.V4ClusterDetailsResponse,
 		fmt.Println(color.WhiteString("Sending API request to modify cluster"))
 	}
 
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = scaleClusterActivityName
 
-	response, err := clientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
+	response, err := clientWrapper.ModifyCluster(args.clusterID, reqBody, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -244,16 +244,16 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	var currentWorkers int64
 	var releaseVersion string
 	{
-		clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+		clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 		if err != nil {
 			fmt.Println(color.RedString(err.Error()))
 			os.Exit(1)
 		}
 
-		auxParams := clientV2.DefaultAuxiliaryParams()
+		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = scaleClusterActivityName
 
-		response, err := clientV2.GetClusterV4(clusterID, auxParams)
+		response, err := clientWrapper.GetClusterV4(clusterID, auxParams)
 		if err != nil {
 			errors.HandleCommonErrors(err)
 			client.HandleErrors(err)
