@@ -7,7 +7,6 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -91,9 +90,9 @@ func Test_InfoWithTempDirAndToken(t *testing.T) {
 		t.Error(err)
 	}
 
-	flags.CmdAPIEndpoint = ""
-	args := defaultInfoArguments()
+	args := collectArguments()
 	args.token = "fake token"
+	args.apiEndpoint = ""
 
 	infoResult, err := info(args)
 	if err != nil {
@@ -105,7 +104,7 @@ func Test_InfoWithTempDirAndToken(t *testing.T) {
 			infoResult.configFilePath, dir)
 	}
 	if infoResult.token != args.token {
-		t.Errorf("Expected token '%s', got '%s'", flags.CmdToken, infoResult.token)
+		t.Errorf("Expected token '%s', got '%s'", args.token, infoResult.token)
 	}
 	if infoResult.email != "" {
 		t.Error("Expected empty email, got ", infoResult.email)
