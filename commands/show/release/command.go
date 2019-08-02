@@ -43,7 +43,7 @@ const (
 	showReleaseActivityName = "show-release"
 )
 
-type showReleaseArguments struct {
+type Arguments struct {
 	apiEndpoint    string
 	authToken      string
 	scheme         string
@@ -51,12 +51,12 @@ type showReleaseArguments struct {
 	verbose        bool
 }
 
-func defaultShowReleaseArguments() showReleaseArguments {
+func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
-	return showReleaseArguments{
+	return Arguments{
 		apiEndpoint:    endpoint,
 		authToken:      token,
 		scheme:         scheme,
@@ -66,7 +66,7 @@ func defaultShowReleaseArguments() showReleaseArguments {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultShowReleaseArguments()
+	args := collectArguments()
 	err := verifyShowReleasePreconditions(args, cmdLineArgs)
 
 	if err == nil {
@@ -80,7 +80,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	os.Exit(1)
 }
 
-func verifyShowReleasePreconditions(args showReleaseArguments, cmdLineArgs []string) error {
+func verifyShowReleasePreconditions(args Arguments, cmdLineArgs []string) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
@@ -91,8 +91,8 @@ func verifyShowReleasePreconditions(args showReleaseArguments, cmdLineArgs []str
 }
 
 // getReleaseDetails fetches release details from the API
-func getReleaseDetails(releaseVersion, scheme, token, endpoint string) (*models.V4ReleaseListItem, error) {
-	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+func getReleaseDetails(args Arguments) (*models.V4ReleaseListItem, error) {
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -116,7 +116,7 @@ func getReleaseDetails(releaseVersion, scheme, token, endpoint string) (*models.
 	}
 
 	for _, release := range response.Payload {
-		if *release.Version == releaseVersion {
+		if *release.Version == args.releaseVersion {
 			return release, nil
 		}
 	}
@@ -126,10 +126,9 @@ func getReleaseDetails(releaseVersion, scheme, token, endpoint string) (*models.
 
 // printResult prints the release information on stdout
 func printResult(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultShowReleaseArguments()
+	args := collectArguments()
 	args.releaseVersion = cmdLineArgs[0]
-	release, err := getReleaseDetails(args.releaseVersion, args.scheme,
-		args.authToken, args.apiEndpoint)
+	release, err := getReleaseDetails(args)
 
 	// error output
 	if err != nil {
