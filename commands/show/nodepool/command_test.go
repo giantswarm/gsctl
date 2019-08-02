@@ -7,10 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/giantswarm/gscliauth/config"
 	"github.com/spf13/afero"
 
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -26,7 +24,7 @@ func Test_ShowNodePool(t *testing.T) {
 				"id": "nodepool-id",
 				"name": "Application servers",
 				"availability_zones": ["eu-west-1a", "eu-west-1c"],
-				"scaling": {"Min": 3, "Max": 10},
+				"scaling": {"min": 3, "max": 10},
 				"node_spec": {"aws": {"instance_type": "c5.large"}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}},
 				"status": {"nodes": 3, "nodes_ready": 3},
 				"subnet": "10.1.0.0/24"
@@ -69,21 +67,26 @@ func Test_ShowNodePool(t *testing.T) {
 			defer mockServer.Close()
 
 			// temp config
+			configYAML := `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  ` + mockServer.URL + `:
+    email: email@example.com
+    token: some-token
+selected_endpoint: ` + mockServer.URL
 			fs := afero.NewMemMapFs()
-			configDir := testutils.TempDir(fs)
-			config.Initialize(fs, configDir)
-
-			positionalArgs := []string{"cluster-id/nodepool-id"}
-
-			flags.CmdAPIEndpoint = mockServer.URL
-			flags.CmdToken = "my-token"
-			flags.CmdVerbose = true
-			args := defaultArguments(positionalArgs)
-
-			err := verifyPreconditions(args, positionalArgs)
+			_, err := testutils.TempConfig(fs, configYAML)
 			if err != nil {
-				t.Errorf("Case %d: unexpected error %s", i, err)
+				t.Error(err)
 			}
+
+			args := Arguments{
+				apiEndpoint: mockServer.URL,
+				authToken:   "some-token",
+				clusterID:   "cluster-id",
+				nodePoolID:  "nodepool-id",
+			}
+			positionalArgs := []string{"cluster-id/nodepool-id"}
 
 			result, err := fetchNodePool(args)
 			if err != nil {
