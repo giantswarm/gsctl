@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/commands/errors"
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -30,12 +29,10 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 	configDir := testutils.TempDir(fs)
 	config.Initialize(fs, configDir)
 
-	testArgs := scaleClusterArguments{
+	testArgs := Arguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "cluster-id",
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err := validateScaleCluster(testArgs, []string{testArgs.clusterID}, 5, 5, 5)
 	if !errors.IsNotLoggedInError(err) {
@@ -150,15 +147,13 @@ selected_endpoint: ` + mockServer.URL
 		t.Error(err)
 	}
 
-	testArgs := scaleClusterArguments{
+	testArgs := Arguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "cluster-id",
 		workersMax:  int64(5),
 		workersMin:  int64(5),
 	}
 	config.Config.Token = "my-token"
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err = validateScaleCluster(testArgs, []string{testArgs.clusterID}, 3, 3, 3)
 	if err != nil {
