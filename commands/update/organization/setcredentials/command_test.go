@@ -8,7 +8,6 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -54,19 +53,23 @@ func Test_UpdateOrgSetCredentials_Success(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
+	configYAML := `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  ` + mockServer.URL + `:
+    email: email@example.com
+    token: some-token
+selected_endpoint: ` + mockServer.URL
 	fs := afero.NewMemMapFs()
-	_, err := testutils.TempConfig(fs, "")
+	_, err := testutils.TempConfig(fs, configYAML)
 	if err != nil {
 		t.Error(err)
 	}
 
-	flags.CmdAPIEndpoint = mockServer.URL
-	flags.CmdOrganizationID = "acme"
-	flags.CmdToken = "test-token"
-	cmdAWSAdminRoleARN = "test-admin-role"
-	cmdAWSOperatorRoleARN = "test-operator-role"
-
-	args := defaultArguments()
+	args := collectArguments()
+	args.organizationID = "acme"
+	args.awsAdminRole = "test-admin-role"
+	args.awsOperatorRole = "test-operator-role"
 
 	err = verifyPreconditions(args)
 	if err != nil {
