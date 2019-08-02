@@ -3,7 +3,6 @@ package setcredentials
 import (
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/spf13/afero"
@@ -66,10 +65,13 @@ selected_endpoint: ` + mockServer.URL
 		t.Error(err)
 	}
 
-	args := collectArguments()
-	args.organizationID = "acme"
-	args.awsAdminRole = "test-admin-role"
-	args.awsOperatorRole = "test-operator-role"
+	args := Arguments{
+		apiEndpoint:     mockServer.URL,
+		authToken:       "some-token",
+		organizationID:  "acme",
+		awsAdminRole:    "test-admin-role",
+		awsOperatorRole: "test-operator-role",
+	}
 
 	err = verifyPreconditions(args)
 	if err != nil {
@@ -83,14 +85,5 @@ selected_endpoint: ` + mockServer.URL
 
 	if result.credentialID != "test" {
 		t.Errorf("Expected credential ID 'test', got %q", result.credentialID)
-	}
-
-	expected := "Credentials set successfully"
-	output := testutils.CaptureOutput(func() {
-		printResult(Command, []string{""})
-	})
-	if !strings.Contains(output, expected) {
-		t.Logf("Command output: %q", output)
-		t.Errorf("Command output did not contain expected part %q\n", expected)
 	}
 }
