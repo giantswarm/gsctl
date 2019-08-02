@@ -265,15 +265,16 @@ func getInstallationInfo(apiEndpoint string, scheme string, accessToken string) 
 		UserAgent:        config.UserAgent(),
 		AuthHeaderGetter: authHeaderGetter,
 	}
-	clientV2, err := client.New(clientConfig)
+
+	clientWrapper, err := client.New(clientConfig)
 	if err != nil {
 		return nil, microerror.Maskf(errors.CouldNotCreateClientError, err.Error())
 	}
 
 	// Fetch installation name as alias.
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = loginActivityName
-	infoResponse, err := clientV2.GetInfo(auxParams)
+	infoResponse, err := clientWrapper.GetInfo(auxParams)
 	if err != nil {
 		return nil, err
 	}

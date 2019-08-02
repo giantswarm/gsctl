@@ -179,15 +179,15 @@ func verifyPreconditions(args cmdArguments) error {
 		fmt.Println(color.WhiteString("Determining which provider this installation uses"))
 	}
 
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientV2.GetInfo(auxParams)
+	response, err := clientWrapper.GetInfo(auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusUnauthorized {
@@ -245,7 +245,7 @@ func verifyPreconditions(args cmdArguments) error {
 	if args.verbose {
 		fmt.Println(color.WhiteString("Verify organization membership"))
 	}
-	orgsResponse, err := clientV2.GetOrganizations(auxParams)
+	orgsResponse, err := clientWrapper.GetOrganizations(auxParams)
 	{
 		if err != nil {
 			if clientErr, ok := err.(*clienterror.APIError); ok {
@@ -333,15 +333,15 @@ func setOrgCredentials(args cmdArguments) (*setOrgCredentialsResult, error) {
 		fmt.Println(color.WhiteString("Sending API request to set credentials"))
 	}
 
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientV2.SetCredentials(args.organizationID, requestBody, auxParams)
+	response, err := clientWrapper.SetCredentials(args.organizationID, requestBody, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusConflict {
