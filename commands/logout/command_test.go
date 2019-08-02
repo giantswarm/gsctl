@@ -71,12 +71,6 @@ func Test_LogoutInvalidToken(t *testing.T) {
 // Test_LogoutCommand simply calls the functions cobra would call,
 // with a temporary config path and mock server as endpoint.
 func Test_LogoutCommand(t *testing.T) {
-	fs := afero.NewMemMapFs()
-	_, err := testutils.TempConfig(fs, "")
-	if err != nil {
-		t.Error(err)
-	}
-
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -84,6 +78,23 @@ func Test_LogoutCommand(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	Command.Root().SetArgs([]string{"--endpoint", mockServer.URL, "--auth-token", "some-token"})
-	Command.Execute()
+	// config
+	configYAML := `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  ` + mockServer.URL + `:
+    email: email@example.com
+    token: some-token
+selected_endpoint: ` + mockServer.URL
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, configYAML)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = Command.Execute()
+	if err != nil {
+		t.Errorf("Unexpected error: %#v", err)
+	}
 }
