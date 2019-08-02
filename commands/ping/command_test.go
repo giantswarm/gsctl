@@ -6,7 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/testutils"
+	"github.com/spf13/afero"
 )
 
 func Test_Command_Execution(t *testing.T) {
@@ -16,9 +17,21 @@ func Test_Command_Execution(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	flags.CmdAPIEndpoint = mockServer.URL
+	// config
+	configYAML := `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  ` + mockServer.URL + `:
+    email: email@example.com
+    token: some-token
+selected_endpoint: ` + mockServer.URL
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, configYAML)
+	if err != nil {
+		t.Error(err)
+	}
 
-	err := Command.Execute()
+	err = Command.Execute()
 	if err != nil {
 		t.Errorf("Unexpected error %s\n", err.Error())
 	}
