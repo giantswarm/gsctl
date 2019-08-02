@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -28,12 +27,10 @@ func Test_LogoutValidToken(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	logoutArgs := logoutArguments{
+	logoutArgs := Arguments{
 		apiEndpoint: mockServer.URL,
 		token:       "test-token",
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err = logout(logoutArgs)
 	if err != nil {
@@ -56,12 +53,10 @@ func Test_LogoutInvalidToken(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	logoutArgs := logoutArguments{
+	logoutArgs := Arguments{
 		apiEndpoint: mockServer.URL,
 		token:       "test-token",
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err = logout(logoutArgs)
 
@@ -89,8 +84,6 @@ func Test_LogoutCommand(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	flags.CmdAPIEndpoint = mockServer.URL
-	flags.CmdToken = "some-token"
-
+	Command.Root().SetArgs([]string{"--endpoint", mockServer.URL, "--auth-token", "some-token"})
 	Command.Execute()
 }
