@@ -37,18 +37,18 @@ const (
 	listClustersActivityName = "list-clusters"
 )
 
-type listClustersArguments struct {
+type Arguments struct {
 	apiEndpoint string
 	authToken   string
 	scheme      string
 }
 
-func defaultListClustersArguments() listClustersArguments {
+func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
-	return listClustersArguments{
+	return Arguments{
 		apiEndpoint: endpoint,
 		authToken:   token,
 		scheme:      scheme,
@@ -56,7 +56,7 @@ func defaultListClustersArguments() listClustersArguments {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultListClustersArguments()
+	args := collectArguments()
 	err := verifyListClusterPreconditions(args)
 
 	if err == nil {
@@ -66,7 +66,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	errors.HandleCommonErrors(err)
 }
 
-func verifyListClusterPreconditions(args listClustersArguments) error {
+func verifyListClusterPreconditions(args Arguments) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
@@ -79,7 +79,7 @@ func verifyListClusterPreconditions(args listClustersArguments) error {
 
 // listClusters prints a table with all clusters the user has access to
 func printResult(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultListClustersArguments()
+	args := collectArguments()
 
 	output, err := clustersTable(args)
 	if err != nil {
@@ -103,8 +103,8 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 }
 
 // clustersTable returns a table of clusters the user has access to
-func clustersTable(args listClustersArguments) (string, error) {
-	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+func clustersTable(args Arguments) (string, error) {
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}

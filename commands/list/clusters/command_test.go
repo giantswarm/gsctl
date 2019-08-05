@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/giantswarm/gsctl/commands/errors"
-	"github.com/giantswarm/gsctl/flags"
 )
 
 func init() {
@@ -59,12 +58,10 @@ func Test_ListClusters(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	args := listClustersArguments{
+	args := Arguments{
 		apiEndpoint: mockServer.URL,
 		authToken:   "testtoken",
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err := verifyListClusterPreconditions(args)
 	if err != nil {
@@ -88,12 +85,10 @@ func Test_ListClustersEmpty(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	args := listClustersArguments{
+	args := Arguments{
 		apiEndpoint: mockServer.URL,
 		authToken:   "testtoken",
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err := verifyListClusterPreconditions(args)
 	if err != nil {
@@ -119,12 +114,10 @@ func Test_ListClustersUnauthorized(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	args := listClustersArguments{
+	args := Arguments{
 		apiEndpoint: mockServer.URL,
 		authToken:   "testtoken",
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err := verifyListClusterPreconditions(args)
 	if err != nil {
