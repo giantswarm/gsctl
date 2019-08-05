@@ -77,15 +77,13 @@ func Test_CreateKubeconfig(t *testing.T) {
 	defer fs.RemoveAll(configDir)
 	defer fs.RemoveAll(path.Dir(kubeConfigPath))
 
-	args := createKubeconfigArguments{
+	args := Arguments{
 		authToken:   "auth-token",
 		apiEndpoint: mockServer.URL,
 		clusterID:   "test-cluster-id",
 		contextName: "giantswarm-test-cluster-id",
 		fileSystem:  fs,
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
 	if err != nil {
@@ -117,7 +115,7 @@ func Test_CreateKubeconfig(t *testing.T) {
 		t.Error(err)
 	}
 
-	if !strings.Contains(string(content), "current-context: giantswarm-"+flags.CmdClusterID) {
+	if !strings.Contains(string(content), "current-context: giantswarm-"+args.clusterID) {
 		t.Error("Kubeconfig doesn't contain the expected current-context value")
 	}
 	if !strings.Contains(string(content), "client-certificate: "+configDir) {
@@ -147,7 +145,7 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 	// output folder
 	tmpdir := testutils.TempDir(fs)
 
-	args := createKubeconfigArguments{
+	args := Arguments{
 		apiEndpoint:       mockServer.URL,
 		authToken:         "auth-token",
 		clusterID:         "test-cluster-id",
@@ -155,8 +153,6 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 		fileSystem:        fs,
 		selfContainedPath: path.Join(tmpdir, "kubeconfig"),
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
 	if err != nil {
@@ -191,7 +187,7 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 		t.Error(err)
 	}
 
-	if !strings.Contains(string(content), "current-context: giantswarm-"+flags.CmdClusterID) {
+	if !strings.Contains(string(content), "current-context: giantswarm-"+args.clusterID) {
 		t.Error("Kubeconfig doesn't contain the expected current-context value")
 	}
 	if !strings.Contains(string(content), "client-certificate-data:") {
@@ -230,7 +226,7 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 	defer fs.RemoveAll(dir)
 	defer fs.RemoveAll(path.Dir(kubeConfigPath))
 
-	args := createKubeconfigArguments{
+	args := Arguments{
 		apiEndpoint: mockServer.URL,
 		authToken:   "auth-token",
 		clusterID:   "test-cluster-id",
@@ -284,7 +280,7 @@ func Test_CreateKubeconfigNoConnection(t *testing.T) {
 		t.Error(err)
 	}
 
-	args := createKubeconfigArguments{
+	args := Arguments{
 		authToken:   "auth-token",
 		apiEndpoint: "http://0.0.0.0:12345",
 		clusterID:   "test-cluster-id",
