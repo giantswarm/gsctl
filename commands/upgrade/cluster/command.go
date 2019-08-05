@@ -201,17 +201,17 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	result := upgradeClusterResult{}
 	var details *models.V4ClusterDetailsResponse
 
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = upgradeClusterActivityName
 
 	// fetch current cluster details
 	{
-		response, err := clientV2.GetClusterV4(args.clusterID, auxParams)
+		response, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}
@@ -219,7 +219,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 		details = response.Payload
 	}
 
-	releasesResponse, err := clientV2.GetReleases(auxParams)
+	releasesResponse, err := clientWrapper.GetReleases(auxParams)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
@@ -295,7 +295,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	}
 
 	// perform API call
-	_, err = clientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
+	_, err = clientWrapper.ModifyCluster(args.clusterID, reqBody, auxParams)
 	if err != nil {
 		return result, microerror.Maskf(errors.CouldNotUpgradeClusterError, err.Error())
 	}

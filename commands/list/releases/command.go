@@ -212,15 +212,16 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 
 // listReleases fetches releases and returns them as a structured result.
 func listReleases(args Arguments) ([]*models.V4ReleaseListItem, error) {
-	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
+
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = listReleasesActivityName
 
-	response, err := clientV2.GetReleases(auxParams)
+	response, err := clientWrapper.GetReleases(auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {
