@@ -7,7 +7,6 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -29,12 +28,10 @@ func Test_ListReleases_Empty(t *testing.T) {
 	defer releasesMockServer.Close()
 
 	// needed to prevent search for the default cluster
-	args := listReleasesArguments{
+	args := Arguments{
 		apiEndpoint: releasesMockServer.URL,
 		token:       "my-token",
 	}
-
-	flags.CmdAPIEndpoint = releasesMockServer.URL
 
 	err = listReleasesPreconditions(&args)
 	if err != nil {
@@ -191,12 +188,10 @@ func Test_ListReleases_Nonempty(t *testing.T) {
 	}))
 	defer releasesMockServer.Close()
 
-	args := listReleasesArguments{
+	args := Arguments{
 		apiEndpoint: releasesMockServer.URL,
 		token:       "my-token",
 	}
-
-	flags.CmdAPIEndpoint = releasesMockServer.URL
 
 	err = listReleasesPreconditions(&args)
 	if err != nil {
