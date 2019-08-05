@@ -112,6 +112,48 @@ func TestSuccess(t *testing.T) {
 				"subnet": "10.1.0.0/24"
 			}`,
 		},
+		// Creation with availability zones list.
+		{
+			Arguments{
+				ClusterID:             "cluster-id",
+				AuthToken:             "token",
+				Name:                  "my node pool",
+				ScalingMin:            4,
+				ScalingMax:            10,
+				InstanceType:          "my-big-type",
+				AvailabilityZonesList: []string{"my-region-1a", "my-region-1c"},
+			},
+			`{
+				"id": "m0ckr",
+				"name": "my node pool",
+				"availability_zones": ["my-region-1a", "my-region-1c"],
+				"scaling": {"min": 4, "max": 10},
+				"node_spec": {"aws": {"instance_type": "my-big-type"}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}},
+				"status": {"nodes": 0, "nodes_ready": 0},
+				"subnet": "10.1.0.0/24"
+			}`,
+		},
+		// Creation with availability zones number.
+		{
+			Arguments{
+				ClusterID:            "cluster-id",
+				AuthToken:            "token",
+				Name:                 "my node pool",
+				ScalingMin:           2,
+				ScalingMax:           50,
+				InstanceType:         "my-big-type",
+				AvailabilityZonesNum: 3,
+			},
+			`{
+				"id": "m0ckr",
+				"name": "my node pool",
+				"availability_zones": ["my-region-1a", "my-region-1b", "my-region-1c"],
+				"scaling": {"min": 4, "max": 10},
+				"node_spec": {"aws": {"instance_type": "my-big-type"}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}},
+				"status": {"nodes": 0, "nodes_ready": 0},
+				"subnet": "10.1.0.0/24"
+			}`,
+		},
 	}
 
 	fs := afero.NewMemMapFs()
