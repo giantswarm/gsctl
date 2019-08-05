@@ -92,16 +92,16 @@ func verifyShowReleasePreconditions(args showReleaseArguments, cmdLineArgs []str
 
 // getReleaseDetails fetches release details from the API
 func getReleaseDetails(releaseVersion, scheme, token, endpoint string) (*models.V4ReleaseListItem, error) {
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
 	// perform API call
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = showReleaseActivityName
 
-	response, err := clientV2.GetReleases(auxParams)
+	response, err := clientWrapper.GetReleases(auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {

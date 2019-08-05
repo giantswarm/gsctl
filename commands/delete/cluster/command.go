@@ -198,16 +198,16 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		}
 	}
 
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return false, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = deleteClusterActivityName
 
 	// perform API call
-	_, err = clientV2.DeleteCluster(clusterID, auxParams)
+	_, err = clientWrapper.DeleteCluster(clusterID, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {

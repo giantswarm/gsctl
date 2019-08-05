@@ -537,15 +537,15 @@ func addCluster(args Arguments) (creationResult, error) {
 	if !args.dryRun {
 		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
 
-		clientV2, err := client.NewWithConfig(args.apiEndpoint, args.token)
+		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}
 
-		auxParams := clientV2.DefaultAuxiliaryParams()
+		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = createClusterActivityName
 		// perform API call
-		response, err := clientV2.CreateCluster(addClusterBody, auxParams)
+		response, err := clientWrapper.CreateCluster(addClusterBody, auxParams)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}
