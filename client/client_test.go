@@ -51,7 +51,7 @@ func TestV2NoConnection(t *testing.T) {
 		Endpoint: "http://127.0.0.1:55555",
 	}
 
-	gsClient, err := NewV2(config)
+	gsClient, err := New(config)
 	if err != nil {
 		t.Error(err)
 	}
@@ -94,7 +94,7 @@ func TestV2HostnameUnresolvable(t *testing.T) { // Our test server.
 		Endpoint: "http://non.existing.host.name",
 	}
 
-	gsClient, err := NewV2(config)
+	gsClient, err := New(config)
 	if err != nil {
 		t.Error(err)
 	}
@@ -142,7 +142,7 @@ func TestV2Timeout(t *testing.T) {
 		Endpoint: ts.URL,
 		Timeout:  500 * time.Millisecond,
 	}
-	gsClient, err := NewV2(clientConfig)
+	gsClient, err := New(clientConfig)
 	if err != nil {
 		t.Error(err)
 	}
@@ -182,7 +182,7 @@ func TestV2UserAgent(t *testing.T) {
 
 	clientConfig.Endpoint = ts.URL
 
-	gsClient, err := NewV2(clientConfig)
+	gsClient, err := New(clientConfig)
 	if err != nil {
 		t.Error(err)
 	}
@@ -201,7 +201,7 @@ func TestV2Forbidden(t *testing.T) { // Our test server.
 	}))
 	defer ts.Close()
 
-	gsClient, err := NewV2(&Configuration{Endpoint: ts.URL})
+	gsClient, err := New(&Configuration{Endpoint: ts.URL})
 	if err != nil {
 		t.Error(err)
 	}
@@ -234,7 +234,7 @@ func TestV2Unauthorized(t *testing.T) { // Our test server.
 	}))
 	defer ts.Close()
 
-	gsClient, err := NewV2(&Configuration{Endpoint: ts.URL})
+	gsClient, err := New(&Configuration{Endpoint: ts.URL})
 	if err != nil {
 		t.Error(err)
 	}
@@ -281,7 +281,7 @@ func TestV2AuxiliaryParams(t *testing.T) { // Our test server.
 		Endpoint: ts.URL,
 	}
 
-	gsClient, err := NewV2(config)
+	gsClient, err := New(config)
 	if err != nil {
 		t.Error(err)
 	}
@@ -308,7 +308,7 @@ func TestV2CreateAuthToken(t *testing.T) { // Our test server.
 		Endpoint: ts.URL,
 	}
 
-	gsClient, err := NewV2(config)
+	gsClient, err := New(config)
 	if err != nil {
 		t.Error(err)
 	}
@@ -340,7 +340,7 @@ func TestV2DeleteAuthToken(t *testing.T) { // Our test server.
 		Endpoint: ts.URL,
 	}
 
-	gsClient, err := NewV2(config)
+	gsClient, err := New(config)
 	if err != nil {
 		t.Error(err)
 	}
@@ -396,7 +396,7 @@ func TestGetClusterStatus(t *testing.T) {
 		Endpoint: ts.URL,
 	}
 
-	gsClient, err := NewV2(config)
+	gsClient, err := New(config)
 	if err != nil {
 		t.Error(err)
 	}
@@ -427,7 +427,7 @@ func TestGetClusterStatusEmpty(t *testing.T) {
 		Endpoint: ts.URL,
 	}
 
-	gsClient, err := NewV2(config)
+	gsClient, err := New(config)
 	if err != nil {
 		t.Error(err)
 	}
@@ -497,7 +497,7 @@ func TestMalformedResponse(t *testing.T) {
 		Endpoint: mockServer.URL,
 	}
 
-	gsClient, err := NewV2(config)
+	gsClient, err := New(config)
 	if err != nil {
 		t.Error(err)
 	}

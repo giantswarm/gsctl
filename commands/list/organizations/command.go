@@ -99,15 +99,16 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 // orgsTable fetches the organizations the user is a member of
 // and returns a table in string form.
 func orgsTable(args Arguments) (string, error) {
-	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = listOrgsActivityName
 
-	response, err := clientV2.GetOrganizations(auxParams)
+	response, err := clientWrapper.GetOrganizations(auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusUnauthorized {
