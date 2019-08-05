@@ -183,6 +183,24 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	}
 
 	errors.HandleCommonErrors(err)
+
+	headline := ""
+	subtext := ""
+
+	switch {
+	case errors.IsConflictingFlagsError(err):
+		headline = "Conflicting flags used"
+		subtext = "The flags --availability-zones and --num-availability-zones must not be used together."
+	default:
+		headline = err.Error()
+	}
+
+	// print output
+	fmt.Println(color.RedString(headline))
+	if subtext != "" {
+		fmt.Println(subtext)
+	}
+	os.Exit(1)
 }
 
 // createNodePool is the business function sending our creation request to the API
