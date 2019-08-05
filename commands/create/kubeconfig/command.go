@@ -349,16 +349,16 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResult, error) {
 	result := createKubeconfigResult{}
 
-	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = createKubeconfigActivityName
 
 	// get cluster details
-	clusterDetailsResponse, err := clientV2.GetClusterV4(args.clusterID, auxParams)
+	clusterDetailsResponse, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			return result, microerror.Maskf(clientErr,
@@ -377,7 +377,7 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 		CertificateOrganizations: args.certOrgs,
 	}
 
-	response, err := clientV2.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
+	response, err := clientWrapper.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {
