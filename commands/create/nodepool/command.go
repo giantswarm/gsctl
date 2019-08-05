@@ -21,7 +21,7 @@ import (
 var (
 	// Command is the cobra command for 'gsctl create nodepool'
 	Command = &cobra.Command{
-		Hidden:  false, // TODO: set to false to make this command visible once the release is out.
+		Hidden:  true, // TODO: set to false to make this command visible once the release is out.
 		Use:     "nodepool <cluster-id>",
 		Aliases: []string{"np"},
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
