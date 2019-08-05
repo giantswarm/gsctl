@@ -37,9 +37,9 @@ const (
 	activityName = "add-keypair"
 )
 
-// argument struct to pass to our business function and
+// Arguments struct to pass to our business function and
 // to the validation function
-type commandArguments struct {
+type Arguments struct {
 	apiEndpoint              string
 	authToken                string
 	certificateOrganizations string
@@ -51,8 +51,9 @@ type commandArguments struct {
 	ttlHours                 int32
 }
 
-// function to create arguments based on command line flags and config
-func defaultArguments() (commandArguments, error) {
+// collectArguments puts together arguments for our business function
+// based on command line flags and config.
+func collectArguments() (Arguments, error) {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
@@ -64,14 +65,14 @@ func defaultArguments() (commandArguments, error) {
 
 	ttl, err := util.ParseDuration(flags.CmdTTL)
 	if errors.IsInvalidDurationError(err) {
-		return commandArguments{}, microerror.Mask(errors.InvalidDurationError)
+		return Arguments{}, microerror.Mask(errors.InvalidDurationError)
 	} else if errors.IsDurationExceededError(err) {
-		return commandArguments{}, microerror.Mask(errors.DurationExceededError)
+		return Arguments{}, microerror.Mask(errors.DurationExceededError)
 	} else if err != nil {
-		return commandArguments{}, microerror.Mask(errors.DurationExceededError)
+		return Arguments{}, microerror.Mask(errors.DurationExceededError)
 	}
 
-	return commandArguments{
+	return Arguments{
 		apiEndpoint:              endpoint,
 		authToken:                token,
 		certificateOrganizations: flags.CmdCertificateOrganizations,
@@ -110,7 +111,7 @@ func init() {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	args, argsErr := defaultArguments()
+	args, argsErr := collectArguments()
 	if argsErr != nil {
 		if errors.IsInvalidDurationError(argsErr) {
 			fmt.Println(color.RedString("The value passed with --ttl is invalid."))
@@ -154,7 +155,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	os.Exit(1)
 }
 
-func verifyPreconditions(args commandArguments) error {
+func verifyPreconditions(args Arguments) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
@@ -177,7 +178,7 @@ func verifyPreconditions(args commandArguments) error {
 }
 
 func printResult(cmd *cobra.Command, cmdLineArgs []string) {
-	args, _ := defaultArguments()
+	args, _ := collectArguments()
 
 	result, err := createKeypair(args)
 
@@ -219,7 +220,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 
 // createKeypair is our business function talking to the API to create a keypair
 // and return result or error
-func createKeypair(args commandArguments) (createKeypairResult, error) {
+func createKeypair(args Arguments) (createKeypairResult, error) {
 	result := createKeypairResult{
 		apiEndpoint: args.apiEndpoint,
 	}
@@ -231,7 +232,7 @@ func createKeypair(args commandArguments) (createKeypairResult, error) {
 		CertificateOrganizations: args.certificateOrganizations,
 	}
 
-	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
