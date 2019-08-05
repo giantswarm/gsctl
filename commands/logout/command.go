@@ -34,18 +34,19 @@ If an endpoint was selected before, it remains selected. Re-login using 'gsctl l
 	}
 )
 
-type logoutArguments struct {
+// Arguments holds all arguments that can influence our business function.
+type Arguments struct {
 	// apiEndpoint is the API to log out from
 	apiEndpoint string
 	// token is the session token to expire (log out)
 	token string
 }
 
-func defaultLogoutArguments() logoutArguments {
+func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 
-	return logoutArguments{
+	return Arguments{
 		apiEndpoint: endpoint,
 		token:       token,
 	}
@@ -60,7 +61,7 @@ func printValidation(cmd *cobra.Command, args []string) {
 
 // printResult performs our logout function and displays the result.
 func printResult(cmd *cobra.Command, extraArgs []string) {
-	logoutArgs := defaultLogoutArguments()
+	logoutArgs := collectArguments()
 
 	err := logout(logoutArgs)
 
@@ -88,7 +89,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 
 // logout terminates the current user session.
 // The email and token are erased from the local config file.
-func logout(args logoutArguments) error {
+func logout(args Arguments) error {
 	// erase local credentials, no matter what the result on the API side is
 	defer config.Config.Logout(args.apiEndpoint)
 
@@ -96,7 +97,7 @@ func logout(args logoutArguments) error {
 		return nil
 	}
 
-	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
 	if err != nil {
 		return microerror.Mask(err)
 	}
