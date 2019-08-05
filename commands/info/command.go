@@ -192,15 +192,15 @@ func info(args infoArguments) (infoResult, error) {
 
 	// If an endpoint and a token is defined, we pull info from the API, too.
 	if args.apiEndpoint != "" && args.token != "" {
-		clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+		clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}
 
-		auxParams := clientV2.DefaultAuxiliaryParams()
+		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = infoActivityName
 
-		response, err := clientV2.GetInfo(auxParams)
+		response, err := clientWrapper.GetInfo(auxParams)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}
