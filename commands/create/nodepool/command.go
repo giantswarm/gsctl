@@ -3,6 +3,7 @@ package nodepool
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/microerror"
@@ -229,6 +231,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	}
 
 	errors.HandleCommonErrors(err)
+	client.HandleErrors(err)
 
 	headline := ""
 	subtext := ""
@@ -294,7 +297,21 @@ func createNodePool(args Arguments) (result, error) {
 	auxParams.ActivityName = activityName
 
 	response, err := clientWrapper.CreateNodePool(args.ClusterID, requestBody, auxParams)
+
 	if err != nil {
+		// create specific error types for cases we care about
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			if clientErr.HTTPStatusCode == http.StatusForbidden {
+				return r, microerror.Mask(errors.AccessForbiddenError)
+			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
+				return r, microerror.Mask(errors.ClusterNotFoundError)
+			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
+				return r, microerror.Mask(errors.AccessForbiddenError)
+			} else if clientErr.HTTPStatusCode == http.StatusBadRequest {
+				return r, microerror.Maskf(errors.BadRequestError, clientErr.ErrorDetails)
+			}
+		}
+
 		return r, microerror.Mask(err)
 	}
 
@@ -309,21 +326,19 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	var r result
 
 	args, err := collectArguments(positionalArgs)
-	if err != nil {
+	if err == nil {
 		r, err = createNodePool(args)
 	}
 
 	if err != nil {
-		fmt.Printf("Error: %#v\n", err)
 		errors.HandleCommonErrors(err)
+		client.HandleErrors(err)
 
 		headline := ""
 		subtext := ""
 
 		switch {
-		case errors.IsConflictingFlagsError(err):
-			headline = "Conflicting flags used"
-			subtext = "The flags --availability-zones and --num-availability-zones must not be used together."
+		// If there are specific errors to handle, add them here.
 		default:
 			headline = err.Error()
 		}
