@@ -110,15 +110,15 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 // fetchNodePools collects all information we would want to display
 // on the node pools of a cluster.
 func fetchNodePools(args arguments) ([]*resultRow, error) {
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientV2.GetNodePools(args.clusterID, auxParams)
+	response, err := clientWrapper.GetNodePools(args.clusterID, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}

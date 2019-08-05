@@ -101,16 +101,16 @@ func verifyShowClusterPreconditions(args showClusterArguments, cmdLineArgs []str
 
 // getClusterDetailsV4 returns details for one cluster.
 func getClusterDetailsV4(clusterID string) (*models.V4ClusterDetailsResponse, error) {
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
 	// perform API call
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientV2.GetClusterV4(clusterID, auxParams)
+	response, err := clientWrapper.GetClusterV4(clusterID, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			switch clientErr.HTTPStatusCode {
@@ -133,16 +133,16 @@ func getClusterDetailsV4(clusterID string) (*models.V4ClusterDetailsResponse, er
 
 // getClusterDetailsV5 returns details for one cluster, supporting node pools.
 func getClusterDetailsV5(clusterID string) (*models.V5ClusterDetailsResponse, error) {
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
 	// perform API call
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientV2.GetClusterV5(clusterID, auxParams)
+	response, err := clientWrapper.GetClusterV5(clusterID, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			switch clientErr.HTTPStatusCode {
@@ -164,15 +164,15 @@ func getClusterDetailsV5(clusterID string) (*models.V5ClusterDetailsResponse, er
 }
 
 func getOrgCredentials(orgName, credentialID string) (*models.V4GetCredentialResponse, error) {
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientV2.GetCredential(orgName, credentialID, auxParams)
+	response, err := clientWrapper.GetCredential(orgName, credentialID, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			switch clientErr.HTTPStatusCode {
@@ -219,15 +219,15 @@ func getClusterDetails(args showClusterArguments) (
 	clusterDetailsV5, v5Err := getClusterDetailsV5(args.clusterID)
 	if v5Err == nil {
 		// fetch node pools
-		clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+		clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 		if err != nil {
 			return nil, nil, nil, nil, nil, microerror.Mask(err)
 		}
 
 		// perform API call
-		auxParams := clientV2.DefaultAuxiliaryParams()
+		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = activityName
-		response, err := clientV2.GetNodePools(args.clusterID, auxParams)
+		response, err := clientWrapper.GetNodePools(args.clusterID, auxParams)
 		if err != nil {
 			return nil, nil, nil, nil, nil, microerror.Mask(err)
 		}
@@ -255,7 +255,7 @@ func getClusterDetails(args showClusterArguments) (
 			return nil, nil, nil, nil, nil, microerror.Mask(clusterDetailsV4Err)
 		}
 
-		clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+		clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 		if err != nil {
 			return nil, nil, nil, nil, nil, microerror.Mask(err)
 		}
@@ -263,10 +263,10 @@ func getClusterDetails(args showClusterArguments) (
 		if args.verbose {
 			fmt.Println(color.WhiteString("Fetching status for v4 cluster."))
 		}
-		auxParams := clientV2.DefaultAuxiliaryParams()
+		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = activityName
 		var clusterStatusErr error
-		clusterStatus, clusterStatusErr = clientV2.GetClusterStatus(args.clusterID, auxParams)
+		clusterStatus, clusterStatusErr = clientWrapper.GetClusterStatus(args.clusterID, auxParams)
 		if clusterStatusErr != nil {
 			// Return an error if it is something else than 404 Not Found,
 			// as 404s are expected during cluster creation.

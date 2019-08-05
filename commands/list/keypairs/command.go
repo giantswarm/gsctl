@@ -101,14 +101,14 @@ func listKeypairsValidate(args *Arguments) error {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 
-	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
 	if args.clusterID == "" {
 		// use default cluster if possible
-		clusterID, _ := clientV2.GetDefaultCluster(nil)
+		clusterID, _ := clientWrapper.GetDefaultCluster(nil)
 		if clusterID != "" {
 			flags.CmdClusterID = clusterID
 		} else {
@@ -195,15 +195,15 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 func listKeypairs(args Arguments) (listKeypairsResult, error) {
 	result := listKeypairsResult{}
 
-	clientV2, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = listKeypairsActivityName
 
-	response, err := clientV2.GetKeyPairs(args.clusterID, auxParams)
+	response, err := clientWrapper.GetKeyPairs(args.clusterID, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode >= http.StatusInternalServerError {
