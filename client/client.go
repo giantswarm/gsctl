@@ -421,7 +421,7 @@ func (w *Wrapper) GetClusterV5(clusterID string, p *AuxiliaryParams) (*clusters.
 }
 
 // CreateNodePool creates a node pool.
-func (w *WrapperV2) CreateNodePool(clusterID string, addNodePoolRequest *models.V5AddNodePoolRequest, p *AuxiliaryParams) (*nodepools.AddNodePoolCreated, error) {
+func (w *Wrapper) CreateNodePool(clusterID string, addNodePoolRequest *models.V5AddNodePoolRequest, p *AuxiliaryParams) (*nodepools.AddNodePoolCreated, error) {
 	params := nodepools.NewAddNodePoolParams().WithBody(addNodePoolRequest).WithClusterID(clusterID)
 	err := setParamsWithAuthorization(p, w, params)
 	if err != nil {
