@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -54,14 +53,12 @@ func Test_LoginValidPassword(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	args := loginArguments{
+	args := Arguments{
 		apiEndpoint: mockServer.URL,
 		email:       "email@example.com",
 		password:    "test password",
 		verbose:     true,
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	result, err := login(args)
 	if err != nil {
@@ -105,13 +102,11 @@ func Test_LoginInvalidPassword(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	args := loginArguments{
+	args := Arguments{
 		apiEndpoint: mockServer.URL,
 		email:       "email@example.com",
 		password:    "bad password",
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	_, err = login(args)
 	convertedError, ok := err.(*clienterror.APIError)
@@ -153,13 +148,11 @@ selected_endpoint: "` + mockServer.URL + `"
 		t.Error(err)
 	}
 
-	args := loginArguments{
+	args := Arguments{
 		apiEndpoint: mockServer.URL,
 		email:       "email@example.com",
 		password:    "test password",
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	result, loginErr := login(args)
 	if loginErr != nil {
@@ -196,13 +189,11 @@ func Test_LoginInactiveAccount(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	args := loginArguments{
+	args := Arguments{
 		apiEndpoint: mockServer.URL,
 		email:       "developer@giantswarm.io",
 		password:    "test password",
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	_, err = login(args)
 	if err == nil {
