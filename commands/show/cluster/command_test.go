@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/commands/errors"
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -56,15 +55,13 @@ func TestShowAWSClusterV4(t *testing.T) {
 	configDir := testutils.TempDir(fs)
 	config.Initialize(fs, configDir)
 
-	testArgs := showClusterArguments{
+	testArgs := Arguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "cluster-id",
 		scheme:      "giantswarm",
 		authToken:   "my-token",
 		verbose:     true,
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
@@ -163,15 +160,13 @@ func TestShowAWSClusterV5(t *testing.T) {
 	configDir := testutils.TempDir(fs)
 	config.Initialize(fs, configDir)
 
-	testArgs := showClusterArguments{
+	testArgs := Arguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "cluster-id",
 		scheme:      "giantswarm",
 		authToken:   "my-token",
 		verbose:     true,
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
@@ -224,21 +219,19 @@ func TestShowClusterNotAuthorized(t *testing.T) {
 	configDir := testutils.TempDir(fs)
 	config.Initialize(fs, configDir)
 
-	testArgs := showClusterArguments{
+	testArgs := Arguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "cluster-id",
 		scheme:      "giantswarm",
 		authToken:   "my-wrong-token",
 	}
 
-	flags.CmdAPIEndpoint = mockServer.URL
-
 	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = getClusterDetailsV4(testArgs.clusterID)
+	_, err = getClusterDetailsV4(testArgs)
 
 	if err == nil {
 		t.Fatal("Expected NotAuthorizedError, got nil")
@@ -268,14 +261,12 @@ func TestShowClusterNotFound(t *testing.T) {
 	configDir := testutils.TempDir(fs)
 	config.Initialize(fs, configDir)
 
-	testArgs := showClusterArguments{
+	testArgs := Arguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "non-existing-cluster-id",
 		scheme:      "giantswarm",
 		authToken:   "my-token",
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
@@ -311,14 +302,12 @@ func TestShowClusterInternalServerError(t *testing.T) {
 	configDir := testutils.TempDir(fs)
 	config.Initialize(fs, configDir)
 
-	testArgs := showClusterArguments{
+	testArgs := Arguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "non-existing-cluster-id",
 		scheme:      "giantswarm",
 		authToken:   "my-token",
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
@@ -342,7 +331,7 @@ func TestShowClusterNotLoggedIn(t *testing.T) {
 	configDir := testutils.TempDir(fs)
 	config.Initialize(fs, configDir)
 
-	testArgs := showClusterArguments{
+	testArgs := Arguments{
 		apiEndpoint: "foo.bar",
 		clusterID:   "cluster-id",
 		authToken:   "",
@@ -362,7 +351,7 @@ func TestShowClusterMissingID(t *testing.T) {
 	configDir := testutils.TempDir(fs)
 	config.Initialize(fs, configDir)
 
-	testArgs := showClusterArguments{
+	testArgs := Arguments{
 		apiEndpoint: "foo.bar",
 		clusterID:   "",
 		authToken:   "auth-token",
@@ -449,14 +438,12 @@ func TestShowAWSBYOCClusterV4(t *testing.T) {
 	configDir := testutils.TempDir(fs)
 	config.Initialize(fs, configDir)
 
-	testArgs := showClusterArguments{
+	testArgs := Arguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "cluster-id",
 		scheme:      "giantswarm",
 		authToken:   "my-token",
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
