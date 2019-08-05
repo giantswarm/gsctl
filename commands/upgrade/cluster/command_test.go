@@ -10,7 +10,6 @@ import (
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/spf13/afero"
 
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -125,7 +124,7 @@ func TestUpgradeCluster(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	testArgs := upgradeClusterArguments{
+	testArgs := Arguments{
 		apiEndpoint: mockServer.URL,
 		authToken:   "my-token",
 		clusterID:   "cluster-id",
@@ -137,8 +136,6 @@ func TestUpgradeCluster(t *testing.T) {
 		t.Error(err)
 	}
 
-	flags.CmdAPIEndpoint = testArgs.apiEndpoint
-
 	results, upgradeErr := upgradeCluster(testArgs)
 	if upgradeErr != nil {
 		t.Error(upgradeErr)
@@ -146,5 +143,4 @@ func TestUpgradeCluster(t *testing.T) {
 	if results.versionAfter != "1.2.5" {
 		t.Error("Got version", results.versionAfter, ", expected 1.2.5")
 	}
-
 }
