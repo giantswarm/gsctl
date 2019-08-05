@@ -16,9 +16,46 @@ import (
 // TODO:
 // cases which should succeed:
 //   - setting only scaling min or only max should result in proper setting
+//   - set AZ list to letters like "A,B,C"
 
 // TestCollectArgs tests whether collectArguments produces the expected results.
 func TestCollectArgs(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == "GET" {
+			switch uri := r.URL.Path; uri {
+			case "/v4/info/":
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{
+					"general": {
+						"installation_name": "codename",
+						"provider": "aws",
+						"datacenter": "myzone"
+					},
+					"workers": {
+						"count_per_cluster": {
+							"max": 20,
+							"default": 3
+						},
+						"instance_type": {
+							"options": ["m3.large", "m4.xlarge"],
+							"default": "m3.large"
+						}
+					}
+				}`))
+			default:
+				t.Errorf("Unsupported route %s called in mock server", r.URL.Path)
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Status for this cluster is not yet available."}`))
+			}
+		} else {
+			t.Errorf("Unsupported method %s called in mock server", r.Method)
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Status for this cluster is not yet available."}`))
+		}
+	}))
+	defer mockServer.Close()
+
 	var testCases = []struct {
 		// The positional arguments we pass.
 		positionalArguments []string
@@ -30,10 +67,11 @@ func TestCollectArgs(t *testing.T) {
 		{
 			[]string{"cluster-id"},
 			func() {
-				Command.ParseFlags([]string{"cluster-id", "--name", "my-name"})
+				initFlags()
+				Command.ParseFlags([]string{"cluster-id", "--name=my-name"})
 			},
 			Arguments{
-				APIEndpoint: "https://endpoint",
+				APIEndpoint: mockServer.URL,
 				AuthToken:   "some-token",
 				ClusterID:   "cluster-id",
 				Name:        "my-name",
@@ -41,10 +79,12 @@ func TestCollectArgs(t *testing.T) {
 			},
 		},
 		{
-			[]string{"cluster-id"},
+			[]string{"some-cluster-id"},
 			func() {
+				initFlags()
 				Command.ParseFlags([]string{
-					"cluster-id",
+					"some-cluster-id",
+					"--name=my-nodepool-name",
 					"--num-availability-zones=3",
 					"--aws-instance-type=instance-type",
 					"--nodes-min=5",
@@ -52,10 +92,10 @@ func TestCollectArgs(t *testing.T) {
 				})
 			},
 			Arguments{
-				APIEndpoint:          "https://endpoint",
+				APIEndpoint:          mockServer.URL,
 				AuthToken:            "some-token",
-				ClusterID:            "cluster-id",
-				Name:                 "my-name",
+				ClusterID:            "some-cluster-id",
+				Name:                 "my-nodepool-name",
 				Scheme:               "giantswarm",
 				AvailabilityZonesNum: 3,
 				InstanceType:         "instance-type",
@@ -63,15 +103,32 @@ func TestCollectArgs(t *testing.T) {
 				ScalingMax:           10,
 			},
 		},
+		{
+			[]string{"a-cluster-id"},
+			func() {
+				initFlags()
+				Command.ParseFlags([]string{
+					"a-cluster-id",
+					"--availability-zones=A,B,c",
+				})
+			},
+			Arguments{
+				APIEndpoint:           mockServer.URL,
+				AuthToken:             "some-token",
+				ClusterID:             "a-cluster-id",
+				Scheme:                "giantswarm",
+				AvailabilityZonesList: []string{"myzonea", "myzoneb", "myzonec"},
+			},
+		},
 	}
 
 	yamlText := `last_version_check: 0001-01-01T00:00:00Z
 updated: 2017-09-29T11:23:15+02:00
 endpoints:
-  https://endpoint:
+  ` + mockServer.URL + `:
     email: email@example.com
     token: some-token
-selected_endpoint: https://endpoint`
+selected_endpoint: ` + mockServer.URL
 
 	fs := afero.NewMemMapFs()
 	_, err := testutils.TempConfig(fs, yamlText)
@@ -82,7 +139,10 @@ selected_endpoint: https://endpoint`
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			tc.commandExecution()
-			args := collectArguments(tc.positionalArguments)
+			args, err := collectArguments(tc.positionalArguments)
+			if err != nil {
+				t.Errorf("Case %d - Unexpected error '%s'", i, err)
+			}
 			if diff := cmp.Diff(tc.resultingArgs, args); diff != "" {
 				t.Errorf("Case %d - Resulting args unequal. (-expected +got):\n%s", i, diff)
 			}

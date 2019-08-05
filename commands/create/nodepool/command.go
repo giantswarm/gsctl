@@ -4,6 +4,7 @@ package nodepool
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
@@ -99,6 +100,12 @@ const (
 )
 
 func init() {
+	initFlags()
+}
+
+// initFlags initializes flags in a re-usable way, so we can call it from multiple tests.
+func initFlags() {
+	Command.ResetFlags()
 	Command.Flags().StringVarP(&cmdName, "name", "n", "", "name or purpose description of the node pool")
 	Command.Flags().IntVarP(&cmdAvailabilityZonesNum, "num-availability-zones", "", 0, "Number of availability zones to use. Default is 1.")
 	Command.Flags().StringSliceVarP(&cmdAvailabilityZones, "availability-zones", "", nil, "List of availability zones to use, instead of setting a number. Use comma to separate values.")
@@ -130,15 +137,24 @@ type result struct {
 
 // collectArguments populates an arguments struct with values both from command flags,
 // from config, and potentially from built-in defaults.
-func collectArguments(positionalArgs []string) Arguments {
+func collectArguments(positionalArgs []string) (Arguments, error) {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
+	zones := cmdAvailabilityZones
+	var err error
+	if zones != nil && len(zones) > 0 {
+		zones, err = expandZones(zones, endpoint, token)
+		if err != nil {
+			return Arguments{}, microerror.Mask(err)
+		}
+	}
+
 	return Arguments{
 		APIEndpoint:           endpoint,
 		AuthToken:             token,
-		AvailabilityZonesList: cmdAvailabilityZones,
+		AvailabilityZonesList: zones,
 		AvailabilityZonesNum:  cmdAvailabilityZonesNum,
 		ClusterID:             positionalArgs[0],
 		InstanceType:          flags.CmdWorkerAwsEc2InstanceType,
@@ -147,7 +163,34 @@ func collectArguments(positionalArgs []string) Arguments {
 		ScalingMin:            flags.CmdWorkersMin,
 		Scheme:                scheme,
 		Verbose:               flags.CmdVerbose,
+	}, nil
+}
+
+// expandZones takes a list of alphabetical letters and returns a list of
+// availability zones. Example:
+//
+// ["a", "b"] -> ["eu-central-1a", "eu-central-1b"]
+//
+func expandZones(zones []string, endpoint, token string) ([]string, error) {
+	clientWrapper, err := client.NewWithConfig(endpoint, token)
+	if err != nil {
+		return []string{}, microerror.Mask(err)
 	}
+
+	info, err := clientWrapper.GetInfo(nil)
+	if err != nil {
+		return []string{}, microerror.Mask(err)
+	}
+
+	out := []string{}
+	for _, letter := range zones {
+		if len(letter) == 1 {
+			letter = info.Payload.General.Datacenter + strings.ToLower(letter)
+		}
+		out = append(out, letter)
+	}
+
+	return out, nil
 }
 
 func verifyPreconditions(args Arguments) error {
@@ -175,8 +218,11 @@ func verifyPreconditions(args Arguments) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	args := collectArguments(positionalArgs)
-	err := verifyPreconditions(args)
+	var err error
+	args, err := collectArguments(positionalArgs)
+	if err == nil {
+		err = verifyPreconditions(args)
+	}
 
 	if err == nil {
 		return
@@ -260,9 +306,13 @@ func createNodePool(args Arguments) (result, error) {
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
-	args := collectArguments(positionalArgs)
+	var r result
 
-	r, err := createNodePool(args)
+	args, err := collectArguments(positionalArgs)
+	if err != nil {
+		r, err = createNodePool(args)
+	}
+
 	if err != nil {
 		fmt.Printf("Error: %#v\n", err)
 		errors.HandleCommonErrors(err)
