@@ -13,11 +13,6 @@ import (
 	"github.com/giantswarm/gsctl/testutils"
 )
 
-// TODO:
-// cases which should succeed:
-//   - setting only scaling min or only max should result in proper setting
-//   - set AZ list to letters like "A,B,C"
-
 // TestCollectArgs tests whether collectArguments produces the expected results.
 func TestCollectArgs(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -118,6 +113,44 @@ func TestCollectArgs(t *testing.T) {
 				ClusterID:             "a-cluster-id",
 				Scheme:                "giantswarm",
 				AvailabilityZonesList: []string{"myzonea", "myzoneb", "myzonec"},
+			},
+		},
+		// Only setting the --nodes-min, but not --nodes-max flag.
+		{
+			[]string{"another-cluster-id"},
+			func() {
+				initFlags()
+				Command.ParseFlags([]string{
+					"another-cluster-id",
+					"--nodes-min=5",
+				})
+			},
+			Arguments{
+				APIEndpoint: mockServer.URL,
+				AuthToken:   "some-token",
+				ClusterID:   "another-cluster-id",
+				ScalingMax:  5,
+				ScalingMin:  5,
+				Scheme:      "giantswarm",
+			},
+		},
+		// Only setting the --nodes-max, but not --nodes-min flag.
+		{
+			[]string{"another-cluster-id"},
+			func() {
+				initFlags()
+				Command.ParseFlags([]string{
+					"another-cluster-id",
+					"--nodes-max=5",
+				})
+			},
+			Arguments{
+				APIEndpoint: mockServer.URL,
+				AuthToken:   "some-token",
+				ClusterID:   "another-cluster-id",
+				ScalingMax:  5,
+				ScalingMin:  5,
+				Scheme:      "giantswarm",
 			},
 		},
 	}

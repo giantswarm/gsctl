@@ -144,13 +144,20 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
-	zones := cmdAvailabilityZones
 	var err error
+
+	zones := cmdAvailabilityZones
 	if zones != nil && len(zones) > 0 {
 		zones, err = expandZones(zones, endpoint, token)
 		if err != nil {
 			return Arguments{}, microerror.Mask(err)
 		}
+	}
+
+	if flags.CmdWorkersMin > 0 && flags.CmdWorkersMax == 0 {
+		flags.CmdWorkersMax = flags.CmdWorkersMin
+	} else if flags.CmdWorkersMax > 0 && flags.CmdWorkersMin == 0 {
+		flags.CmdWorkersMin = flags.CmdWorkersMax
 	}
 
 	return Arguments{
