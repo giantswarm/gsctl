@@ -208,7 +208,36 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 func createNodePool(args Arguments) (result, error) {
 	r := result{}
 
-	requestBody := &models.V5AddNodePoolRequest{}
+	requestBody := &models.V5AddNodePoolRequest{
+		Name: args.Name,
+	}
+	if args.InstanceType != "" {
+		requestBody.NodeSpec = &models.V5AddNodePoolRequestNodeSpec{
+			Aws: &models.V5AddNodePoolRequestNodeSpecAws{
+				InstanceType: args.InstanceType,
+			},
+		}
+	}
+	if args.AvailabilityZonesList != nil && len(args.AvailabilityZonesList) > 0 {
+		requestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
+			Zones: args.AvailabilityZonesList,
+		}
+	} else if args.AvailabilityZonesNum != 0 {
+		requestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
+			Number: int64(args.AvailabilityZonesNum),
+		}
+	}
+	if args.ScalingMin != 0 || args.ScalingMax != 0 {
+		requestBody.Scaling = &models.V5AddNodePoolRequestScaling{
+			Min: args.ScalingMin,
+			Max: args.ScalingMax,
+		}
+	}
+
+	if args.Verbose {
+		fmt.Println(color.WhiteString("Submitting node pool creation reqwuest with the following details:"))
+		fmt.Println(color.WhiteString("%+v\n", requestBody))
+	}
 
 	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.AuthToken)
 	if err != nil {
