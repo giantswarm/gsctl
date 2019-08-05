@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/commands/errors"
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -22,9 +21,7 @@ func Test_ListKeypairs_NotLoggedIn(t *testing.T) {
 		t.Error(err)
 	}
 
-	args := listKeypairsArguments{}
-
-	flags.CmdAPIEndpoint = ""
+	args := Arguments{}
 
 	err = listKeypairsValidate(&args)
 	if err == nil {
@@ -50,12 +47,11 @@ func Test_ListKeypairs_Empty(t *testing.T) {
 	defer keyPairsMockServer.Close()
 
 	// needed to prevent search for the default cluster
-	args := listKeypairsArguments{}
-	args.apiEndpoint = keyPairsMockServer.URL
-	args.token = "my-token"
-	args.clusterID = "my-cluster"
-
-	flags.CmdAPIEndpoint = keyPairsMockServer.URL
+	args := Arguments{
+		apiEndpoint: keyPairsMockServer.URL,
+		clusterID:   "my-cluster",
+		token:       "my-token",
+	}
 
 	err = listKeypairsValidate(&args)
 	if err != nil {
@@ -87,12 +83,10 @@ func Test_ListKeypairs_NotFound(t *testing.T) {
 	}))
 	defer keyPairsMockServer.Close()
 
-	args := listKeypairsArguments{}
+	args := Arguments{}
 	args.apiEndpoint = keyPairsMockServer.URL
 	args.token = "my-token"
 	args.clusterID = "unknown-cluster"
-
-	flags.CmdAPIEndpoint = keyPairsMockServer.URL
 
 	err = listKeypairsValidate(&args)
 	if err != nil {
@@ -138,12 +132,10 @@ func Test_ListKeyPairs_Nonempty(t *testing.T) {
 	}))
 	defer keyPairsMockServer.Close()
 
-	args := listKeypairsArguments{}
+	args := Arguments{}
 	args.apiEndpoint = keyPairsMockServer.URL
 	args.token = "my-token"
 	args.clusterID = "my-cluster"
-
-	flags.CmdAPIEndpoint = keyPairsMockServer.URL
 
 	err = listKeypairsValidate(&args)
 	if err != nil {

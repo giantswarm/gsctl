@@ -40,9 +40,9 @@ var (
 	}
 )
 
-// listKeypairsArguments are the actual arguments used to call the
+// Arguments are the actual arguments used to call the
 // listKeypairs() function.
-type listKeypairsArguments struct {
+type Arguments struct {
 	apiEndpoint string
 	clusterID   string
 	full        bool
@@ -50,14 +50,14 @@ type listKeypairsArguments struct {
 	scheme      string
 }
 
-// defaultListKeypairsArguments returns a new listKeypairsArguments struct
+// collectArguments returns a new Arguments struct
 // based on global variables (= command line options from cobra).
-func defaultListKeypairsArguments() listKeypairsArguments {
+func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
-	return listKeypairsArguments{
+	return Arguments{
 		apiEndpoint: endpoint,
 		clusterID:   flags.CmdClusterID,
 		full:        flags.CmdFull,
@@ -81,7 +81,7 @@ func init() {
 // printValidation does our pre-checks and shows errors, in case
 // something is missing.
 func printValidation(cmd *cobra.Command, extraArgs []string) {
-	args := defaultListKeypairsArguments()
+	args := collectArguments()
 	err := listKeypairsValidate(&args)
 	if err != nil {
 		errors.HandleCommonErrors(err)
@@ -94,14 +94,14 @@ func printValidation(cmd *cobra.Command, extraArgs []string) {
 // listKeypairsValidate validates our pre-conditions and returns an error in
 // case something is missing.
 // If no clusterID argument is given, and a default cluster can be determined,
-// the listKeypairsArguments given as argument will be modified to contain
+// the Arguments given as argument will be modified to contain
 // the clusterID field.
-func listKeypairsValidate(args *listKeypairsArguments) error {
+func listKeypairsValidate(args *Arguments) error {
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 
-	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -122,7 +122,7 @@ func listKeypairsValidate(args *listKeypairsArguments) error {
 // printResult is the function called to list keypairs and display
 // errors in case they happen
 func printResult(cmd *cobra.Command, extraArgs []string) {
-	args := defaultListKeypairsArguments()
+	args := collectArguments()
 	result, err := listKeypairs(args)
 
 	// error output
@@ -192,10 +192,10 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 
 // listKeypairs fetches keypairs for a cluster from the API
 // and returns them as a structured result.
-func listKeypairs(args listKeypairsArguments) (listKeypairsResult, error) {
+func listKeypairs(args Arguments) (listKeypairsResult, error) {
 	result := listKeypairsResult{}
 
-	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
