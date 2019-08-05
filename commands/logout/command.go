@@ -96,14 +96,14 @@ func logout(args logoutArguments) error {
 		return nil
 	}
 
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	ap := clientV2.DefaultAuxiliaryParams()
+	ap := clientWrapper.DefaultAuxiliaryParams()
 	ap.ActivityName = logoutActivityName
 
-	_, err = clientV2.DeleteAuthToken(args.token, ap)
+	_, err = clientWrapper.DeleteAuthToken(args.token, ap)
 	return microerror.Mask(err)
 }
