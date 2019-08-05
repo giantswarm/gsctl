@@ -15,10 +15,9 @@ import (
 
 // TODO:
 // cases which should succeed:
-//   - minimal creation
 //   - setting only scaling min or only max should result in proper setting
 
-// TestCollectArgs tests the collectArguments function.
+// TestCollectArgs tests whether collectArguments produces the expected results.
 func TestCollectArgs(t *testing.T) {
 	var testCases = []struct {
 		// The positional arguments we pass.
@@ -97,6 +96,7 @@ func TestSuccess(t *testing.T) {
 		args         Arguments
 		responseBody string
 	}{
+		// Minimal node pool creation.
 		{
 			Arguments{
 				ClusterID: "cluster-id",
