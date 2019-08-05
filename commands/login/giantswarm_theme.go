@@ -27,12 +27,13 @@ func loginGiantSwarm(args Arguments) (loginResult, error) {
 		result.endpointSwitched = true
 	}
 
-	clientV2, err := client.NewWithConfig(args.apiEndpoint, "")
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, "")
+
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
 
-	ap := clientV2.DefaultAuxiliaryParams()
+	ap := clientWrapper.DefaultAuxiliaryParams()
 	ap.ActivityName = loginActivityName
 
 	// log out if logged in
@@ -43,14 +44,14 @@ func loginGiantSwarm(args Arguments) (loginResult, error) {
 
 		result.loggedOutBefore = true
 		// we deliberately ignore the logout result here
-		clientV2.DeleteAuthToken(config.Config.Token, ap)
+		clientWrapper.DeleteAuthToken(config.Config.Token, ap)
 	}
 
 	if args.verbose {
 		fmt.Println(color.WhiteString("Submitting API call to create an authentication token with email '%s'", args.email))
 	}
 
-	response, err := clientV2.CreateAuthToken(args.email, args.password, ap)
+	response, err := clientWrapper.CreateAuthToken(args.email, args.password, ap)
 	if err != nil {
 		return result, err
 	}
