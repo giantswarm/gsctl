@@ -30,7 +30,7 @@ var (
 		Long: `Add a new node pool to a cluster.
 
 This command allows to create a new node pool within a cluster. Node pools
-are groups of wortker nodes sharing a common configuration. Create different
+are groups of worker nodes sharing a common configuration. Create different
 node pools to serve workloads with different resource requirements, different
 availability zone spreading etc. Node pools are also scaled independently.
 
