@@ -24,9 +24,9 @@ import (
 	"github.com/giantswarm/gsctl/limits"
 )
 
-// arguments contains all possible input parameter needed
+// Arguments contains all possible input parameter needed
 // (and optionally available) for creating a cluster
-type arguments struct {
+type Arguments struct {
 	apiEndpoint             string
 	availabilityZones       int
 	clusterName             string
@@ -48,12 +48,12 @@ type arguments struct {
 	workerStorageSizeGB     float32
 }
 
-func defaultArguments() arguments {
+func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
-	return arguments{
+	return Arguments{
 		apiEndpoint:             endpoint,
 		availabilityZones:       cmdAvailabilityZones,
 		clusterName:             cmdClusterName,
@@ -175,7 +175,7 @@ func init() {
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
 func printValidation(cmd *cobra.Command, args []string) {
-	aca := defaultArguments()
+	aca := collectArguments()
 
 	headline := ""
 	subtext := ""
@@ -225,7 +225,7 @@ func printValidation(cmd *cobra.Command, args []string) {
 // printResult calls addCluster() and creates user-friendly output of the result
 func printResult(cmd *cobra.Command, args []string) {
 	// use arguments as passed from command line via cobra
-	aca := defaultArguments()
+	aca := collectArguments()
 
 	result, err := addCluster(aca)
 	if err != nil {
@@ -306,7 +306,7 @@ func printResult(cmd *cobra.Command, args []string) {
 }
 
 // validatePreConditions checks preconditions and returns an error in case
-func validatePreConditions(args arguments) error {
+func validatePreConditions(args Arguments) error {
 	// logged in?
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(errors.NotLoggedInError)
@@ -380,7 +380,7 @@ func readDefinitionFromFile(fs afero.Fs, path string) (types.ClusterDefinition, 
 
 // createDefinitionFromFlags creates a clusterDefinition based on the
 // flags/arguments the user has given
-func definitionFromFlags(def types.ClusterDefinition, args arguments) types.ClusterDefinition {
+func definitionFromFlags(def types.ClusterDefinition, args Arguments) types.ClusterDefinition {
 	if args.availabilityZones != 0 {
 		def.AvailabilityZones = args.availabilityZones
 	}
@@ -484,7 +484,7 @@ func createAddClusterBody(d types.ClusterDefinition) *models.V4AddClusterRequest
 
 // addCluster actually adds a cluster, interpreting all the input Configuration
 // and returning a structured result
-func addCluster(args arguments) (creationResult, error) {
+func addCluster(args Arguments) (creationResult, error) {
 	var result creationResult
 	var err error
 
@@ -535,15 +535,15 @@ func addCluster(args arguments) (creationResult, error) {
 	if !args.dryRun {
 		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
 
-		clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}
 
-		auxParams := clientV2.DefaultAuxiliaryParams()
+		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = createClusterActivityName
 		// perform API call
-		response, err := clientV2.CreateCluster(addClusterBody, auxParams)
+		response, err := clientWrapper.CreateCluster(addClusterBody, auxParams)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}

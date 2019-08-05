@@ -8,7 +8,6 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -37,14 +36,12 @@ func Test_CreateKeypair(t *testing.T) {
 		t.Error(err)
 	}
 
-	args := commandArguments{
+	args := Arguments{
 		apiEndpoint: mockServer.URL,
 		authToken:   "test-token",
 		clusterID:   "test-cluster-id",
 		fileSystem:  fs,
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err = verifyPreconditions(args)
 	if err != nil {
@@ -87,12 +84,8 @@ func TestCommandExecution(t *testing.T) {
 		t.Error(err)
 	}
 
-	flags.CmdAPIEndpoint = mockServer.URL
-	flags.CmdConfigDirPath = configDir
-	flags.CmdToken = "token"
-
 	output := testutils.CaptureOutput(func() {
-		Command.SetArgs([]string{"--cluster", "test-id"})
+		Command.SetArgs([]string{"--cluster", "test-id", "--endpoint", mockServer.URL, "--auth-token", "token", "--config-dir", configDir})
 		Command.Execute()
 	})
 	t.Log(output)

@@ -3,12 +3,10 @@ package setcredentials
 import (
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/spf13/afero"
 
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -54,19 +52,26 @@ func Test_UpdateOrgSetCredentials_Success(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
+	configYAML := `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  ` + mockServer.URL + `:
+    email: email@example.com
+    token: some-token
+selected_endpoint: ` + mockServer.URL
 	fs := afero.NewMemMapFs()
-	_, err := testutils.TempConfig(fs, "")
+	_, err := testutils.TempConfig(fs, configYAML)
 	if err != nil {
 		t.Error(err)
 	}
 
-	flags.CmdAPIEndpoint = mockServer.URL
-	flags.CmdOrganizationID = "acme"
-	flags.CmdToken = "test-token"
-	cmdAWSAdminRoleARN = "test-admin-role"
-	cmdAWSOperatorRoleARN = "test-operator-role"
-
-	args := defaultArguments()
+	args := Arguments{
+		apiEndpoint:     mockServer.URL,
+		authToken:       "some-token",
+		organizationID:  "acme",
+		awsAdminRole:    "test-admin-role",
+		awsOperatorRole: "test-operator-role",
+	}
 
 	err = verifyPreconditions(args)
 	if err != nil {
@@ -80,14 +85,5 @@ func Test_UpdateOrgSetCredentials_Success(t *testing.T) {
 
 	if result.credentialID != "test" {
 		t.Errorf("Expected credential ID 'test', got %q", result.credentialID)
-	}
-
-	expected := "Credentials set successfully"
-	output := testutils.CaptureOutput(func() {
-		printResult(Command, []string{""})
-	})
-	if !strings.Contains(output, expected) {
-		t.Logf("Command output: %q", output)
-		t.Errorf("Command output did not contain expected part %q\n", expected)
 	}
 }

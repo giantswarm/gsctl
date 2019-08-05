@@ -64,7 +64,8 @@ const (
 	scaleClusterActivityName = "scale-cluster"
 )
 
-type scaleClusterArguments struct {
+// Arguments contains all arguments that influence the business function.
+type Arguments struct {
 	apiEndpoint         string
 	authToken           string
 	clusterID           string
@@ -92,7 +93,7 @@ func init() {
 }
 
 // getConfirmation asks the user for confirmation for scaling actions.
-func getConfirmation(args scaleClusterArguments, maxBefore int64, minBefore int64, currentWorkers int64) error {
+func getConfirmation(args Arguments, maxBefore int64, minBefore int64, currentWorkers int64) error {
 	if currentWorkers > args.workersMax && args.workersMax == args.workersMin {
 		confirmed := confirm.Ask(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to pin the number of worker nodes to %d?", currentWorkers, args.workersMin))
 		if !confirmed {
@@ -110,14 +111,14 @@ func getConfirmation(args scaleClusterArguments, maxBefore int64, minBefore int6
 
 }
 
-func defaultArguments(ctx context.Context, cmd *cobra.Command, clusterID string, autoScalingEnabled bool, currentScalingMax int64, currentScalingMin int64, desiredScalingMax int64, desiredScalingMin int64, desiredNumWorkers int64) (scaleClusterArguments, error) {
+func collectArguments(ctx context.Context, cmd *cobra.Command, clusterID string, autoScalingEnabled bool, currentScalingMax int64, currentScalingMin int64, desiredScalingMax int64, desiredScalingMin int64, desiredNumWorkers int64) (Arguments, error) {
 	var err error
 
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
-	scaleArgs := scaleClusterArguments{
+	scaleArgs := Arguments{
 		apiEndpoint:         endpoint,
 		authToken:           token,
 		clusterID:           clusterID,
@@ -149,7 +150,7 @@ func defaultArguments(ctx context.Context, cmd *cobra.Command, clusterID string,
 
 		scaling, err = defaulting.NewScaling(c)
 		if err != nil {
-			return scaleClusterArguments{}, microerror.Mask(err)
+			return Arguments{}, microerror.Mask(err)
 		}
 	}
 
@@ -165,12 +166,12 @@ func defaultArguments(ctx context.Context, cmd *cobra.Command, clusterID string,
 
 // getClusterStatus returns the status for one cluster.
 func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, error) {
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
 	// Make sure we have provider info in the current endpoint
@@ -179,7 +180,7 @@ func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, er
 			fmt.Println(color.WhiteString("Fetching provider information"))
 		}
 
-		info, err := clientV2.GetInfo(auxParams)
+		info, err := clientWrapper.GetInfo(auxParams)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -190,7 +191,7 @@ func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, er
 	if flags.CmdVerbose {
 		fmt.Println(color.WhiteString("Fetching current cluster size"))
 	}
-	status, err := clientV2.GetClusterStatus(clusterID, auxParams)
+	status, err := clientWrapper.GetClusterStatus(clusterID, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -199,7 +200,7 @@ func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, er
 }
 
 // scaleCluster is the actual function submitting the API call and handling the response.
-func scaleCluster(args scaleClusterArguments) (*models.V4ClusterDetailsResponse, error) {
+func scaleCluster(args Arguments) (*models.V4ClusterDetailsResponse, error) {
 	// Preparing API call.
 	reqBody := &models.V4ModifyClusterRequest{
 		Scaling: &models.V4ModifyClusterRequestScaling{
@@ -213,15 +214,15 @@ func scaleCluster(args scaleClusterArguments) (*models.V4ClusterDetailsResponse,
 		fmt.Println(color.WhiteString("Sending API request to modify cluster"))
 	}
 
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = scaleClusterActivityName
 
-	response, err := clientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
+	response, err := clientWrapper.ModifyCluster(args.clusterID, reqBody, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -244,16 +245,16 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	var currentWorkers int64
 	var releaseVersion string
 	{
-		clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+		clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 		if err != nil {
 			fmt.Println(color.RedString(err.Error()))
 			os.Exit(1)
 		}
 
-		auxParams := clientV2.DefaultAuxiliaryParams()
+		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = scaleClusterActivityName
 
-		response, err := clientV2.GetClusterV4(clusterID, auxParams)
+		response, err := clientWrapper.GetClusterV4(clusterID, auxParams)
 		if err != nil {
 			errors.HandleCommonErrors(err)
 			client.HandleErrors(err)
@@ -334,7 +335,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	// Default all necessary information from flags.
-	args, err := defaultArguments(context.Background(), cmd, clusterID, autoScalingEnabled, currentScalingMax, currentScalingMin, desiredScalingMax, desiredScalingMin, int64(desiredNumWorkers))
+	args, err := collectArguments(context.Background(), cmd, clusterID, autoScalingEnabled, currentScalingMax, currentScalingMin, desiredScalingMax, desiredScalingMin, int64(desiredNumWorkers))
 	if err != nil {
 		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
@@ -418,7 +419,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 }
 
 // validatyScaleCluster does a few general checks and returns an error in case something is missing.
-func validateScaleCluster(args scaleClusterArguments, cmdLineArgs []string, maxBefore int64, minBefore int64, desiredCapacity int64) error {
+func validateScaleCluster(args Arguments, cmdLineArgs []string, maxBefore int64, minBefore int64, desiredCapacity int64) error {
 	desiredWorkersExists := (args.numWorkersDesired > 0)
 	scalingParameterIsPresent := (args.workersMax > 0 || args.workersMin > 0)
 	desiredWorkersDifferFromMaxNumOfWorkers := (int64(args.numWorkersDesired) != args.workersMax)

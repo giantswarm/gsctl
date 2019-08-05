@@ -122,18 +122,18 @@ func Test_CreateFromBadYAML01(t *testing.T) {
 func Test_CreateClusterSuccessfully(t *testing.T) {
 	var testCases = []struct {
 		description string
-		inputArgs   *arguments
+		inputArgs   *Arguments
 	}{
 		{
 			description: "Minimal arguments",
-			inputArgs: &arguments{
+			inputArgs: &Arguments{
 				owner: "acme",
 				token: "fake token",
 			},
 		},
 		{
 			description: "Extensive arguments",
-			inputArgs: &arguments{
+			inputArgs: &Arguments{
 				clusterName:         "UnitTestCluster",
 				numWorkers:          4,
 				releaseVersion:      "0.3.0",
@@ -147,7 +147,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		},
 		{
 			description: "Max workers",
-			inputArgs: &arguments{
+			inputArgs: &Arguments{
 				owner:      "acme",
 				workersMax: 4,
 				token:      "fake token",
@@ -155,7 +155,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		},
 		{
 			description: "Min workers",
-			inputArgs: &arguments{
+			inputArgs: &Arguments{
 				owner:      "acme",
 				workersMin: 4,
 				token:      "fake token",
@@ -163,7 +163,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		},
 		{
 			description: "Min workers and max workers same",
-			inputArgs: &arguments{
+			inputArgs: &Arguments{
 				owner:      "acme",
 				workersMin: 4,
 				workersMax: 4,
@@ -172,7 +172,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		},
 		{
 			description: "Min workers and max workers different",
-			inputArgs: &arguments{
+			inputArgs: &Arguments{
 				owner:      "acme",
 				workersMin: 2,
 				workersMax: 4,
@@ -181,7 +181,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		},
 		{
 			description: "Definition from YAML file",
-			inputArgs: &arguments{
+			inputArgs: &Arguments{
 				clusterName:   "Cluster Name from Args",
 				fileSystem:    afero.NewOsFs(), // needed for YAML file access
 				inputYAMLFile: "testdata/minimal.yaml",
@@ -231,8 +231,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		}))
 		defer mockServer.Close()
 
-		flags.CmdAPIEndpoint = mockServer.URL
-		flags.CmdToken = testCase.inputArgs.token
+		testCase.inputArgs.apiEndpoint = mockServer.URL
 
 		err := validatePreConditions(*testCase.inputArgs)
 		if err != nil {
@@ -250,14 +249,14 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 func Test_CreateClusterExecutionFailures(t *testing.T) {
 	var testCases = []struct {
 		description        string
-		inputArgs          *arguments
+		inputArgs          *Arguments
 		responseStatus     int
 		serverResponseJSON []byte
 		errorMatcher       func(err error) bool
 	}{
 		{
 			description: "Unauthenticated request despite token being present",
-			inputArgs: &arguments{
+			inputArgs: &Arguments{
 				owner: "owner",
 				token: "some-token",
 			},
@@ -267,7 +266,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 		},
 		{
 			description: "Owner organization not existing",
-			inputArgs: &arguments{
+			inputArgs: &Arguments{
 				owner: "non-existing-owner",
 				token: "some-token",
 			},
@@ -277,7 +276,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 		},
 		{
 			description: "Non-existing YAML definition path",
-			inputArgs: &arguments{
+			inputArgs: &Arguments{
 				owner:         "owner",
 				token:         "some-token",
 				fileSystem:    afero.NewOsFs(),
@@ -325,12 +324,12 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 func Test_CreateCluster_ValidationFailures(t *testing.T) {
 	var testCases = []struct {
 		name         string
-		inputArgs    *arguments
+		inputArgs    *Arguments
 		errorMatcher func(err error) bool
 	}{
 		{
 			name: "case 0 workers min is higher than max",
-			inputArgs: &arguments{
+			inputArgs: &Arguments{
 				owner:      "owner",
 				token:      "some-token",
 				workersMin: 4,
@@ -340,7 +339,7 @@ func Test_CreateCluster_ValidationFailures(t *testing.T) {
 		},
 		{
 			name: "case 1 workers min and max with legacy num workers",
-			inputArgs: &arguments{
+			inputArgs: &Arguments{
 				owner:      "owner",
 				token:      "some-token",
 				workersMin: 4,
@@ -351,7 +350,7 @@ func Test_CreateCluster_ValidationFailures(t *testing.T) {
 		},
 		{
 			name: "case 2 workers min with legacy num workers",
-			inputArgs: &arguments{
+			inputArgs: &Arguments{
 				owner:      "owner",
 				token:      "some-token",
 				workersMin: 4,
@@ -361,7 +360,7 @@ func Test_CreateCluster_ValidationFailures(t *testing.T) {
 		},
 		{
 			name: "case 3 workers max with legacy num workers",
-			inputArgs: &arguments{
+			inputArgs: &Arguments{
 				owner:      "owner",
 				token:      "some-token",
 				workersMax: 2,

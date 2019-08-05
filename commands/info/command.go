@@ -31,22 +31,22 @@ var (
 	}
 )
 
-// infoArguments represents the arguments we can make use of in this command
-type infoArguments struct {
+// Arguments represents the arguments we can make use of in this command
+type Arguments struct {
 	scheme      string
 	token       string
 	verbose     bool
 	apiEndpoint string
 }
 
-// defaultInfoArguments returns an infoArguments object populated by the user's
-// command line arguments
-func defaultInfoArguments() infoArguments {
+// collectArguments returns an Arguments object populated by the user's
+// command line arguments and/or config.
+func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
-	return infoArguments{
+	return Arguments{
 		scheme:      scheme,
 		token:       token,
 		verbose:     flags.CmdVerbose,
@@ -69,13 +69,13 @@ type infoResult struct {
 
 // validatePreconditions simply returns nil, as the command should work under
 // all conditions.
-func validatePreconditions(args infoArguments) error {
+func validatePreconditions(args Arguments) error {
 	return nil
 }
 
 // printValidation prints if there is anything missing from user input or config.
 func printValidation(cmd *cobra.Command, extraArgs []string) {
-	args := defaultInfoArguments()
+	args := collectArguments()
 	err := validatePreconditions(args)
 
 	if err != nil {
@@ -85,7 +85,7 @@ func printValidation(cmd *cobra.Command, extraArgs []string) {
 
 // printInfo prints some information on the current user and configuration.
 func printInfo(cmd *cobra.Command, args []string) {
-	infoArgs := defaultInfoArguments()
+	infoArgs := collectArguments()
 	result, err := info(infoArgs)
 
 	output := []string{}
@@ -165,7 +165,7 @@ func printInfo(cmd *cobra.Command, args []string) {
 
 // info gets all the information we'd like to show with the "info" command
 // and returns it as a struct
-func info(args infoArguments) (infoResult, error) {
+func info(args Arguments) (infoResult, error) {
 	result := infoResult{}
 
 	if args.apiEndpoint != "" {
@@ -192,15 +192,15 @@ func info(args infoArguments) (infoResult, error) {
 
 	// If an endpoint and a token is defined, we pull info from the API, too.
 	if args.apiEndpoint != "" && args.token != "" {
-		clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}
 
-		auxParams := clientV2.DefaultAuxiliaryParams()
+		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = infoActivityName
 
-		response, err := clientV2.GetInfo(auxParams)
+		response, err := clientWrapper.GetInfo(auxParams)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}

@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/commands/errors"
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -146,27 +145,32 @@ func TestShowRelease(t *testing.T) {
 	defer releasesMockServer.Close()
 
 	// temp config
+	configYAML := `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  ` + releasesMockServer.URL + `:
+    email: email@example.com
+    token: some-token
+selected_endpoint: ` + releasesMockServer.URL
 	fs := afero.NewMemMapFs()
-	configDir := testutils.TempDir(fs)
-	config.Initialize(fs, configDir)
+	_, err := testutils.TempConfig(fs, configYAML)
+	if err != nil {
+		t.Error(err)
+	}
 
-	testArgs := showReleaseArguments{
+	testArgs := Arguments{
 		apiEndpoint:    releasesMockServer.URL,
 		releaseVersion: "0.10.0",
 		scheme:         "giantswarm",
 		authToken:      "my-token",
 	}
 
-	flags.CmdAPIEndpoint = releasesMockServer.URL
-	flags.CmdToken = testArgs.authToken
-
-	err := verifyShowReleasePreconditions(testArgs, []string{testArgs.releaseVersion})
+	err = verifyShowReleasePreconditions(testArgs, []string{testArgs.releaseVersion})
 	if err != nil {
 		t.Error(err)
 	}
 
-	details, showErr := getReleaseDetails(testArgs.releaseVersion,
-		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
+	details, showErr := getReleaseDetails(testArgs)
 	if showErr != nil {
 		t.Error(showErr)
 	}
@@ -206,22 +210,19 @@ func TestShowReleaseNotAuthorized(t *testing.T) {
 	configDir := testutils.TempDir(fs)
 	config.Initialize(fs, configDir)
 
-	testArgs := showReleaseArguments{
+	testArgs := Arguments{
 		apiEndpoint:    releasesMockServer.URL,
 		releaseVersion: "0.10.0",
 		scheme:         "giantswarm",
 		authToken:      "my-wrong-token",
 	}
 
-	flags.CmdAPIEndpoint = releasesMockServer.URL
-
 	err := verifyShowReleasePreconditions(testArgs, []string{testArgs.releaseVersion})
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = getReleaseDetails(testArgs.releaseVersion,
-		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
+	_, err = getReleaseDetails(testArgs)
 
 	if err == nil {
 		t.Fatal("Expected notAuthorizedError, got nil")
@@ -264,22 +265,19 @@ func TestShowReleaseNotFound(t *testing.T) {
 	configDir := testutils.TempDir(fs)
 	config.Initialize(fs, configDir)
 
-	testArgs := showReleaseArguments{
+	testArgs := Arguments{
 		apiEndpoint:    releasesMockServer.URL,
 		releaseVersion: "non-existing-release-version",
 		scheme:         "giantswarm",
 		authToken:      "my-token",
 	}
 
-	flags.CmdAPIEndpoint = releasesMockServer.URL
-
 	err := verifyShowReleasePreconditions(testArgs, []string{testArgs.releaseVersion})
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = getReleaseDetails(testArgs.releaseVersion,
-		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
+	_, err = getReleaseDetails(testArgs)
 
 	if err == nil {
 		t.Fatal("Expected releaseNotFoundError, got nil")
@@ -309,22 +307,19 @@ func TestShowReleaseInternalServerError(t *testing.T) {
 	configDir := testutils.TempDir(fs)
 	config.Initialize(fs, configDir)
 
-	testArgs := showReleaseArguments{
+	testArgs := Arguments{
 		apiEndpoint:    releasesMockServer.URL,
 		releaseVersion: "non-existing-release-version",
 		scheme:         "giantswarm",
 		authToken:      "my-token",
 	}
 
-	flags.CmdAPIEndpoint = releasesMockServer.URL
-
 	err := verifyShowReleasePreconditions(testArgs, []string{testArgs.releaseVersion})
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = getReleaseDetails(testArgs.releaseVersion,
-		testArgs.scheme, testArgs.authToken, testArgs.apiEndpoint)
+	_, err = getReleaseDetails(testArgs)
 
 	if err == nil {
 		t.Fatal("Expected internalServerError, got nil")
@@ -342,7 +337,7 @@ func TestShowReleaseNotLoggedIn(t *testing.T) {
 	configDir := testutils.TempDir(fs)
 	config.Initialize(fs, configDir)
 
-	testArgs := showReleaseArguments{
+	testArgs := Arguments{
 		apiEndpoint:    "foo.bar",
 		releaseVersion: "release-version",
 		authToken:      "",
@@ -362,7 +357,7 @@ func TestShowReleaseMissingID(t *testing.T) {
 	configDir := testutils.TempDir(fs)
 	config.Initialize(fs, configDir)
 
-	testArgs := showReleaseArguments{
+	testArgs := Arguments{
 		apiEndpoint:    "foo.bar",
 		releaseVersion: "",
 		authToken:      "auth-token",

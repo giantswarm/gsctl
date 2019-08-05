@@ -23,7 +23,6 @@ const (
 )
 
 var (
-
 	// Command performs the "update organization set-credentials" function
 	Command = &cobra.Command{
 		Use:     "set-credentials",
@@ -75,7 +74,7 @@ For details on how to prepare the account/subscription, consult the documentatio
 	provider string
 )
 
-type cmdArguments struct {
+type Arguments struct {
 	apiEndpoint         string
 	authToken           string
 	scheme              string
@@ -103,12 +102,12 @@ func init() {
 	Command.Flags().StringVarP(&cmdAzureSecretKey, "azure-secret-key", "", "", "Secret key for the Azure service principal to use for operating clusters")
 }
 
-func defaultArguments() cmdArguments {
+func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
-	return cmdArguments{
+	return Arguments{
 		apiEndpoint:         endpoint,
 		authToken:           token,
 		scheme:              scheme,
@@ -124,7 +123,7 @@ func defaultArguments() cmdArguments {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultArguments()
+	args := collectArguments()
 	err := verifyPreconditions(args)
 
 	if err == nil {
@@ -166,7 +165,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	os.Exit(1)
 }
 
-func verifyPreconditions(args cmdArguments) error {
+func verifyPreconditions(args Arguments) error {
 	if args.organizationID == "" {
 		return microerror.Mask(errors.OrganizationNotSpecifiedError)
 	}
@@ -179,15 +178,15 @@ func verifyPreconditions(args cmdArguments) error {
 		fmt.Println(color.WhiteString("Determining which provider this installation uses"))
 	}
 
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
 	if err != nil {
 		return microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientV2.GetInfo(auxParams)
+	response, err := clientWrapper.GetInfo(auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusUnauthorized {
@@ -245,7 +244,7 @@ func verifyPreconditions(args cmdArguments) error {
 	if args.verbose {
 		fmt.Println(color.WhiteString("Verify organization membership"))
 	}
-	orgsResponse, err := clientV2.GetOrganizations(auxParams)
+	orgsResponse, err := clientWrapper.GetOrganizations(auxParams)
 	{
 		if err != nil {
 			if clientErr, ok := err.(*clienterror.APIError); ok {
@@ -275,7 +274,7 @@ func verifyPreconditions(args cmdArguments) error {
 // printResult calls the busniness function and produces
 // meanigful terminal output.
 func printResult(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultArguments()
+	args := collectArguments()
 	result, err := setOrgCredentials(args)
 
 	if err != nil {
@@ -308,7 +307,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 }
 
 // setOrgCredentials performs the API call and provides a result.
-func setOrgCredentials(args cmdArguments) (*setOrgCredentialsResult, error) {
+func setOrgCredentials(args Arguments) (*setOrgCredentialsResult, error) {
 	// build request body based on provider
 	requestBody := &models.V4AddCredentialsRequest{Provider: &provider}
 	if provider == "aws" {
@@ -333,15 +332,17 @@ func setOrgCredentials(args cmdArguments) (*setOrgCredentialsResult, error) {
 		fmt.Println(color.WhiteString("Sending API request to set credentials"))
 	}
 
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientV2.SetCredentials(args.organizationID, requestBody, auxParams)
+	response, err := clientWrapper.SetCredentials(args.organizationID, requestBody, auxParams)
+	fmt.Printf("response: %#v\n", response)
+	fmt.Printf("err: %#v\n", err)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			if clientErr.HTTPStatusCode == http.StatusConflict {

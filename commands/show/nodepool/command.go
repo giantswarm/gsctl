@@ -48,10 +48,9 @@ const (
 	activityName = "show-nodepool"
 )
 
-type arguments struct {
+type Arguments struct {
 	apiEndpoint string
 	authToken   string
-	scheme      string
 	clusterID   string
 	nodePoolID  string
 }
@@ -66,24 +65,22 @@ type result struct {
 	sumMemory           float64
 }
 
-func defaultArguments(positionalArgs []string) arguments {
+func collectArguments(positionalArgs []string) Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	parts := strings.Split(positionalArgs[0], "/")
 
-	return arguments{
+	return Arguments{
 		apiEndpoint: endpoint,
 		authToken:   token,
-		scheme:      scheme,
 		clusterID:   parts[0],
 		nodePoolID:  parts[1],
 	}
 }
 
-func verifyPreconditions(args arguments, positionalArgs []string) error {
-	parsedArgs := defaultArguments(positionalArgs)
+func verifyPreconditions(args Arguments, positionalArgs []string) error {
+	parsedArgs := collectArguments(positionalArgs)
 	if config.Config.Token == "" && parsedArgs.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
@@ -99,7 +96,7 @@ func verifyPreconditions(args arguments, positionalArgs []string) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	args := defaultArguments(positionalArgs)
+	args := collectArguments(positionalArgs)
 	err := verifyPreconditions(args, positionalArgs)
 	if err == nil {
 		return
@@ -110,19 +107,19 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 
 // fetchNodePool collects all information we would want to display
 // on a node pools of a cluster.
-func fetchNodePool(args arguments) (*result, error) {
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+func fetchNodePool(args Arguments) (*result, error) {
+	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
 	// create combined output data structure.
 	res := &result{}
 
-	response, err := clientV2.GetNodePool(args.clusterID, args.nodePoolID, auxParams)
+	response, err := clientWrapper.GetNodePool(args.clusterID, args.nodePoolID, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -148,7 +145,7 @@ func fetchNodePool(args arguments) (*result, error) {
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
-	args := defaultArguments(positionalArgs)
+	args := collectArguments(positionalArgs)
 	data, err := fetchNodePool(args)
 	if err != nil {
 		errors.HandleCommonErrors(err)

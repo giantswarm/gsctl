@@ -18,7 +18,9 @@ import (
 	"github.com/giantswarm/gsctl/flags"
 )
 
-type deleteClusterArguments struct {
+// Arguments represents all argument that can be passed to our
+// business function.
+type Arguments struct {
 	// API endpoint
 	apiEndpoint string
 	// cluster ID to delete
@@ -35,7 +37,7 @@ type deleteClusterArguments struct {
 	verbose bool
 }
 
-func defaultArguments(positionalArgs []string) deleteClusterArguments {
+func collectArguments(positionalArgs []string) Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
@@ -45,7 +47,7 @@ func defaultArguments(positionalArgs []string) deleteClusterArguments {
 		clusterID = positionalArgs[0]
 	}
 
-	return deleteClusterArguments{
+	return Arguments{
 		apiEndpoint:     endpoint,
 		clusterID:       clusterID,
 		force:           flags.CmdForce,
@@ -89,7 +91,7 @@ func init() {
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
 func printValidation(cmd *cobra.Command, args []string) {
-	dca := defaultArguments(args)
+	dca := collectArguments(args)
 
 	err := validatePreconditions(dca)
 	if err != nil {
@@ -124,7 +126,7 @@ func printValidation(cmd *cobra.Command, args []string) {
 }
 
 // validatePreconditions checks preconditions and returns an error in case
-func validatePreconditions(args deleteClusterArguments) error {
+func validatePreconditions(args Arguments) error {
 	if args.clusterID == "" && args.legacyClusterID == "" {
 		return microerror.Mask(errors.ClusterIDMissingError)
 	}
@@ -139,7 +141,7 @@ func validatePreconditions(args deleteClusterArguments) error {
 
 // interprets arguments/flags, eventually submits delete request
 func printResult(cmd *cobra.Command, args []string) {
-	dca := defaultArguments(args)
+	dca := collectArguments(args)
 	deleted, err := deleteCluster(dca)
 	if err != nil {
 		errors.HandleCommonErrors(err)
@@ -183,7 +185,7 @@ func printResult(cmd *cobra.Command, args []string) {
 // - bool: true if cluster will reall ybe deleted, false otherwise
 // - error: The error that has occurred (or nil)
 //
-func deleteCluster(args deleteClusterArguments) (bool, error) {
+func deleteCluster(args Arguments) (bool, error) {
 	// Accept legacy cluster ID for a while, but real one takes precedence.
 	clusterID := args.legacyClusterID
 	if args.clusterID != "" {
@@ -198,16 +200,16 @@ func deleteCluster(args deleteClusterArguments) (bool, error) {
 		}
 	}
 
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
 	if err != nil {
 		return false, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = deleteClusterActivityName
 
 	// perform API call
-	_, err = clientV2.DeleteCluster(clusterID, auxParams)
+	_, err = clientWrapper.DeleteCluster(clusterID, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {

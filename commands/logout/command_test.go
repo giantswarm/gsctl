@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
-	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
 
@@ -28,12 +27,10 @@ func Test_LogoutValidToken(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	logoutArgs := logoutArguments{
+	logoutArgs := Arguments{
 		apiEndpoint: mockServer.URL,
 		token:       "test-token",
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err = logout(logoutArgs)
 	if err != nil {
@@ -56,12 +53,10 @@ func Test_LogoutInvalidToken(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	logoutArgs := logoutArguments{
+	logoutArgs := Arguments{
 		apiEndpoint: mockServer.URL,
 		token:       "test-token",
 	}
-
-	flags.CmdAPIEndpoint = mockServer.URL
 
 	err = logout(logoutArgs)
 
@@ -76,12 +71,6 @@ func Test_LogoutInvalidToken(t *testing.T) {
 // Test_LogoutCommand simply calls the functions cobra would call,
 // with a temporary config path and mock server as endpoint.
 func Test_LogoutCommand(t *testing.T) {
-	fs := afero.NewMemMapFs()
-	_, err := testutils.TempConfig(fs, "")
-	if err != nil {
-		t.Error(err)
-	}
-
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -89,8 +78,23 @@ func Test_LogoutCommand(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	flags.CmdAPIEndpoint = mockServer.URL
-	flags.CmdToken = "some-token"
+	// config
+	configYAML := `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  ` + mockServer.URL + `:
+    email: email@example.com
+    token: some-token
+selected_endpoint: ` + mockServer.URL
 
-	Command.Execute()
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, configYAML)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = Command.Execute()
+	if err != nil {
+		t.Errorf("Unexpected error: %#v", err)
+	}
 }

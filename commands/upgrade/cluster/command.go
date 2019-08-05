@@ -62,9 +62,9 @@ Example:
 	}
 )
 
-// argument struct to pass to our business function and
-// to the validation function
-type upgradeClusterArguments struct {
+// Arguments is the struct to pass to our business function and
+// to the validation function.
+type Arguments struct {
 	apiEndpoint string
 	authToken   string
 	clusterID   string
@@ -73,7 +73,7 @@ type upgradeClusterArguments struct {
 }
 
 // function to create arguments based on command line flags and config
-func defaultUpgradeClusterArguments(cmdLineArgs []string) upgradeClusterArguments {
+func collectArguments(cmdLineArgs []string) Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	clusterID := ""
@@ -81,7 +81,7 @@ func defaultUpgradeClusterArguments(cmdLineArgs []string) upgradeClusterArgument
 		clusterID = cmdLineArgs[0]
 	}
 
-	return upgradeClusterArguments{
+	return Arguments{
 		apiEndpoint: endpoint,
 		authToken:   token,
 		clusterID:   clusterID,
@@ -103,7 +103,7 @@ func init() {
 
 // Prints results of our pre-validation
 func upgradeClusterValidationOutput(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultUpgradeClusterArguments(cmdLineArgs)
+	args := collectArguments(cmdLineArgs)
 
 	headline := ""
 	subtext := ""
@@ -136,8 +136,8 @@ func upgradeClusterValidationOutput(cmd *cobra.Command, cmdLineArgs []string) {
 }
 
 // Checks if all preconditions are met, before actually executing
-// our business function
-func validateUpgradeClusterPreconditions(args upgradeClusterArguments, cmdLineArgs []string) error {
+// our business function.
+func validateUpgradeClusterPreconditions(args Arguments, cmdLineArgs []string) error {
 	// authentication
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
@@ -154,7 +154,7 @@ func validateUpgradeClusterPreconditions(args upgradeClusterArguments, cmdLineAr
 // upgradeClusterExecutionOutput executes our business function and displays the result,
 // both in case of success or error
 func upgradeClusterExecutionOutput(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultUpgradeClusterArguments(cmdLineArgs)
+	args := collectArguments(cmdLineArgs)
 	result, err := upgradeCluster(args)
 
 	if err != nil {
@@ -197,21 +197,21 @@ func upgradeClusterExecutionOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 // upgradeCluster performs our actual function. It usually creates an API client,
 // configures it, configures an API request and performs it.
-func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) {
+func upgradeCluster(args Arguments) (upgradeClusterResult, error) {
 	result := upgradeClusterResult{}
 	var details *models.V4ClusterDetailsResponse
 
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = upgradeClusterActivityName
 
 	// fetch current cluster details
 	{
-		response, err := clientV2.GetClusterV4(args.clusterID, auxParams)
+		response, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}
@@ -219,7 +219,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 		details = response.Payload
 	}
 
-	releasesResponse, err := clientV2.GetReleases(auxParams)
+	releasesResponse, err := clientWrapper.GetReleases(auxParams)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
@@ -295,7 +295,7 @@ func upgradeCluster(args upgradeClusterArguments) (upgradeClusterResult, error) 
 	}
 
 	// perform API call
-	_, err = clientV2.ModifyCluster(args.clusterID, reqBody, auxParams)
+	_, err = clientWrapper.ModifyCluster(args.clusterID, reqBody, auxParams)
 	if err != nil {
 		return result, microerror.Maskf(errors.CouldNotUpgradeClusterError, err.Error())
 	}

@@ -52,7 +52,8 @@ const (
 	activityName = "show-cluster"
 )
 
-type showClusterArguments struct {
+// Arguments specifies all the arguments to be used for our business function.
+type Arguments struct {
 	apiEndpoint string
 	authToken   string
 	scheme      string
@@ -60,12 +61,13 @@ type showClusterArguments struct {
 	verbose     bool
 }
 
-func defaultArguments() showClusterArguments {
+// collectArguments fills arguments from user input, config, and environment.
+func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
-	return showClusterArguments{
+	return Arguments{
 		apiEndpoint: endpoint,
 		authToken:   token,
 		scheme:      scheme,
@@ -75,7 +77,7 @@ func defaultArguments() showClusterArguments {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultArguments()
+	args := collectArguments()
 	err := verifyShowClusterPreconditions(args, cmdLineArgs)
 
 	if err == nil {
@@ -89,7 +91,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	os.Exit(1)
 }
 
-func verifyShowClusterPreconditions(args showClusterArguments, cmdLineArgs []string) error {
+func verifyShowClusterPreconditions(args Arguments, cmdLineArgs []string) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
@@ -100,17 +102,17 @@ func verifyShowClusterPreconditions(args showClusterArguments, cmdLineArgs []str
 }
 
 // getClusterDetailsV4 returns details for one cluster.
-func getClusterDetailsV4(clusterID string) (*models.V4ClusterDetailsResponse, error) {
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+func getClusterDetailsV4(args Arguments) (*models.V4ClusterDetailsResponse, error) {
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
 	// perform API call
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientV2.GetClusterV4(clusterID, auxParams)
+	response, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			switch clientErr.HTTPStatusCode {
@@ -132,17 +134,17 @@ func getClusterDetailsV4(clusterID string) (*models.V4ClusterDetailsResponse, er
 }
 
 // getClusterDetailsV5 returns details for one cluster, supporting node pools.
-func getClusterDetailsV5(clusterID string) (*models.V5ClusterDetailsResponse, error) {
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+func getClusterDetailsV5(args Arguments) (*models.V5ClusterDetailsResponse, error) {
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
 	// perform API call
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientV2.GetClusterV5(clusterID, auxParams)
+	response, err := clientWrapper.GetClusterV5(args.clusterID, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			switch clientErr.HTTPStatusCode {
@@ -163,16 +165,16 @@ func getClusterDetailsV5(clusterID string) (*models.V5ClusterDetailsResponse, er
 	return response.Payload, nil
 }
 
-func getOrgCredentials(orgName, credentialID string) (*models.V4GetCredentialResponse, error) {
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+func getOrgCredentials(orgName, credentialID string, args Arguments) (*models.V4GetCredentialResponse, error) {
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientV2.GetCredential(orgName, credentialID, auxParams)
+	response, err := clientWrapper.GetCredential(orgName, credentialID, auxParams)
 	if err != nil {
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			switch clientErr.HTTPStatusCode {
@@ -199,7 +201,7 @@ func getOrgCredentials(orgName, credentialID string) (*models.V4GetCredentialRes
 // - cluster details (v4 or v5)
 // - cluster status (v4 only)
 // - credential details, in case this is a BYOC cluster
-func getClusterDetails(args showClusterArguments) (
+func getClusterDetails(args Arguments) (
 	*models.V4ClusterDetailsResponse,
 	*models.V5ClusterDetailsResponse,
 	*models.V5GetNodePoolsResponse,
@@ -216,18 +218,18 @@ func getClusterDetails(args showClusterArguments) (
 	if args.verbose {
 		fmt.Println(color.WhiteString("Fetching details for cluster via v5 API endpoint."))
 	}
-	clusterDetailsV5, v5Err := getClusterDetailsV5(args.clusterID)
+	clusterDetailsV5, v5Err := getClusterDetailsV5(args)
 	if v5Err == nil {
 		// fetch node pools
-		clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
 		if err != nil {
 			return nil, nil, nil, nil, nil, microerror.Mask(err)
 		}
 
 		// perform API call
-		auxParams := clientV2.DefaultAuxiliaryParams()
+		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = activityName
-		response, err := clientV2.GetNodePools(args.clusterID, auxParams)
+		response, err := clientWrapper.GetNodePools(args.clusterID, auxParams)
 		if err != nil {
 			return nil, nil, nil, nil, nil, microerror.Mask(err)
 		}
@@ -248,14 +250,14 @@ func getClusterDetails(args showClusterArguments) (
 		}
 
 		var clusterDetailsV4Err error
-		clusterDetailsV4, clusterDetailsV4Err = getClusterDetailsV4(args.clusterID)
+		clusterDetailsV4, clusterDetailsV4Err = getClusterDetailsV4(args)
 		if clusterDetailsV4Err != nil {
 			// At this point, every error is a sign of something unexpected, so
 			// simply return.
 			return nil, nil, nil, nil, nil, microerror.Mask(clusterDetailsV4Err)
 		}
 
-		clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
 		if err != nil {
 			return nil, nil, nil, nil, nil, microerror.Mask(err)
 		}
@@ -263,10 +265,10 @@ func getClusterDetails(args showClusterArguments) (
 		if args.verbose {
 			fmt.Println(color.WhiteString("Fetching status for v4 cluster."))
 		}
-		auxParams := clientV2.DefaultAuxiliaryParams()
+		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = activityName
 		var clusterStatusErr error
-		clusterStatus, clusterStatusErr = clientV2.GetClusterStatus(args.clusterID, auxParams)
+		clusterStatus, clusterStatusErr = clientWrapper.GetClusterStatus(args.clusterID, auxParams)
 		if clusterStatusErr != nil {
 			// Return an error if it is something else than 404 Not Found,
 			// as 404s are expected during cluster creation.
@@ -298,7 +300,7 @@ func getClusterDetails(args showClusterArguments) (
 			}
 
 			var credentialDetailsErr error
-			credentialDetails, credentialDetailsErr = getOrgCredentials(clusterOwner, credentialID)
+			credentialDetails, credentialDetailsErr = getOrgCredentials(clusterOwner, credentialID, args)
 			if credentialDetailsErr != nil {
 				if time.Since(created) < clusterCreationExpectedDuration {
 					fmt.Println("This is expected for clusters which are most likely still in creation.")
@@ -334,7 +336,7 @@ func sumWorkerMemory(numWorkers int, workerDetails []*models.V4ClusterDetailsRes
 // printResult fetches cluster info from the API, which involves
 // several API calls, and prints the output.
 func printResult(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultArguments()
+	args := collectArguments()
 	args.clusterID = cmdLineArgs[0]
 
 	if args.verbose {
@@ -354,7 +356,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 }
 
 // printV4Result prints the detils for a V4 cluster.
-func printV4Result(args showClusterArguments, clusterDetails *models.V4ClusterDetailsResponse, clusterStatus *client.ClusterStatus, credentialDetails *models.V4GetCredentialResponse) {
+func printV4Result(args Arguments, clusterDetails *models.V4ClusterDetailsResponse, clusterStatus *client.ClusterStatus, credentialDetails *models.V4GetCredentialResponse) {
 	// Calculate worker node count.
 	numWorkers := 0
 	if clusterStatus != nil && clusterStatus.Cluster.Nodes != nil {
@@ -437,7 +439,7 @@ func printV4Result(args showClusterArguments, clusterDetails *models.V4ClusterDe
 }
 
 // printV5Result prints details for a v5 clsuter.
-func printV5Result(args showClusterArguments, details *models.V5ClusterDetailsResponse,
+func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 	credentialDetails *models.V4GetCredentialResponse,
 	nodePools *models.V5GetNodePoolsResponse) {
 

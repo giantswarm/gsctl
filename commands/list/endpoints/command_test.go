@@ -32,7 +32,7 @@ selected_endpoint: https://my.second.endpoint
 		t.Error(err)
 	}
 
-	args := listEndpointsArguments{
+	args := Arguments{
 		// "" here means that we don't override the selected endpoint
 		apiEndpoint: config.Config.ChooseEndpoint(""),
 	}

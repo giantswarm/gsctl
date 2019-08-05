@@ -28,7 +28,6 @@ const (
 )
 
 var (
-
 	// Command performs the "list releases" function
 	Command = &cobra.Command{
 		Use:   "releases",
@@ -41,22 +40,22 @@ A release is a software bundle that constitutes a cluster. It is identified by i
 	}
 )
 
-// listReleasesArguments are the actual arguments used to call the
+// Arguments are the actual arguments used to call the
 // listReleases() function.
-type listReleasesArguments struct {
+type Arguments struct {
 	apiEndpoint string
 	token       string
 	scheme      string
 }
 
-// defaultListReleasesArguments returns a new listReleasesArguments struct
+// collectArguments returns a new Arguments struct
 // based on global variables (= command line options from cobra).
-func defaultListReleasesArguments() listReleasesArguments {
+func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
-	return listReleasesArguments{
+	return Arguments{
 		apiEndpoint: endpoint,
 		token:       token,
 		scheme:      scheme,
@@ -66,7 +65,7 @@ func defaultListReleasesArguments() listReleasesArguments {
 // printValidation does our pre-checks and shows errors, in case
 // something is missing.
 func printValidation(cmd *cobra.Command, extraArgs []string) {
-	args := defaultListReleasesArguments()
+	args := collectArguments()
 	err := listReleasesPreconditions(&args)
 
 	if err == nil {
@@ -81,7 +80,7 @@ func printValidation(cmd *cobra.Command, extraArgs []string) {
 
 // listReleasesPreconditions validates our pre-conditions and returns an error in
 // case something is missing.
-func listReleasesPreconditions(args *listReleasesArguments) error {
+func listReleasesPreconditions(args *Arguments) error {
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
@@ -92,7 +91,7 @@ func listReleasesPreconditions(args *listReleasesArguments) error {
 // printResult is the function called to list releases and display
 // errors in case they happen
 func printResult(cmd *cobra.Command, extraArgs []string) {
-	args := defaultListReleasesArguments()
+	args := collectArguments()
 	releases, err := listReleases(args)
 
 	if err != nil {
@@ -212,16 +211,17 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 }
 
 // listReleases fetches releases and returns them as a structured result.
-func listReleases(args listReleasesArguments) ([]*models.V4ReleaseListItem, error) {
-	clientV2, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+func listReleases(args Arguments) ([]*models.V4ReleaseListItem, error) {
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
+
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	auxParams := clientV2.DefaultAuxiliaryParams()
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = listReleasesActivityName
 
-	response, err := clientV2.GetReleases(auxParams)
+	response, err := clientWrapper.GetReleases(auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clientErr, ok := err.(*clienterror.APIError); ok {
