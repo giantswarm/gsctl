@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/giantswarm/gsctl/flags"
 )
 
 // Test_ListOrganizationsSuccess tests the command with inputs that should succeed.
@@ -37,8 +35,7 @@ func Test_ListOrganizationsSuccess(t *testing.T) {
 		}))
 		defer orgsMockServer.Close()
 
-		flags.CmdAPIEndpoint = orgsMockServer.URL
-		args := listOrgsArguments{
+		args := Arguments{
 			authToken:   "some-token",
 			apiEndpoint: orgsMockServer.URL,
 		}

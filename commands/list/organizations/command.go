@@ -34,19 +34,19 @@ const (
 	listOrgsActivityName = "list-organizations"
 )
 
-type listOrgsArguments struct {
+type Arguments struct {
 	apiEndpoint string
 	authToken   string
 	scheme      string
 }
 
-// defaultListOrgsArguments creates arguments based on command line flags and config
-func defaultListOrgsArguments() listOrgsArguments {
+// collectArguments creates arguments based on command line flags and config
+func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
-	return listOrgsArguments{
+	return Arguments{
 		apiEndpoint: endpoint,
 		authToken:   token,
 		scheme:      scheme,
@@ -54,7 +54,7 @@ func defaultListOrgsArguments() listOrgsArguments {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	args := defaultListOrgsArguments()
+	args := collectArguments()
 	err := verifyListOrgsPreconditions(args)
 	if err == nil {
 		return
@@ -63,7 +63,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	errors.HandleCommonErrors(err)
 }
 
-func verifyListOrgsPreconditions(args listOrgsArguments) error {
+func verifyListOrgsPreconditions(args Arguments) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
@@ -76,7 +76,7 @@ func verifyListOrgsPreconditions(args listOrgsArguments) error {
 // TODO: Refactor so that this function calls the client, receives structured
 // data which can be tested, and creates user-friendly output.
 func printResult(cmd *cobra.Command, extraArgs []string) {
-	args := defaultListOrgsArguments()
+	args := collectArguments()
 	output, err := orgsTable(args)
 	if err != nil {
 		errors.HandleCommonErrors(err)
@@ -98,8 +98,9 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 
 // orgsTable fetches the organizations the user is a member of
 // and returns a table in string form.
-func orgsTable(args listOrgsArguments) (string, error) {
-	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+func orgsTable(args Arguments) (string, error) {
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
