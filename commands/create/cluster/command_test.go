@@ -232,6 +232,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		defer mockServer.Close()
 
 		testCase.inputArgs.apiEndpoint = mockServer.URL
+		testCase.inputArgs.userProvidedToken = testCase.inputArgs.token
 
 		err := validatePreConditions(*testCase.inputArgs)
 		if err != nil {
