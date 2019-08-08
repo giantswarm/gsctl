@@ -59,6 +59,7 @@ func Test_InfoWithTempDirAndToken(t *testing.T) {
 
 	args := collectArguments()
 	args.token = "fake token"
+	args.userProvidedToken = args.token
 	args.apiEndpoint = ""
 
 	infoResult, err := info(args)

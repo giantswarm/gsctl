@@ -49,6 +49,7 @@ type Arguments struct {
 	fileSystem               afero.Fs
 	scheme                   string
 	ttlHours                 int32
+	userProvidedToken        string
 }
 
 // collectArguments puts together arguments for our business function
@@ -82,6 +83,7 @@ func collectArguments() (Arguments, error) {
 		fileSystem:               config.FileSystem,
 		scheme:                   scheme,
 		ttlHours:                 int32(ttl.Hours()),
+		userProvidedToken:        flags.CmdToken,
 	}, nil
 }
 
@@ -232,7 +234,7 @@ func createKeypair(args Arguments) (createKeypairResult, error) {
 		CertificateOrganizations: args.certificateOrganizations,
 	}
 
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}

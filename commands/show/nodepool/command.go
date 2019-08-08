@@ -49,10 +49,11 @@ const (
 )
 
 type Arguments struct {
-	apiEndpoint string
-	authToken   string
-	clusterID   string
-	nodePoolID  string
+	apiEndpoint       string
+	authToken         string
+	clusterID         string
+	nodePoolID        string
+	userProvidedToken string
 }
 
 // result represents all information we want to collect about one node pool.
@@ -72,10 +73,11 @@ func collectArguments(positionalArgs []string) Arguments {
 	parts := strings.Split(positionalArgs[0], "/")
 
 	return Arguments{
-		apiEndpoint: endpoint,
-		authToken:   token,
-		clusterID:   parts[0],
-		nodePoolID:  parts[1],
+		apiEndpoint:       endpoint,
+		authToken:         token,
+		clusterID:         parts[0],
+		nodePoolID:        parts[1],
+		userProvidedToken: flags.CmdToken,
 	}
 }
 
@@ -108,7 +110,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 // fetchNodePool collects all information we would want to display
 // on a node pools of a cluster.
 func fetchNodePool(args Arguments) (*result, error) {
-	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}

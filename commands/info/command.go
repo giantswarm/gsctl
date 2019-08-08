@@ -34,10 +34,11 @@ var (
 
 // Arguments represents the arguments we can make use of in this command
 type Arguments struct {
-	scheme      string
-	token       string
-	verbose     bool
-	apiEndpoint string
+	apiEndpoint       string
+	scheme            string
+	token             string
+	userProvidedToken string
+	verbose           bool
 }
 
 // collectArguments returns an Arguments object populated by the user's
@@ -48,10 +49,11 @@ func collectArguments() Arguments {
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return Arguments{
-		scheme:      scheme,
-		token:       token,
-		verbose:     flags.CmdVerbose,
-		apiEndpoint: endpoint,
+		apiEndpoint:       endpoint,
+		scheme:            scheme,
+		token:             token,
+		userProvidedToken: flags.CmdToken,
+		verbose:           flags.CmdVerbose,
 	}
 }
 
@@ -191,7 +193,7 @@ func info(args Arguments) (infoResult, error) {
 	}
 
 	result.email = config.Config.Email
-	result.token = config.Config.ChooseToken(result.apiEndpoint, args.token)
+	result.token = config.Config.ChooseToken(result.apiEndpoint, args.userProvidedToken)
 	result.version = buildinfo.Version
 	result.buildDate = buildinfo.BuildDate
 	result.commitHash = buildinfo.Commit
@@ -211,7 +213,7 @@ func info(args Arguments) (infoResult, error) {
 
 	// If an endpoint and a token is defined, we pull info from the API, too.
 	if args.apiEndpoint != "" && args.token != "" {
-		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
+		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}

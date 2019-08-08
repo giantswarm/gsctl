@@ -27,6 +27,7 @@ var (
 
 // Arguments are the arguments we pass to the actual functions
 // listing endpoints and printing endpoints lists
+// TODO: apiEndpoint is the only argument used. The rest can be removed.
 type Arguments struct {
 	apiEndpoint string
 	scheme      string

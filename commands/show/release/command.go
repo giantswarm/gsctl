@@ -44,11 +44,12 @@ const (
 )
 
 type Arguments struct {
-	apiEndpoint    string
-	authToken      string
-	scheme         string
-	releaseVersion string
-	verbose        bool
+	apiEndpoint       string
+	authToken         string
+	releaseVersion    string
+	scheme            string
+	userProvidedToken string
+	verbose           bool
 }
 
 func collectArguments() Arguments {
@@ -57,11 +58,12 @@ func collectArguments() Arguments {
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return Arguments{
-		apiEndpoint:    endpoint,
-		authToken:      token,
-		scheme:         scheme,
-		releaseVersion: "",
-		verbose:        flags.CmdVerbose,
+		apiEndpoint:       endpoint,
+		authToken:         token,
+		scheme:            scheme,
+		releaseVersion:    "",
+		userProvidedToken: flags.CmdToken,
+		verbose:           flags.CmdVerbose,
 	}
 }
 
@@ -92,7 +94,7 @@ func verifyShowReleasePreconditions(args Arguments, cmdLineArgs []string) error 
 
 // getReleaseDetails fetches release details from the API
 func getReleaseDetails(args Arguments) (*models.V4ReleaseListItem, error) {
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}

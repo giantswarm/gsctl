@@ -59,10 +59,11 @@ To list all clusters you have access to, use 'gsctl list clusters'.`,
 const activityName = "list-nodepools"
 
 type Arguments struct {
-	apiEndpoint string
-	authToken   string
-	scheme      string
-	clusterID   string
+	apiEndpoint       string
+	authToken         string
+	clusterID         string
+	scheme            string
+	userProvidedToken string
 }
 
 // resultRow represents one nope pool row as returned by fetchNodePools.
@@ -82,10 +83,11 @@ func collectArguments(cmdLineArgs []string) Arguments {
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return Arguments{
-		apiEndpoint: endpoint,
-		authToken:   token,
-		scheme:      scheme,
-		clusterID:   cmdLineArgs[0],
+		apiEndpoint:       endpoint,
+		authToken:         token,
+		clusterID:         cmdLineArgs[0],
+		scheme:            scheme,
+		userProvidedToken: flags.CmdToken,
 	}
 }
 
@@ -110,7 +112,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 // fetchNodePools collects all information we would want to display
 // on the node pools of a cluster.
 func fetchNodePools(args Arguments) ([]*resultRow, error) {
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
