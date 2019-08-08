@@ -197,7 +197,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 func listKeypairs(args Arguments) (listKeypairsResult, error) {
 	result := listKeypairsResult{}
 
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
