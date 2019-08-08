@@ -32,7 +32,8 @@ type Arguments struct {
 	// auth scheme
 	scheme string
 	// auth token
-	token string
+	token             string
+	userProvidedToken string
 	// verbosity
 	verbose bool
 }
@@ -48,13 +49,14 @@ func collectArguments(positionalArgs []string) Arguments {
 	}
 
 	return Arguments{
-		apiEndpoint:     endpoint,
-		clusterID:       clusterID,
-		force:           flags.CmdForce,
-		legacyClusterID: flags.CmdClusterID,
-		scheme:          scheme,
-		token:           token,
-		verbose:         flags.CmdVerbose,
+		apiEndpoint:       endpoint,
+		clusterID:         clusterID,
+		force:             flags.CmdForce,
+		legacyClusterID:   flags.CmdClusterID,
+		scheme:            scheme,
+		token:             token,
+		userProvidedToken: flags.CmdToken,
+		verbose:           flags.CmdVerbose,
 	}
 }
 
@@ -200,7 +202,7 @@ func deleteCluster(args Arguments) (bool, error) {
 		}
 	}
 
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return false, microerror.Mask(err)
 	}
