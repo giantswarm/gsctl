@@ -49,7 +49,7 @@ To enable bash completion for gsctl:
 
 1. Edit your ~/.bash_profile and add a line like this:
 
-   source $(gsctl completion bash --stdout)
+   source <(gsctl completion bash --stdout)
 
 2. Start a new terminal session
 `,
