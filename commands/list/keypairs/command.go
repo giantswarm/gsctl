@@ -43,11 +43,12 @@ var (
 // Arguments are the actual arguments used to call the
 // listKeypairs() function.
 type Arguments struct {
-	apiEndpoint string
-	clusterID   string
-	full        bool
-	token       string
-	scheme      string
+	apiEndpoint       string
+	clusterID         string
+	full              bool
+	token             string
+	userProvidedToken string
+	scheme            string
 }
 
 // collectArguments returns a new Arguments struct
@@ -58,11 +59,12 @@ func collectArguments() Arguments {
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return Arguments{
-		apiEndpoint: endpoint,
-		clusterID:   flags.CmdClusterID,
-		full:        flags.CmdFull,
-		token:       token,
-		scheme:      scheme,
+		apiEndpoint:       endpoint,
+		clusterID:         flags.CmdClusterID,
+		full:              flags.CmdFull,
+		token:             token,
+		userProvidedToken: flags.CmdToken,
+		scheme:            scheme,
 	}
 }
 
@@ -101,7 +103,7 @@ func listKeypairsValidate(args *Arguments) error {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return microerror.Mask(err)
 	}
