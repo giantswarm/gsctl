@@ -39,7 +39,8 @@ type Arguments struct {
 	// apiEndpoint is the API to log out from
 	apiEndpoint string
 	// token is the session token to expire (log out)
-	token string
+	token             string
+	userProvidedToken string
 }
 
 func collectArguments() Arguments {
@@ -47,8 +48,9 @@ func collectArguments() Arguments {
 	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
 
 	return Arguments{
-		apiEndpoint: endpoint,
-		token:       token,
+		apiEndpoint:       endpoint,
+		token:             token,
+		userProvidedToken: flags.CmdToken,
 	}
 }
 
@@ -97,7 +99,7 @@ func logout(args Arguments) error {
 		return nil
 	}
 
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return microerror.Mask(err)
 	}

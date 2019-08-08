@@ -77,15 +77,16 @@ For details on how to prepare the account/subscription, consult the documentatio
 type Arguments struct {
 	apiEndpoint         string
 	authToken           string
-	scheme              string
-	verbose             bool
-	organizationID      string
 	awsAdminRole        string
 	awsOperatorRole     string
-	azureSubscriptionID string
-	azureTenantID       string
 	azureClientID       string
 	azureSecretKey      string
+	azureSubscriptionID string
+	azureTenantID       string
+	organizationID      string
+	scheme              string
+	userProvidedToken   string
+	verbose             bool
 }
 
 type setOrgCredentialsResult struct {
@@ -110,15 +111,16 @@ func collectArguments() Arguments {
 	return Arguments{
 		apiEndpoint:         endpoint,
 		authToken:           token,
-		scheme:              scheme,
-		organizationID:      flags.CmdOrganizationID,
-		verbose:             flags.CmdVerbose,
 		awsAdminRole:        cmdAWSAdminRoleARN,
 		awsOperatorRole:     cmdAWSOperatorRoleARN,
 		azureClientID:       cmdAzureClientID,
 		azureSecretKey:      cmdAzureSecretKey,
 		azureSubscriptionID: cmdAzureSubscriptionID,
 		azureTenantID:       cmdAzureTenantID,
+		organizationID:      flags.CmdOrganizationID,
+		scheme:              scheme,
+		userProvidedToken:   flags.CmdToken,
+		verbose:             flags.CmdVerbose,
 	}
 }
 
@@ -178,7 +180,7 @@ func verifyPreconditions(args Arguments) error {
 		fmt.Println(color.WhiteString("Determining which provider this installation uses"))
 	}
 
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return microerror.Mask(err)
 	}

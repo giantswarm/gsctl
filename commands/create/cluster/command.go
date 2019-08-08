@@ -38,6 +38,7 @@ type Arguments struct {
 	releaseVersion          string
 	scheme                  string
 	token                   string
+	userProvidedToken       string
 	verbose                 bool
 	wokerAwsEc2InstanceType string
 	wokerAzureVMSize        string
@@ -65,6 +66,7 @@ func collectArguments() Arguments {
 		releaseVersion:          flags.CmdRelease,
 		scheme:                  scheme,
 		token:                   token,
+		userProvidedToken:       flags.CmdToken,
 		verbose:                 flags.CmdVerbose,
 		wokerAwsEc2InstanceType: cmdWorkerAwsEc2InstanceType,
 		wokerAzureVMSize:        cmdWorkerAzureVMSize,
@@ -534,7 +536,7 @@ func addCluster(args Arguments) (creationResult, error) {
 	if !args.dryRun {
 		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
 
-		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
+		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}

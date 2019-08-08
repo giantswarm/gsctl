@@ -72,6 +72,7 @@ type Arguments struct {
 	numWorkersDesired   int
 	oppressConfirmation bool
 	scheme              string
+	userProvidedToken   string
 	verbose             bool
 	workersMax          int64
 	workersMin          int64
@@ -125,6 +126,7 @@ func collectArguments(ctx context.Context, cmd *cobra.Command, clusterID string,
 		numWorkersDesired:   int(desiredNumWorkers),
 		oppressConfirmation: flags.CmdForce,
 		scheme:              scheme,
+		userProvidedToken:   flags.CmdToken,
 		verbose:             flags.CmdVerbose,
 		workersMax:          flags.CmdWorkersMax,
 		workersMin:          flags.CmdWorkersMin,
@@ -214,7 +216,7 @@ func scaleCluster(args Arguments) (*models.V4ClusterDetailsResponse, error) {
 		fmt.Println(color.WhiteString("Sending API request to modify cluster"))
 	}
 
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}

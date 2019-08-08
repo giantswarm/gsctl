@@ -94,6 +94,7 @@ type Arguments struct {
 	scheme            string
 	selfContainedPath string
 	ttlHours          int32
+	userProvidedToken string
 }
 
 // collectArguments gathers arguments based on command line
@@ -135,6 +136,7 @@ func collectArguments() (Arguments, error) {
 		scheme:            scheme,
 		selfContainedPath: cmdKubeconfigSelfContained,
 		ttlHours:          int32(ttl.Hours()),
+		userProvidedToken: flags.CmdToken,
 	}, nil
 }
 
@@ -349,7 +351,7 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResult, error) {
 	result := createKubeconfigResult{}
 
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}

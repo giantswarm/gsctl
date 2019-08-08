@@ -43,9 +43,10 @@ A release is a software bundle that constitutes a cluster. It is identified by i
 // Arguments are the actual arguments used to call the
 // listReleases() function.
 type Arguments struct {
-	apiEndpoint string
-	token       string
-	scheme      string
+	apiEndpoint       string
+	token             string
+	scheme            string
+	userProvidedToken string
 }
 
 // collectArguments returns a new Arguments struct
@@ -56,9 +57,10 @@ func collectArguments() Arguments {
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return Arguments{
-		apiEndpoint: endpoint,
-		token:       token,
-		scheme:      scheme,
+		apiEndpoint:       endpoint,
+		token:             token,
+		scheme:            scheme,
+		userProvidedToken: flags.CmdToken,
 	}
 }
 
@@ -212,7 +214,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 
 // listReleases fetches releases and returns them as a structured result.
 func listReleases(args Arguments) ([]*models.V4ReleaseListItem, error) {
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 
 	if err != nil {
 		return nil, microerror.Mask(err)
