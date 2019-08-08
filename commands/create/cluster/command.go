@@ -168,9 +168,6 @@ func init() {
 	Command.Flags().Float32VarP(&flags.CmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
 	Command.Flags().Float32VarP(&flags.CmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
 	Command.Flags().BoolVarP(&cmdDryRun, "dry-run", "", false, "If set, the cluster won't be created. Useful with -v|--verbose.")
-
-	// kubernetes-version never had any effect, and is deprecated now on the API side, too
-	Command.Flags().MarkDeprecated("kubernetes-version", "please use --release to specify a release to use")
 }
 
 // printValidation runs our pre-checks.
