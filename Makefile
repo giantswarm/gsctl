@@ -1,10 +1,10 @@
 PROJECT=gsctl
 ORGANISATION=giantswarm
 BIN=$(PROJECT)
-GOVERSION := 1.12.5
+GOVERSION := 1.12.7
 BUILDDATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
-COMMIT := $(shell git rev-parse HEAD | cut -c1-10)
-VERSION := $(shell (test -f VERSION && cat VERSION) || echo "git-${COMMIT}")
+COMMITHASH := $(shell git rev-parse HEAD)
+VERSION := $(shell (test -f VERSION && cat VERSION) || echo "")
 SOURCE=$(shell find . -name '*.go')
 USERID=$(shell id -u)
 GROUPID=$(shell id -g)
@@ -41,6 +41,7 @@ crosscompile: prebuild build/bin/$(BIN)-darwin-amd64 build/bin/$(BIN)-linux-amd6
 build/bin/$(BIN)-darwin-amd64: $(SOURCE)
 	@mkdir -p build/bin
 	@mkdir -p go-build-cache
+	@echo "Commit hash: $(COMMITHASH)"
 	docker run --rm \
 		-v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		-v $(shell pwd)/go-build-cache:/.cache \
@@ -48,7 +49,7 @@ build/bin/$(BIN)-darwin-amd64: $(SOURCE)
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		--user ${USERID}:${GROUPID} \
 		golang:$(GOVERSION)-alpine go build -a -installsuffix cgo -o build/bin/$(BIN)-darwin-amd64 \
-		-ldflags "-X 'github.com/giantswarm/gscliauth/config.Version=$(VERSION)' -X 'github.com/giantswarm/gscliauth/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gscliauth/config.Commit=$(COMMIT)'"
+		-ldflags="-X github.com/giantswarm/gsctl/buildinfo.Version=$(VERSION) -X github.com/giantswarm/gsctl/buildinfo.BuildDate=$(BUILDDATE) -X github.com/giantswarm/gsctl/buildinfo.Commit=$(COMMITHASH)"
 	rm -rf go-build-cache
 
 # platform-specific build for linux-amd64
@@ -63,7 +64,7 @@ build/bin/$(BIN)-linux-amd64: $(SOURCE)
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		--user ${USERID}:${GROUPID} \
 		golang:$(GOVERSION)-stretch go build -a -installsuffix cgo -o build/bin/$(BIN)-linux-amd64 \
-		-ldflags "-X 'github.com/giantswarm/gscliauth/config.Version=$(VERSION)' -X 'github.com/giantswarm/gscliauth/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gscliauth/config.Commit=$(COMMIT)'"
+		-ldflags="-X github.com/giantswarm/gsctl/buildinfo.Version=$(VERSION) -X github.com/giantswarm/gsctl/buildinfo.BuildDate=$(BUILDDATE) -X github.com/giantswarm/gsctl/buildinfo.Commit=$(COMMITHASH)"
 	rm -rf go-build-cache
 
 # platform-specific build
@@ -77,7 +78,7 @@ build/bin/$(BIN)-windows-386: $(SOURCE)
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		--user ${USERID}:${GROUPID} \
 		golang:$(GOVERSION)-alpine go build -a -installsuffix cgo -o build/bin/$(BIN)-windows-386 \
-		-ldflags "-X 'github.com/giantswarm/gscliauth/config.Version=$(VERSION)' -X 'github.com/giantswarm/gscliauth/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gscliauth/config.Commit=$(COMMIT)'"
+		-ldflags="-X github.com/giantswarm/gsctl/buildinfo.Version=$(VERSION) -X github.com/giantswarm/gsctl/buildinfo.BuildDate=$(BUILDDATE) -X github.com/giantswarm/gsctl/buildinfo.Commit=$(COMMITHASH)"
 	rm -rf go-build-cache
 
 # platform-specific build
@@ -91,7 +92,7 @@ build/bin/$(BIN)-windows-amd64: $(SOURCE)
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		--user ${USERID}:${GROUPID} \
 		golang:$(GOVERSION)-alpine go build -a -installsuffix cgo -o build/bin/$(BIN)-windows-amd64 \
-		-ldflags "-X 'github.com/giantswarm/gscliauth/config.Version=$(VERSION)' -X 'github.com/giantswarm/gscliauth/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gscliauth/config.Commit=$(COMMIT)'"
+		-ldflags "-X 'github.com/giantswarm/gscliauth/config.Version=$(VERSION)' -X 'github.com/giantswarm/gscliauth/config.BuildDate=$(BUILDDATE)' -X 'github.com/giantswarm/gscliauth/config.Commit=$(COMMITHASH)'"
 	rm -rf go-build-cache
 
 gotest:
