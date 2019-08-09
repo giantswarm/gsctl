@@ -127,6 +127,7 @@ type Arguments struct {
 	ScalingMax            int64
 	ScalingMin            int64
 	Scheme                string
+	UserProvidedToken     string
 	Verbose               bool
 }
 
@@ -147,7 +148,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 
 	zones := cmdAvailabilityZones
 	if zones != nil && len(zones) > 0 {
-		zones, err = expandZones(zones, endpoint, token)
+		zones, err = expandZones(zones, endpoint, flags.CmdToken)
 		if err != nil {
 			return Arguments{}, microerror.Mask(err)
 		}
@@ -170,6 +171,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		ScalingMax:            flags.CmdWorkersMax,
 		ScalingMin:            flags.CmdWorkersMin,
 		Scheme:                scheme,
+		UserProvidedToken:     flags.CmdToken,
 		Verbose:               flags.CmdVerbose,
 	}, nil
 }
@@ -179,8 +181,8 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 //
 // ["a", "b"] -> ["eu-central-1a", "eu-central-1b"]
 //
-func expandZones(zones []string, endpoint, token string) ([]string, error) {
-	clientWrapper, err := client.NewWithConfig(endpoint, token)
+func expandZones(zones []string, endpoint, userProvidedToken string) ([]string, error) {
+	clientWrapper, err := client.NewWithConfig(endpoint, userProvidedToken)
 	if err != nil {
 		return []string{}, microerror.Mask(err)
 	}
@@ -289,7 +291,7 @@ func createNodePool(args Arguments) (*result, error) {
 		}
 	}
 
-	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.AuthToken)
+	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
 	if err != nil {
 		return r, microerror.Mask(err)
 	}
