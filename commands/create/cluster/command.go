@@ -38,6 +38,7 @@ type Arguments struct {
 	releaseVersion          string
 	scheme                  string
 	token                   string
+	userProvidedToken       string
 	verbose                 bool
 	wokerAwsEc2InstanceType string
 	wokerAzureVMSize        string
@@ -65,6 +66,7 @@ func collectArguments() Arguments {
 		releaseVersion:          flags.CmdRelease,
 		scheme:                  scheme,
 		token:                   token,
+		userProvidedToken:       flags.CmdToken,
 		verbose:                 flags.CmdVerbose,
 		wokerAwsEc2InstanceType: flags.CmdWorkerAwsEc2InstanceType,
 		wokerAzureVMSize:        cmdWorkerAzureVMSize,
@@ -166,9 +168,6 @@ func init() {
 	Command.Flags().Float32VarP(&flags.CmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
 	Command.Flags().Float32VarP(&flags.CmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
 	Command.Flags().BoolVarP(&cmdDryRun, "dry-run", "", false, "If set, the cluster won't be created. Useful with -v|--verbose.")
-
-	// kubernetes-version never had any effect, and is deprecated now on the API side, too
-	Command.Flags().MarkDeprecated("kubernetes-version", "please use --release to specify a release to use")
 }
 
 // printValidation runs our pre-checks.
@@ -535,7 +534,7 @@ func addCluster(args Arguments) (creationResult, error) {
 	if !args.dryRun {
 		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
 
-		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
+		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}

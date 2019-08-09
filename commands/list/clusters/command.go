@@ -38,9 +38,10 @@ const (
 )
 
 type Arguments struct {
-	apiEndpoint string
-	authToken   string
-	scheme      string
+	apiEndpoint       string
+	authToken         string
+	scheme            string
+	userProvidedToken string
 }
 
 func collectArguments() Arguments {
@@ -49,9 +50,10 @@ func collectArguments() Arguments {
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return Arguments{
-		apiEndpoint: endpoint,
-		authToken:   token,
-		scheme:      scheme,
+		apiEndpoint:       endpoint,
+		authToken:         token,
+		scheme:            scheme,
+		userProvidedToken: flags.CmdToken,
 	}
 }
 
@@ -104,7 +106,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 
 // clustersTable returns a table of clusters the user has access to
 func clustersTable(args Arguments) (string, error) {
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}

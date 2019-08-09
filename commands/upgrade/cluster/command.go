@@ -65,11 +65,12 @@ Example:
 // Arguments is the struct to pass to our business function and
 // to the validation function.
 type Arguments struct {
-	apiEndpoint string
-	authToken   string
-	clusterID   string
-	force       bool
-	verbose     bool
+	apiEndpoint       string
+	authToken         string
+	clusterID         string
+	force             bool
+	userProvidedToken string
+	verbose           bool
 }
 
 // function to create arguments based on command line flags and config
@@ -82,11 +83,12 @@ func collectArguments(cmdLineArgs []string) Arguments {
 	}
 
 	return Arguments{
-		apiEndpoint: endpoint,
-		authToken:   token,
-		clusterID:   clusterID,
-		force:       false,
-		verbose:     flags.CmdVerbose,
+		apiEndpoint:       endpoint,
+		authToken:         token,
+		clusterID:         clusterID,
+		force:             false,
+		userProvidedToken: flags.CmdToken,
+		verbose:           flags.CmdVerbose,
 	}
 }
 
@@ -201,7 +203,7 @@ func upgradeCluster(args Arguments) (upgradeClusterResult, error) {
 	result := upgradeClusterResult{}
 	var details *models.V4ClusterDetailsResponse
 
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}

@@ -222,6 +222,11 @@ func (w *Wrapper) DefaultAuxiliaryParams() *AuxiliaryParams {
 	}
 }
 
+// GetConfiguration returns the client wrapper's configuration, e. g. for debugging purposes.
+func (w *Wrapper) GetConfiguration() *Configuration {
+	return w.conf
+}
+
 // paramSetter is the interface we use to abstract away the differences between
 // request parameter types.
 type paramSetter interface {

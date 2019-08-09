@@ -35,9 +35,10 @@ const (
 )
 
 type Arguments struct {
-	apiEndpoint string
-	authToken   string
-	scheme      string
+	apiEndpoint       string
+	authToken         string
+	scheme            string
+	userProvidedToken string
 }
 
 // collectArguments creates arguments based on command line flags and config
@@ -47,9 +48,10 @@ func collectArguments() Arguments {
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return Arguments{
-		apiEndpoint: endpoint,
-		authToken:   token,
-		scheme:      scheme,
+		apiEndpoint:       endpoint,
+		authToken:         token,
+		scheme:            scheme,
+		userProvidedToken: flags.CmdToken,
 	}
 }
 
@@ -99,7 +101,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 // orgsTable fetches the organizations the user is a member of
 // and returns a table in string form.
 func orgsTable(args Arguments) (string, error) {
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 
 	if err != nil {
 		return "", microerror.Mask(err)

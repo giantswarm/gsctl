@@ -54,11 +54,12 @@ const (
 
 // Arguments specifies all the arguments to be used for our business function.
 type Arguments struct {
-	apiEndpoint string
-	authToken   string
-	scheme      string
-	clusterID   string
-	verbose     bool
+	apiEndpoint       string
+	authToken         string
+	scheme            string
+	clusterID         string
+	userProvidedToken string
+	verbose           bool
 }
 
 // collectArguments fills arguments from user input, config, and environment.
@@ -68,11 +69,12 @@ func collectArguments() Arguments {
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return Arguments{
-		apiEndpoint: endpoint,
-		authToken:   token,
-		scheme:      scheme,
-		clusterID:   "",
-		verbose:     flags.CmdVerbose,
+		apiEndpoint:       endpoint,
+		authToken:         token,
+		scheme:            scheme,
+		clusterID:         "",
+		userProvidedToken: flags.CmdToken,
+		verbose:           flags.CmdVerbose,
 	}
 }
 
@@ -103,7 +105,7 @@ func verifyShowClusterPreconditions(args Arguments, cmdLineArgs []string) error 
 
 // getClusterDetailsV4 returns details for one cluster.
 func getClusterDetailsV4(args Arguments) (*models.V4ClusterDetailsResponse, error) {
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -135,7 +137,7 @@ func getClusterDetailsV4(args Arguments) (*models.V4ClusterDetailsResponse, erro
 
 // getClusterDetailsV5 returns details for one cluster, supporting node pools.
 func getClusterDetailsV5(args Arguments) (*models.V5ClusterDetailsResponse, error) {
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -166,7 +168,7 @@ func getClusterDetailsV5(args Arguments) (*models.V5ClusterDetailsResponse, erro
 }
 
 func getOrgCredentials(orgName, credentialID string, args Arguments) (*models.V4GetCredentialResponse, error) {
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -221,7 +223,7 @@ func getClusterDetails(args Arguments) (
 	clusterDetailsV5, v5Err := getClusterDetailsV5(args)
 	if v5Err == nil {
 		// fetch node pools
-		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 		if err != nil {
 			return nil, nil, nil, nil, nil, microerror.Mask(err)
 		}
@@ -257,7 +259,7 @@ func getClusterDetails(args Arguments) (
 			return nil, nil, nil, nil, nil, microerror.Mask(clusterDetailsV4Err)
 		}
 
-		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 		if err != nil {
 			return nil, nil, nil, nil, nil, microerror.Mask(err)
 		}

@@ -11,6 +11,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/buildinfo"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
@@ -33,10 +34,11 @@ var (
 
 // Arguments represents the arguments we can make use of in this command
 type Arguments struct {
-	scheme      string
-	token       string
-	verbose     bool
-	apiEndpoint string
+	apiEndpoint       string
+	scheme            string
+	token             string
+	userProvidedToken string
+	verbose           bool
 }
 
 // collectArguments returns an Arguments object populated by the user's
@@ -47,10 +49,11 @@ func collectArguments() Arguments {
 	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
 
 	return Arguments{
-		scheme:      scheme,
-		token:       token,
-		verbose:     flags.CmdVerbose,
-		apiEndpoint: endpoint,
+		apiEndpoint:       endpoint,
+		scheme:            scheme,
+		token:             token,
+		userProvidedToken: flags.CmdToken,
+		verbose:           flags.CmdVerbose,
 	}
 }
 
@@ -58,6 +61,7 @@ func collectArguments() Arguments {
 type infoResult struct {
 	apiEndpoint      string
 	apiEndpointAlias string
+	commitHash       string
 	email            string
 	token            string
 	version          string
@@ -90,8 +94,24 @@ func printInfo(cmd *cobra.Command, args []string) {
 
 	output := []string{}
 
-	output = append(output, color.YellowString("%s version:", config.ProgramName)+"|"+color.CyanString(result.version))
-	output = append(output, color.YellowString("%s build:", config.ProgramName)+"|"+color.CyanString(result.buildDate))
+	if result.commitHash != buildinfo.Placeholder {
+		output = append(output, color.YellowString("%s commit hash:", config.ProgramName)+"|"+color.CyanString(result.commitHash)+" - https://github.com/giantswarm/gsctl/commit/"+result.commitHash)
+	} else {
+		output = append(output, color.YellowString("%s commit hash:", config.ProgramName)+"|n/a")
+	}
+
+	if result.version != buildinfo.Placeholder {
+		output = append(output, color.YellowString("%s version:", config.ProgramName)+"|"+color.CyanString(result.version))
+	} else {
+		output = append(output, color.YellowString("%s version:", config.ProgramName)+"|n/a")
+	}
+
+	if result.buildDate != buildinfo.Placeholder {
+		output = append(output, color.YellowString("%s build:", config.ProgramName)+"|"+color.CyanString(result.buildDate))
+	} else {
+		output = append(output, color.YellowString("%s build:", config.ProgramName)+"|"+color.RedString(result.buildDate))
+	}
+
 	output = append(output, color.YellowString("Config path:")+"|"+color.CyanString(result.configFilePath))
 
 	// kubectl configuration paths
@@ -173,9 +193,10 @@ func info(args Arguments) (infoResult, error) {
 	}
 
 	result.email = config.Config.Email
-	result.token = config.Config.ChooseToken(result.apiEndpoint, args.token)
-	result.version = config.Version
-	result.buildDate = config.BuildDate
+	result.token = config.Config.ChooseToken(result.apiEndpoint, args.userProvidedToken)
+	result.version = buildinfo.Version
+	result.buildDate = buildinfo.BuildDate
+	result.commitHash = buildinfo.Commit
 
 	if config.Config.EndpointConfig(result.apiEndpoint) != nil {
 		result.apiEndpointAlias = config.Config.EndpointConfig(result.apiEndpoint).Alias
@@ -192,7 +213,7 @@ func info(args Arguments) (infoResult, error) {
 
 	// If an endpoint and a token is defined, we pull info from the API, too.
 	if args.apiEndpoint != "" && args.token != "" {
-		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
+		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 		if err != nil {
 			return result, microerror.Mask(err)
 		}
