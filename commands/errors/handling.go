@@ -21,7 +21,7 @@ func HandleCommonErrors(err error) {
 	var headline = ""
 	var subtext = ""
 
-	// V2 client error handling
+	// client error handling
 	if convertedErr, ok := microerror.Cause(err).(*clienterror.APIError); ok {
 		headline = convertedErr.ErrorMessage
 		subtext = convertedErr.ErrorDetails

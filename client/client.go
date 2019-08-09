@@ -300,7 +300,7 @@ func setParamsWithAuthorization(p *AuxiliaryParams, w *Wrapper, params paramSett
 	return nil
 }
 
-// CreateAuthToken creates an auth token using the V2 client.
+// CreateAuthToken creates an auth token using the gsclientgen client.
 func (w *Wrapper) CreateAuthToken(email, password string, p *AuxiliaryParams) (*auth_tokens.CreateAuthTokenOK, error) {
 	params := auth_tokens.NewCreateAuthTokenParams().WithBody(&models.V4CreateAuthTokenRequest{
 		Email:          email,
@@ -316,7 +316,7 @@ func (w *Wrapper) CreateAuthToken(email, password string, p *AuxiliaryParams) (*
 	return response, nil
 }
 
-// DeleteAuthToken calls the API's deleteAuthToken operation using the V2 client.
+// DeleteAuthToken calls the API's deleteAuthToken operation using the gsclientgen client.
 func (w *Wrapper) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth_tokens.DeleteAuthTokenOK, error) {
 	params := auth_tokens.NewDeleteAuthTokenParams().WithAuthorization("giantswarm " + authToken)
 	setParams(p, w, params)
@@ -329,7 +329,7 @@ func (w *Wrapper) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth_t
 	return response, nil
 }
 
-// CreateCluster creates cluster using the V2 client.
+// CreateCluster creates cluster using the gsclientgen client.
 func (w *Wrapper) CreateCluster(addClusterRequest *models.V4AddClusterRequest, p *AuxiliaryParams) (*clusters.AddClusterCreated, error) {
 	params := clusters.NewAddClusterParams().WithBody(addClusterRequest)
 	err := setParamsWithAuthorization(p, w, params)
@@ -345,7 +345,7 @@ func (w *Wrapper) CreateCluster(addClusterRequest *models.V4AddClusterRequest, p
 	return response, nil
 }
 
-// ModifyCluster modifies a cluster using the V2 client.
+// ModifyCluster modifies a cluster using the gsclientgen client.
 func (w *Wrapper) ModifyCluster(clusterID string, body *models.V4ModifyClusterRequest, p *AuxiliaryParams) (*clusters.ModifyClusterOK, error) {
 	params := clusters.NewModifyClusterParams().WithClusterID(clusterID).WithBody(body)
 	err := setParamsWithAuthorization(p, w, params)
@@ -361,7 +361,7 @@ func (w *Wrapper) ModifyCluster(clusterID string, body *models.V4ModifyClusterRe
 	return response, nil
 }
 
-// DeleteCluster deletes a cluster using the V2 client.
+// DeleteCluster deletes a cluster using the gsclientgen client.
 func (w *Wrapper) DeleteCluster(clusterID string, p *AuxiliaryParams) (*clusters.DeleteClusterAccepted, error) {
 	params := clusters.NewDeleteClusterParams().WithClusterID(clusterID)
 	err := setParamsWithAuthorization(p, w, params)
@@ -377,7 +377,7 @@ func (w *Wrapper) DeleteCluster(clusterID string, p *AuxiliaryParams) (*clusters
 	return response, nil
 }
 
-// GetClusters fetches a list of clusters using the V2 client.
+// GetClusters fetches a list of clusters using the gsclientgen client.
 func (w *Wrapper) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, error) {
 	params := clusters.NewGetClustersParams()
 	err := setParamsWithAuthorization(p, w, params)
@@ -494,7 +494,7 @@ func (w *Wrapper) GetDefaultCluster(p *AuxiliaryParams) (string, error) {
 	return "", nil
 }
 
-// CreateKeyPair calls the addKeyPair API operation using the V2 client.
+// CreateKeyPair calls the addKeyPair API operation using the gsclientgen client.
 func (w *Wrapper) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4AddKeyPairRequest, p *AuxiliaryParams) (*key_pairs.AddKeyPairOK, error) {
 	params := key_pairs.NewAddKeyPairParams().WithClusterID(clusterID).WithBody(addKeyPairRequest)
 	err := setParamsWithAuthorization(p, w, params)
@@ -510,7 +510,7 @@ func (w *Wrapper) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4Ad
 	return response, nil
 }
 
-// GetKeyPairs calls the API to fetch key pairs using the V2 client.
+// GetKeyPairs calls the API to fetch key pairs using the gsclientgen client.
 func (w *Wrapper) GetKeyPairs(clusterID string, p *AuxiliaryParams) (*key_pairs.GetKeyPairsOK, error) {
 	params := key_pairs.NewGetKeyPairsParams().WithClusterID(clusterID)
 	err := setParamsWithAuthorization(p, w, params)
@@ -526,7 +526,7 @@ func (w *Wrapper) GetKeyPairs(clusterID string, p *AuxiliaryParams) (*key_pairs.
 	return response, nil
 }
 
-// GetInfo calls the API's getInfo operation using the V2 client.
+// GetInfo calls the API's getInfo operation using the gsclientgen client.
 func (w *Wrapper) GetInfo(p *AuxiliaryParams) (*info.GetInfoOK, error) {
 	params := info.NewGetInfoParams()
 	err := setParamsWithAuthorization(p, w, params)
@@ -542,7 +542,7 @@ func (w *Wrapper) GetInfo(p *AuxiliaryParams) (*info.GetInfoOK, error) {
 	return response, nil
 }
 
-// GetReleases calls the API's getReleases operation using the V2 client.
+// GetReleases calls the API's getReleases operation using the gsclientgen client.
 func (w *Wrapper) GetReleases(p *AuxiliaryParams) (*releases.GetReleasesOK, error) {
 	params := releases.NewGetReleasesParams()
 	err := setParamsWithAuthorization(p, w, params)
@@ -558,7 +558,7 @@ func (w *Wrapper) GetReleases(p *AuxiliaryParams) (*releases.GetReleasesOK, erro
 	return response, nil
 }
 
-// GetOrganizations calls the API's getOrganizations operation using the new client.
+// GetOrganizations calls the API's getOrganizations operation using the gsclientgen client.
 func (w *Wrapper) GetOrganizations(p *AuxiliaryParams) (*organizations.GetOrganizationsOK, error) {
 	params := organizations.NewGetOrganizationsParams()
 	err := setParamsWithAuthorization(p, w, params)
@@ -574,7 +574,7 @@ func (w *Wrapper) GetOrganizations(p *AuxiliaryParams) (*organizations.GetOrgani
 	return response, nil
 }
 
-// GetCredential calls the API's getCredential operation using the V2 client.
+// GetCredential calls the API's getCredential operation using the gsclientgen client.
 func (w *Wrapper) GetCredential(organizationID string, credentialID string, p *AuxiliaryParams) (*organizations.GetCredentialOK, error) {
 	params := organizations.NewGetCredentialParams().WithOrganizationID(organizationID).WithCredentialID(credentialID)
 	err := setParamsWithAuthorization(p, w, params)
@@ -606,7 +606,7 @@ func (w *Wrapper) SetCredentials(organizationID string, addCredentialsRequest *m
 	return response, nil
 }
 
-// GetClusterStatus fetches details on a cluster using the V2 client.
+// GetClusterStatus fetches details on a cluster using the gsclientgen client.
 func (w *Wrapper) GetClusterStatus(clusterID string, p *AuxiliaryParams) (*ClusterStatus, error) {
 	params := clusters.NewGetClusterStatusParams().WithClusterID(clusterID)
 	err := setParamsWithAuthorization(p, w, params)
