@@ -324,7 +324,7 @@ func createNodePool(args Arguments) (*result, error) {
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
-	var r result
+	var r *result
 
 	args, err := collectArguments(positionalArgs)
 	if err == nil {
@@ -349,6 +349,15 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		if subtext != "" {
 			fmt.Println(subtext)
 		}
+		os.Exit(1)
+	}
+
+	if r == nil {
+		// This is unlikely, but hey.
+		fmt.Println(color.RedString("No response returned"))
+		fmt.Println("The API call to create a node pooll apparently has been successful, however")
+		fmt.Println("no useful response has been returned. Please report this problem to the")
+		fmt.Println("Giant Swarm support team. Thank you!")
 		os.Exit(1)
 	}
 
