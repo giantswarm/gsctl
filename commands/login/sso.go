@@ -3,7 +3,6 @@ package login
 import (
 	"fmt"
 	"math/rand"
-	"net/http"
 	"time"
 
 	"github.com/fatih/color"
@@ -48,11 +47,10 @@ func loginSSO(args Arguments) (loginResult, error) {
 			}
 		}
 
+		if clienterror.IsAccessForbiddenError(err) {
+			return loginResult{}, microerror.Mask(errors.AccessForbiddenError)
+		}
 		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return loginResult{}, microerror.Mask(errors.AccessForbiddenError)
-			}
-
 			return loginResult{}, clientErr
 		}
 

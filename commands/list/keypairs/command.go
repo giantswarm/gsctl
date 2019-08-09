@@ -3,7 +3,6 @@ package keypairs
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -207,14 +206,14 @@ func listKeypairs(args Arguments) (listKeypairsResult, error) {
 
 	response, err := clientWrapper.GetKeyPairs(args.clusterID, auxParams)
 	if err != nil {
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode >= http.StatusInternalServerError {
-				return result, microerror.Maskf(errors.InternalServerError, err.Error())
-			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
-				return result, microerror.Mask(errors.ClusterNotFoundError)
-			} else if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-				return result, microerror.Mask(errors.NotAuthorizedError)
-			}
+		if clienterror.IsUnauthorizedError(err) {
+			return result, microerror.Mask(errors.NotAuthorizedError)
+		}
+		if clienterror.IsNotFoundError(err) {
+			return result, microerror.Mask(errors.ClusterNotFoundError)
+		}
+		if clienterror.IsInternalServerError(err) {
+			return result, microerror.Maskf(errors.InternalServerError, err.Error())
 		}
 
 		return result, microerror.Mask(err)

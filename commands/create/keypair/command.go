@@ -3,7 +3,6 @@ package keypair
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"regexp"
 
@@ -245,16 +244,14 @@ func createKeypair(args Arguments) (createKeypairResult, error) {
 	response, err := clientWrapper.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return result, microerror.Mask(errors.AccessForbiddenError)
-			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
-				return result, microerror.Mask(errors.ClusterNotFoundError)
-			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return result, microerror.Mask(errors.AccessForbiddenError)
-			} else if clientErr.HTTPStatusCode == http.StatusBadRequest {
-				return result, microerror.Maskf(errors.BadRequestError, clientErr.ErrorDetails)
-			}
+		if clienterror.IsAccessForbiddenError(err) {
+			return result, microerror.Mask(errors.AccessForbiddenError)
+		}
+		if clienterror.IsBadRequestError(err) {
+			return result, microerror.Maskf(errors.BadRequestError, err.Error())
+		}
+		if clienterror.IsNotFoundError(err) {
+			return result, microerror.Mask(errors.ClusterNotFoundError)
 		}
 
 		return result, microerror.Mask(err)

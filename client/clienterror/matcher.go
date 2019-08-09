@@ -17,6 +17,15 @@ func IsBadRequestError(err error) bool {
 	return false
 }
 
+// IsUnauthorizedError checks whether the error
+// is an HTTP 401 error.
+func IsUnauthorizedError(err error) bool {
+	if clientErr, ok := err.(*APIError); ok {
+		return clientErr.HTTPStatusCode == http.StatusUnauthorized
+	}
+	return false
+}
+
 // IsAccessForbiddenError checks whether the error
 // is an HTTP 403 error.
 func IsAccessForbiddenError(err error) bool {
@@ -31,6 +40,24 @@ func IsAccessForbiddenError(err error) bool {
 func IsNotFoundError(err error) bool {
 	if clientErr, ok := err.(*APIError); ok {
 		return clientErr.HTTPStatusCode == http.StatusNotFound
+	}
+	return false
+}
+
+// IsConflictError checks whether the error
+// is an HTTP 409 error.
+func IsConflictError(err error) bool {
+	if clientErr, ok := err.(*APIError); ok {
+		return clientErr.HTTPStatusCode == http.StatusConflict
+	}
+	return false
+}
+
+// IsInternalServerError checks whether the error
+// is an HTTP 500 error.
+func IsInternalServerError(err error) bool {
+	if clientErr, ok := err.(*APIError); ok {
+		return clientErr.HTTPStatusCode == http.StatusInternalServerError
 	}
 	return false
 }

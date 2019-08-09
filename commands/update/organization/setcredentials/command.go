@@ -2,7 +2,6 @@ package setcredentials
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 
@@ -190,13 +189,13 @@ func verifyPreconditions(args Arguments) error {
 
 	response, err := clientWrapper.GetInfo(auxParams)
 	if err != nil {
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-				return microerror.Mask(errors.NotAuthorizedError)
-			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return microerror.Mask(errors.AccessForbiddenError)
-			}
+		if clienterror.IsUnauthorizedError(err) {
+			return microerror.Mask(errors.NotAuthorizedError)
 		}
+		if clienterror.IsAccessForbiddenError(err) {
+			return microerror.Mask(errors.AccessForbiddenError)
+		}
+
 		return microerror.Mask(err)
 	}
 
@@ -249,13 +248,13 @@ func verifyPreconditions(args Arguments) error {
 	orgsResponse, err := clientWrapper.GetOrganizations(auxParams)
 	{
 		if err != nil {
-			if clientErr, ok := err.(*clienterror.APIError); ok {
-				if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-					return microerror.Mask(errors.NotAuthorizedError)
-				} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-					return microerror.Mask(errors.AccessForbiddenError)
-				}
+			if clienterror.IsUnauthorizedError(err) {
+				return microerror.Mask(errors.NotAuthorizedError)
 			}
+			if clienterror.IsAccessForbiddenError(err) {
+				return microerror.Mask(errors.AccessForbiddenError)
+			}
+
 			return microerror.Mask(err)
 		}
 
@@ -346,11 +345,10 @@ func setOrgCredentials(args Arguments) (*setOrgCredentialsResult, error) {
 	fmt.Printf("response: %#v\n", response)
 	fmt.Printf("err: %#v\n", err)
 	if err != nil {
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode == http.StatusConflict {
-				return nil, microerror.Mask(errors.CredentialsAlreadySetError)
-			}
+		if clienterror.IsConflictError(err) {
+			return nil, microerror.Mask(errors.CredentialsAlreadySetError)
 		}
+
 		return nil, microerror.Mask(err)
 	}
 

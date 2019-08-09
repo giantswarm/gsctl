@@ -3,8 +3,6 @@
 package errors
 
 import (
-	"net/http"
-
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/microerror"
 )
@@ -110,8 +108,7 @@ var ClusterNotFoundError = &microerror.Error{
 // IsClusterNotFoundError asserts ClusterNotFoundError.
 func IsClusterNotFoundError(err error) bool {
 	c := microerror.Cause(err)
-	clientErr, ok := c.(*clienterror.APIError)
-	if ok && clientErr.HTTPStatusCode == http.StatusNotFound {
+	if clienterror.IsNotFoundError(err) {
 		return true
 	}
 	if c == ClusterNotFoundError {
@@ -151,8 +148,7 @@ var InternalServerError = &microerror.Error{
 // IsInternalServerError asserts InternalServerError.
 func IsInternalServerError(err error) bool {
 	c := microerror.Cause(err)
-	clientErr, ok := c.(*clienterror.APIError)
-	if ok && clientErr.HTTPStatusCode == http.StatusInternalServerError {
+	if clienterror.IsInternalServerError(err) {
 		return true
 	}
 	if c == InternalServerError {
@@ -181,8 +177,7 @@ var NotAuthorizedError = &microerror.Error{
 // IsNotAuthorizedError asserts NotAuthorizedError.
 func IsNotAuthorizedError(err error) bool {
 	c := microerror.Cause(err)
-	clientErr, ok := c.(*clienterror.APIError)
-	if ok && clientErr.HTTPStatusCode == http.StatusUnauthorized {
+	if clienterror.IsUnauthorizedError(err) {
 		return true
 	}
 	if c == NotAuthorizedError {
@@ -268,8 +263,7 @@ var OrganizationNotFoundError = &microerror.Error{
 // IsOrganizationNotFoundError asserts OrganizationNotFoundError
 func IsOrganizationNotFoundError(err error) bool {
 	c := microerror.Cause(err)
-	clientErr, ok := c.(*clienterror.APIError)
-	if ok && clientErr.HTTPStatusCode == http.StatusNotFound {
+	if clienterror.IsNotFoundError(err) {
 		return true
 	}
 	if c == OrganizationNotFoundError {
@@ -471,8 +465,7 @@ var AccessForbiddenError = &microerror.Error{
 // IsAccessForbiddenError asserts AccessForbiddenError
 func IsAccessForbiddenError(err error) bool {
 	c := microerror.Cause(err)
-	clientErr, ok := c.(*clienterror.APIError)
-	if ok && clientErr.HTTPStatusCode == http.StatusForbidden {
+	if clienterror.IsAccessForbiddenError(err) {
 		return true
 	}
 	if c == AccessForbiddenError {

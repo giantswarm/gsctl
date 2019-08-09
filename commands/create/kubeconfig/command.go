@@ -4,7 +4,6 @@ package kubeconfig
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"regexp"
 	"runtime"
@@ -382,16 +381,14 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	response, err := clientWrapper.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return result, microerror.Mask(errors.AccessForbiddenError)
-			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
-				return result, microerror.Mask(errors.ClusterNotFoundError)
-			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return result, microerror.Mask(errors.AccessForbiddenError)
-			} else if clientErr.HTTPStatusCode == http.StatusBadRequest {
-				return result, microerror.Maskf(errors.BadRequestError, clientErr.ErrorDetails)
-			}
+		if clienterror.IsAccessForbiddenError(err) {
+			return result, microerror.Mask(errors.AccessForbiddenError)
+		}
+		if clienterror.IsNotFoundError(err) {
+			return result, microerror.Mask(errors.ClusterNotFoundError)
+		}
+		if clienterror.IsBadRequestError(err) {
+			return result, microerror.Maskf(errors.BadRequestError, err.Error())
 		}
 
 		return result, microerror.Mask(err)
