@@ -53,9 +53,12 @@ var (
 	// CmdWorkerStorageSizeGB represents the local storage per worker node in GB per worker as required via flag.
 	CmdWorkerStorageSizeGB float32
 
-	// CmdWorkersMin is the minimum number of workers created for the cluster.
+	// CmdWorkersMin is the minimum number of workers created for the cluster or node pool.
 	CmdWorkersMin int64
 
-	// CmdWorkersMax is the minimum number of workers created for the cluster.
+	// CmdWorkersMax is the minimum number of workers created for the cluster or node pool.
 	CmdWorkersMax int64
+
+	// CmdWorkerAwsEc2InstanceType is the instance type name for nodes in AWS.
+	CmdWorkerAwsEc2InstanceType string
 )

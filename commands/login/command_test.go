@@ -18,7 +18,8 @@ import (
 var regularInfoResponse = []byte(`{
 	"general": {
 		"installation_name": "codename",
-		"provider": "aws"
+		"provider": "aws",
+		"datacenter": "eu-central-foo"
 	},
 	"workers": {
 		"count_per_cluster": {

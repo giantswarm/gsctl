@@ -68,7 +68,7 @@ func collectArguments() Arguments {
 		token:                   token,
 		userProvidedToken:       flags.CmdToken,
 		verbose:                 flags.CmdVerbose,
-		wokerAwsEc2InstanceType: cmdWorkerAwsEc2InstanceType,
+		wokerAwsEc2InstanceType: flags.CmdWorkerAwsEc2InstanceType,
 		wokerAzureVMSize:        cmdWorkerAzureVMSize,
 		workerMemorySizeGB:      flags.CmdWorkerMemorySizeGB,
 		workerNumCPUs:           flags.CmdWorkerNumCPUs,
@@ -147,8 +147,6 @@ Examples:
 	cmdClusterName string
 	// owner organization of the cluster as set via flag on execution
 	cmdOwner string
-	// AWS EC2 instance type to use, provided as a command line flag
-	cmdWorkerAwsEc2InstanceType string
 	// Azure VmSize to use, provided as a command line flag
 	cmdWorkerAzureVMSize string
 	// dry run command line flag
@@ -164,7 +162,7 @@ func init() {
 	Command.Flags().IntVarP(&flags.CmdNumWorkers, "num-workers", "", 0, "Shorthand to set --workers-min and --workers-max to the same value. Can't be used with -f|--file.")
 	Command.Flags().Int64VarP(&flags.CmdWorkersMin, "workers-min", "", 0, "Minimum number of worker nodes. Can't be used with -f|--file.")
 	Command.Flags().Int64VarP(&flags.CmdWorkersMax, "workers-max", "", 0, "Maximum number of worker nodes. Can't be used with -f|--file.")
-	Command.Flags().StringVarP(&cmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
+	Command.Flags().StringVarP(&flags.CmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
 	Command.Flags().StringVarP(&cmdWorkerAzureVMSize, "azure-vm-size", "", "", "VmSize to use for workers (Azure only), e. g. 'Standard_D2s_v3'")
 	Command.Flags().IntVarP(&flags.CmdWorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
 	Command.Flags().Float32VarP(&flags.CmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")

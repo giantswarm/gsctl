@@ -257,6 +257,39 @@ func New(err error) *APIError {
 		}
 	}
 
+	// create node pool
+	if addNodePoolUnauthorizedErr, ok := err.(*nodepools.AddNodePoolUnauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  addNodePoolUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to add a node pool to this cluster.",
+		}
+	}
+	if addNodePoolBadRequestErr, ok := err.(*nodepools.AddNodePoolBadRequest); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusBadRequest,
+			OriginalError:  addNodePoolBadRequestErr,
+			ErrorMessage:   "Bad Request",
+			ErrorDetails:   addNodePoolBadRequestErr.Payload.Message,
+		}
+	}
+	if addNodePoolNotFoundErr, ok := err.(*nodepools.AddNodePoolNotFound); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusNotFound,
+			OriginalError:  addNodePoolNotFoundErr,
+			ErrorMessage:   "Cluster Not Found",
+			ErrorDetails:   "The cluster could not be found.",
+		}
+	}
+	if addNodePoolDefaultErr, ok := err.(*nodepools.AddNodePoolDefault); ok {
+		return &APIError{
+			HTTPStatusCode: addNodePoolDefaultErr.Code(),
+			OriginalError:  addNodePoolDefaultErr,
+			ErrorMessage:   addNodePoolDefaultErr.Error(),
+		}
+	}
+
 	// get node pool
 	if getNodePoolUnauthorizedErr, ok := err.(*nodepools.GetNodePoolUnauthorized); ok {
 		return &APIError{
