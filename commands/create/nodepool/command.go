@@ -303,16 +303,14 @@ func createNodePool(args Arguments) (*result, error) {
 
 	if err != nil {
 		// return specific error types for the cases we care about most.
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clienterror.IsAccessForbiddenError(clientErr) {
-				return nil, microerror.Mask(errors.AccessForbiddenError)
-			}
-			if clienterror.IsNotFoundError(clientErr) {
-				return nil, microerror.Mask(errors.ClusterNotFoundError)
-			}
-			if clienterror.IsBadRequestError(clientErr) {
-				return nil, microerror.Maskf(errors.BadRequestError, clientErr.ErrorDetails)
-			}
+		if clienterror.IsAccessForbiddenError(err) {
+			return nil, microerror.Mask(errors.AccessForbiddenError)
+		}
+		if clienterror.IsNotFoundError(err) {
+			return nil, microerror.Mask(errors.ClusterNotFoundError)
+		}
+		if clienterror.IsBadRequestError(err) {
+			return nil, microerror.Maskf(errors.BadRequestError, err.Error())
 		}
 
 		return r, microerror.Mask(err)

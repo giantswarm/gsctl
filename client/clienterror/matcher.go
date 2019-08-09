@@ -10,18 +10,27 @@ func IsMalformedResponseError(err error) bool {
 
 // IsBadRequestError checks whether the error
 // is an HTTP 400 error.
-func IsBadRequestError(err *APIError) bool {
-	return err.HTTPStatusCode == http.StatusBadRequest
+func IsBadRequestError(err error) bool {
+	if clientErr, ok := err.(*APIError); ok {
+		return clientErr.HTTPStatusCode == http.StatusBadRequest
+	}
+	return false
 }
 
 // IsAccessForbiddenError checks whether the error
 // is an HTTP 403 error.
-func IsAccessForbiddenError(err *APIError) bool {
-	return err.HTTPStatusCode == http.StatusForbidden
+func IsAccessForbiddenError(err error) bool {
+	if clientErr, ok := err.(*APIError); ok {
+		return clientErr.HTTPStatusCode == http.StatusForbidden
+	}
+	return false
 }
 
 // IsNotFoundError checks whether the error
 // is an HTTP 404 error.
-func IsNotFoundError(err *APIError) bool {
-	return err.HTTPStatusCode == http.StatusNotFound
+func IsNotFoundError(err error) bool {
+	if clientErr, ok := err.(*APIError); ok {
+		return clientErr.HTTPStatusCode == http.StatusNotFound
+	}
+	return false
 }
