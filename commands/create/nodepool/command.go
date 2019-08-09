@@ -3,7 +3,6 @@ package nodepool
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 
@@ -261,8 +260,8 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 
 // createNodePool is the business function sending our creation request to the API
 // and returning either a proper result or an error.
-func createNodePool(args Arguments) (result, error) {
-	r := result{}
+func createNodePool(args Arguments) (*result, error) {
+	r := &result{}
 
 	requestBody := &models.V5AddNodePoolRequest{
 		Name: args.Name,
@@ -290,11 +289,6 @@ func createNodePool(args Arguments) (result, error) {
 		}
 	}
 
-	if args.Verbose {
-		fmt.Println(color.WhiteString("Submitting node pool creation reqwuest with the following details:"))
-		fmt.Println(color.WhiteString("%+v\n", requestBody))
-	}
-
 	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.AuthToken)
 	if err != nil {
 		return r, microerror.Mask(err)
@@ -306,16 +300,16 @@ func createNodePool(args Arguments) (result, error) {
 	response, err := clientWrapper.CreateNodePool(args.ClusterID, requestBody, auxParams)
 
 	if err != nil {
-		// create specific error types for cases we care about
+		// return specific error types for the cases we care about most.
 		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return r, microerror.Mask(errors.AccessForbiddenError)
-			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
-				return r, microerror.Mask(errors.ClusterNotFoundError)
-			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return r, microerror.Mask(errors.AccessForbiddenError)
-			} else if clientErr.HTTPStatusCode == http.StatusBadRequest {
-				return r, microerror.Maskf(errors.BadRequestError, clientErr.ErrorDetails)
+			if clienterror.IsAccessForbiddenError(clientErr) {
+				return nil, microerror.Mask(errors.AccessForbiddenError)
+			}
+			if clienterror.IsNotFoundError(clientErr) {
+				return nil, microerror.Mask(errors.ClusterNotFoundError)
+			}
+			if clienterror.IsBadRequestError(clientErr) {
+				return nil, microerror.Maskf(errors.BadRequestError, clientErr.ErrorDetails)
 			}
 		}
 
