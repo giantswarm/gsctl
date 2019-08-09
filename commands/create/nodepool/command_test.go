@@ -349,3 +349,89 @@ func TestVerifyPreconditions(t *testing.T) {
 		})
 	}
 }
+
+// TestExecuteWithError tests the error handling.
+func TestExecuteWithError(t *testing.T) {
+	var testCases = []struct {
+		args               Arguments
+		responseStatusCode int
+		responseBody       string
+		errorMatcher       func(error) bool
+	}{
+		{
+			Arguments{
+				AuthToken:   "token",
+				APIEndpoint: "https://mock-url",
+				ClusterID:   "cluster-id",
+			},
+			400,
+			`{"code": "INVALID_INPUT", "message": "Here is some error message"}`,
+			errors.IsBadRequestError,
+		},
+		{
+			Arguments{
+				AuthToken:   "token",
+				APIEndpoint: "https://mock-url",
+				ClusterID:   "cluster-id",
+			},
+			403,
+			`{"code": "FORBIDDEN", "message": "Here is some error message"}`,
+			errors.IsAccessForbiddenError,
+		},
+		{
+			Arguments{
+				AuthToken:   "token",
+				APIEndpoint: "https://mock-url",
+				ClusterID:   "cluster-id",
+			},
+			404,
+			`{"code": "RESOURCE_NOT_FOUND", "message": "Here is some error message"}`,
+			errors.IsClusterNotFoundError,
+		},
+		{
+			Arguments{
+				AuthToken:   "token",
+				APIEndpoint: "https://mock-url",
+				ClusterID:   "cluster-id",
+			},
+			500,
+			`{"code": "UNKNOWN_ERROR", "message": "Here is some error message"}`,
+			errors.IsInternalServerError,
+		},
+	}
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if r.Method == "POST" {
+					switch uri := r.URL.Path; uri {
+					case "/v5/clusters/cluster-id/nodepools/":
+						w.WriteHeader(tc.responseStatusCode)
+						w.Write([]byte(tc.responseBody))
+					default:
+						t.Errorf("Unsupported route %s called in mock server", r.URL.Path)
+						w.WriteHeader(http.StatusNotFound)
+						w.Write([]byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Status for this cluster is not yet available."}`))
+					}
+				}
+			}))
+			defer mockServer.Close()
+
+			tc.args.APIEndpoint = mockServer.URL
+
+			_, err := createNodePool(tc.args)
+			if err == nil {
+				t.Errorf("Case %d - Expected error, got nil", i)
+			} else if !tc.errorMatcher(err) {
+				t.Errorf("Case %d - Error did not match expectec type. Got '%s'", i, err)
+			}
+		})
+	}
+}
