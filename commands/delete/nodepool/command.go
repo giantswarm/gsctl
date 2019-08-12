@@ -75,7 +75,7 @@ func init() {
 // initFlags initializes flags in a re-usable way, so we can call it from multiple tests.
 func initFlags() {
 	Command.ResetFlags()
-	Command.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
+	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
 }
 
 // Arguments defines the arguments this command can take into consideration.
@@ -92,9 +92,8 @@ type Arguments struct {
 // collectArguments populates an arguments struct with values both from command flags,
 // from config, and potentially from built-in defaults.
 func collectArguments(positionalArgs []string) Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	//scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
 
 	parts := strings.Split(positionalArgs[0], "/")
 
@@ -102,10 +101,10 @@ func collectArguments(positionalArgs []string) Arguments {
 		APIEndpoint:       endpoint,
 		AuthToken:         token,
 		ClusterID:         parts[0],
-		Force:             flags.CmdForce,
+		Force:             flags.Force,
 		NodePoolID:        parts[1],
-		UserProvidedToken: flags.CmdToken,
-		Verbose:           flags.CmdVerbose,
+		UserProvidedToken: flags.Token,
+		Verbose:           flags.Verbose,
 	}
 }
 
