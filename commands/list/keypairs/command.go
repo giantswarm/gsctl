@@ -54,16 +54,16 @@ type Arguments struct {
 // collectArguments returns a new Arguments struct
 // based on global variables (= command line options from cobra).
 func collectArguments() Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	return Arguments{
 		apiEndpoint:       endpoint,
-		clusterID:         flags.CmdClusterID,
-		full:              flags.CmdFull,
+		clusterID:         flags.ClusterID,
+		full:              flags.Full,
 		token:             token,
-		userProvidedToken: flags.CmdToken,
+		userProvidedToken: flags.Token,
 		scheme:            scheme,
 	}
 }
@@ -74,8 +74,8 @@ type listKeypairsResult struct {
 }
 
 func init() {
-	Command.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster to list key pairs for")
-	Command.Flags().BoolVarP(&flags.CmdFull, "full", "", false, "Enables output of full, untruncated values")
+	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "ID of the cluster to list key pairs for")
+	Command.Flags().BoolVarP(&flags.Full, "full", "", false, "Enables output of full, untruncated values")
 
 	Command.MarkFlagRequired("cluster")
 }
@@ -112,7 +112,7 @@ func listKeypairsValidate(args *Arguments) error {
 		// use default cluster if possible
 		clusterID, _ := clientWrapper.GetDefaultCluster(nil)
 		if clusterID != "" {
-			flags.CmdClusterID = clusterID
+			flags.ClusterID = clusterID
 		} else {
 			return microerror.Mask(errors.ClusterIDMissingError)
 		}

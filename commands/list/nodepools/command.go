@@ -78,16 +78,16 @@ type resultRow struct {
 
 // collectArguments creates arguments based on command line flags and config.
 func collectArguments(cmdLineArgs []string) Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	return Arguments{
 		apiEndpoint:       endpoint,
 		authToken:         token,
 		clusterID:         cmdLineArgs[0],
 		scheme:            scheme,
-		userProvidedToken: flags.CmdToken,
+		userProvidedToken: flags.Token,
 	}
 }
 

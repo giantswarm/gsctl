@@ -110,9 +110,9 @@ func initFlags() {
 	Command.Flags().StringVarP(&cmdName, "name", "n", "", "name or purpose description of the node pool")
 	Command.Flags().IntVarP(&cmdAvailabilityZonesNum, "num-availability-zones", "", 0, "Number of availability zones to use. Default is 1.")
 	Command.Flags().StringSliceVarP(&cmdAvailabilityZones, "availability-zones", "", nil, "List of availability zones to use, instead of setting a number. Use comma to separate values.")
-	Command.Flags().StringVarP(&flags.CmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers, e. g. 'm5.2xlarge'")
-	Command.Flags().Int64VarP(&flags.CmdWorkersMin, "nodes-min", "", 0, "Minimum number of worker nodes for the node pool.")
-	Command.Flags().Int64VarP(&flags.CmdWorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool.")
+	Command.Flags().StringVarP(&flags.WorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers, e. g. 'm5.2xlarge'")
+	Command.Flags().Int64VarP(&flags.WorkersMin, "nodes-min", "", 0, "Minimum number of worker nodes for the node pool.")
+	Command.Flags().Int64VarP(&flags.WorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool.")
 }
 
 // Arguments defines the arguments this command can take into consideration.
@@ -140,24 +140,24 @@ type result struct {
 // collectArguments populates an arguments struct with values both from command flags,
 // from config, and potentially from built-in defaults.
 func collectArguments(positionalArgs []string) (Arguments, error) {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	var err error
 
 	zones := cmdAvailabilityZones
 	if zones != nil && len(zones) > 0 {
-		zones, err = expandZones(zones, endpoint, flags.CmdToken)
+		zones, err = expandZones(zones, endpoint, flags.Token)
 		if err != nil {
 			return Arguments{}, microerror.Mask(err)
 		}
 	}
 
-	if flags.CmdWorkersMin > 0 && flags.CmdWorkersMax == 0 {
-		flags.CmdWorkersMax = flags.CmdWorkersMin
-	} else if flags.CmdWorkersMax > 0 && flags.CmdWorkersMin == 0 {
-		flags.CmdWorkersMin = flags.CmdWorkersMax
+	if flags.WorkersMin > 0 && flags.WorkersMax == 0 {
+		flags.WorkersMax = flags.WorkersMin
+	} else if flags.WorkersMax > 0 && flags.WorkersMin == 0 {
+		flags.WorkersMin = flags.WorkersMax
 	}
 
 	return Arguments{
@@ -166,13 +166,13 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		AvailabilityZonesList: zones,
 		AvailabilityZonesNum:  cmdAvailabilityZonesNum,
 		ClusterID:             positionalArgs[0],
-		InstanceType:          flags.CmdWorkerAwsEc2InstanceType,
+		InstanceType:          flags.WorkerAwsEc2InstanceType,
 		Name:                  cmdName,
-		ScalingMax:            flags.CmdWorkersMax,
-		ScalingMin:            flags.CmdWorkersMin,
+		ScalingMax:            flags.WorkersMax,
+		ScalingMin:            flags.WorkersMin,
 		Scheme:                scheme,
-		UserProvidedToken:     flags.CmdToken,
-		Verbose:               flags.CmdVerbose,
+		UserProvidedToken:     flags.Token,
+		Verbose:               flags.Verbose,
 	}, nil
 }
 

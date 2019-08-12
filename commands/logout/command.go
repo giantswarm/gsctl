@@ -44,18 +44,18 @@ type Arguments struct {
 }
 
 func collectArguments() Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
 
 	return Arguments{
 		apiEndpoint:       endpoint,
 		token:             token,
-		userProvidedToken: flags.CmdToken,
+		userProvidedToken: flags.Token,
 	}
 }
 
 func printValidation(cmd *cobra.Command, args []string) {
-	if config.Config.Token == "" && flags.CmdToken == "" {
+	if config.Config.Token == "" && flags.Token == "" {
 		fmt.Println("You weren't logged in here, but better be safe than sorry.")
 		os.Exit(1)
 	}
