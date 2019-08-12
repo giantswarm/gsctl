@@ -333,6 +333,31 @@ func New(err error) *APIError {
 		}
 	}
 
+	// modify node pool
+	if modifyNodePoolsUnauthorizedErr, ok := err.(*nodepools.ModifyNodePoolUnauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  modifyNodePoolsUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to modify this node pool.",
+		}
+	}
+	if modifyNodePoolsNotFoundErr, ok := err.(*nodepools.ModifyNodePoolNotFound); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusNotFound,
+			OriginalError:  modifyNodePoolsNotFoundErr,
+			ErrorMessage:   "Not found",
+			ErrorDetails:   "The cluster or node pool was not found or you don't have access to it.",
+		}
+	}
+	if modifyNodePoolsDefaultErr, ok := err.(*nodepools.ModifyNodePoolDefault); ok {
+		return &APIError{
+			HTTPStatusCode: modifyNodePoolsDefaultErr.Code(),
+			OriginalError:  modifyNodePoolsDefaultErr,
+			ErrorMessage:   modifyNodePoolsDefaultErr.Error(),
+		}
+	}
+
 	// delete node pool
 	if deleteNodePoolsUnauthorizedErr, ok := err.(*nodepools.DeleteNodePoolUnauthorized); ok {
 		return &APIError{
