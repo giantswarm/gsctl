@@ -12,8 +12,8 @@ import (
 	"github.com/spf13/afero"
 )
 
-// TestCollectArgs tests whether collectArguments produces the expected results.
-func TestCollectArgs(t *testing.T) {
+// Test_collectArguments tests whether collectArguments produces the expected results.
+func Test_collectArguments(t *testing.T) {
 	var testCases = []struct {
 		// The positional arguments we pass.
 		positionalArguments []string
@@ -79,8 +79,8 @@ selected_endpoint: https://foo`
 	}
 }
 
-// TestVerifyPreconditions tests cases where validating preconditions fails.
-func TestVerifyPreconditions(t *testing.T) {
+// Test_verifyPreconditions tests cases where validating preconditions fails.
+func Test_verifyPreconditions(t *testing.T) {
 	var testCases = []struct {
 		args         Arguments
 		errorMatcher func(error) bool
