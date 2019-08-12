@@ -333,6 +333,31 @@ func New(err error) *APIError {
 		}
 	}
 
+	// delete node pool
+	if deleteNodePoolsUnauthorizedErr, ok := err.(*nodepools.DeleteNodePoolUnauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  deleteNodePoolsUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to delete this node pool.",
+		}
+	}
+	if deleteNodePoolsNotFoundErr, ok := err.(*nodepools.DeleteNodePoolNotFound); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusNotFound,
+			OriginalError:  deleteNodePoolsNotFoundErr,
+			ErrorMessage:   "Not found",
+			ErrorDetails:   "The cluster or node pool was not found or you don't have access to it.",
+		}
+	}
+	if deleteNodePoolsDefaultErr, ok := err.(*nodepools.DeleteNodePoolDefault); ok {
+		return &APIError{
+			HTTPStatusCode: deleteNodePoolsDefaultErr.Code(),
+			OriginalError:  deleteNodePoolsDefaultErr,
+			ErrorMessage:   deleteNodePoolsDefaultErr.Error(),
+		}
+	}
+
 	// create key pair
 	if createKeyPairUnauthorizedErr, ok := err.(*key_pairs.AddKeyPairUnauthorized); ok {
 		return &APIError{

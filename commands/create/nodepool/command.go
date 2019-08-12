@@ -1,4 +1,4 @@
-// Package nodepool implements the "show nodepool" command.
+// Package nodepool implements the "create nodepool" command.
 package nodepool
 
 import (
@@ -9,12 +9,13 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/microerror"
+	"github.com/spf13/cobra"
+
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
-	"github.com/giantswarm/microerror"
-	"github.com/spf13/cobra"
 )
 
 var (
