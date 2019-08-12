@@ -3,7 +3,6 @@ package clusters
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -116,13 +115,11 @@ func clustersTable(args Arguments) (string, error) {
 
 	response, err := clientWrapper.GetClusters(auxParams)
 	if err != nil {
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			switch clientErr.HTTPStatusCode {
-			case http.StatusUnauthorized:
-				return "", microerror.Mask(errors.NotAuthorizedError)
-			case http.StatusForbidden:
-				return "", microerror.Mask(errors.AccessForbiddenError)
-			}
+		if clienterror.IsUnauthorizedError(err) {
+			return "", microerror.Mask(errors.NotAuthorizedError)
+		}
+		if clienterror.IsAccessForbiddenError(err) {
+			return "", microerror.Mask(errors.AccessForbiddenError)
 		}
 
 		return "", microerror.Mask(err)

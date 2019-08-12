@@ -361,6 +361,7 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	// get cluster details
 	clusterDetailsResponse, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
 	if err != nil {
+		// TODO: return properly typed errors
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			return result, microerror.Maskf(clientErr,
 				fmt.Sprintf("HTTP Status: %d, %s", clientErr.HTTPStatusCode, clientErr.ErrorMessage))

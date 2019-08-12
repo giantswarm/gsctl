@@ -50,6 +50,7 @@ func loginSSO(args Arguments) (loginResult, error) {
 		if clienterror.IsAccessForbiddenError(err) {
 			return loginResult{}, microerror.Mask(errors.AccessForbiddenError)
 		}
+		// Return any other API errors raw, so we can learn what else can happen.
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			return loginResult{}, clientErr
 		}
