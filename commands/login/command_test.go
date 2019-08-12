@@ -110,13 +110,9 @@ func Test_LoginInvalidPassword(t *testing.T) {
 	}
 
 	_, err = login(args)
-	convertedError, ok := err.(*clienterror.APIError)
-	if !ok {
-		t.Error("Error type assertion to *clienterror.APIError failed")
-	}
 
-	if convertedError.HTTPStatusCode != http.StatusUnauthorized {
-		t.Errorf("Expected error 401, got %#v", convertedError.HTTPStatusCode)
+	if !clienterror.IsUnauthorizedError(err) {
+		t.Errorf("Expected error 401, got %#v", err)
 	}
 }
 
@@ -205,7 +201,7 @@ func Test_LoginInactiveAccount(t *testing.T) {
 		t.Error("Error type assertion to *clienterror.APIError failed")
 	}
 
-	if convertedError.HTTPStatusCode != http.StatusUnauthorized {
+	if !clienterror.IsUnauthorizedError(err) {
 		t.Errorf("Expected error 401, got %#v", convertedError.HTTPStatusCode)
 	}
 

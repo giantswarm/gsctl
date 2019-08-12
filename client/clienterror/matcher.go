@@ -1,6 +1,10 @@
 package clienterror
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/giantswarm/microerror"
+)
 
 // IsMalformedResponseError checks whether the error is
 // "Malformed response", which can mean several things.
@@ -14,6 +18,21 @@ func IsBadRequestError(err error) bool {
 	if clientErr, ok := err.(*APIError); ok {
 		return clientErr.HTTPStatusCode == http.StatusBadRequest
 	}
+	if apiErr, apiErrOK := microerror.Cause(err).(*APIError); apiErrOK {
+		return apiErr.HTTPStatusCode == http.StatusBadRequest
+	}
+	return false
+}
+
+// IsUnauthorizedError checks whether the error
+// is an HTTP 401 error.
+func IsUnauthorizedError(err error) bool {
+	if clientErr, ok := err.(*APIError); ok {
+		return clientErr.HTTPStatusCode == http.StatusUnauthorized
+	}
+	if apiErr, apiErrOK := microerror.Cause(err).(*APIError); apiErrOK {
+		return apiErr.HTTPStatusCode == http.StatusUnauthorized
+	}
 	return false
 }
 
@@ -23,6 +42,9 @@ func IsAccessForbiddenError(err error) bool {
 	if clientErr, ok := err.(*APIError); ok {
 		return clientErr.HTTPStatusCode == http.StatusForbidden
 	}
+	if apiErr, apiErrOK := microerror.Cause(err).(*APIError); apiErrOK {
+		return apiErr.HTTPStatusCode == http.StatusForbidden
+	}
 	return false
 }
 
@@ -31,6 +53,33 @@ func IsAccessForbiddenError(err error) bool {
 func IsNotFoundError(err error) bool {
 	if clientErr, ok := err.(*APIError); ok {
 		return clientErr.HTTPStatusCode == http.StatusNotFound
+	}
+	if apiErr, apiErrOK := microerror.Cause(err).(*APIError); apiErrOK {
+		return apiErr.HTTPStatusCode == http.StatusNotFound
+	}
+	return false
+}
+
+// IsConflictError checks whether the error
+// is an HTTP 409 error.
+func IsConflictError(err error) bool {
+	if clientErr, ok := err.(*APIError); ok {
+		return clientErr.HTTPStatusCode == http.StatusConflict
+	}
+	if apiErr, apiErrOK := microerror.Cause(err).(*APIError); apiErrOK {
+		return apiErr.HTTPStatusCode == http.StatusConflict
+	}
+	return false
+}
+
+// IsInternalServerError checks whether the error
+// is an HTTP 500 error.
+func IsInternalServerError(err error) bool {
+	if clientErr, ok := err.(*APIError); ok {
+		return clientErr.HTTPStatusCode == http.StatusInternalServerError
+	}
+	if apiErr, apiErrOK := microerror.Cause(err).(*APIError); apiErrOK {
+		return apiErr.HTTPStatusCode == http.StatusInternalServerError
 	}
 	return false
 }

@@ -3,7 +3,6 @@ package release
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/fatih/color"
@@ -106,12 +105,11 @@ func getReleaseDetails(args Arguments) (*models.V4ReleaseListItem, error) {
 	response, err := clientWrapper.GetReleases(auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode >= http.StatusInternalServerError {
-				return nil, microerror.Maskf(errors.InternalServerError, err.Error())
-			} else if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-				return nil, microerror.Mask(errors.NotAuthorizedError)
-			}
+		if clienterror.IsInternalServerError(err) {
+			return nil, microerror.Maskf(errors.InternalServerError, err.Error())
+		}
+		if clienterror.IsUnauthorizedError(err) {
+			return nil, microerror.Mask(errors.NotAuthorizedError)
 		}
 
 		return nil, microerror.Mask(err)

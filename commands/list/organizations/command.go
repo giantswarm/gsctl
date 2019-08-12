@@ -3,7 +3,6 @@ package organizations
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"sort"
 
@@ -112,12 +111,11 @@ func orgsTable(args Arguments) (string, error) {
 
 	response, err := clientWrapper.GetOrganizations(auxParams)
 	if err != nil {
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-				return "", microerror.Mask(errors.NotAuthorizedError)
-			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return "", microerror.Mask(errors.AccessForbiddenError)
-			}
+		if clienterror.IsUnauthorizedError(err) {
+			return "", microerror.Mask(errors.NotAuthorizedError)
+		}
+		if clienterror.IsAccessForbiddenError(err) {
+			return "", microerror.Mask(errors.AccessForbiddenError)
 		}
 
 		return "", microerror.Mask(err)

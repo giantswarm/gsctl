@@ -3,7 +3,6 @@ package cluster
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/fatih/color"
@@ -214,12 +213,11 @@ func deleteCluster(args Arguments) (bool, error) {
 	_, err = clientWrapper.DeleteCluster(clusterID, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return false, microerror.Mask(errors.AccessForbiddenError)
-			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
-				return false, microerror.Mask(errors.ClusterNotFoundError)
-			}
+		if clienterror.IsAccessForbiddenError(err) {
+			return false, microerror.Mask(errors.AccessForbiddenError)
+		}
+		if clienterror.IsNotFoundError(err) {
+			return false, microerror.Mask(errors.ClusterNotFoundError)
 		}
 
 		return false, microerror.Maskf(errors.CouldNotDeleteClusterError, err.Error())

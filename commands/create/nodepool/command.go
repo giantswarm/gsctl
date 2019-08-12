@@ -312,6 +312,9 @@ func createNodePool(args Arguments) (*result, error) {
 		if clienterror.IsBadRequestError(err) {
 			return nil, microerror.Maskf(errors.BadRequestError, err.Error())
 		}
+		if clienterror.IsInternalServerError(err) {
+			return nil, microerror.Maskf(errors.InternalServerError, err.Error())
+		}
 
 		return r, microerror.Mask(err)
 	}

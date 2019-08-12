@@ -3,7 +3,6 @@ package logout
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/fatih/color"
@@ -71,11 +70,9 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 
 		// Special treatment: We ignore the fact that the user was not logged in
 		// and act as if she just logged out.
-		if clientError, ok := err.(*clienterror.APIError); ok {
-			if clientError.HTTPStatusCode == http.StatusUnauthorized {
-				fmt.Printf("You have logged out from endpoint %s.\n", color.CyanString(logoutArgs.apiEndpoint))
-				os.Exit(0)
-			}
+		if clienterror.IsUnauthorizedError(err) {
+			fmt.Printf("You have logged out from endpoint %s.\n", color.CyanString(logoutArgs.apiEndpoint))
+			os.Exit(0)
 		}
 
 		errors.HandleCommonErrors(err)
