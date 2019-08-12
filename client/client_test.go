@@ -43,9 +43,9 @@ func TestRedactPasswordArgs(t *testing.T) {
 	}
 }
 
-// TestV2NoConnection checks out how the latest client deals with a missing
+// TestNoConnection checks out how the latest client deals with a missing
 // server connection.
-func TestV2NoConnection(t *testing.T) {
+func TestNoConnection(t *testing.T) {
 	// a non-existing endpoint (must use an IP, not a hostname)
 	config := &Configuration{
 		Endpoint: "http://127.0.0.1:55555",
@@ -85,9 +85,9 @@ func TestV2NoConnection(t *testing.T) {
 	}
 }
 
-// TestV2HostnameUnresolvable checks out how the latest client deals with a
+// TestHostnameUnresolvable checks out how the latest client deals with a
 // non-resolvable host name.
-func TestV2HostnameUnresolvable(t *testing.T) { // Our test server.
+func TestHostnameUnresolvable(t *testing.T) { // Our test server.
 
 	// a non-existing host name
 	config := &Configuration{
@@ -128,8 +128,8 @@ func TestV2HostnameUnresolvable(t *testing.T) { // Our test server.
 	}
 }
 
-// TestV2Timeout tests if the latest client handles timeouts as expected.
-func TestV2Timeout(t *testing.T) {
+// TestTimeout tests if the latest client handles timeouts as expected.
+func TestTimeout(t *testing.T) {
 	// Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// enforce a timeout longer than the client's
@@ -161,8 +161,8 @@ func TestV2Timeout(t *testing.T) {
 	}
 }
 
-// TestV2UserAgent tests whether our user-agent header appears in requests.
-func TestV2UserAgent(t *testing.T) {
+// TestUserAgent tests whether our user-agent header appears in requests.
+func TestUserAgent(t *testing.T) {
 	clientConfig := &Configuration{
 		UserAgent: "my own user agent/1.0",
 	}
@@ -191,9 +191,9 @@ func TestV2UserAgent(t *testing.T) {
 	gsClient.CreateAuthToken("email", "password", nil)
 }
 
-// TestV2Forbidden tests out how the latest client gives access to
+// TestForbidden tests out how the latest client gives access to
 // HTTP error details for a 403 error.
-func TestV2Forbidden(t *testing.T) { // Our test server.
+func TestForbidden(t *testing.T) { // Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusForbidden)
@@ -224,9 +224,9 @@ func TestV2Forbidden(t *testing.T) { // Our test server.
 	}
 }
 
-// TestV2Unauthorized tests out how the latest client gives access to
+// TestUnauthorized tests out how the latest client gives access to
 // HTTP error details for a 401 error.
-func TestV2Unauthorized(t *testing.T) { // Our test server.
+func TestUnauthorized(t *testing.T) { // Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -256,9 +256,9 @@ func TestV2Unauthorized(t *testing.T) { // Our test server.
 	}
 }
 
-// TestV2AuxiliaryParams checks whether the client carries through our auxiliary
+// TestAuxiliaryParams checks whether the client carries through our auxiliary
 // parameters.
-func TestV2AuxiliaryParams(t *testing.T) { // Our test server.
+func TestAuxiliaryParams(t *testing.T) { // Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Header.Get("X-Request-ID") != "request-id" {
@@ -294,9 +294,9 @@ func TestV2AuxiliaryParams(t *testing.T) { // Our test server.
 	gsClient.CreateAuthToken("foo", "bar", ap)
 }
 
-// TestV2CreateAuthToken checks out how creating an auth token works in
+// TestCreateAuthToken checks out how creating an auth token works in
 // our new client.
-func TestV2CreateAuthToken(t *testing.T) { // Our test server.
+func TestCreateAuthToken(t *testing.T) { // Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -323,9 +323,9 @@ func TestV2CreateAuthToken(t *testing.T) { // Our test server.
 	}
 }
 
-// TestV2DeleteAuthToken checks out how to issue an authenticted request
+// TestDeleteAuthToken checks out how to issue an authenticted request
 // using the new client.
-func TestV2DeleteAuthToken(t *testing.T) { // Our test server.
+func TestDeleteAuthToken(t *testing.T) { // Our test server.
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "giantswarm test-token" {
 			t.Error("Bad authorization header:", r.Header.Get("Authorization"))
@@ -474,9 +474,9 @@ selected_endpoint: ` + mockServer.URL
 		t.Error(err)
 	}
 
-	clientV2, err := NewWithConfig(mockServer.URL, "")
+	clientWrapper, err := NewWithConfig(mockServer.URL, "")
 
-	clusterID, err := clientV2.GetDefaultCluster(nil)
+	clusterID, err := clientWrapper.GetDefaultCluster(nil)
 	if err != nil {
 		t.Error(err)
 	}

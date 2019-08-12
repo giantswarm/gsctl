@@ -10,14 +10,14 @@ import (
 	"github.com/giantswarm/gsctl/client/clienterror"
 )
 
-// clientV2NotInitializedError is used when the new client hasn't been initialized.
-var clientV2NotInitializedError = &microerror.Error{
-	Kind: "clientV2NotInitializedError",
+// clientNotInitializedError is used when the new client hasn't been initialized.
+var clientNotInitializedError = &microerror.Error{
+	Kind: "clientNotInitializedError",
 }
 
-// IsClientV2NotInitializedError asserts clientV2NotInitializedError.
-func IsClientV2NotInitializedError(err error) bool {
-	return microerror.Cause(err) == clientV2NotInitializedError
+// IsClientNotInitializedError asserts clientNotInitializedError.
+func IsClientNotInitializedError(err error) bool {
+	return microerror.Cause(err) == clientNotInitializedError
 }
 
 // endpointInvalidError is used if an endpoint string is not a valid URL.
@@ -59,7 +59,6 @@ func HandleErrors(err error) {
 	var headline = ""
 	var subtext = ""
 
-	// V2 client error handling
 	if convertedErr, ok := microerror.Cause(err).(*clienterror.APIError); ok {
 		headline = convertedErr.ErrorMessage
 		subtext = convertedErr.ErrorDetails
