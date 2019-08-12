@@ -50,9 +50,9 @@ type Arguments struct {
 }
 
 func collectArguments() Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	return Arguments{
 		apiEndpoint:             endpoint,
@@ -61,20 +61,20 @@ func collectArguments() Arguments {
 		dryRun:                  cmdDryRun,
 		inputYAMLFile:           cmdInputYAMLFile,
 		fileSystem:              config.FileSystem,
-		numWorkers:              flags.CmdNumWorkers,
+		numWorkers:              flags.NumWorkers,
 		owner:                   cmdOwner,
-		releaseVersion:          flags.CmdRelease,
+		releaseVersion:          flags.Release,
 		scheme:                  scheme,
 		token:                   token,
-		userProvidedToken:       flags.CmdToken,
-		verbose:                 flags.CmdVerbose,
-		wokerAwsEc2InstanceType: flags.CmdWorkerAwsEc2InstanceType,
+		userProvidedToken:       flags.Token,
+		verbose:                 flags.Verbose,
+		wokerAwsEc2InstanceType: flags.WorkerAwsEc2InstanceType,
 		wokerAzureVMSize:        cmdWorkerAzureVMSize,
-		workerMemorySizeGB:      flags.CmdWorkerMemorySizeGB,
-		workerNumCPUs:           flags.CmdWorkerNumCPUs,
-		workersMax:              flags.CmdWorkersMax,
-		workersMin:              flags.CmdWorkersMin,
-		workerStorageSizeGB:     flags.CmdWorkerStorageSizeGB,
+		workerMemorySizeGB:      flags.WorkerMemorySizeGB,
+		workerNumCPUs:           flags.WorkerNumCPUs,
+		workersMax:              flags.WorkersMax,
+		workersMin:              flags.WorkersMin,
+		workerStorageSizeGB:     flags.WorkerStorageSizeGB,
 	}
 }
 
@@ -158,15 +158,15 @@ func init() {
 	Command.Flags().StringVarP(&cmdInputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file")
 	Command.Flags().StringVarP(&cmdClusterName, "name", "n", "", "Cluster name")
 	Command.Flags().StringVarP(&cmdOwner, "owner", "o", "", "Organization to own the cluster")
-	Command.Flags().StringVarP(&flags.CmdRelease, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
-	Command.Flags().IntVarP(&flags.CmdNumWorkers, "num-workers", "", 0, "Shorthand to set --workers-min and --workers-max to the same value. Can't be used with -f|--file.")
-	Command.Flags().Int64VarP(&flags.CmdWorkersMin, "workers-min", "", 0, "Minimum number of worker nodes. Can't be used with -f|--file.")
-	Command.Flags().Int64VarP(&flags.CmdWorkersMax, "workers-max", "", 0, "Maximum number of worker nodes. Can't be used with -f|--file.")
-	Command.Flags().StringVarP(&flags.CmdWorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
+	Command.Flags().StringVarP(&flags.Release, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
+	Command.Flags().IntVarP(&flags.NumWorkers, "num-workers", "", 0, "Shorthand to set --workers-min and --workers-max to the same value. Can't be used with -f|--file.")
+	Command.Flags().Int64VarP(&flags.WorkersMin, "workers-min", "", 0, "Minimum number of worker nodes. Can't be used with -f|--file.")
+	Command.Flags().Int64VarP(&flags.WorkersMax, "workers-max", "", 0, "Maximum number of worker nodes. Can't be used with -f|--file.")
+	Command.Flags().StringVarP(&flags.WorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
 	Command.Flags().StringVarP(&cmdWorkerAzureVMSize, "azure-vm-size", "", "", "VmSize to use for workers (Azure only), e. g. 'Standard_D2s_v3'")
-	Command.Flags().IntVarP(&flags.CmdWorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
-	Command.Flags().Float32VarP(&flags.CmdWorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
-	Command.Flags().Float32VarP(&flags.CmdWorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
+	Command.Flags().IntVarP(&flags.WorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
+	Command.Flags().Float32VarP(&flags.WorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
+	Command.Flags().Float32VarP(&flags.WorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
 	Command.Flags().BoolVarP(&cmdDryRun, "dry-run", "", false, "If set, the cluster won't be created. Useful with -v|--verbose.")
 }
 

@@ -303,7 +303,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 		defer mockServer.Close()
 
 		// client
-		flags.CmdAPIEndpoint = mockServer.URL // required to make InitClient() work
+		flags.APIEndpoint = mockServer.URL // required to make InitClient() work
 		testCase.inputArgs.apiEndpoint = mockServer.URL
 
 		err := validatePreConditions(*testCase.inputArgs)

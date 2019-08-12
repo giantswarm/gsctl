@@ -75,8 +75,8 @@ type Arguments struct {
 
 // function to create arguments based on command line flags and config
 func collectArguments(cmdLineArgs []string) Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
 	clusterID := ""
 	if len(cmdLineArgs) > 0 {
 		clusterID = cmdLineArgs[0]
@@ -87,8 +87,8 @@ func collectArguments(cmdLineArgs []string) Arguments {
 		authToken:         token,
 		clusterID:         clusterID,
 		force:             false,
-		userProvidedToken: flags.CmdToken,
-		verbose:           flags.CmdVerbose,
+		userProvidedToken: flags.Token,
+		verbose:           flags.Verbose,
 	}
 }
 
@@ -100,7 +100,7 @@ type upgradeClusterResult struct {
 
 // Here we populate our cobra command
 func init() {
-	Command.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
+	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
 }
 
 // Prints results of our pre-validation

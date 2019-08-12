@@ -64,17 +64,17 @@ type Arguments struct {
 
 // collectArguments fills arguments from user input, config, and environment.
 func collectArguments() Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	return Arguments{
 		apiEndpoint:       endpoint,
 		authToken:         token,
 		scheme:            scheme,
 		clusterID:         "",
-		userProvidedToken: flags.CmdToken,
-		verbose:           flags.CmdVerbose,
+		userProvidedToken: flags.Token,
+		verbose:           flags.Verbose,
 	}
 }
 

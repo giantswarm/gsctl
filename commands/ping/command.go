@@ -32,7 +32,7 @@ var (
 // runCommand executes the ping() function
 // and prints output in a user-friendly way
 func runCommand(cmd *cobra.Command, args []string) {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 
 	duration, err := ping(endpoint)
 	if err != nil {
