@@ -14,12 +14,13 @@ import (
 
 // configYAML is a mock configuration used by some of the tests.
 const configYAML = `last_version_check: 0001-01-01T00:00:00Z
-updated: 2017-09-29T11:23:15+02:00
 endpoints:
   https://foo:
     email: email@example.com
     token: some-token
-selected_endpoint: https://foo`
+selected_endpoint: https://foo
+updated: 2017-09-29T11:23:15+02:00
+`
 
 // TestCollectArgs tests whether collectArguments produces the expected results.
 func TestCollectArgs(t *testing.T) {
@@ -80,8 +81,8 @@ func TestCollectArgs(t *testing.T) {
 	}
 }
 
-// TestVerifyPreconditions tests cases where validating preconditions fails.
-func TestVerifyPreconditions(t *testing.T) {
+// Test_verifyPreconditions tests cases where validating preconditions fails.
+func Test_verifyPreconditions(t *testing.T) {
 	var testCases = []struct {
 		args         Arguments
 		errorMatcher func(error) bool
