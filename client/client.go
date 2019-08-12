@@ -473,6 +473,22 @@ func (w *Wrapper) GetNodePools(clusterID string, p *AuxiliaryParams) (*nodepools
 	return response, nil
 }
 
+// DeleteNodePool deletes a node pool.
+func (w *Wrapper) DeleteNodePool(clusterID, nodePoolID string, p *AuxiliaryParams) (*nodepools.DeleteNodePoolAccepted, error) {
+	params := nodepools.NewDeleteNodePoolParams().WithClusterID(clusterID).WithNodepoolID(nodePoolID)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Nodepools.DeleteNodePool(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
 // GetDefaultCluster determines which is the default cluster.
 // If only one cluster exists, the default cluster is the only cluster.
 func (w *Wrapper) GetDefaultCluster(p *AuxiliaryParams) (string, error) {
