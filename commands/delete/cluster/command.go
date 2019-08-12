@@ -3,7 +3,6 @@ package cluster
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/fatih/color"
@@ -39,9 +38,9 @@ type Arguments struct {
 }
 
 func collectArguments(positionalArgs []string) Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	clusterID := ""
 	if len(positionalArgs) > 0 {
@@ -51,12 +50,12 @@ func collectArguments(positionalArgs []string) Arguments {
 	return Arguments{
 		apiEndpoint:       endpoint,
 		clusterID:         clusterID,
-		force:             flags.CmdForce,
-		legacyClusterID:   flags.CmdClusterID,
+		force:             flags.Force,
+		legacyClusterID:   flags.ClusterID,
 		scheme:            scheme,
 		token:             token,
-		userProvidedToken: flags.CmdToken,
-		verbose:           flags.CmdVerbose,
+		userProvidedToken: flags.Token,
+		verbose:           flags.Verbose,
 	}
 }
 
@@ -83,8 +82,8 @@ Example:
 )
 
 func init() {
-	Command.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster to delete")
-	Command.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
+	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "ID of the cluster to delete")
+	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
 
 	Command.Flags().MarkDeprecated("cluster", "You no longer need to pass the cluster ID with -c/--cluster. Use --help for details.")
 }
@@ -214,12 +213,11 @@ func deleteCluster(args Arguments) (bool, error) {
 	_, err = clientWrapper.DeleteCluster(clusterID, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return false, microerror.Mask(errors.AccessForbiddenError)
-			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
-				return false, microerror.Mask(errors.ClusterNotFoundError)
-			}
+		if clienterror.IsAccessForbiddenError(err) {
+			return false, microerror.Mask(errors.AccessForbiddenError)
+		}
+		if clienterror.IsNotFoundError(err) {
+			return false, microerror.Mask(errors.ClusterNotFoundError)
 		}
 
 		return false, microerror.Maskf(errors.CouldNotDeleteClusterError, err.Error())

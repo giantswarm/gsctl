@@ -4,7 +4,6 @@ package kubeconfig
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"regexp"
 	"runtime"
@@ -100,21 +99,21 @@ type Arguments struct {
 // collectArguments gathers arguments based on command line
 // flags and config and applies defaults.
 func collectArguments() (Arguments, error) {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
-	description := flags.CmdDescription
+	description := flags.Description
 	if description == "" {
 		description = "Added by user " + config.Config.Email + " using 'gsctl create kubeconfig'"
 	}
 
 	contextName := cmdKubeconfigContextName
 	if cmdKubeconfigContextName == "" {
-		contextName = "giantswarm-" + flags.CmdClusterID
+		contextName = "giantswarm-" + flags.ClusterID
 	}
 
-	ttl, err := util.ParseDuration(flags.CmdTTL)
+	ttl, err := util.ParseDuration(flags.TTL)
 	if errors.IsInvalidDurationError(err) {
 		return Arguments{}, microerror.Mask(errors.InvalidDurationError)
 	} else if errors.IsDurationExceededError(err) {
@@ -126,17 +125,17 @@ func collectArguments() (Arguments, error) {
 	return Arguments{
 		apiEndpoint:       endpoint,
 		authToken:         token,
-		certOrgs:          flags.CmdCertificateOrganizations,
-		clusterID:         flags.CmdClusterID,
-		cnPrefix:          flags.CmdCNPrefix,
+		certOrgs:          flags.CertificateOrganizations,
+		clusterID:         flags.ClusterID,
+		cnPrefix:          flags.CNPrefix,
 		contextName:       contextName,
 		description:       description,
 		fileSystem:        config.FileSystem,
-		force:             flags.CmdForce,
+		force:             flags.Force,
 		scheme:            scheme,
 		selfContainedPath: cmdKubeconfigSelfContained,
 		ttlHours:          int32(ttl.Hours()),
-		userProvidedToken: flags.CmdToken,
+		userProvidedToken: flags.Token,
 	}, nil
 }
 
@@ -160,14 +159,14 @@ type createKubeconfigResult struct {
 }
 
 func init() {
-	Command.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster")
-	Command.Flags().StringVarP(&flags.CmdDescription, "description", "d", "", "Description for the key pair")
-	Command.Flags().StringVarP(&flags.CmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
+	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "ID of the cluster")
+	Command.Flags().StringVarP(&flags.Description, "description", "d", "", "Description for the key pair")
+	Command.Flags().StringVarP(&flags.CNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
 	Command.Flags().StringVarP(&cmdKubeconfigSelfContained, "self-contained", "", "", "Create a self-contained kubectl config with embedded credentials and write it to this path.")
 	Command.Flags().StringVarP(&cmdKubeconfigContextName, "context", "", "", "Set a custom context name. Defaults to 'giantswarm-<cluster-id>'.")
-	Command.Flags().StringVarP(&flags.CmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
-	Command.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation.")
-	Command.Flags().StringVarP(&flags.CmdTTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
+	Command.Flags().StringVarP(&flags.CertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
+	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation.")
+	Command.Flags().StringVarP(&flags.TTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
 
 	Command.MarkFlagRequired("cluster")
 }
@@ -362,6 +361,7 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	// get cluster details
 	clusterDetailsResponse, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
 	if err != nil {
+		// TODO: return properly typed errors
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			return result, microerror.Maskf(clientErr,
 				fmt.Sprintf("HTTP Status: %d, %s", clientErr.HTTPStatusCode, clientErr.ErrorMessage))
@@ -382,16 +382,14 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	response, err := clientWrapper.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return result, microerror.Mask(errors.AccessForbiddenError)
-			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
-				return result, microerror.Mask(errors.ClusterNotFoundError)
-			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return result, microerror.Mask(errors.AccessForbiddenError)
-			} else if clientErr.HTTPStatusCode == http.StatusBadRequest {
-				return result, microerror.Maskf(errors.BadRequestError, clientErr.ErrorDetails)
-			}
+		if clienterror.IsAccessForbiddenError(err) {
+			return result, microerror.Mask(errors.AccessForbiddenError)
+		}
+		if clienterror.IsNotFoundError(err) {
+			return result, microerror.Mask(errors.ClusterNotFoundError)
+		}
+		if clienterror.IsBadRequestError(err) {
+			return result, microerror.Maskf(errors.BadRequestError, err.Error())
 		}
 
 		return result, microerror.Mask(err)

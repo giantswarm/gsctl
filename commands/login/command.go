@@ -66,13 +66,13 @@ type Arguments struct {
 }
 
 func collectArguments() Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 
 	return Arguments{
 		apiEndpoint: endpoint,
 		email:       cmdEmail,
 		password:    cmdPassword,
-		verbose:     flags.CmdVerbose,
+		verbose:     flags.Verbose,
 	}
 }
 
@@ -137,7 +137,7 @@ func verifyLoginPreconditions(positionalArgs []string) error {
 
 	// using auth token flag? The 'login' command is the only exception
 	// where we can't accept this argument.
-	if flags.CmdToken != "" {
+	if flags.Token != "" {
 		return microerror.Mask(errors.TokenArgumentNotApplicableError)
 	}
 

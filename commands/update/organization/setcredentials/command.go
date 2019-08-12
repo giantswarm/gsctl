@@ -2,7 +2,6 @@ package setcredentials
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 
@@ -94,7 +93,7 @@ type setOrgCredentialsResult struct {
 }
 
 func init() {
-	Command.Flags().StringVarP(&flags.CmdOrganizationID, "organization", "o", "", "ID of the organization to set credentials for")
+	Command.Flags().StringVarP(&flags.OrganizationID, "organization", "o", "", "ID of the organization to set credentials for")
 	Command.Flags().StringVarP(&cmdAWSOperatorRoleARN, "aws-operator-role", "", "", "AWS ARN of the role to use for operating clusters")
 	Command.Flags().StringVarP(&cmdAWSAdminRoleARN, "aws-admin-role", "", "", "AWS ARN of the role to be used by Giant Swarm staff")
 	Command.Flags().StringVarP(&cmdAzureSubscriptionID, "azure-subscription-id", "", "", "ID of the Azure subscription to run clusters in")
@@ -104,9 +103,9 @@ func init() {
 }
 
 func collectArguments() Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	return Arguments{
 		apiEndpoint:         endpoint,
@@ -117,10 +116,10 @@ func collectArguments() Arguments {
 		azureSecretKey:      cmdAzureSecretKey,
 		azureSubscriptionID: cmdAzureSubscriptionID,
 		azureTenantID:       cmdAzureTenantID,
-		organizationID:      flags.CmdOrganizationID,
+		organizationID:      flags.OrganizationID,
 		scheme:              scheme,
-		userProvidedToken:   flags.CmdToken,
-		verbose:             flags.CmdVerbose,
+		userProvidedToken:   flags.Token,
+		verbose:             flags.Verbose,
 	}
 }
 
@@ -190,13 +189,13 @@ func verifyPreconditions(args Arguments) error {
 
 	response, err := clientWrapper.GetInfo(auxParams)
 	if err != nil {
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-				return microerror.Mask(errors.NotAuthorizedError)
-			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return microerror.Mask(errors.AccessForbiddenError)
-			}
+		if clienterror.IsUnauthorizedError(err) {
+			return microerror.Mask(errors.NotAuthorizedError)
 		}
+		if clienterror.IsAccessForbiddenError(err) {
+			return microerror.Mask(errors.AccessForbiddenError)
+		}
+
 		return microerror.Mask(err)
 	}
 
@@ -249,13 +248,13 @@ func verifyPreconditions(args Arguments) error {
 	orgsResponse, err := clientWrapper.GetOrganizations(auxParams)
 	{
 		if err != nil {
-			if clientErr, ok := err.(*clienterror.APIError); ok {
-				if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-					return microerror.Mask(errors.NotAuthorizedError)
-				} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-					return microerror.Mask(errors.AccessForbiddenError)
-				}
+			if clienterror.IsUnauthorizedError(err) {
+				return microerror.Mask(errors.NotAuthorizedError)
 			}
+			if clienterror.IsAccessForbiddenError(err) {
+				return microerror.Mask(errors.AccessForbiddenError)
+			}
+
 			return microerror.Mask(err)
 		}
 
@@ -346,11 +345,10 @@ func setOrgCredentials(args Arguments) (*setOrgCredentialsResult, error) {
 	fmt.Printf("response: %#v\n", response)
 	fmt.Printf("err: %#v\n", err)
 	if err != nil {
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode == http.StatusConflict {
-				return nil, microerror.Mask(errors.CredentialsAlreadySetError)
-			}
+		if clienterror.IsConflictError(err) {
+			return nil, microerror.Mask(errors.CredentialsAlreadySetError)
 		}
+
 		return nil, microerror.Mask(err)
 	}
 

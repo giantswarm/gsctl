@@ -3,7 +3,6 @@ package keypair
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"regexp"
 
@@ -55,16 +54,16 @@ type Arguments struct {
 // collectArguments puts together arguments for our business function
 // based on command line flags and config.
 func collectArguments() (Arguments, error) {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
-	description := flags.CmdDescription
+	description := flags.Description
 	if description == "" {
 		description = "Added by user " + config.Config.Email + " using 'gsctl create keypair'"
 	}
 
-	ttl, err := util.ParseDuration(flags.CmdTTL)
+	ttl, err := util.ParseDuration(flags.TTL)
 	if errors.IsInvalidDurationError(err) {
 		return Arguments{}, microerror.Mask(errors.InvalidDurationError)
 	} else if errors.IsDurationExceededError(err) {
@@ -76,14 +75,14 @@ func collectArguments() (Arguments, error) {
 	return Arguments{
 		apiEndpoint:              endpoint,
 		authToken:                token,
-		certificateOrganizations: flags.CmdCertificateOrganizations,
-		clusterID:                flags.CmdClusterID,
-		commonNamePrefix:         flags.CmdCNPrefix,
+		certificateOrganizations: flags.CertificateOrganizations,
+		clusterID:                flags.ClusterID,
+		commonNamePrefix:         flags.CNPrefix,
 		description:              description,
 		fileSystem:               config.FileSystem,
 		scheme:                   scheme,
 		ttlHours:                 int32(ttl.Hours()),
-		userProvidedToken:        flags.CmdToken,
+		userProvidedToken:        flags.Token,
 	}, nil
 }
 
@@ -103,11 +102,11 @@ type createKeypairResult struct {
 }
 
 func init() {
-	Command.Flags().StringVarP(&flags.CmdClusterID, "cluster", "c", "", "ID of the cluster to create a key pair for")
-	Command.Flags().StringVarP(&flags.CmdDescription, "description", "d", "", "Description for the key pair")
-	Command.Flags().StringVarP(&flags.CmdCNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
-	Command.Flags().StringVarP(&flags.CmdCertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
-	Command.Flags().StringVarP(&flags.CmdTTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
+	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "ID of the cluster to create a key pair for")
+	Command.Flags().StringVarP(&flags.Description, "description", "d", "", "Description for the key pair")
+	Command.Flags().StringVarP(&flags.CNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
+	Command.Flags().StringVarP(&flags.CertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
+	Command.Flags().StringVarP(&flags.TTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
 
 	Command.MarkFlagRequired("cluster")
 }
@@ -245,16 +244,14 @@ func createKeypair(args Arguments) (createKeypairResult, error) {
 	response, err := clientWrapper.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return result, microerror.Mask(errors.AccessForbiddenError)
-			} else if clientErr.HTTPStatusCode == http.StatusNotFound {
-				return result, microerror.Mask(errors.ClusterNotFoundError)
-			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return result, microerror.Mask(errors.AccessForbiddenError)
-			} else if clientErr.HTTPStatusCode == http.StatusBadRequest {
-				return result, microerror.Maskf(errors.BadRequestError, clientErr.ErrorDetails)
-			}
+		if clienterror.IsAccessForbiddenError(err) {
+			return result, microerror.Mask(errors.AccessForbiddenError)
+		}
+		if clienterror.IsBadRequestError(err) {
+			return result, microerror.Maskf(errors.BadRequestError, err.Error())
+		}
+		if clienterror.IsNotFoundError(err) {
+			return result, microerror.Mask(errors.ClusterNotFoundError)
 		}
 
 		return result, microerror.Mask(err)

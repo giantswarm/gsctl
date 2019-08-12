@@ -1,64 +1,64 @@
 package flags
 
 var (
-	// CmdAPIEndpoint represents the API endpoint URL flag.
-	CmdAPIEndpoint string
+	// APIEndpoint represents the API endpoint URL flag.
+	APIEndpoint string
 
-	// CmdToken represents the auth token passed as a flag.
-	CmdToken string
+	// Token represents the auth token passed as a flag.
+	Token string
 
-	// CmdConfigDirPath represents the configuration path to use temporarily passed as a flag.
-	CmdConfigDirPath string
+	// ConfigDirPath represents the configuration path to use temporarily passed as a flag.
+	ConfigDirPath string
 
-	// CmdVerbose represents the verbosity switch passed as a flag.
-	CmdVerbose bool
+	// Verbose represents the verbosity switch passed as a flag.
+	Verbose bool
 
-	// CmdCertificateOrganizations represents the O value for key pairs passed as a flag.
-	CmdCertificateOrganizations string
+	// CertificateOrganizations represents the O value for key pairs passed as a flag.
+	CertificateOrganizations string
 
-	// CmdClusterID represents the cluster ID passed as a flag.
-	CmdClusterID string
+	// ClusterID represents the cluster ID passed as a flag.
+	ClusterID string
 
-	// CmdCNPrefix represents the CN prefix passed as a flag.
-	CmdCNPrefix string
+	// CNPrefix represents the CN prefix passed as a flag.
+	CNPrefix string
 
-	// CmdDescription represents the description passed as a flag.
-	CmdDescription string
+	// Description represents the description passed as a flag.
+	Description string
 
-	// CmdTTL represents a TTL (time to live) value passed as a flag.
-	CmdTTL string
+	// TTL represents a TTL (time to live) value passed as a flag.
+	TTL string
 
-	// CmdForce represents the value of the force flag, passed as a flag.
+	// Force represents the value of the force flag, passed as a flag.
 	// If true, all warnings should be suppressed.
-	CmdForce bool
+	Force bool
 
-	// CmdFull represents the switch to disable all output truncation, passed as a flag.
-	CmdFull bool
+	// Full represents the switch to disable all output truncation, passed as a flag.
+	Full bool
 
-	// CmdNumWorkers is the number of workers required via flag on execution.
-	CmdNumWorkers int
+	// NumWorkers is the number of workers required via flag on execution.
+	NumWorkers int
 
-	// CmdOrganizationID represents an organization ID, passed as a flag.
-	CmdOrganizationID string
+	// OrganizationID represents an organization ID, passed as a flag.
+	OrganizationID string
 
-	// CmdRelease sets a release to use, provided as a command line flag.
-	CmdRelease string
+	// Release sets a release to use, provided as a command line flag.
+	Release string
 
-	// CmdWorkerNumCPUs prepresents the number of CPUs per worker as required via flag.
-	CmdWorkerNumCPUs int
+	// WorkerNumCPUs prepresents the number of CPUs per worker as required via flag.
+	WorkerNumCPUs int
 
-	// CmdWorkerMemorySizeGB represents the RAM size per worker node in GB per worker as required via flag.
-	CmdWorkerMemorySizeGB float32
+	// WorkerMemorySizeGB represents the RAM size per worker node in GB per worker as required via flag.
+	WorkerMemorySizeGB float32
 
-	// CmdWorkerStorageSizeGB represents the local storage per worker node in GB per worker as required via flag.
-	CmdWorkerStorageSizeGB float32
+	// WorkerStorageSizeGB represents the local storage per worker node in GB per worker as required via flag.
+	WorkerStorageSizeGB float32
 
-	// CmdWorkersMin is the minimum number of workers created for the cluster or node pool.
-	CmdWorkersMin int64
+	// WorkersMin is the minimum number of workers created for the cluster or node pool.
+	WorkersMin int64
 
-	// CmdWorkersMax is the minimum number of workers created for the cluster or node pool.
-	CmdWorkersMax int64
+	// WorkersMax is the minimum number of workers created for the cluster or node pool.
+	WorkersMax int64
 
-	// CmdWorkerAwsEc2InstanceType is the instance type name for nodes in AWS.
-	CmdWorkerAwsEc2InstanceType string
+	// WorkerAwsEc2InstanceType is the instance type name for nodes in AWS.
+	WorkerAwsEc2InstanceType string
 )

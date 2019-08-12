@@ -67,8 +67,8 @@ type result struct {
 }
 
 func collectArguments(positionalArgs []string) Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
 
 	parts := strings.Split(positionalArgs[0], "/")
 
@@ -77,7 +77,7 @@ func collectArguments(positionalArgs []string) Arguments {
 		authToken:         token,
 		clusterID:         parts[0],
 		nodePoolID:        parts[1],
-		userProvidedToken: flags.CmdToken,
+		userProvidedToken: flags.Token,
 	}
 }
 

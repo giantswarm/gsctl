@@ -234,7 +234,7 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 		fileSystem:  fs,
 	}
 
-	flags.CmdAPIEndpoint = mockServer.URL
+	flags.APIEndpoint = mockServer.URL
 
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
 	if err != nil {

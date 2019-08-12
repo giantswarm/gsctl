@@ -3,7 +3,6 @@ package cluster
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -64,17 +63,17 @@ type Arguments struct {
 
 // collectArguments fills arguments from user input, config, and environment.
 func collectArguments() Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	return Arguments{
 		apiEndpoint:       endpoint,
 		authToken:         token,
 		scheme:            scheme,
 		clusterID:         "",
-		userProvidedToken: flags.CmdToken,
-		verbose:           flags.CmdVerbose,
+		userProvidedToken: flags.Token,
+		verbose:           flags.Verbose,
 	}
 }
 
@@ -116,17 +115,17 @@ func getClusterDetailsV4(args Arguments) (*models.V4ClusterDetailsResponse, erro
 
 	response, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
 	if err != nil {
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			switch clientErr.HTTPStatusCode {
-			case http.StatusForbidden:
-				return nil, microerror.Mask(errors.AccessForbiddenError)
-			case http.StatusUnauthorized:
-				return nil, microerror.Mask(errors.NotAuthorizedError)
-			case http.StatusNotFound:
-				return nil, microerror.Mask(errors.ClusterNotFoundError)
-			case http.StatusInternalServerError:
-				return nil, microerror.Mask(errors.InternalServerError)
-			}
+		if clienterror.IsAccessForbiddenError(err) {
+			return nil, microerror.Mask(errors.AccessForbiddenError)
+		}
+		if clienterror.IsUnauthorizedError(err) {
+			return nil, microerror.Mask(errors.NotAuthorizedError)
+		}
+		if clienterror.IsNotFoundError(err) {
+			return nil, microerror.Mask(errors.ClusterNotFoundError)
+		}
+		if clienterror.IsInternalServerError(err) {
+			return nil, microerror.Maskf(errors.InternalServerError, err.Error())
 		}
 
 		return nil, microerror.Mask(err)
@@ -148,17 +147,17 @@ func getClusterDetailsV5(args Arguments) (*models.V5ClusterDetailsResponse, erro
 
 	response, err := clientWrapper.GetClusterV5(args.clusterID, auxParams)
 	if err != nil {
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			switch clientErr.HTTPStatusCode {
-			case http.StatusForbidden:
-				return nil, microerror.Mask(errors.AccessForbiddenError)
-			case http.StatusUnauthorized:
-				return nil, microerror.Mask(errors.NotAuthorizedError)
-			case http.StatusNotFound:
-				return nil, microerror.Mask(errors.ClusterNotFoundError)
-			case http.StatusInternalServerError:
-				return nil, microerror.Mask(errors.InternalServerError)
-			}
+		if clienterror.IsAccessForbiddenError(err) {
+			return nil, microerror.Mask(errors.AccessForbiddenError)
+		}
+		if clienterror.IsUnauthorizedError(err) {
+			return nil, microerror.Mask(errors.NotAuthorizedError)
+		}
+		if clienterror.IsNotFoundError(err) {
+			return nil, microerror.Mask(errors.ClusterNotFoundError)
+		}
+		if clienterror.IsInternalServerError(err) {
+			return nil, microerror.Mask(errors.InternalServerError)
 		}
 
 		return nil, microerror.Mask(err)
@@ -178,17 +177,17 @@ func getOrgCredentials(orgName, credentialID string, args Arguments) (*models.V4
 
 	response, err := clientWrapper.GetCredential(orgName, credentialID, auxParams)
 	if err != nil {
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			switch clientErr.HTTPStatusCode {
-			case http.StatusForbidden:
-				return nil, microerror.Mask(errors.AccessForbiddenError)
-			case http.StatusUnauthorized:
-				return nil, microerror.Mask(errors.NotAuthorizedError)
-			case http.StatusNotFound:
-				return nil, microerror.Mask(errors.CredentialNotFoundError)
-			case http.StatusInternalServerError:
-				return nil, microerror.Mask(errors.InternalServerError)
-			}
+		if clienterror.IsAccessForbiddenError(err) {
+			return nil, microerror.Mask(errors.AccessForbiddenError)
+		}
+		if clienterror.IsUnauthorizedError(err) {
+			return nil, microerror.Mask(errors.NotAuthorizedError)
+		}
+		if clienterror.IsNotFoundError(err) {
+			return nil, microerror.Mask(errors.CredentialNotFoundError)
+		}
+		if clienterror.IsInternalServerError(err) {
+			return nil, microerror.Maskf(errors.InternalServerError, err.Error())
 		}
 
 		return nil, microerror.Mask(err)

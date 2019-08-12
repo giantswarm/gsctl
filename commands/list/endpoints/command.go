@@ -37,9 +37,9 @@ type Arguments struct {
 // collectArguments returns Arguments
 // with settings loaded from flags etc.
 func collectArguments() Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 	return Arguments{
 		apiEndpoint: endpoint,
 		token:       token,

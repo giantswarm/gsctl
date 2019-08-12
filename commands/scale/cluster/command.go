@@ -79,15 +79,15 @@ type Arguments struct {
 }
 
 func init() {
-	Command.Flags().BoolVarP(&flags.CmdForce, "force", "", false, "If set, no confirmation is required.")
-	Command.Flags().Int64VarP(&flags.CmdWorkersMax, cmdWorkersMaxName, "", 0, "Maximum number of worker nodes to have after scaling.")
-	Command.Flags().Int64VarP(&flags.CmdWorkersMin, cmdWorkersMinName, "", 0, "Minimum number of worker nodes to have after scaling.")
-	Command.Flags().IntVarP(&flags.CmdNumWorkers, cmdWorkersNumName, "w", 0, "Shorthand to set --workers-min and --workers-max to the same value.")
+	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, no confirmation is required.")
+	Command.Flags().Int64VarP(&flags.WorkersMax, cmdWorkersMaxName, "", 0, "Maximum number of worker nodes to have after scaling.")
+	Command.Flags().Int64VarP(&flags.WorkersMin, cmdWorkersMinName, "", 0, "Minimum number of worker nodes to have after scaling.")
+	Command.Flags().IntVarP(&flags.NumWorkers, cmdWorkersNumName, "w", 0, "Shorthand to set --workers-min and --workers-max to the same value.")
 
 	// deprecated
-	Command.Flags().Float32VarP(&flags.CmdWorkerStorageSizeGB, cmdWorkerStorageSizeGBName, "", 0, "Local storage size per added worker node.")
-	Command.Flags().IntVarP(&flags.CmdWorkerNumCPUs, cmdWorkerNumCPUsName, "", 0, "Number of CPU cores per added worker node.")
-	Command.Flags().Float32VarP(&flags.CmdWorkerMemorySizeGB, cmdWorkerMemorySizeGBName, "", 0, "RAM per added worker node.")
+	Command.Flags().Float32VarP(&flags.WorkerStorageSizeGB, cmdWorkerStorageSizeGBName, "", 0, "Local storage size per added worker node.")
+	Command.Flags().IntVarP(&flags.WorkerNumCPUs, cmdWorkerNumCPUsName, "", 0, "Number of CPU cores per added worker node.")
+	Command.Flags().Float32VarP(&flags.WorkerMemorySizeGB, cmdWorkerMemorySizeGBName, "", 0, "RAM per added worker node.")
 	Command.Flags().MarkDeprecated(cmdWorkerMemorySizeGBName, "Changing the amount of Memory is no longer supported while scaling.")
 	Command.Flags().MarkDeprecated(cmdWorkerNumCPUsName, "Changing the number of CPUs is no longer supported while scaling.")
 	Command.Flags().MarkDeprecated(cmdWorkerStorageSizeGBName, "Changing the amount of Storage is no longer supported while scaling.")
@@ -115,21 +115,21 @@ func getConfirmation(args Arguments, maxBefore int64, minBefore int64, currentWo
 func collectArguments(ctx context.Context, cmd *cobra.Command, clusterID string, autoScalingEnabled bool, currentScalingMax int64, currentScalingMin int64, desiredScalingMax int64, desiredScalingMin int64, desiredNumWorkers int64) (Arguments, error) {
 	var err error
 
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	scaleArgs := Arguments{
 		apiEndpoint:         endpoint,
 		authToken:           token,
 		clusterID:           clusterID,
 		numWorkersDesired:   int(desiredNumWorkers),
-		oppressConfirmation: flags.CmdForce,
+		oppressConfirmation: flags.Force,
 		scheme:              scheme,
-		userProvidedToken:   flags.CmdToken,
-		verbose:             flags.CmdVerbose,
-		workersMax:          flags.CmdWorkersMax,
-		workersMin:          flags.CmdWorkersMin,
+		userProvidedToken:   flags.Token,
+		verbose:             flags.Verbose,
+		workersMax:          flags.WorkersMax,
+		workersMin:          flags.WorkersMin,
 	}
 
 	desiredNumWorkersChanged := cmd.Flags().Changed(cmdWorkersNumName)
@@ -168,7 +168,7 @@ func collectArguments(ctx context.Context, cmd *cobra.Command, clusterID string,
 
 // getClusterStatus returns the status for one cluster.
 func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, error) {
-	clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+	clientWrapper, err := client.NewWithConfig(flags.APIEndpoint, flags.Token)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -178,7 +178,7 @@ func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, er
 
 	// Make sure we have provider info in the current endpoint
 	if config.Config.Provider == "" {
-		if flags.CmdVerbose {
+		if flags.Verbose {
 			fmt.Println(color.WhiteString("Fetching provider information"))
 		}
 
@@ -190,7 +190,7 @@ func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, er
 	}
 
 	// perform API call
-	if flags.CmdVerbose {
+	if flags.Verbose {
 		fmt.Println(color.WhiteString("Fetching current cluster size"))
 	}
 	status, err := clientWrapper.GetClusterStatus(clusterID, auxParams)
@@ -240,14 +240,14 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 		errors.HandleCommonErrors(errors.ClusterIDMissingError)
 	}
 	clusterID := cmdLineArgs[0]
-	desiredNumWorkers := flags.CmdNumWorkers
+	desiredNumWorkers := flags.NumWorkers
 
 	var currentScalingMax int64
 	var currentScalingMin int64
 	var currentWorkers int64
 	var releaseVersion string
 	{
-		clientWrapper, err := client.NewWithConfig(flags.CmdAPIEndpoint, flags.CmdToken)
+		clientWrapper, err := client.NewWithConfig(flags.APIEndpoint, flags.Token)
 		if err != nil {
 			fmt.Println(color.RedString(err.Error()))
 			os.Exit(1)
@@ -288,8 +288,8 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	var desiredScalingMax int64
 	var desiredScalingMin int64
 	{
-		desiredScalingMax = flags.CmdWorkersMax
-		desiredScalingMin = flags.CmdWorkersMin
+		desiredScalingMax = flags.WorkersMax
+		desiredScalingMin = flags.WorkersMin
 	}
 
 	autoScalingEnabled, err := capabilities.HasCapability(config.Config.Provider, releaseVersion, capabilities.Autoscaling)
@@ -378,7 +378,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	// Ask for confirmation for the scaling action.
-	if !flags.CmdForce {
+	if !flags.Force {
 		// get confirmation and handle result
 		err = getConfirmation(args, currentScalingMax, currentScalingMin, statusWorkers)
 		if err != nil {

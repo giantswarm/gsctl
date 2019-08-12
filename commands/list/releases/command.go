@@ -3,7 +3,6 @@ package releases
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -52,15 +51,15 @@ type Arguments struct {
 // collectArguments returns a new Arguments struct
 // based on global variables (= command line options from cobra).
 func collectArguments() Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	return Arguments{
 		apiEndpoint:       endpoint,
 		token:             token,
 		scheme:            scheme,
-		userProvidedToken: flags.CmdToken,
+		userProvidedToken: flags.Token,
 	}
 }
 
@@ -226,12 +225,11 @@ func listReleases(args Arguments) ([]*models.V4ReleaseListItem, error) {
 	response, err := clientWrapper.GetReleases(auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode >= http.StatusInternalServerError {
-				return nil, microerror.Maskf(errors.InternalServerError, err.Error())
-			} else if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-				return nil, microerror.Mask(errors.NotAuthorizedError)
-			}
+		if clienterror.IsInternalServerError(err) {
+			return nil, microerror.Maskf(errors.InternalServerError, err.Error())
+		}
+		if clienterror.IsUnauthorizedError(err) {
+			return nil, microerror.Mask(errors.NotAuthorizedError)
 		}
 
 		return nil, microerror.Mask(err)

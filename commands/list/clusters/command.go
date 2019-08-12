@@ -3,7 +3,6 @@ package clusters
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -45,15 +44,15 @@ type Arguments struct {
 }
 
 func collectArguments() Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	return Arguments{
 		apiEndpoint:       endpoint,
 		authToken:         token,
 		scheme:            scheme,
-		userProvidedToken: flags.CmdToken,
+		userProvidedToken: flags.Token,
 	}
 }
 
@@ -116,13 +115,11 @@ func clustersTable(args Arguments) (string, error) {
 
 	response, err := clientWrapper.GetClusters(auxParams)
 	if err != nil {
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			switch clientErr.HTTPStatusCode {
-			case http.StatusUnauthorized:
-				return "", microerror.Mask(errors.NotAuthorizedError)
-			case http.StatusForbidden:
-				return "", microerror.Mask(errors.AccessForbiddenError)
-			}
+		if clienterror.IsUnauthorizedError(err) {
+			return "", microerror.Mask(errors.NotAuthorizedError)
+		}
+		if clienterror.IsAccessForbiddenError(err) {
+			return "", microerror.Mask(errors.AccessForbiddenError)
 		}
 
 		return "", microerror.Mask(err)

@@ -3,7 +3,6 @@ package organizations
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"sort"
 
@@ -43,15 +42,15 @@ type Arguments struct {
 
 // collectArguments creates arguments based on command line flags and config
 func collectArguments() Arguments {
-	endpoint := config.Config.ChooseEndpoint(flags.CmdAPIEndpoint)
-	token := config.Config.ChooseToken(endpoint, flags.CmdToken)
-	scheme := config.Config.ChooseScheme(endpoint, flags.CmdToken)
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	return Arguments{
 		apiEndpoint:       endpoint,
 		authToken:         token,
 		scheme:            scheme,
-		userProvidedToken: flags.CmdToken,
+		userProvidedToken: flags.Token,
 	}
 }
 
@@ -112,12 +111,11 @@ func orgsTable(args Arguments) (string, error) {
 
 	response, err := clientWrapper.GetOrganizations(auxParams)
 	if err != nil {
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			if clientErr.HTTPStatusCode == http.StatusUnauthorized {
-				return "", microerror.Mask(errors.NotAuthorizedError)
-			} else if clientErr.HTTPStatusCode == http.StatusForbidden {
-				return "", microerror.Mask(errors.AccessForbiddenError)
-			}
+		if clienterror.IsUnauthorizedError(err) {
+			return "", microerror.Mask(errors.NotAuthorizedError)
+		}
+		if clienterror.IsAccessForbiddenError(err) {
+			return "", microerror.Mask(errors.AccessForbiddenError)
 		}
 
 		return "", microerror.Mask(err)

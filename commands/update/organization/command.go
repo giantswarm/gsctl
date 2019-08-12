@@ -23,7 +23,7 @@ Examples:
 )
 
 func init() {
-	Command.Flags().StringVarP(&flags.CmdOrganizationID, "organization", "o", "", "ID of the organization to modify")
+	Command.Flags().StringVarP(&flags.OrganizationID, "organization", "o", "", "ID of the organization to modify")
 
 	Command.AddCommand(setcredentials.Command)
 }
