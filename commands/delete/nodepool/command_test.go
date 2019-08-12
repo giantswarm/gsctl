@@ -12,6 +12,15 @@ import (
 	"github.com/spf13/afero"
 )
 
+// configYAML is a mock configuration used by some of the tests.
+const configYAML = `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  https://foo:
+    email: email@example.com
+    token: some-token
+selected_endpoint: https://foo`
+
 // TestCollectArgs tests whether collectArguments produces the expected results.
 func TestCollectArgs(t *testing.T) {
 	var testCases = []struct {
@@ -51,16 +60,8 @@ func TestCollectArgs(t *testing.T) {
 		},
 	}
 
-	yamlText := `last_version_check: 0001-01-01T00:00:00Z
-updated: 2017-09-29T11:23:15+02:00
-endpoints:
-  https://foo:
-    email: email@example.com
-    token: some-token
-selected_endpoint: https://foo`
-
 	fs := afero.NewMemMapFs()
-	_, err := testutils.TempConfig(fs, yamlText)
+	_, err := testutils.TempConfig(fs, configYAML)
 	if err != nil {
 		t.Fatal(err)
 	}
