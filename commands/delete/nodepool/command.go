@@ -168,15 +168,11 @@ func deleteNodePool(args Arguments) (bool, error) {
 	auxParams.ActivityName = activityName
 
 	_, err = clientWrapper.DeleteNodePool(args.ClusterID, args.NodePoolID, auxParams)
-	if err != nil {
-		// return specific error types for the cases we care about most.
-		if clienterror.IsAccessForbiddenError(err) {
-			return false, microerror.Mask(errors.AccessForbiddenError)
-		}
-		if clienterror.IsNotFoundError(err) {
-			return false, microerror.Mask(errors.ClusterNotFoundError)
-		}
-
+	if clienterror.IsAccessForbiddenError(err) {
+		return false, microerror.Mask(errors.AccessForbiddenError)
+	} else if clienterror.IsNotFoundError(err) {
+		return false, microerror.Mask(errors.ClusterNotFoundError)
+	} else if err != nil {
 		return false, microerror.Mask(err)
 	}
 
