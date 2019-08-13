@@ -193,76 +193,86 @@ func Test_ReadDefinitionFiles(t *testing.T) {
 	}
 }
 
-// Test_CreateFromYAML01 tests parsing a most simplistic YAML definition.
-func Test_CreateFromYAML01(t *testing.T) {
-	def := types.ClusterDefinition{}
-	data := []byte(`owner: myorg`)
-
-	err := yaml.Unmarshal(data, &def)
-	if err != nil {
-		t.Fatalf("expected error to be empty, got %#v", err)
-	}
-
-	if def.Owner != "myorg" {
-		t.Error("expected owner 'myorg', got: ", def.Owner)
-	}
-}
-
-// Test_CreateFromYAML02 tests parsing a rather simplistic YAML definition.
-func Test_CreateFromYAML02(t *testing.T) {
-	def := types.ClusterDefinition{}
-	data := []byte(`
-owner: myorg
-name: Minimal cluster spec
-`)
-
-	err := yaml.Unmarshal(data, &def)
-	if err != nil {
-		t.Fatalf("expected error to be empty, got %#v", err)
-	}
-
-	if def.Owner != "myorg" {
-		t.Error("expected owner 'myorg', got: ", def.Owner)
-	}
-	if def.Name != "Minimal cluster spec" {
-		t.Error("expected name 'Minimal cluster spec', got: ", def.Name)
-	}
-}
-
-// Test_CreateFromYAML03 tests all the worker details.
-func Test_CreateFromYAML03(t *testing.T) {
-	def := types.ClusterDefinition{}
-	data := []byte(`
-owner: littleco
+// Test_ParseYAMLDefinition tests parsing YAML definition files.
+func Test_ParseYAMLDefinition(t *testing.T) {
+	var testCases = []struct {
+		inputYAML      []byte
+		expectedOutput types.ClusterDefinition
+	}{
+		// Minimal YAML.
+		{
+			[]byte(`owner: myorg`),
+			types.ClusterDefinition{
+				Owner: "myorg",
+			},
+		},
+		// More details.
+		{
+			[]byte(`owner: myorg
+name: My cluster
+release_version: 1.2.3
+availability_zones: 3
+scaling:
+  min: 3
+  max: 5`),
+			types.ClusterDefinition{
+				Owner:             "myorg",
+				Name:              "My cluster",
+				ReleaseVersion:    "1.2.3",
+				AvailabilityZones: 3,
+				Scaling: types.ScalingDefinition{
+					Min: 3,
+					Max: 5,
+				},
+			},
+		},
+		// KVM worker details.
+		{
+			[]byte(`owner: myorg
 workers:
-  - memory:
-    size_gb: 2
-  - cpu:
-      cores: 2
-    memory:
-      size_gb: 5.5
-    storage:
-      size_gb: 13
-    labels:
-      foo: bar
-`)
-
-	err := yaml.Unmarshal(data, &def)
-	if err != nil {
-		t.Fatalf("expected error to be empty, got %#v", err)
+- memory:
+    size_gb: 16.5
+  cpu:
+    cores: 4
+  storage:
+    size_gb: 100
+- memory:
+    size_gb: 32
+  cpu:
+    cores: 8
+  storage:
+    size_gb: 50
+`),
+			types.ClusterDefinition{
+				Owner: "myorg",
+				Workers: []types.NodeDefinition{
+					types.NodeDefinition{
+						Memory:  types.MemoryDefinition{SizeGB: 16.5},
+						CPU:     types.CPUDefinition{Cores: 4},
+						Storage: types.StorageDefinition{SizeGB: 100},
+					},
+					types.NodeDefinition{
+						Memory:  types.MemoryDefinition{SizeGB: 32},
+						CPU:     types.CPUDefinition{Cores: 8},
+						Storage: types.StorageDefinition{SizeGB: 50},
+					},
+				},
+			},
+		},
 	}
 
-	if len(def.Workers) != 2 {
-		t.Error("expected 2 workers, got: ", len(def.Workers))
-	}
-	if def.Workers[1].CPU.Cores != 2 {
-		t.Error("expected def.Workers[1].CPU.Cores to be 2, got: ", def.Workers[1].CPU.Cores)
-	}
-	if def.Workers[1].Memory.SizeGB != 5.5 {
-		t.Error("expected def.Workers[1].Memory.SizeGB to be 5.5, got: ", def.Workers[1].Memory.SizeGB)
-	}
-	if def.Workers[1].Storage.SizeGB != 13.0 {
-		t.Error("expected def.Workers[1].Storage.SizeGB to be 13, got: ", def.Workers[1].Storage.SizeGB)
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			def := types.ClusterDefinition{}
+			err := yaml.Unmarshal(tc.inputYAML, &def)
+			if err != nil {
+				t.Errorf("Case %d - Unexpected error %v", i, err)
+			}
+
+			if diff := cmp.Diff(tc.expectedOutput, def); diff != "" {
+				t.Errorf("Case %d - Resulting definition unequal. (-expected +got):\n%s", i, diff)
+			}
+		})
 	}
 }
 
@@ -397,7 +407,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		testCase.inputArgs.APIEndpoint = mockServer.URL
 		testCase.inputArgs.UserProvidedToken = testCase.inputArgs.AuthToken
 
-		err := validatePreConditions(*testCase.inputArgs)
+		err := verifyPreconditions(*testCase.inputArgs)
 		if err != nil {
 			t.Errorf("Validation error in testCase %d: %s", i, err.Error())
 		}
@@ -469,7 +479,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 		flags.APIEndpoint = mockServer.URL // required to make InitClient() work
 		testCase.inputArgs.APIEndpoint = mockServer.URL
 
-		err := validatePreConditions(*testCase.inputArgs)
+		err := verifyPreconditions(*testCase.inputArgs)
 		if err != nil {
 			t.Errorf("Unexpected error in argument validation: %#v", err)
 		} else {
@@ -536,7 +546,7 @@ func Test_CreateCluster_ValidationFailures(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := validatePreConditions(*tc.inputArgs)
+			err := verifyPreconditions(*tc.inputArgs)
 
 			switch {
 			case err == nil && tc.errorMatcher == nil:
