@@ -186,7 +186,7 @@ func printValidation(cmd *cobra.Command, args []string) {
 	headline := ""
 	subtext := ""
 
-	err := validatePreConditions(aca)
+	err := verifyPreconditions(aca)
 	if err != nil {
 		errors.HandleCommonErrors(err)
 
@@ -311,10 +311,10 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 }
 
-// validatePreConditions checks preconditions and returns an error in case
-func validatePreConditions(args Arguments) error {
+// verifyPreconditions checks preconditions and returns an error in case.
+func verifyPreconditions(args Arguments) error {
 	// logged in?
-	if config.Config.Token == "" && args.AuthToken == "" {
+	if args.AuthToken == "" && args.UserProvidedToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 

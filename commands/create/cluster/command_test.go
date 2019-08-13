@@ -104,6 +104,80 @@ func Test_CollectArgs(t *testing.T) {
 	}
 }
 
+// Test_verifyPreconditions tests cases where validating preconditions fails.
+func Test_verifyPreconditions(t *testing.T) {
+	var testCases = []struct {
+		args         Arguments
+		errorMatcher func(error) bool
+	}{
+		// Token missing.
+		{
+			Arguments{
+				APIEndpoint: "https://mock-url",
+			},
+			errors.IsNotLoggedInError,
+		},
+		// Combining definition file with the wrong flags
+		{
+			Arguments{
+				AuthToken:     "token",
+				APIEndpoint:   "https://mock-url",
+				InputYAMLFile: "my-file.yaml",
+				WorkerNumCPUs: 8,
+			},
+			errors.IsConflictingFlagsError,
+		},
+		// Combining NumWorkers and  Min/Max.
+		{
+			Arguments{
+				AuthToken:   "token",
+				APIEndpoint: "https://mock-url",
+				NumWorkers:  3,
+				WorkersMin:  3,
+				WorkersMax:  3,
+			},
+			errors.IsConflictingWorkerFlagsUsed,
+		},
+		// Combining Min and Max in an unplausible way.
+		{
+			Arguments{
+				AuthToken:   "token",
+				APIEndpoint: "https://mock-url",
+				WorkersMin:  5,
+				WorkersMax:  3,
+			},
+			errors.IsWorkersMinMaxInvalid,
+		},
+		// Not enopugh CPU.
+		{
+			Arguments{
+				AuthToken:                "token",
+				APIEndpoint:              "https://mock-url",
+				WorkerNumCPUs:            1,
+				WorkerAwsEc2InstanceType: "my-mystic-type",
+			},
+			errors.IsIncompatibleSettingsError,
+		},
+	}
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			err := verifyPreconditions(tc.args)
+			if err == nil {
+				t.Errorf("Case %d - Expected error, got nil", i)
+			} else if !tc.errorMatcher(err) {
+				t.Errorf("Case %d - Error did not match expectec type. Got '%s'", i, err)
+			}
+		})
+	}
+}
+
 // Test_ReadDefinitionFiles tests the readDefinitionFromFile with all
 // YAML files in the testdata directory.
 func Test_ReadDefinitionFiles(t *testing.T) {
