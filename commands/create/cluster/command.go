@@ -27,12 +27,13 @@ import (
 // Arguments contains all possible input parameter needed
 // (and optionally available) for creating a cluster.
 type Arguments struct {
-	APIEndpoint              string
-	AuthToken                string
-	AvailabilityZones        int
-	ClusterName              string
-	DryRun                   bool
-	FileSystem               afero.Fs
+	APIEndpoint       string
+	AuthToken         string
+	AvailabilityZones int
+	ClusterName       string
+	DryRun            bool
+	// fileSystem is not exposed to hide it from comparison in tests.
+	fileSystem               afero.Fs
 	InputYAMLFile            string
 	NumWorkers               int
 	Owner                    string
@@ -60,7 +61,7 @@ func collectArguments() Arguments {
 		AvailabilityZones:        cmdAvailabilityZones,
 		ClusterName:              cmdClusterName,
 		DryRun:                   cmdDryRun,
-		FileSystem:               config.FileSystem,
+		fileSystem:               config.FileSystem,
 		InputYAMLFile:            cmdInputYAMLFile,
 		NumWorkers:               flags.NumWorkers,
 		Owner:                    cmdOwner,
@@ -154,6 +155,12 @@ Examples:
 )
 
 func init() {
+	initFlags()
+}
+
+func initFlags() {
+	Command.ResetFlags()
+
 	Command.Flags().IntVarP(&cmdAvailabilityZones, "availability-zones", "", 0, "Number of availability zones to use on AWS. Default is 1.")
 	Command.Flags().StringVarP(&cmdInputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file")
 	Command.Flags().StringVarP(&cmdClusterName, "name", "n", "", "Cluster name")
@@ -489,7 +496,7 @@ func addCluster(args Arguments) (creationResult, error) {
 
 	if args.InputYAMLFile != "" {
 		// definition from file (and optionally flags)
-		result.definition, err = readDefinitionFromFile(args.FileSystem, args.InputYAMLFile)
+		result.definition, err = readDefinitionFromFile(args.fileSystem, args.InputYAMLFile)
 		if err != nil {
 			return creationResult{}, microerror.Maskf(errors.YAMLFileNotReadableError, err.Error())
 		}
