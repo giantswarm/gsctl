@@ -127,67 +127,67 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		{
 			description: "Minimal arguments",
 			inputArgs: &Arguments{
-				owner: "acme",
-				token: "fake token",
+				Owner:     "acme",
+				AuthToken: "fake token",
 			},
 		},
 		{
 			description: "Extensive arguments",
 			inputArgs: &Arguments{
-				clusterName:         "UnitTestCluster",
-				numWorkers:          4,
-				releaseVersion:      "0.3.0",
-				owner:               "acme",
-				token:               "fake token",
-				workerNumCPUs:       3,
-				workerMemorySizeGB:  4,
-				workerStorageSizeGB: 10,
-				verbose:             true,
+				ClusterName:         "UnitTestCluster",
+				NumWorkers:          4,
+				ReleaseVersion:      "0.3.0",
+				Owner:               "acme",
+				AuthToken:           "fake token",
+				WorkerNumCPUs:       3,
+				WorkerMemorySizeGB:  4,
+				WorkerStorageSizeGB: 10,
+				Verbose:             true,
 			},
 		},
 		{
 			description: "Max workers",
 			inputArgs: &Arguments{
-				owner:      "acme",
-				workersMax: 4,
-				token:      "fake token",
+				Owner:      "acme",
+				WorkersMax: 4,
+				AuthToken:  "fake token",
 			},
 		},
 		{
 			description: "Min workers",
 			inputArgs: &Arguments{
-				owner:      "acme",
-				workersMin: 4,
-				token:      "fake token",
+				Owner:      "acme",
+				WorkersMin: 4,
+				AuthToken:  "fake token",
 			},
 		},
 		{
 			description: "Min workers and max workers same",
 			inputArgs: &Arguments{
-				owner:      "acme",
-				workersMin: 4,
-				workersMax: 4,
-				token:      "fake token",
+				Owner:      "acme",
+				WorkersMin: 4,
+				WorkersMax: 4,
+				AuthToken:  "fake token",
 			},
 		},
 		{
 			description: "Min workers and max workers different",
 			inputArgs: &Arguments{
-				owner:      "acme",
-				workersMin: 2,
-				workersMax: 4,
-				token:      "fake token",
+				Owner:      "acme",
+				WorkersMin: 2,
+				WorkersMax: 4,
+				AuthToken:  "fake token",
 			},
 		},
 		{
 			description: "Definition from YAML file",
 			inputArgs: &Arguments{
-				clusterName:   "Cluster Name from Args",
-				fileSystem:    afero.NewOsFs(), // needed for YAML file access
-				inputYAMLFile: "testdata/minimal.yaml",
-				owner:         "acme",
-				token:         "fake token",
-				verbose:       true,
+				ClusterName:   "Cluster Name from Args",
+				FileSystem:    afero.NewOsFs(), // needed for YAML file access
+				InputYAMLFile: "testdata/minimal.yaml",
+				Owner:         "acme",
+				AuthToken:     "fake token",
+				Verbose:       true,
 			},
 		},
 	}
@@ -199,7 +199,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			t.Log("mockServer request: ", r.Method, r.URL)
 			w.Header().Set("Content-Type", "application/json")
-			if !strings.Contains(r.Header.Get("Authorization"), testCase.inputArgs.token) {
+			if !strings.Contains(r.Header.Get("Authorization"), testCase.inputArgs.AuthToken) {
 				t.Errorf("Authorization header incomplete: '%s'", r.Header.Get("Authorization"))
 			}
 			if r.Method == "POST" && r.URL.String() == "/v4/clusters/" {
@@ -231,8 +231,8 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		}))
 		defer mockServer.Close()
 
-		testCase.inputArgs.apiEndpoint = mockServer.URL
-		testCase.inputArgs.userProvidedToken = testCase.inputArgs.token
+		testCase.inputArgs.APIEndpoint = mockServer.URL
+		testCase.inputArgs.UserProvidedToken = testCase.inputArgs.AuthToken
 
 		err := validatePreConditions(*testCase.inputArgs)
 		if err != nil {
@@ -258,8 +258,8 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 		{
 			description: "Unauthenticated request despite token being present",
 			inputArgs: &Arguments{
-				owner: "owner",
-				token: "some-token",
+				Owner:     "owner",
+				AuthToken: "some-token",
 			},
 			serverResponseJSON: []byte(`{"code": "PERMISSION_DENIED", "message": "Lorem ipsum"}`),
 			responseStatus:     http.StatusUnauthorized,
@@ -268,8 +268,8 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 		{
 			description: "Owner organization not existing",
 			inputArgs: &Arguments{
-				owner: "non-existing-owner",
-				token: "some-token",
+				Owner:     "non-existing-owner",
+				AuthToken: "some-token",
 			},
 			serverResponseJSON: []byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Lorem ipsum"}`),
 			responseStatus:     http.StatusNotFound,
@@ -278,11 +278,11 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 		{
 			description: "Non-existing YAML definition path",
 			inputArgs: &Arguments{
-				owner:         "owner",
-				token:         "some-token",
-				fileSystem:    afero.NewOsFs(),
-				inputYAMLFile: "does/not/exist.yaml",
-				dryRun:        true,
+				Owner:         "owner",
+				AuthToken:     "some-token",
+				FileSystem:    afero.NewOsFs(),
+				InputYAMLFile: "does/not/exist.yaml",
+				DryRun:        true,
 			},
 			serverResponseJSON: []byte(``),
 			responseStatus:     0,
@@ -304,7 +304,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 
 		// client
 		flags.APIEndpoint = mockServer.URL // required to make InitClient() work
-		testCase.inputArgs.apiEndpoint = mockServer.URL
+		testCase.inputArgs.APIEndpoint = mockServer.URL
 
 		err := validatePreConditions(*testCase.inputArgs)
 		if err != nil {
@@ -331,41 +331,41 @@ func Test_CreateCluster_ValidationFailures(t *testing.T) {
 		{
 			name: "case 0 workers min is higher than max",
 			inputArgs: &Arguments{
-				owner:      "owner",
-				token:      "some-token",
-				workersMin: 4,
-				workersMax: 2,
+				Owner:      "owner",
+				AuthToken:  "some-token",
+				WorkersMin: 4,
+				WorkersMax: 2,
 			},
 			errorMatcher: errors.IsWorkersMinMaxInvalid,
 		},
 		{
 			name: "case 1 workers min and max with legacy num workers",
 			inputArgs: &Arguments{
-				owner:      "owner",
-				token:      "some-token",
-				workersMin: 4,
-				workersMax: 2,
-				numWorkers: 2,
+				Owner:      "owner",
+				AuthToken:  "some-token",
+				WorkersMin: 4,
+				WorkersMax: 2,
+				NumWorkers: 2,
 			},
 			errorMatcher: errors.IsConflictingWorkerFlagsUsed,
 		},
 		{
 			name: "case 2 workers min with legacy num workers",
 			inputArgs: &Arguments{
-				owner:      "owner",
-				token:      "some-token",
-				workersMin: 4,
-				numWorkers: 2,
+				Owner:      "owner",
+				AuthToken:  "some-token",
+				WorkersMin: 4,
+				NumWorkers: 2,
 			},
 			errorMatcher: errors.IsConflictingWorkerFlagsUsed,
 		},
 		{
 			name: "case 3 workers max with legacy num workers",
 			inputArgs: &Arguments{
-				owner:      "owner",
-				token:      "some-token",
-				workersMax: 2,
-				numWorkers: 2,
+				Owner:      "owner",
+				AuthToken:  "some-token",
+				WorkersMax: 2,
+				NumWorkers: 2,
 			},
 			errorMatcher: errors.IsConflictingWorkerFlagsUsed,
 		},
