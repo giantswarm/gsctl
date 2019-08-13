@@ -655,3 +655,15 @@ var WorkersMinMaxInvalidError = &microerror.Error{
 func IsWorkersMinMaxInvalid(err error) bool {
 	return microerror.Cause(err) == WorkersMinMaxInvalidError
 }
+
+// NoOpError is raised when the user calls a command without any meaningful
+// parameters, resulting in no change/nothing done.
+var NoOpError = &microerror.Error{
+	Kind: "NoOpError",
+	Desc: "Nothing to be done",
+}
+
+// IsNoOpError asserts NoOpError.
+func IsNoOpError(err error) bool {
+	return microerror.Cause(err) == NoOpError
+}

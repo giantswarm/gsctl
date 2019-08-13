@@ -96,7 +96,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 // result represents all information we get back from modifying a node pool.
 type result struct {
 	// nodePool contains all the node pool details as returned from the API.
-	nodePool *models.V5GetNodePoolResponse
+	NodePool *models.V5GetNodePoolResponse
 }
 
 func verifyPreconditions(args Arguments) error {
@@ -106,6 +106,10 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Mask(errors.ClusterIDMissingError)
 	} else if args.NodePoolID == "" {
 		return microerror.Mask(errors.NodePoolIDMissingError)
+	} else if args.ScalingMin == 0 && args.ScalingMax == 0 && args.Name == "" {
+		return microerror.Mask(errors.NoOpError)
+	} else if args.ScalingMin > args.ScalingMax && args.ScalingMax > 0 {
+		return microerror.Mask(errors.WorkersMinMaxInvalidError)
 	}
 
 	return nil
@@ -139,7 +143,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	os.Exit(1)
 }
 
-func updateNodepool(args Arguments) (*result, error) {
+func updateNodePool(args Arguments) (*result, error) {
 	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -168,7 +172,7 @@ func updateNodepool(args Arguments) (*result, error) {
 	}
 
 	r := &result{
-		nodePool: response.Payload,
+		NodePool: response.Payload,
 	}
 
 	return r, nil
@@ -177,7 +181,7 @@ func updateNodepool(args Arguments) (*result, error) {
 func printResult(cmd *cobra.Command, positionalArgs []string) {
 	args, _ := collectArguments(positionalArgs)
 
-	r, err := updateNodepool(args)
+	r, err := updateNodePool(args)
 	if err != nil {
 		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
@@ -199,5 +203,5 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		os.Exit(1)
 	}
 
-	fmt.Println(color.GreenString("Node pool '%s' (ID '%s') in cluster '%s' has been modified.", r.nodePool.Name, r.nodePool.ID, args.ClusterID))
+	fmt.Println(color.GreenString("Node pool '%s' (ID '%s') in cluster '%s' has been modified.", r.NodePool.Name, r.NodePool.ID, args.ClusterID))
 }
