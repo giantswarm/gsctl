@@ -97,7 +97,7 @@ func Test_CollectArgs(t *testing.T) {
 			if err != nil {
 				t.Errorf("Case %d - Unexpected error '%s'", i, err)
 			}
-			if diff := cmp.Diff(tc.resultingArgs, args, cmpopts.IgnoreUnexported(Arguments{})); diff != "" {
+			if diff := cmp.Diff(tc.resultingArgs, args, cmpopts.IgnoreFields(Arguments{}, "FileSystem")); diff != "" {
 				t.Errorf("Case %d - Resulting args unequal. (-expected +got):\n%s", i, diff)
 			}
 		})
@@ -356,7 +356,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			description: "Definition from YAML file",
 			inputArgs: &Arguments{
 				ClusterName:   "Cluster Name from Args",
-				fileSystem:    afero.NewOsFs(), // needed for YAML file access
+				FileSystem:    afero.NewOsFs(), // needed for YAML file access
 				InputYAMLFile: "testdata/minimal.yaml",
 				Owner:         "acme",
 				AuthToken:     "fake token",
@@ -453,7 +453,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 			inputArgs: &Arguments{
 				Owner:         "owner",
 				AuthToken:     "some-token",
-				fileSystem:    afero.NewOsFs(),
+				FileSystem:    afero.NewOsFs(),
 				InputYAMLFile: "does/not/exist.yaml",
 				DryRun:        true,
 			},

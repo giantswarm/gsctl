@@ -27,13 +27,12 @@ import (
 // Arguments contains all possible input parameter needed
 // (and optionally available) for creating a cluster.
 type Arguments struct {
-	APIEndpoint       string
-	AuthToken         string
-	AvailabilityZones int
-	ClusterName       string
-	DryRun            bool
-	// fileSystem is not exposed to hide it from comparison in tests.
-	fileSystem               afero.Fs
+	APIEndpoint              string
+	AuthToken                string
+	AvailabilityZones        int
+	ClusterName              string
+	DryRun                   bool
+	FileSystem               afero.Fs
 	InputYAMLFile            string
 	NumWorkers               int
 	Owner                    string
@@ -61,7 +60,7 @@ func collectArguments() Arguments {
 		AvailabilityZones:        cmdAvailabilityZones,
 		ClusterName:              cmdClusterName,
 		DryRun:                   cmdDryRun,
-		fileSystem:               config.FileSystem,
+		FileSystem:               config.FileSystem,
 		InputYAMLFile:            cmdInputYAMLFile,
 		NumWorkers:               flags.NumWorkers,
 		Owner:                    cmdOwner,
@@ -496,7 +495,7 @@ func addCluster(args Arguments) (creationResult, error) {
 
 	if args.InputYAMLFile != "" {
 		// definition from file (and optionally flags)
-		result.definition, err = readDefinitionFromFile(args.fileSystem, args.InputYAMLFile)
+		result.definition, err = readDefinitionFromFile(args.FileSystem, args.InputYAMLFile)
 		if err != nil {
 			return creationResult{}, microerror.Maskf(errors.YAMLFileNotReadableError, err.Error())
 		}
