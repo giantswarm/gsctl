@@ -2,6 +2,7 @@
 package cluster
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -133,8 +134,9 @@ Examples:
 
   gsctl create cluster \
     -o myorg --num-workers 3 \
-    --dry-run --verbose
+	--dry-run --verbose
 
+  cat my-cluster.yaml | gsctl create cluster -f -
 `,
 		PreRun: printValidation,
 		Run:    printResult,
@@ -160,7 +162,7 @@ func initFlags() {
 	Command.ResetFlags()
 
 	Command.Flags().IntVarP(&cmdAvailabilityZones, "availability-zones", "", 0, "Number of availability zones to use on AWS. Default is 1.")
-	Command.Flags().StringVarP(&cmdInputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file")
+	Command.Flags().StringVarP(&cmdInputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file. Use '-' to read from STDIN.")
 	Command.Flags().StringVarP(&cmdClusterName, "name", "n", "", "Cluster name")
 	Command.Flags().StringVarP(&cmdOwner, "owner", "o", "", "Organization to own the cluster")
 	Command.Flags().StringVarP(&flags.Release, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
@@ -259,7 +261,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 			}
 		case errors.IsYAMLFileNotReadableError(err):
 			headline = "Could not read YAML file"
-			subtext = fmt.Sprintf("The file '%s' could not read. Please make sure that it is valid YAML.", aca.InputYAMLFile)
+			subtext = fmt.Sprintf("The file '%s' could not be read. Please make sure that it is readable and contains valid YAML.", aca.InputYAMLFile)
 		case errors.IsCouldNotCreateJSONRequestBodyError(err):
 			headline = "Could not create the JSON body for cluster creation API request"
 			subtext = "There seems to be a problem in parsing the cluster definition. Please contact Giant Swarm via Slack or via support@giantswarm.io with details on how you executes this command."
@@ -376,7 +378,7 @@ func verifyPreconditions(args Arguments) error {
 func readDefinitionFromYAML(yamlBytes []byte) (*types.ClusterDefinition, error) {
 	def := &types.ClusterDefinition{}
 
-	err := yaml.Unmarshal(yamlBytes, &def)
+	err := yaml.Unmarshal(yamlBytes, def)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -503,10 +505,30 @@ func createAddClusterBody(d *types.ClusterDefinition) *models.V4AddClusterReques
 // addCluster actually adds a cluster, interpreting all the input Configuration
 // and returning a structured result
 func addCluster(args Arguments) (*creationResult, error) {
-	result := &creationResult{}
+	result := &creationResult{
+		definition: &types.ClusterDefinition{},
+	}
 	var err error
 
-	if args.InputYAMLFile != "" {
+	if args.InputYAMLFile == "-" {
+		// Definintion coming from STDIN.
+		yamlString := ""
+		scanner := bufio.NewScanner(os.Stdin)
+
+		for scanner.Scan() {
+			yamlString += scanner.Text() + "\n"
+		}
+
+		if err := scanner.Err(); err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		result.definition, err = readDefinitionFromYAML([]byte(yamlString))
+		if err != nil {
+			fmt.Printf("Error: %#v\n", err)
+			return nil, microerror.Maskf(errors.YAMLFileNotReadableError, err.Error())
+		}
+	} else if args.InputYAMLFile != "" {
 		// definition from file (and optionally flags)
 		result.definition, err = readDefinitionFromFile(args.FileSystem, args.InputYAMLFile)
 		if err != nil {
