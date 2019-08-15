@@ -197,12 +197,12 @@ func Test_ReadDefinitionFiles(t *testing.T) {
 func Test_ParseYAMLDefinition(t *testing.T) {
 	var testCases = []struct {
 		inputYAML      []byte
-		expectedOutput types.ClusterDefinition
+		expectedOutput *types.ClusterDefinition
 	}{
 		// Minimal YAML.
 		{
 			[]byte(`owner: myorg`),
-			types.ClusterDefinition{
+			&types.ClusterDefinition{
 				Owner: "myorg",
 			},
 		},
@@ -215,7 +215,7 @@ availability_zones: 3
 scaling:
   min: 3
   max: 5`),
-			types.ClusterDefinition{
+			&types.ClusterDefinition{
 				Owner:             "myorg",
 				Name:              "My cluster",
 				ReleaseVersion:    "1.2.3",
@@ -243,7 +243,7 @@ workers:
   storage:
     size_gb: 50
 `),
-			types.ClusterDefinition{
+			&types.ClusterDefinition{
 				Owner: "myorg",
 				Workers: []types.NodeDefinition{
 					types.NodeDefinition{
@@ -263,8 +263,7 @@ workers:
 
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			def := types.ClusterDefinition{}
-			err := yaml.Unmarshal(tc.inputYAML, &def)
+			def, err := readDefinitionFromYAML(tc.inputYAML)
 			if err != nil {
 				t.Errorf("Case %d - Unexpected error %v", i, err)
 			}
