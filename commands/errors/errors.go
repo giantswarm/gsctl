@@ -313,6 +313,16 @@ func IsYAMLFileNotReadableError(err error) bool {
 	return microerror.Cause(err) == YAMLFileNotReadableError
 }
 
+// YAMLNotParseableError means a YAML file was not readable
+var YAMLNotParseableError = &microerror.Error{
+	Kind: "YAMLNotParseableError",
+}
+
+// IsYAMLNotParseableError asserts YAMLNotParseableError.
+func IsYAMLNotParseableError(err error) bool {
+	return microerror.Cause(err) == YAMLNotParseableError
+}
+
 // CouldNotCreateJSONRequestBodyError occurs when we could not create a JSON
 // request body based on the input we have, so something in out input attributes
 // is wrong.
