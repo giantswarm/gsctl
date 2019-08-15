@@ -3,21 +3,184 @@ package cluster
 import (
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/giantswarm/microerror"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/spf13/afero"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
-// TestReadFiles tests the readDefinitionFromFile with all
+// configYAML is a mock configuration used by some of the tests.
+const configYAML = `last_version_check: 0001-01-01T00:00:00Z
+endpoints:
+  https://foo:
+    email: email@example.com
+    token: some-token
+selected_endpoint: https://foo
+updated: 2017-09-29T11:23:15+02:00
+`
+
+// Test_CollectArgs tests whether collectArguments produces the expected results.
+func Test_CollectArgs(t *testing.T) {
+	var testCases = []struct {
+		// The flags we pass to the command.
+		flags []string
+		// What we expect as arguments.
+		resultingArgs Arguments
+	}{
+		{
+			[]string{""},
+			Arguments{
+				APIEndpoint: "https://foo",
+				AuthToken:   "some-token",
+				Scheme:      "giantswarm",
+			},
+		},
+		{
+			[]string{
+				"--owner=acme",
+				"--availability-zones=2",
+				"--name=ClusterName",
+				"--release=1.2.3",
+				"--num-workers=5",
+				"--workers-min=5",
+				"--workers-max=10",
+				"--aws-instance-type=m10.impossible",
+				"--azure-vm-size=DoesNotExist",
+				"--num-cpus=4",
+				"--memory-gb=20",
+				"--storage-gb=40",
+				"--dry-run=true",
+			},
+			Arguments{
+				APIEndpoint:              "https://foo",
+				AuthToken:                "some-token",
+				AvailabilityZones:        2,
+				ClusterName:              "ClusterName",
+				DryRun:                   true,
+				NumWorkers:               5,
+				Owner:                    "acme",
+				ReleaseVersion:           "1.2.3",
+				Scheme:                   "giantswarm",
+				WorkerAwsEc2InstanceType: "m10.impossible",
+				WorkerAzureVMSize:        "DoesNotExist",
+				WorkerMemorySizeGB:       20,
+				WorkerNumCPUs:            4,
+				WorkersMax:               10,
+				WorkersMin:               5,
+				WorkerStorageSizeGB:      40,
+			},
+		},
+	}
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, configYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			initFlags()
+			Command.ParseFlags(tc.flags)
+
+			args := collectArguments()
+			if err != nil {
+				t.Errorf("Case %d - Unexpected error '%s'", i, err)
+			}
+			if diff := cmp.Diff(tc.resultingArgs, args, cmpopts.IgnoreFields(Arguments{}, "FileSystem")); diff != "" {
+				t.Errorf("Case %d - Resulting args unequal. (-expected +got):\n%s", i, diff)
+			}
+		})
+	}
+}
+
+// Test_verifyPreconditions tests cases where validating preconditions fails.
+func Test_verifyPreconditions(t *testing.T) {
+	var testCases = []struct {
+		args         Arguments
+		errorMatcher func(error) bool
+	}{
+		// Token missing.
+		{
+			Arguments{
+				APIEndpoint: "https://mock-url",
+			},
+			errors.IsNotLoggedInError,
+		},
+		// Combining definition file with the wrong flags
+		{
+			Arguments{
+				AuthToken:     "token",
+				APIEndpoint:   "https://mock-url",
+				InputYAMLFile: "my-file.yaml",
+				WorkerNumCPUs: 8,
+			},
+			errors.IsConflictingFlagsError,
+		},
+		// Combining NumWorkers and  Min/Max.
+		{
+			Arguments{
+				AuthToken:   "token",
+				APIEndpoint: "https://mock-url",
+				NumWorkers:  3,
+				WorkersMin:  3,
+				WorkersMax:  3,
+			},
+			errors.IsConflictingWorkerFlagsUsed,
+		},
+		// Combining Min and Max in an unplausible way.
+		{
+			Arguments{
+				AuthToken:   "token",
+				APIEndpoint: "https://mock-url",
+				WorkersMin:  5,
+				WorkersMax:  3,
+			},
+			errors.IsWorkersMinMaxInvalid,
+		},
+		// Not enopugh CPU.
+		{
+			Arguments{
+				AuthToken:                "token",
+				APIEndpoint:              "https://mock-url",
+				WorkerNumCPUs:            1,
+				WorkerAwsEc2InstanceType: "my-mystic-type",
+			},
+			errors.IsIncompatibleSettingsError,
+		},
+	}
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			err := verifyPreconditions(tc.args)
+			if err == nil {
+				t.Errorf("Case %d - Expected error, got nil", i)
+			} else if !tc.errorMatcher(err) {
+				t.Errorf("Case %d - Error did not match expectec type. Got '%s'", i, err)
+			}
+		})
+	}
+}
+
+// Test_ReadDefinitionFiles tests the readDefinitionFromFile with all
 // YAML files in the testdata directory.
-func TestReadFiles(t *testing.T) {
+func Test_ReadDefinitionFiles(t *testing.T) {
 	basePath := "testdata"
 	fs := afero.NewOsFs()
 	files, _ := afero.ReadDir(fs, basePath)
@@ -30,76 +193,86 @@ func TestReadFiles(t *testing.T) {
 	}
 }
 
-// Test_CreateFromYAML01 tests parsing a most simplistic YAML definition.
-func Test_CreateFromYAML01(t *testing.T) {
-	def := types.ClusterDefinition{}
-	data := []byte(`owner: myorg`)
-
-	err := yaml.Unmarshal(data, &def)
-	if err != nil {
-		t.Fatalf("expected error to be empty, got %#v", err)
-	}
-
-	if def.Owner != "myorg" {
-		t.Error("expected owner 'myorg', got: ", def.Owner)
-	}
-}
-
-// Test_CreateFromYAML02 tests parsing a rather simplistic YAML definition.
-func Test_CreateFromYAML02(t *testing.T) {
-	def := types.ClusterDefinition{}
-	data := []byte(`
-owner: myorg
-name: Minimal cluster spec
-`)
-
-	err := yaml.Unmarshal(data, &def)
-	if err != nil {
-		t.Fatalf("expected error to be empty, got %#v", err)
-	}
-
-	if def.Owner != "myorg" {
-		t.Error("expected owner 'myorg', got: ", def.Owner)
-	}
-	if def.Name != "Minimal cluster spec" {
-		t.Error("expected name 'Minimal cluster spec', got: ", def.Name)
-	}
-}
-
-// Test_CreateFromYAML03 tests all the worker details.
-func Test_CreateFromYAML03(t *testing.T) {
-	def := types.ClusterDefinition{}
-	data := []byte(`
-owner: littleco
+// Test_ParseYAMLDefinition tests parsing YAML definition files.
+func Test_ParseYAMLDefinition(t *testing.T) {
+	var testCases = []struct {
+		inputYAML      []byte
+		expectedOutput types.ClusterDefinition
+	}{
+		// Minimal YAML.
+		{
+			[]byte(`owner: myorg`),
+			types.ClusterDefinition{
+				Owner: "myorg",
+			},
+		},
+		// More details.
+		{
+			[]byte(`owner: myorg
+name: My cluster
+release_version: 1.2.3
+availability_zones: 3
+scaling:
+  min: 3
+  max: 5`),
+			types.ClusterDefinition{
+				Owner:             "myorg",
+				Name:              "My cluster",
+				ReleaseVersion:    "1.2.3",
+				AvailabilityZones: 3,
+				Scaling: types.ScalingDefinition{
+					Min: 3,
+					Max: 5,
+				},
+			},
+		},
+		// KVM worker details.
+		{
+			[]byte(`owner: myorg
 workers:
-  - memory:
-    size_gb: 2
-  - cpu:
-      cores: 2
-    memory:
-      size_gb: 5.5
-    storage:
-      size_gb: 13
-    labels:
-      foo: bar
-`)
-
-	err := yaml.Unmarshal(data, &def)
-	if err != nil {
-		t.Fatalf("expected error to be empty, got %#v", err)
+- memory:
+    size_gb: 16.5
+  cpu:
+    cores: 4
+  storage:
+    size_gb: 100
+- memory:
+    size_gb: 32
+  cpu:
+    cores: 8
+  storage:
+    size_gb: 50
+`),
+			types.ClusterDefinition{
+				Owner: "myorg",
+				Workers: []types.NodeDefinition{
+					types.NodeDefinition{
+						Memory:  types.MemoryDefinition{SizeGB: 16.5},
+						CPU:     types.CPUDefinition{Cores: 4},
+						Storage: types.StorageDefinition{SizeGB: 100},
+					},
+					types.NodeDefinition{
+						Memory:  types.MemoryDefinition{SizeGB: 32},
+						CPU:     types.CPUDefinition{Cores: 8},
+						Storage: types.StorageDefinition{SizeGB: 50},
+					},
+				},
+			},
+		},
 	}
 
-	if len(def.Workers) != 2 {
-		t.Error("expected 2 workers, got: ", len(def.Workers))
-	}
-	if def.Workers[1].CPU.Cores != 2 {
-		t.Error("expected def.Workers[1].CPU.Cores to be 2, got: ", def.Workers[1].CPU.Cores)
-	}
-	if def.Workers[1].Memory.SizeGB != 5.5 {
-		t.Error("expected def.Workers[1].Memory.SizeGB to be 5.5, got: ", def.Workers[1].Memory.SizeGB)
-	}
-	if def.Workers[1].Storage.SizeGB != 13.0 {
-		t.Error("expected def.Workers[1].Storage.SizeGB to be 13, got: ", def.Workers[1].Storage.SizeGB)
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			def := types.ClusterDefinition{}
+			err := yaml.Unmarshal(tc.inputYAML, &def)
+			if err != nil {
+				t.Errorf("Case %d - Unexpected error %v", i, err)
+			}
+
+			if diff := cmp.Diff(tc.expectedOutput, def); diff != "" {
+				t.Errorf("Case %d - Resulting definition unequal. (-expected +got):\n%s", i, diff)
+			}
+		})
 	}
 }
 
@@ -234,7 +407,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		testCase.inputArgs.APIEndpoint = mockServer.URL
 		testCase.inputArgs.UserProvidedToken = testCase.inputArgs.AuthToken
 
-		err := validatePreConditions(*testCase.inputArgs)
+		err := verifyPreconditions(*testCase.inputArgs)
 		if err != nil {
 			t.Errorf("Validation error in testCase %d: %s", i, err.Error())
 		}
@@ -306,7 +479,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 		flags.APIEndpoint = mockServer.URL // required to make InitClient() work
 		testCase.inputArgs.APIEndpoint = mockServer.URL
 
-		err := validatePreConditions(*testCase.inputArgs)
+		err := verifyPreconditions(*testCase.inputArgs)
 		if err != nil {
 			t.Errorf("Unexpected error in argument validation: %#v", err)
 		} else {
@@ -373,7 +546,7 @@ func Test_CreateCluster_ValidationFailures(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := validatePreConditions(*tc.inputArgs)
+			err := verifyPreconditions(*tc.inputArgs)
 
 			switch {
 			case err == nil && tc.errorMatcher == nil:

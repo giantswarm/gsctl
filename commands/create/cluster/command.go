@@ -154,6 +154,12 @@ Examples:
 )
 
 func init() {
+	initFlags()
+}
+
+func initFlags() {
+	Command.ResetFlags()
+
 	Command.Flags().IntVarP(&cmdAvailabilityZones, "availability-zones", "", 0, "Number of availability zones to use on AWS. Default is 1.")
 	Command.Flags().StringVarP(&cmdInputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file")
 	Command.Flags().StringVarP(&cmdClusterName, "name", "n", "", "Cluster name")
@@ -179,7 +185,7 @@ func printValidation(cmd *cobra.Command, args []string) {
 	headline := ""
 	subtext := ""
 
-	err := validatePreConditions(aca)
+	err := verifyPreconditions(aca)
 	if err != nil {
 		errors.HandleCommonErrors(err)
 
@@ -304,10 +310,10 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 }
 
-// validatePreConditions checks preconditions and returns an error in case
-func validatePreConditions(args Arguments) error {
+// verifyPreconditions checks preconditions and returns an error in case.
+func verifyPreconditions(args Arguments) error {
 	// logged in?
-	if config.Config.Token == "" && args.AuthToken == "" {
+	if args.AuthToken == "" && args.UserProvidedToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 

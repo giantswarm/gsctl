@@ -336,10 +336,11 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:bf40199583e5143d1472fc34d10d6f4b69d97572142acf343b3e43136da40823"
+  digest = "1:010d46ea3c1e730897e53058d1013a963f3f987675dda87df64f891b945281db"
   name = "github.com/google/go-cmp"
   packages = [
     "cmp",
+    "cmp/cmpopts",
     "cmp/internal/diff",
     "cmp/internal/flags",
     "cmp/internal/function",
@@ -898,6 +899,7 @@
     "github.com/go-openapi/runtime/client",
     "github.com/go-openapi/strfmt",
     "github.com/google/go-cmp/cmp",
+    "github.com/google/go-cmp/cmp/cmpopts",
     "github.com/hashicorp/go-rootcerts",
     "github.com/howeyc/gopass",
     "github.com/juju/errgo",
