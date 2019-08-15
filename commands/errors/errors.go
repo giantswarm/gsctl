@@ -100,6 +100,16 @@ func IsNodePoolIDMissingError(err error) bool {
 	return microerror.Cause(err) == NodePoolIDMissingError
 }
 
+// NodePoolIDMalformedError means a cluster/nodepool ID tuple has been formatted the wrong way.
+var NodePoolIDMalformedError = &microerror.Error{
+	Kind: "NodePoolIDMalformedError",
+}
+
+// IsNodePoolIDMalformedError asserts IsNodePoolIDMalformedError.
+func IsNodePoolIDMalformedError(err error) bool {
+	return microerror.Cause(err) == NodePoolIDMalformedError
+}
+
 // ClusterNotFoundError means that a given cluster does not exist
 var ClusterNotFoundError = &microerror.Error{
 	Kind: "ClusterNotFoundError",
@@ -644,4 +654,16 @@ var WorkersMinMaxInvalidError = &microerror.Error{
 // IsWorkersMinMaxInvalid asserts WorkersMinMaxInvalidError.
 func IsWorkersMinMaxInvalid(err error) bool {
 	return microerror.Cause(err) == WorkersMinMaxInvalidError
+}
+
+// NoOpError is raised when the user calls a command without any meaningful
+// parameters, resulting in no change/nothing done.
+var NoOpError = &microerror.Error{
+	Kind: "NoOpError",
+	Desc: "Nothing to be done",
+}
+
+// IsNoOpError asserts NoOpError.
+func IsNoOpError(err error) bool {
+	return microerror.Cause(err) == NoOpError
 }

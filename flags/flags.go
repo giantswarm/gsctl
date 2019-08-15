@@ -35,6 +35,9 @@ var (
 	// Full represents the switch to disable all output truncation, passed as a flag.
 	Full bool
 
+	// Name is the name of a cluster or node pool.
+	Name string
+
 	// NumWorkers is the number of workers required via flag on execution.
 	NumWorkers int
 

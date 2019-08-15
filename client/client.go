@@ -473,6 +473,22 @@ func (w *Wrapper) GetNodePools(clusterID string, p *AuxiliaryParams) (*nodepools
 	return response, nil
 }
 
+// ModifyNodePool modifies a node pool.
+func (w *Wrapper) ModifyNodePool(clusterID, nodePoolID string, modifyNodePoolRequest *models.V5ModifyNodePoolRequest, p *AuxiliaryParams) (*nodepools.ModifyNodePoolOK, error) {
+	params := nodepools.NewModifyNodePoolParams().WithClusterID(clusterID).WithNodepoolID(nodePoolID).WithBody(modifyNodePoolRequest)
+	err := setParamsWithAuthorization(p, w, params)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Nodepools.ModifyNodePool(params, nil)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
 // DeleteNodePool deletes a node pool.
 func (w *Wrapper) DeleteNodePool(clusterID, nodePoolID string, p *AuxiliaryParams) (*nodepools.DeleteNodePoolAccepted, error) {
 	params := nodepools.NewDeleteNodePoolParams().WithClusterID(clusterID).WithNodepoolID(nodePoolID)

@@ -92,7 +92,6 @@ Examples:
 	}
 
 	cmdAwsEc2InstanceType   string
-	cmdName                 string
 	cmdAvailabilityZonesNum int
 	cmdAvailabilityZones    []string
 )
@@ -108,7 +107,7 @@ func init() {
 // initFlags initializes flags in a re-usable way, so we can call it from multiple tests.
 func initFlags() {
 	Command.ResetFlags()
-	Command.Flags().StringVarP(&cmdName, "name", "n", "", "name or purpose description of the node pool")
+	Command.Flags().StringVarP(&flags.Name, "name", "n", "", "name or purpose description of the node pool")
 	Command.Flags().IntVarP(&cmdAvailabilityZonesNum, "num-availability-zones", "", 0, "Number of availability zones to use. Default is 1.")
 	Command.Flags().StringSliceVarP(&cmdAvailabilityZones, "availability-zones", "", nil, "List of availability zones to use, instead of setting a number. Use comma to separate values.")
 	Command.Flags().StringVarP(&flags.WorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers, e. g. 'm5.2xlarge'")
@@ -168,7 +167,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		AvailabilityZonesNum:  cmdAvailabilityZonesNum,
 		ClusterID:             positionalArgs[0],
 		InstanceType:          flags.WorkerAwsEc2InstanceType,
-		Name:                  cmdName,
+		Name:                  flags.Name,
 		ScalingMax:            flags.WorkersMax,
 		ScalingMin:            flags.WorkersMin,
 		Scheme:                scheme,
