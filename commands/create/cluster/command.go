@@ -84,7 +84,7 @@ type creationResult struct {
 	// location to fetch details on new cluster from
 	location string
 	// cluster definition assembled
-	definition types.ClusterDefinition
+	definition *types.ClusterDefinition
 }
 
 const (
@@ -92,7 +92,6 @@ const (
 )
 
 var (
-
 	// Command performs the "create cluster" function
 	Command = &cobra.Command{
 		Use:   "cluster",
@@ -366,26 +365,31 @@ func verifyPreconditions(args Arguments) error {
 	return nil
 }
 
-// readDefinitionFromFile reads a cluster definition from a YAML config file
-func readDefinitionFromFile(fs afero.Fs, path string) (types.ClusterDefinition, error) {
-	def := types.ClusterDefinition{}
+// readDefinitionFromYAML reads a cluster definition from YAML data.
+func readDefinitionFromYAML(yamlBytes []byte) (*types.ClusterDefinition, error) {
+	def := &types.ClusterDefinition{}
 
-	data, err := afero.ReadFile(fs, path)
+	err := yaml.Unmarshal(yamlBytes, &def)
 	if err != nil {
-		return types.ClusterDefinition{}, microerror.Mask(err)
-	}
-
-	err = yaml.Unmarshal(data, &def)
-	if err != nil {
-		return types.ClusterDefinition{}, microerror.Mask(err)
+		return nil, microerror.Mask(err)
 	}
 
 	return def, nil
 }
 
+// readDefinitionFromFile reads a cluster definition from a YAML file.
+func readDefinitionFromFile(fs afero.Fs, path string) (*types.ClusterDefinition, error) {
+	data, err := afero.ReadFile(fs, path)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return readDefinitionFromYAML(data)
+}
+
 // createDefinitionFromFlags creates a clusterDefinition based on the
 // flags/arguments the user has given
-func definitionFromFlags(def types.ClusterDefinition, args Arguments) types.ClusterDefinition {
+func definitionFromFlags(def *types.ClusterDefinition, args Arguments) *types.ClusterDefinition {
 	if args.AvailabilityZones != 0 {
 		def.AvailabilityZones = args.AvailabilityZones
 	}
@@ -462,7 +466,7 @@ func definitionFromFlags(def types.ClusterDefinition, args Arguments) types.Clus
 }
 
 // creates a models.V4AddClusterRequest from clusterDefinition
-func createAddClusterBody(d types.ClusterDefinition) *models.V4AddClusterRequest {
+func createAddClusterBody(d *types.ClusterDefinition) *models.V4AddClusterRequest {
 	a := &models.V4AddClusterRequest{}
 	a.AvailabilityZones = int64(d.AvailabilityZones)
 	a.Name = d.Name
@@ -489,25 +493,25 @@ func createAddClusterBody(d types.ClusterDefinition) *models.V4AddClusterRequest
 
 // addCluster actually adds a cluster, interpreting all the input Configuration
 // and returning a structured result
-func addCluster(args Arguments) (creationResult, error) {
-	var result creationResult
+func addCluster(args Arguments) (*creationResult, error) {
+	result := &creationResult{}
 	var err error
 
 	if args.InputYAMLFile != "" {
 		// definition from file (and optionally flags)
 		result.definition, err = readDefinitionFromFile(args.FileSystem, args.InputYAMLFile)
 		if err != nil {
-			return creationResult{}, microerror.Maskf(errors.YAMLFileNotReadableError, err.Error())
+			return nil, microerror.Maskf(errors.YAMLFileNotReadableError, err.Error())
 		}
 		result.definition = definitionFromFlags(result.definition, args)
 	} else {
 		// definition from flags only
-		result.definition = definitionFromFlags(types.ClusterDefinition{}, args)
+		result.definition = definitionFromFlags(&types.ClusterDefinition{}, args)
 	}
 
 	// Validate definition
 	if result.definition.Owner == "" {
-		return creationResult{}, microerror.Mask(errors.ClusterOwnerMissingError)
+		return nil, microerror.Mask(errors.ClusterOwnerMissingError)
 	}
 
 	// Validations based on definition file.
@@ -515,7 +519,7 @@ func addCluster(args Arguments) (creationResult, error) {
 	if args.InputYAMLFile != "" {
 		// number of workers
 		if len(result.definition.Workers) > 0 && len(result.definition.Workers) < limits.MinimumNumWorkers {
-			return creationResult{}, microerror.Mask(errors.NotEnoughWorkerNodesError)
+			return nil, microerror.Mask(errors.NotEnoughWorkerNodesError)
 		}
 	}
 
@@ -523,7 +527,7 @@ func addCluster(args Arguments) (creationResult, error) {
 	addClusterBody := createAddClusterBody(result.definition)
 	_, marshalErr := json.Marshal(addClusterBody)
 	if marshalErr != nil {
-		return result, microerror.Maskf(errors.CouldNotCreateJSONRequestBodyError, marshalErr.Error())
+		return nil, microerror.Maskf(errors.CouldNotCreateJSONRequestBodyError, marshalErr.Error())
 	}
 
 	// Preview in YAML format
@@ -542,7 +546,7 @@ func addCluster(args Arguments) (creationResult, error) {
 
 		clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
 		if err != nil {
-			return result, microerror.Mask(err)
+			return nil, microerror.Mask(err)
 		}
 
 		auxParams := clientWrapper.DefaultAuxiliaryParams()
@@ -550,7 +554,7 @@ func addCluster(args Arguments) (creationResult, error) {
 		// perform API call
 		response, err := clientWrapper.CreateCluster(addClusterBody, auxParams)
 		if err != nil {
-			return result, microerror.Mask(err)
+			return nil, microerror.Mask(err)
 		}
 
 		// success
