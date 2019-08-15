@@ -394,9 +394,13 @@ func readDefinitionFromFile(fs afero.Fs, path string) (*types.ClusterDefinition,
 	return readDefinitionFromYAML(data)
 }
 
-// createDefinitionFromFlags creates a clusterDefinition based on the
-// flags/arguments the user has given
-func definitionFromFlags(def *types.ClusterDefinition, args Arguments) *types.ClusterDefinition {
+// updateDefinitionFromFlags extend/overwrites a clusterDefinition based on the
+// flags/arguments the user has given.
+func updateDefinitionFromFlags(def *types.ClusterDefinition, args Arguments) {
+	if def == nil {
+		return
+	}
+
 	if args.AvailabilityZones != 0 {
 		def.AvailabilityZones = args.AvailabilityZones
 	}
@@ -468,8 +472,6 @@ func definitionFromFlags(def *types.ClusterDefinition, args Arguments) *types.Cl
 	workers = append(workers, worker)
 
 	def.Workers = workers
-
-	return def
 }
 
 // creates a models.V4AddClusterRequest from clusterDefinition
@@ -510,11 +512,10 @@ func addCluster(args Arguments) (*creationResult, error) {
 		if err != nil {
 			return nil, microerror.Maskf(errors.YAMLFileNotReadableError, err.Error())
 		}
-		result.definition = definitionFromFlags(result.definition, args)
-	} else {
-		// definition from flags only
-		result.definition = definitionFromFlags(&types.ClusterDefinition{}, args)
 	}
+
+	// Let user-provided arguments (flags) overwrite/extend definition from YAML.
+	updateDefinitionFromFlags(result.definition, args)
 
 	// Validate definition
 	if result.definition.Owner == "" {
