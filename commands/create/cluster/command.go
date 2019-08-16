@@ -525,7 +525,6 @@ func addCluster(args Arguments) (*creationResult, error) {
 
 		result.definition, err = readDefinitionFromYAML([]byte(yamlString))
 		if err != nil {
-			fmt.Printf("Error: %#v\n", err)
 			return nil, microerror.Maskf(errors.YAMLFileNotReadableError, err.Error())
 		}
 	} else if args.InputYAMLFile != "" {
