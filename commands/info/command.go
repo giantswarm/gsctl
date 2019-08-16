@@ -94,10 +94,10 @@ func printInfo(cmd *cobra.Command, args []string) {
 
 	output := []string{}
 
-	if result.version != buildinfo.Placeholder && result.version != "" {
+	if result.version != buildinfo.VersionPlaceholder && result.version != "" {
 		output = append(output, color.YellowString("%s version:", config.ProgramName)+"|"+color.CyanString(result.version)+" - https://github.com/giantswarm/gsctl/releases/tag/"+result.version)
 	} else {
-		output = append(output, color.YellowString("%s version:", config.ProgramName)+"|"+color.RedString(buildinfo.Placeholder))
+		output = append(output, color.YellowString("%s version:", config.ProgramName)+"|"+color.CyanString(buildinfo.VersionPlaceholder))
 	}
 
 	if result.buildDate != buildinfo.Placeholder && result.buildDate != "" {

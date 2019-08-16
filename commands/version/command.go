@@ -43,10 +43,10 @@ When executed with the -v/--verbose flag, the build date is printed in addition.
 func printVersion(cmd *cobra.Command, args []string) {
 	output := []string{}
 
-	if buildinfo.Version != buildinfo.Placeholder && buildinfo.Version != "" {
+	if buildinfo.Version != buildinfo.VersionPlaceholder && buildinfo.Version != "" {
 		output = append(output, color.YellowString("Version:")+"|"+color.CyanString(buildinfo.Version)+" - https://github.com/giantswarm/gsctl/releases/tag/"+buildinfo.Version)
 	} else {
-		output = append(output, color.YellowString("Version:")+"|"+color.RedString(buildinfo.Placeholder))
+		output = append(output, color.YellowString("Version:")+"|"+color.CyanString(buildinfo.VersionPlaceholder))
 	}
 
 	if buildinfo.BuildDate != buildinfo.Placeholder {
