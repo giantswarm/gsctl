@@ -12,6 +12,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/buildinfo"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/util"
 )
@@ -42,16 +43,24 @@ When executed with the -v/--verbose flag, the build date is printed in addition.
 func printVersion(cmd *cobra.Command, args []string) {
 	output := []string{}
 
-	if config.Version != "" {
-		output = append(output, color.YellowString("Version:")+"|"+color.CyanString(config.Version))
+	if buildinfo.Version != buildinfo.Placeholder && buildinfo.Version != "" {
+		output = append(output, color.YellowString("Version:")+"|"+color.CyanString(buildinfo.Version)+" - https://github.com/giantswarm/gsctl/releases/tag/"+buildinfo.Version)
 	} else {
-		output = append(output, color.YellowString("Version:")+"|"+color.CyanString("n/a (version number is only available in a built binary)"))
+		output = append(output, color.YellowString("Version:")+"|"+color.RedString(buildinfo.Placeholder))
 	}
-	if config.BuildDate != "" {
-		output = append(output, color.YellowString("Build date:")+"|"+color.CyanString(config.BuildDate))
+
+	if buildinfo.BuildDate != buildinfo.Placeholder {
+		output = append(output, color.YellowString("Build date:")+"|"+color.CyanString(buildinfo.BuildDate))
 	} else {
-		output = append(output, color.YellowString("Build date:")+"|"+color.CyanString("n/a (build date/time is only available in a built binary)"))
+		output = append(output, color.YellowString("Build date:")+"|"+color.RedString(buildinfo.Placeholder))
 	}
+
+	if buildinfo.Commit != buildinfo.Placeholder {
+		output = append(output, color.YellowString("Commit hash:")+"|"+color.CyanString(buildinfo.Commit)+" - https://github.com/giantswarm/gsctl/commit/"+buildinfo.Commit)
+	} else {
+		output = append(output, color.YellowString("Commit hash:")+"|"+color.RedString(buildinfo.Placeholder))
+	}
+
 	fmt.Println(columnize.SimpleFormat(output))
 
 	// check for an update
