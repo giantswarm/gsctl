@@ -94,22 +94,22 @@ func printInfo(cmd *cobra.Command, args []string) {
 
 	output := []string{}
 
+	if result.version != buildinfo.VersionPlaceholder && result.version != "" {
+		output = append(output, color.YellowString("%s version:", config.ProgramName)+"|"+color.CyanString(result.version)+" - https://github.com/giantswarm/gsctl/releases/tag/"+result.version)
+	} else {
+		output = append(output, color.YellowString("%s version:", config.ProgramName)+"|"+color.CyanString(buildinfo.VersionPlaceholder))
+	}
+
+	if result.buildDate != buildinfo.Placeholder && result.buildDate != "" {
+		output = append(output, color.YellowString("%s build:", config.ProgramName)+"|"+color.CyanString(result.buildDate))
+	} else {
+		output = append(output, color.YellowString("%s build:", config.ProgramName)+"|"+color.RedString(buildinfo.Placeholder))
+	}
+
 	if result.commitHash != buildinfo.Placeholder {
 		output = append(output, color.YellowString("%s commit hash:", config.ProgramName)+"|"+color.CyanString(result.commitHash)+" - https://github.com/giantswarm/gsctl/commit/"+result.commitHash)
 	} else {
-		output = append(output, color.YellowString("%s commit hash:", config.ProgramName)+"|n/a")
-	}
-
-	if result.version != buildinfo.Placeholder {
-		output = append(output, color.YellowString("%s version:", config.ProgramName)+"|"+color.CyanString(result.version))
-	} else {
-		output = append(output, color.YellowString("%s version:", config.ProgramName)+"|n/a")
-	}
-
-	if result.buildDate != buildinfo.Placeholder {
-		output = append(output, color.YellowString("%s build:", config.ProgramName)+"|"+color.CyanString(result.buildDate))
-	} else {
-		output = append(output, color.YellowString("%s build:", config.ProgramName)+"|"+color.RedString(result.buildDate))
+		output = append(output, color.YellowString("%s commit hash:", config.ProgramName)+"|"+color.RedString(buildinfo.Placeholder))
 	}
 
 	output = append(output, color.YellowString("Config path:")+"|"+color.CyanString(result.configFilePath))
