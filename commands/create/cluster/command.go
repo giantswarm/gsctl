@@ -252,14 +252,14 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		case errors.IsNotEnoughWorkerNodesError(err):
 			headline = "Not enough worker nodes specified"
 			subtext = fmt.Sprintf("If you specify workers in your definition file, you'll have to specify at least %d worker nodes for a useful cluster.", limits.MinimumNumWorkers)
-		case errors.IsYAMLNotParseableError(err):
+		case errors.IsYAMLNotParseable(err):
 			headline = "Could not parse YAML"
 			if aca.InputYAMLFile == "-" {
 				subtext = "The YAML data given via STDIN could not be parsed into a cluster definition."
 			} else {
 				subtext = fmt.Sprintf("The YAML data read from file '%s' could not be parsed into a cluster definition.", aca.InputYAMLFile)
 			}
-		case errors.IsYAMLFileNotReadableError(err):
+		case errors.IsYAMLFileNotReadable(err):
 			headline = "Could not read YAML file"
 			subtext = fmt.Sprintf("The file '%s' could not be read. Please make sure that it is readable and contains valid YAML.", aca.InputYAMLFile)
 		case errors.IsCouldNotCreateJSONRequestBodyError(err):

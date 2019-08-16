@@ -458,7 +458,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 			},
 			serverResponseJSON: []byte(``),
 			responseStatus:     0,
-			errorMatcher:       errors.IsYAMLFileNotReadableError,
+			errorMatcher:       errors.IsYAMLFileNotReadable,
 		},
 	}
 

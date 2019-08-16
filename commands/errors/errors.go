@@ -308,8 +308,8 @@ var YAMLFileNotReadableError = &microerror.Error{
 	Kind: "YAMLFileNotReadableError",
 }
 
-// IsYAMLFileNotReadableError asserts YAMLFileNotReadableError.
-func IsYAMLFileNotReadableError(err error) bool {
+// IsYAMLFileNotReadable asserts YAMLFileNotReadableError.
+func IsYAMLFileNotReadable(err error) bool {
 	return microerror.Cause(err) == YAMLFileNotReadableError
 }
 
@@ -318,8 +318,8 @@ var YAMLNotParseableError = &microerror.Error{
 	Kind: "YAMLNotParseableError",
 }
 
-// IsYAMLNotParseableError asserts YAMLNotParseableError.
-func IsYAMLNotParseableError(err error) bool {
+// IsYAMLNotParseable asserts YAMLNotParseableError.
+func IsYAMLNotParseable(err error) bool {
 	return microerror.Cause(err) == YAMLNotParseableError
 }
 
