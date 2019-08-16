@@ -507,3 +507,29 @@ func TestMalformedResponse(t *testing.T) {
 		t.Errorf("Expected 'Malformed response' error, got %s", err.Error())
 	}
 }
+
+// Test_CertificateSignedByUnknownAuthority ensures that the client returns a specific error for
+// a certificate issued by an unknown authority.
+func Test_CertificateSignedByUnknownAuthority(t *testing.T) {
+	// We use httptest.NewTLSServer here which uses it's own invalid certificate.
+	mockServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`[]`))
+	}))
+	defer mockServer.Close()
+
+	config := &Configuration{
+		Endpoint: mockServer.URL,
+	}
+
+	clientWrapper, err := New(config)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = clientWrapper.GetClusters(nil)
+	if !clienterror.IsCertificateSignedByUnknownAuthorityError(err) {
+		t.Errorf("Expected x509.UnknownAuthorityError, got %#v", err)
+	}
+}

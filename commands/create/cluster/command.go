@@ -508,6 +508,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 	result := &creationResult{
 		definition: &types.ClusterDefinition{},
 	}
+
 	var err error
 
 	if args.InputYAMLFile == "-" {

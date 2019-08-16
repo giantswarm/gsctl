@@ -1,6 +1,7 @@
 package clienterror
 
 import (
+	"crypto/x509"
 	"net/http"
 
 	"github.com/giantswarm/microerror"
@@ -81,5 +82,41 @@ func IsInternalServerError(err error) bool {
 	if apiErr, apiErrOK := microerror.Cause(err).(*APIError); apiErrOK {
 		return apiErr.HTTPStatusCode == http.StatusInternalServerError
 	}
+	return false
+}
+
+// IsCertificateSignedByUnknownAuthorityError checks whether the error represents
+// a x509.UnknownAuthorityError
+func IsCertificateSignedByUnknownAuthorityError(err error) bool {
+	if clientErr, ok := err.(*APIError); ok {
+		if _, certErrorOK := clientErr.OriginalError.(x509.UnknownAuthorityError); certErrorOK {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsCertificateHostnameError checks whether the error represents
+// a x509.HostnameError
+func IsCertificateHostnameError(err error) bool {
+	if clientErr, ok := err.(*APIError); ok {
+		if _, certErrorOK := clientErr.OriginalError.(x509.HostnameError); certErrorOK {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsCertificateInvalidError checks whether the error represents
+// a x509.UnknownAuthorityError
+func IsCertificateInvalidError(err error) bool {
+	if clientErr, ok := err.(*APIError); ok {
+		if _, certErrorOK := clientErr.OriginalError.(x509.CertificateInvalidError); certErrorOK {
+			return true
+		}
+	}
+
 	return false
 }

@@ -2,6 +2,7 @@ package clienterror
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"net/http"
@@ -563,6 +564,62 @@ func New(err error) *APIError {
 
 				return ae
 			}
+		}
+
+		// certificate signed by unknown authority
+		if certError, certErrorOK := urlError.Err.(x509.UnknownAuthorityError); certErrorOK {
+			ae.OriginalError = certError
+			ae.ErrorMessage = "Certificate signed by an unknown authority"
+			ae.ErrorDetails = fmt.Sprintf("The server's certificate has been signed by '%s'.", certError.Cert.Issuer)
+
+			return ae
+		}
+
+		// certificate hostname mismatch
+		if certError, certErrorOK := urlError.Err.(x509.HostnameError); certErrorOK {
+			ae.OriginalError = certError
+			ae.ErrorMessage = "Certificate host name mismatch"
+
+			// Extract hostname from request URL, if possible.
+			displayURL := urlError.URL
+			parsedURL, parsedURLErr := url.Parse(urlError.URL)
+			if parsedURLErr == nil {
+				displayURL = parsedURL.Host
+			}
+
+			ae.ErrorDetails = fmt.Sprintf("The certificate host name(s) (%s) does not match the URL '%s'.", strings.Join(certError.Certificate.DNSNames, ", "), displayURL)
+
+			return ae
+		}
+
+		// certificate invalid
+		if certError, certErrorOK := urlError.Err.(x509.CertificateInvalidError); certErrorOK {
+			ae.OriginalError = certError
+			ae.ErrorMessage = "Certificate is invalid"
+			switch certError.Reason {
+			case x509.NotAuthorizedToSign:
+				ae.ErrorDetails += fmt.Sprintf("\nThe certificate has been signed with another cert that is not a CA.")
+			case x509.Expired:
+				ae.ErrorDetails += fmt.Sprintf("The certificate has expired (NotBefore: %s, NotAfter: %s).", certError.Cert.NotBefore, certError.Cert.NotAfter)
+			case x509.CANotAuthorizedForThisName:
+				ae.ErrorDetails += fmt.Sprintf("\nThe intermediate or root CA has a name constraint that does not permit signing a certificate with this name/IP.")
+			case x509.TooManyIntermediates:
+				ae.ErrorDetails += fmt.Sprintf("\nThere are too many intermediate CAs in the chain.")
+			case x509.IncompatibleUsage:
+				ae.ErrorDetails += fmt.Sprintf("\nThe certificate has been issued for a purpose other than server communication.")
+			case x509.NameMismatch:
+				ae.ErrorDetails += fmt.Sprintf("\nThe subject name of a parent certificate does not match the issuer name in the child.")
+			case x509.NameConstraintsWithoutSANs:
+				ae.ErrorDetails += fmt.Sprintf("\nThe CA certificate contains name constrains, but the server certififcate does not include a Subject Alternative Name extension.")
+			case x509.UnconstrainedName:
+				ae.ErrorDetails += fmt.Sprintf("\nThe CA certificate contains permitted name constrains, but the server certififcate contains a name of an unsupported or unconstrained type.")
+			case x509.TooManyConstraints:
+				ae.ErrorDetails += fmt.Sprintf("\nThe number of comparison operations needed to check the certificate exceed the limit.")
+			case x509.CANotAuthorizedForExtKeyUsage:
+				ae.ErrorDetails += fmt.Sprintf("\nThe intermediate or root certificate does not permit a requested extended key usage.")
+			}
+
+			return ae
 		}
 
 		return ae
