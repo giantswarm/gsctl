@@ -50,6 +50,16 @@ func IsNotAuthorizedError(err error) bool {
 	return microerror.Cause(err) == NotAuthorizedError
 }
 
+// ParseError is used when the client had a problem parsing something.
+var ParseError = &microerror.Error{
+	Kind: "ParseError",
+}
+
+// IsParseError asserts ParseError.
+func IsParseError(err error) bool {
+	return microerror.Cause(err) == ParseError
+}
+
 // HandleErrors handles the errors known to this package.
 // Handling normally means printing a user-readable error message
 // and exiting with code 1. If the given error is not recognized,

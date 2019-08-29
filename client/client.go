@@ -23,6 +23,7 @@ import (
 	"github.com/giantswarm/gsclientgen/client/releases"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
+	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	rootcerts "github.com/hashicorp/go-rootcerts"
@@ -236,14 +237,6 @@ type paramSetter interface {
 	SetXGiantSwarmCmdLine(*string)
 }
 
-// paramSetterWithAuthorization is the interface we use to abstract
-// parameter types that include a SetAuthorization function.
-type paramSetterWithAuthorization interface {
-	paramSetter
-
-	SetAuthorization(string)
-}
-
 // setParams takes parameters from an AuxiliaryParams input, and from the
 // client wrapper (or rather it's config) and sets request parameters
 // accordingly, independent of type.
@@ -281,23 +274,19 @@ func setParams(p *AuxiliaryParams, w *Wrapper, params paramSetter) {
 	}
 }
 
-// setParamsWithAuthorization does the same as setParams, but also sets
-// an Autorization header if configured.
-func setParamsWithAuthorization(p *AuxiliaryParams, w *Wrapper, params paramSetterWithAuthorization) error {
-	if w != nil && w.conf != nil {
-		authHeader, err := w.conf.AuthHeaderGetter()
-		if err != nil {
-			return err
-		}
-
-		if authHeader != "" {
-			params.SetAuthorization(authHeader)
-		}
+func getAuthorization(w *Wrapper) (runtime.ClientAuthInfoWriter, error) {
+	authHeader, err := w.conf.AuthHeaderGetter()
+	if err != nil {
+		return nil, err
 	}
 
-	setParams(p, w, params)
+	parts := strings.Split(authHeader, " ")
 
-	return nil
+	if len(parts) != 2 {
+		return nil, microerror.Mask(ParseError)
+	}
+
+	return httptransport.APIKeyAuth("Authorization", "header", authHeader), nil
 }
 
 // CreateAuthToken creates an auth token using the gsclientgen client.
@@ -318,10 +307,11 @@ func (w *Wrapper) CreateAuthToken(email, password string, p *AuxiliaryParams) (*
 
 // DeleteAuthToken calls the API's deleteAuthToken operation using the gsclientgen client.
 func (w *Wrapper) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth_tokens.DeleteAuthTokenOK, error) {
-	params := auth_tokens.NewDeleteAuthTokenParams().WithAuthorization("giantswarm " + authToken)
+
+	params := auth_tokens.NewDeleteAuthTokenParams()
 	setParams(p, w, params)
 
-	response, err := w.gsclient.AuthTokens.DeleteAuthToken(params, nil)
+	response, err := w.gsclient.AuthTokens.DeleteAuthToken(params, httptransport.APIKeyAuth("Authorization", "header", "giantswarm "+authToken))
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -332,12 +322,14 @@ func (w *Wrapper) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth_t
 // CreateCluster creates cluster using the gsclientgen client.
 func (w *Wrapper) CreateCluster(addClusterRequest *models.V4AddClusterRequest, p *AuxiliaryParams) (*clusters.AddClusterCreated, error) {
 	params := clusters.NewAddClusterParams().WithBody(addClusterRequest)
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Clusters.AddCluster(params, nil)
+	response, err := w.gsclient.Clusters.AddCluster(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -348,12 +340,14 @@ func (w *Wrapper) CreateCluster(addClusterRequest *models.V4AddClusterRequest, p
 // ModifyCluster modifies a cluster using the gsclientgen client.
 func (w *Wrapper) ModifyCluster(clusterID string, body *models.V4ModifyClusterRequest, p *AuxiliaryParams) (*clusters.ModifyClusterOK, error) {
 	params := clusters.NewModifyClusterParams().WithClusterID(clusterID).WithBody(body)
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Clusters.ModifyCluster(params, nil)
+	response, err := w.gsclient.Clusters.ModifyCluster(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -364,12 +358,14 @@ func (w *Wrapper) ModifyCluster(clusterID string, body *models.V4ModifyClusterRe
 // DeleteCluster deletes a cluster using the gsclientgen client.
 func (w *Wrapper) DeleteCluster(clusterID string, p *AuxiliaryParams) (*clusters.DeleteClusterAccepted, error) {
 	params := clusters.NewDeleteClusterParams().WithClusterID(clusterID)
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Clusters.DeleteCluster(params, nil)
+	response, err := w.gsclient.Clusters.DeleteCluster(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -380,12 +376,14 @@ func (w *Wrapper) DeleteCluster(clusterID string, p *AuxiliaryParams) (*clusters
 // GetClusters fetches a list of clusters using the gsclientgen client.
 func (w *Wrapper) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, error) {
 	params := clusters.NewGetClustersParams()
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Clusters.GetClusters(params, nil)
+	response, err := w.gsclient.Clusters.GetClusters(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -396,12 +394,14 @@ func (w *Wrapper) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, erro
 // GetClusterV4 fetches details on a V4 cluster.
 func (w *Wrapper) GetClusterV4(clusterID string, p *AuxiliaryParams) (*clusters.GetClusterOK, error) {
 	params := clusters.NewGetClusterParams().WithClusterID(clusterID)
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Clusters.GetCluster(params, nil)
+	response, err := w.gsclient.Clusters.GetCluster(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -412,12 +412,14 @@ func (w *Wrapper) GetClusterV4(clusterID string, p *AuxiliaryParams) (*clusters.
 // GetClusterV5 fetches details on a V5 cluster.
 func (w *Wrapper) GetClusterV5(clusterID string, p *AuxiliaryParams) (*clusters.GetClusterV5OK, error) {
 	params := clusters.NewGetClusterV5Params().WithClusterID(clusterID)
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Clusters.GetClusterV5(params, nil)
+	response, err := w.gsclient.Clusters.GetClusterV5(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -428,12 +430,14 @@ func (w *Wrapper) GetClusterV5(clusterID string, p *AuxiliaryParams) (*clusters.
 // CreateNodePool creates a node pool.
 func (w *Wrapper) CreateNodePool(clusterID string, addNodePoolRequest *models.V5AddNodePoolRequest, p *AuxiliaryParams) (*nodepools.AddNodePoolCreated, error) {
 	params := nodepools.NewAddNodePoolParams().WithBody(addNodePoolRequest).WithClusterID(clusterID)
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Nodepools.AddNodePool(params, nil)
+	response, err := w.gsclient.Nodepools.AddNodePool(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -444,12 +448,14 @@ func (w *Wrapper) CreateNodePool(clusterID string, addNodePoolRequest *models.V5
 // GetNodePool fetches a node pool.
 func (w *Wrapper) GetNodePool(clusterID, nodePoolID string, p *AuxiliaryParams) (*nodepools.GetNodePoolOK, error) {
 	params := nodepools.NewGetNodePoolParams().WithClusterID(clusterID).WithNodepoolID(nodePoolID)
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Nodepools.GetNodePool(params, nil)
+	response, err := w.gsclient.Nodepools.GetNodePool(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -460,12 +466,14 @@ func (w *Wrapper) GetNodePool(clusterID, nodePoolID string, p *AuxiliaryParams) 
 // GetNodePools fetches a list of node pools.
 func (w *Wrapper) GetNodePools(clusterID string, p *AuxiliaryParams) (*nodepools.GetNodePoolsOK, error) {
 	params := nodepools.NewGetNodePoolsParams().WithClusterID(clusterID)
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Nodepools.GetNodePools(params, nil)
+	response, err := w.gsclient.Nodepools.GetNodePools(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -476,12 +484,14 @@ func (w *Wrapper) GetNodePools(clusterID string, p *AuxiliaryParams) (*nodepools
 // ModifyNodePool modifies a node pool.
 func (w *Wrapper) ModifyNodePool(clusterID, nodePoolID string, modifyNodePoolRequest *models.V5ModifyNodePoolRequest, p *AuxiliaryParams) (*nodepools.ModifyNodePoolOK, error) {
 	params := nodepools.NewModifyNodePoolParams().WithClusterID(clusterID).WithNodepoolID(nodePoolID).WithBody(modifyNodePoolRequest)
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Nodepools.ModifyNodePool(params, nil)
+	response, err := w.gsclient.Nodepools.ModifyNodePool(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -492,12 +502,14 @@ func (w *Wrapper) ModifyNodePool(clusterID, nodePoolID string, modifyNodePoolReq
 // DeleteNodePool deletes a node pool.
 func (w *Wrapper) DeleteNodePool(clusterID, nodePoolID string, p *AuxiliaryParams) (*nodepools.DeleteNodePoolAccepted, error) {
 	params := nodepools.NewDeleteNodePoolParams().WithClusterID(clusterID).WithNodepoolID(nodePoolID)
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Nodepools.DeleteNodePool(params, nil)
+	response, err := w.gsclient.Nodepools.DeleteNodePool(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -509,12 +521,14 @@ func (w *Wrapper) DeleteNodePool(clusterID, nodePoolID string, p *AuxiliaryParam
 // If only one cluster exists, the default cluster is the only cluster.
 func (w *Wrapper) GetDefaultCluster(p *AuxiliaryParams) (string, error) {
 	params := clusters.NewGetClustersParams()
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Clusters.GetClusters(params, nil)
+	response, err := w.gsclient.Clusters.GetClusters(params, authWriter)
 	if err != nil {
 		return "", clienterror.New(err)
 	}
@@ -529,12 +543,14 @@ func (w *Wrapper) GetDefaultCluster(p *AuxiliaryParams) (string, error) {
 // CreateKeyPair calls the addKeyPair API operation using the gsclientgen client.
 func (w *Wrapper) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4AddKeyPairRequest, p *AuxiliaryParams) (*key_pairs.AddKeyPairOK, error) {
 	params := key_pairs.NewAddKeyPairParams().WithClusterID(clusterID).WithBody(addKeyPairRequest)
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.KeyPairs.AddKeyPair(params, nil)
+	response, err := w.gsclient.KeyPairs.AddKeyPair(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -545,12 +561,14 @@ func (w *Wrapper) CreateKeyPair(clusterID string, addKeyPairRequest *models.V4Ad
 // GetKeyPairs calls the API to fetch key pairs using the gsclientgen client.
 func (w *Wrapper) GetKeyPairs(clusterID string, p *AuxiliaryParams) (*key_pairs.GetKeyPairsOK, error) {
 	params := key_pairs.NewGetKeyPairsParams().WithClusterID(clusterID)
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.KeyPairs.GetKeyPairs(params, nil)
+	response, err := w.gsclient.KeyPairs.GetKeyPairs(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -561,12 +579,14 @@ func (w *Wrapper) GetKeyPairs(clusterID string, p *AuxiliaryParams) (*key_pairs.
 // GetInfo calls the API's getInfo operation using the gsclientgen client.
 func (w *Wrapper) GetInfo(p *AuxiliaryParams) (*info.GetInfoOK, error) {
 	params := info.NewGetInfoParams()
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Info.GetInfo(params, nil)
+	response, err := w.gsclient.Info.GetInfo(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -577,12 +597,14 @@ func (w *Wrapper) GetInfo(p *AuxiliaryParams) (*info.GetInfoOK, error) {
 // GetReleases calls the API's getReleases operation using the gsclientgen client.
 func (w *Wrapper) GetReleases(p *AuxiliaryParams) (*releases.GetReleasesOK, error) {
 	params := releases.NewGetReleasesParams()
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Releases.GetReleases(params, nil)
+	response, err := w.gsclient.Releases.GetReleases(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -593,12 +615,14 @@ func (w *Wrapper) GetReleases(p *AuxiliaryParams) (*releases.GetReleasesOK, erro
 // GetOrganizations calls the API's getOrganizations operation using the gsclientgen client.
 func (w *Wrapper) GetOrganizations(p *AuxiliaryParams) (*organizations.GetOrganizationsOK, error) {
 	params := organizations.NewGetOrganizationsParams()
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Organizations.GetOrganizations(params, nil)
+	response, err := w.gsclient.Organizations.GetOrganizations(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -609,12 +633,14 @@ func (w *Wrapper) GetOrganizations(p *AuxiliaryParams) (*organizations.GetOrgani
 // GetCredential calls the API's getCredential operation using the gsclientgen client.
 func (w *Wrapper) GetCredential(organizationID string, credentialID string, p *AuxiliaryParams) (*organizations.GetCredentialOK, error) {
 	params := organizations.NewGetCredentialParams().WithOrganizationID(organizationID).WithCredentialID(credentialID)
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Organizations.GetCredential(params, nil)
+	response, err := w.gsclient.Organizations.GetCredential(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -625,12 +651,14 @@ func (w *Wrapper) GetCredential(organizationID string, credentialID string, p *A
 // SetCredentials calls the API's addCredentials operation of an organization.
 func (w *Wrapper) SetCredentials(organizationID string, addCredentialsRequest *models.V4AddCredentialsRequest, p *AuxiliaryParams) (*organizations.AddCredentialsCreated, error) {
 	params := organizations.NewAddCredentialsParams().WithOrganizationID(organizationID).WithBody(addCredentialsRequest)
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Organizations.AddCredentials(params, nil)
+	response, err := w.gsclient.Organizations.AddCredentials(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -641,12 +669,14 @@ func (w *Wrapper) SetCredentials(organizationID string, addCredentialsRequest *m
 // GetClusterStatus fetches details on a cluster using the gsclientgen client.
 func (w *Wrapper) GetClusterStatus(clusterID string, p *AuxiliaryParams) (*ClusterStatus, error) {
 	params := clusters.NewGetClusterStatusParams().WithClusterID(clusterID)
-	err := setParamsWithAuthorization(p, w, params)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Clusters.GetClusterStatus(params, nil)
+	response, err := w.gsclient.Clusters.GetClusterStatus(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
