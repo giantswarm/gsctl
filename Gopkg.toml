@@ -40,7 +40,7 @@
 
 [[constraint]]
   name = "github.com/giantswarm/gsclientgen"
-  branch = "master"
+  branch = "no-required-auth-header"
 
 [[constraint]]
   name = "github.com/giantswarm/microerror"

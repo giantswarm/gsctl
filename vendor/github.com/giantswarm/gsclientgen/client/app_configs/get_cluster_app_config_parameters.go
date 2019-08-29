@@ -61,12 +61,6 @@ for the get cluster app config operation typically these are written to a http.R
 */
 type GetClusterAppConfigParams struct {
 
-	/*Authorization
-	  As described in the [authentication](#section/Authentication) section
-
-
-	*/
-	Authorization string
 	/*XGiantSwarmActivity
 	  Name of an activity to track, like "list-clusters". This allows to
 	analyze several API requests sent in context and gives an idea on
@@ -138,17 +132,6 @@ func (o *GetClusterAppConfigParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithAuthorization adds the authorization to the get cluster app config params
-func (o *GetClusterAppConfigParams) WithAuthorization(authorization string) *GetClusterAppConfigParams {
-	o.SetAuthorization(authorization)
-	return o
-}
-
-// SetAuthorization adds the authorization to the get cluster app config params
-func (o *GetClusterAppConfigParams) SetAuthorization(authorization string) {
-	o.Authorization = authorization
-}
-
 // WithXGiantSwarmActivity adds the xGiantSwarmActivity to the get cluster app config params
 func (o *GetClusterAppConfigParams) WithXGiantSwarmActivity(xGiantSwarmActivity *string) *GetClusterAppConfigParams {
 	o.SetXGiantSwarmActivity(xGiantSwarmActivity)
@@ -211,11 +194,6 @@ func (o *GetClusterAppConfigParams) WriteToRequest(r runtime.ClientRequest, reg 
 		return err
 	}
 	var res []error
-
-	// header param Authorization
-	if err := r.SetHeaderParam("Authorization", o.Authorization); err != nil {
-		return err
-	}
 
 	if o.XGiantSwarmActivity != nil {
 

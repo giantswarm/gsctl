@@ -141,12 +141,39 @@ Returns an array of app catalog objects, which contains further metadata,
 including a URL to fetch the full index of each catalog.
 
 
+#### About the Labels
+
+- `application.giantswarm.io/catalog-type`
+  Describes the type of catalog.
+
+  - `managed` - Apps in this catalog are managed by Giant Swarm.
+  - `incubator` - Apps in this catalog are a work in progress. They're
+                  made with your Giant Swarm cluster in mind though, so
+                  they should work. Feedback is appreciated on these apps.
+  - `test` - Apps in this catalog will soon graduate to incubator status,
+             you most likely will not see any `test` catalogs on your
+             installations.
+  - `community` - Apps in this catalog are provided by the kubernetes
+                  community. They will most likely not work without making
+                  some changes to the security settings of your cluster.
+
+  App Catalogs can also be labeled as `internal`, however these catalogs
+  contain apps that run on our control planes. These `internal` app catalogs
+  will be filtered out and never shown when calling this endpoint.
+
+  For more details on app catalogs visit: https://docs.giantswarm.io/basics/app-catalog/
+
+
 ### Example
 ```json
   [
     {
       "metadata": {
         "name": "sample-catalog",
+        "labels": {
+          "application.giantswarm.io/catalog-type": "test",
+          "app-operator.giantswarm.io/version": "1.0.0",
+        },
       },
 
       "spec": {
