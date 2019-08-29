@@ -280,12 +280,6 @@ func getAuthorization(w *Wrapper) (runtime.ClientAuthInfoWriter, error) {
 		return nil, err
 	}
 
-	parts := strings.Split(authHeader, " ")
-
-	if len(parts) != 2 {
-		return nil, microerror.Mask(ParseError)
-	}
-
 	return httptransport.APIKeyAuth("Authorization", "header", authHeader), nil
 }
 
