@@ -61,12 +61,6 @@ for the get credential operation typically these are written to a http.Request
 */
 type GetCredentialParams struct {
 
-	/*Authorization
-	  As described in the [authentication](#section/Authentication) section
-
-
-	*/
-	Authorization string
 	/*XGiantSwarmActivity
 	  Name of an activity to track, like "list-clusters". This allows to
 	analyze several API requests sent in context and gives an idea on
@@ -141,17 +135,6 @@ func (o *GetCredentialParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithAuthorization adds the authorization to the get credential params
-func (o *GetCredentialParams) WithAuthorization(authorization string) *GetCredentialParams {
-	o.SetAuthorization(authorization)
-	return o
-}
-
-// SetAuthorization adds the authorization to the get credential params
-func (o *GetCredentialParams) SetAuthorization(authorization string) {
-	o.Authorization = authorization
-}
-
 // WithXGiantSwarmActivity adds the xGiantSwarmActivity to the get credential params
 func (o *GetCredentialParams) WithXGiantSwarmActivity(xGiantSwarmActivity *string) *GetCredentialParams {
 	o.SetXGiantSwarmActivity(xGiantSwarmActivity)
@@ -214,11 +197,6 @@ func (o *GetCredentialParams) WriteToRequest(r runtime.ClientRequest, reg strfmt
 		return err
 	}
 	var res []error
-
-	// header param Authorization
-	if err := r.SetHeaderParam("Authorization", o.Authorization); err != nil {
-		return err
-	}
 
 	if o.XGiantSwarmActivity != nil {
 

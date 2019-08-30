@@ -8,6 +8,7 @@ package models
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
 )
 
@@ -15,12 +16,42 @@ import (
 // swagger:model v4AppCatalogsResponseItemsMetadata
 type V4AppCatalogsResponseItemsMetadata struct {
 
+	// labels
+	Labels *V4AppCatalogsResponseItemsMetadataLabels `json:"labels,omitempty"`
+
 	// A URL friendly identifier for the catalog.
 	Name string `json:"name,omitempty"`
 }
 
 // Validate validates this v4 app catalogs response items metadata
 func (m *V4AppCatalogsResponseItemsMetadata) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateLabels(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *V4AppCatalogsResponseItemsMetadata) validateLabels(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Labels) { // not required
+		return nil
+	}
+
+	if m.Labels != nil {
+		if err := m.Labels.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("labels")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 

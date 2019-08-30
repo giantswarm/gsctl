@@ -61,12 +61,6 @@ for the get user operation typically these are written to a http.Request
 */
 type GetUserParams struct {
 
-	/*Authorization
-	  As described in the [authentication](#section/Authentication) section
-
-
-	*/
-	Authorization string
 	/*XGiantSwarmActivity
 	  Name of an activity to track, like "list-clusters". This allows to
 	analyze several API requests sent in context and gives an idea on
@@ -133,17 +127,6 @@ func (o *GetUserParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithAuthorization adds the authorization to the get user params
-func (o *GetUserParams) WithAuthorization(authorization string) *GetUserParams {
-	o.SetAuthorization(authorization)
-	return o
-}
-
-// SetAuthorization adds the authorization to the get user params
-func (o *GetUserParams) SetAuthorization(authorization string) {
-	o.Authorization = authorization
-}
-
 // WithXGiantSwarmActivity adds the xGiantSwarmActivity to the get user params
 func (o *GetUserParams) WithXGiantSwarmActivity(xGiantSwarmActivity *string) *GetUserParams {
 	o.SetXGiantSwarmActivity(xGiantSwarmActivity)
@@ -195,11 +178,6 @@ func (o *GetUserParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regis
 		return err
 	}
 	var res []error
-
-	// header param Authorization
-	if err := r.SetHeaderParam("Authorization", o.Authorization); err != nil {
-		return err
-	}
 
 	if o.XGiantSwarmActivity != nil {
 

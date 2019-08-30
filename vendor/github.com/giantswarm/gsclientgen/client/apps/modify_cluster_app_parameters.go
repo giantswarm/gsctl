@@ -63,12 +63,6 @@ for the modify cluster app operation typically these are written to a http.Reque
 */
 type ModifyClusterAppParams struct {
 
-	/*Authorization
-	  As described in the [authentication](#section/Authentication) section
-
-
-	*/
-	Authorization string
 	/*XGiantSwarmActivity
 	  Name of an activity to track, like "list-clusters". This allows to
 	analyze several API requests sent in context and gives an idea on
@@ -140,17 +134,6 @@ func (o *ModifyClusterAppParams) WithHTTPClient(client *http.Client) *ModifyClus
 // SetHTTPClient adds the HTTPClient to the modify cluster app params
 func (o *ModifyClusterAppParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
-}
-
-// WithAuthorization adds the authorization to the modify cluster app params
-func (o *ModifyClusterAppParams) WithAuthorization(authorization string) *ModifyClusterAppParams {
-	o.SetAuthorization(authorization)
-	return o
-}
-
-// SetAuthorization adds the authorization to the modify cluster app params
-func (o *ModifyClusterAppParams) SetAuthorization(authorization string) {
-	o.Authorization = authorization
 }
 
 // WithXGiantSwarmActivity adds the xGiantSwarmActivity to the modify cluster app params
@@ -226,11 +209,6 @@ func (o *ModifyClusterAppParams) WriteToRequest(r runtime.ClientRequest, reg str
 		return err
 	}
 	var res []error
-
-	// header param Authorization
-	if err := r.SetHeaderParam("Authorization", o.Authorization); err != nil {
-		return err
-	}
 
 	if o.XGiantSwarmActivity != nil {
 

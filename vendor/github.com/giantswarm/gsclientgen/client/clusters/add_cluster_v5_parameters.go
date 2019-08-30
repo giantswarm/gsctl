@@ -63,12 +63,6 @@ for the add cluster v5 operation typically these are written to a http.Request
 */
 type AddClusterV5Params struct {
 
-	/*Authorization
-	  As described in the [authentication](#section/Authentication) section
-
-
-	*/
-	Authorization string
 	/*XGiantSwarmActivity
 	  Name of an activity to track, like "list-clusters". This allows to
 	analyze several API requests sent in context and gives an idea on
@@ -135,17 +129,6 @@ func (o *AddClusterV5Params) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithAuthorization adds the authorization to the add cluster v5 params
-func (o *AddClusterV5Params) WithAuthorization(authorization string) *AddClusterV5Params {
-	o.SetAuthorization(authorization)
-	return o
-}
-
-// SetAuthorization adds the authorization to the add cluster v5 params
-func (o *AddClusterV5Params) SetAuthorization(authorization string) {
-	o.Authorization = authorization
-}
-
 // WithXGiantSwarmActivity adds the xGiantSwarmActivity to the add cluster v5 params
 func (o *AddClusterV5Params) WithXGiantSwarmActivity(xGiantSwarmActivity *string) *AddClusterV5Params {
 	o.SetXGiantSwarmActivity(xGiantSwarmActivity)
@@ -197,11 +180,6 @@ func (o *AddClusterV5Params) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		return err
 	}
 	var res []error
-
-	// header param Authorization
-	if err := r.SetHeaderParam("Authorization", o.Authorization); err != nil {
-		return err
-	}
 
 	if o.XGiantSwarmActivity != nil {
 

@@ -63,12 +63,6 @@ for the modify node pool operation typically these are written to a http.Request
 */
 type ModifyNodePoolParams struct {
 
-	/*Authorization
-	  As described in the [authentication](#section/Authentication) section
-
-
-	*/
-	Authorization string
 	/*XGiantSwarmActivity
 	  Name of an activity to track, like "list-clusters". This allows to
 	analyze several API requests sent in context and gives an idea on
@@ -145,17 +139,6 @@ func (o *ModifyNodePoolParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithAuthorization adds the authorization to the modify node pool params
-func (o *ModifyNodePoolParams) WithAuthorization(authorization string) *ModifyNodePoolParams {
-	o.SetAuthorization(authorization)
-	return o
-}
-
-// SetAuthorization adds the authorization to the modify node pool params
-func (o *ModifyNodePoolParams) SetAuthorization(authorization string) {
-	o.Authorization = authorization
-}
-
 // WithXGiantSwarmActivity adds the xGiantSwarmActivity to the modify node pool params
 func (o *ModifyNodePoolParams) WithXGiantSwarmActivity(xGiantSwarmActivity *string) *ModifyNodePoolParams {
 	o.SetXGiantSwarmActivity(xGiantSwarmActivity)
@@ -229,11 +212,6 @@ func (o *ModifyNodePoolParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 		return err
 	}
 	var res []error
-
-	// header param Authorization
-	if err := r.SetHeaderParam("Authorization", o.Authorization); err != nil {
-		return err
-	}
 
 	if o.XGiantSwarmActivity != nil {
 
