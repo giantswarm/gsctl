@@ -96,7 +96,7 @@
   revision = "6a88de70cd85040a24417a1e2cb8303ad8b806aa"
 
 [[projects]]
-  branch = "no-required-auth-header"
+  branch = "master"
   digest = "1:0cea16243812458ebc6bfd7826e8a566ec78baf263db353a6c05e8a499d6adf4"
   name = "github.com/giantswarm/gsclientgen"
   packages = [
@@ -114,7 +114,7 @@
     "models",
   ]
   pruneopts = "NUT"
-  revision = "f20782df666024b047bbb6d00500c9a3b9ffd79d"
+  revision = "61772a0d6ebe8fd4a699b33ea0a11e8b199a2a73"
 
 [[projects]]
   branch = "master"
