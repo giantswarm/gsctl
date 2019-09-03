@@ -180,7 +180,7 @@ func initFlags() {
 // printValidation runs our pre-checks.
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
-func printValidation(cmd *cobra.Command, args []string) {
+func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	aca := collectArguments()
 
 	headline := ""
@@ -231,9 +231,9 @@ func printValidation(cmd *cobra.Command, args []string) {
 // printResult calls addCluster() and creates user-friendly output of the result
 func printResult(cmd *cobra.Command, positionalArgs []string) {
 	// use arguments as passed from command line via cobra
-	aca := collectArguments()
+	args := collectArguments()
 
-	result, err := addCluster(aca)
+	result, err := addCluster(args)
 	if err != nil {
 		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
@@ -246,7 +246,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		case errors.IsClusterOwnerMissingError(err):
 			headline = "No owner organization set"
 			subtext = "Please specify an owner organization for the cluster via the --owner flag."
-			if aca.InputYAMLFile != "" {
+			if args.InputYAMLFile != "" {
 				subtext = "Please specify an owner organization for the cluster in your definition file or set one via the --owner flag."
 			}
 		case errors.IsNotEnoughWorkerNodesError(err):
@@ -254,14 +254,14 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 			subtext = fmt.Sprintf("If you specify workers in your definition file, you'll have to specify at least %d worker nodes for a useful cluster.", limits.MinimumNumWorkers)
 		case errors.IsYAMLNotParseable(err):
 			headline = "Could not parse YAML"
-			if aca.InputYAMLFile == "-" {
+			if args.InputYAMLFile == "-" {
 				subtext = "The YAML data given via STDIN could not be parsed into a cluster definition."
 			} else {
-				subtext = fmt.Sprintf("The YAML data read from file '%s' could not be parsed into a cluster definition.", aca.InputYAMLFile)
+				subtext = fmt.Sprintf("The YAML data read from file '%s' could not be parsed into a cluster definition.", args.InputYAMLFile)
 			}
 		case errors.IsYAMLFileNotReadable(err):
 			headline = "Could not read YAML file"
-			subtext = fmt.Sprintf("The file '%s' could not be read. Please make sure that it is readable and contains valid YAML.", aca.InputYAMLFile)
+			subtext = fmt.Sprintf("The file '%s' could not be read. Please make sure that it is readable and contains valid YAML.", args.InputYAMLFile)
 		case errors.IsCouldNotCreateJSONRequestBodyError(err):
 			headline = "Could not create the JSON body for cluster creation API request"
 			subtext = "There seems to be a problem in parsing the cluster definition. Please contact Giant Swarm via Slack or via support@giantswarm.io with details on how you executes this command."
@@ -298,7 +298,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 
 	// success output
-	if !aca.DryRun {
+	if !args.DryRun {
 		if result.definition.Name != "" {
 			fmt.Println(color.GreenString("New cluster '%s' (ID '%s') for organization '%s' is launching.", result.definition.Name, result.id, result.definition.Owner))
 		} else {
