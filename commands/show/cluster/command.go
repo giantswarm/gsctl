@@ -345,8 +345,28 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	clusterDetailsV4, clusterDetailsV5, nodePools, clusterStatus, credentialDetails, err := getClusterDetails(args)
+	fmt.Printf("DEBUG: err = %#v\n", err)
 	if err != nil {
 		errors.HandleCommonErrors(err)
+
+		headline := ""
+		subtext := ""
+
+		switch {
+		case errors.IsClusterNotFoundError(err):
+			headline = "Cluster not found"
+			subtext = fmt.Sprintf("Either there is no cluster with ID '%s', or you have no access to it.\n", args.clusterID)
+			subtext += "Please check whether the cluster is listed when executing 'gsctl list clusters'."
+		default:
+			headline = "Unknown error"
+			subtext = "Please contact the Giant Swarm support team and share details about the command you just executed."
+		}
+
+		fmt.Println(color.RedString(headline))
+		if subtext != "" {
+			fmt.Println(subtext)
+		}
+		os.Exit(1)
 	}
 
 	if clusterDetailsV4 != nil {
