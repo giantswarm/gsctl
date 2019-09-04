@@ -313,8 +313,8 @@ func (w *Wrapper) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth_t
 	return response, nil
 }
 
-// CreateCluster creates cluster using the gsclientgen client.
-func (w *Wrapper) CreateCluster(addClusterRequest *models.V4AddClusterRequest, p *AuxiliaryParams) (*clusters.AddClusterCreated, error) {
+// CreateClusterV4 creates a v4 cluster using the gsclientgen client.
+func (w *Wrapper) CreateClusterV4(addClusterRequest *models.V4AddClusterRequest, p *AuxiliaryParams) (*clusters.AddClusterCreated, error) {
 	params := clusters.NewAddClusterParams().WithBody(addClusterRequest)
 	setParams(p, w, params)
 

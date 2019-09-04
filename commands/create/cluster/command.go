@@ -582,7 +582,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = createClusterActivityName
 		// perform API call
-		response, err := clientWrapper.CreateCluster(addClusterBody, auxParams)
+		response, err := clientWrapper.CreateClusterV4(addClusterBody, auxParams)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}

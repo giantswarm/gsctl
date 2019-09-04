@@ -93,7 +93,7 @@ func New(err error) *APIError {
 		return ae
 	}
 
-	// create cluster
+	// create cluster V4
 	if createClusterUnauthorizedErr, ok := err.(*clusters.AddClusterUnauthorized); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
