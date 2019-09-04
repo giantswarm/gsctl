@@ -1,4 +1,4 @@
-![Repo Image](https://repository-images.githubusercontent.com/74132145/b85d2300-70d4-11e9-9851-5bd95cec45c9)
+![Repo Image](https://repository-images.githubusercontent.com/74132145/691bf000-70de-11e9-89d3-2f4693461d00)
 
 [![Coverage Status](https://coveralls.io/repos/github/giantswarm/gsctl/badge.svg?branch=master)](https://coveralls.io/github/giantswarm/gsctl?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/giantswarm/gsctl)](https://goreportcard.com/report/github.com/giantswarm/gsctl)
