@@ -181,12 +181,12 @@ func initFlags() {
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	aca := collectArguments()
+	args := collectArguments()
 
 	headline := ""
 	subtext := ""
 
-	err := verifyPreconditions(aca)
+	err := verifyPreconditions(args)
 	if err != nil {
 		errors.HandleCommonErrors(err)
 
@@ -579,6 +579,8 @@ func addCluster(args Arguments) (*creationResult, error) {
 			return nil, microerror.Mask(err)
 		}
 
+		// TODO: switch between v4 or v5 cluster creation
+
 		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = createClusterActivityName
 		// perform API call
@@ -593,5 +595,4 @@ func addCluster(args Arguments) (*creationResult, error) {
 	}
 
 	return result, nil
-
 }
