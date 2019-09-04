@@ -345,7 +345,6 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	clusterDetailsV4, clusterDetailsV5, nodePools, clusterStatus, credentialDetails, err := getClusterDetails(args)
-	fmt.Printf("DEBUG: err = %#v\n", err)
 	if err != nil {
 		errors.HandleCommonErrors(err)
 
