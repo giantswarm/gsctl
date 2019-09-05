@@ -2,6 +2,7 @@
 package clusters
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -30,15 +31,33 @@ var (
 		PreRun:  printValidation,
 		Run:     printResult,
 	}
+
+	cmdOutput string
 )
 
 const (
 	listClustersActivityName = "list-clusters"
+
+	outputFormatJSON  = "json"
+	outputFormatTable = "table"
+
+	outputJSONPrefix = ""
+	outputJSONIndent = "  "
 )
+
+func init() {
+	initFlags()
+}
+
+func initFlags() {
+	Command.ResetFlags()
+	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output. Defaults to human-friendly table output.")
+}
 
 type Arguments struct {
 	apiEndpoint       string
 	authToken         string
+	outputFormat      string
 	scheme            string
 	userProvidedToken string
 }
@@ -51,6 +70,7 @@ func collectArguments() Arguments {
 	return Arguments{
 		apiEndpoint:       endpoint,
 		authToken:         token,
+		outputFormat:      cmdOutput,
 		scheme:            scheme,
 		userProvidedToken: flags.Token,
 	}
@@ -74,15 +94,18 @@ func verifyListClusterPreconditions(args Arguments) error {
 	if args.apiEndpoint == "" {
 		return microerror.Mask(errors.EndpointMissingError)
 	}
+	if args.outputFormat != outputFormatJSON && args.outputFormat != outputFormatTable {
+		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is unknown", args.outputFormat))
+	}
 
 	return nil
 }
 
-// listClusters prints a table with all clusters the user has access to
+// printResult prints a table with all clusters the user has access to
 func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	args := collectArguments()
 
-	output, err := clustersTable(args)
+	output, err := getClustersOutput(args)
 	if err != nil {
 		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
@@ -103,8 +126,8 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 }
 
-// clustersTable returns a table of clusters the user has access to
-func clustersTable(args Arguments) (string, error) {
+// getClustersOutput returns a table of clusters the user has access to
+func getClustersOutput(args Arguments) (string, error) {
 	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return "", microerror.Mask(err)
@@ -125,38 +148,47 @@ func clustersTable(args Arguments) (string, error) {
 		return "", microerror.Mask(err)
 	}
 
-	if len(response.Payload) == 0 {
-		return color.YellowString("No clusters"), nil
-	}
-	// table headers
-	output := []string{strings.Join([]string{
-		color.CyanString("ID"),
-		color.CyanString("ORGANIZATION"),
-		color.CyanString("NAME"),
-		color.CyanString("RELEASE"),
-		color.CyanString("CREATED"),
-	}, "|")}
-
-	// sort clusters by ID
-	sort.Slice(response.Payload[:], func(i, j int) bool {
-		return response.Payload[i].ID < response.Payload[j].ID
-	})
-
-	for _, cluster := range response.Payload {
-		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
-		releaseVersion := cluster.ReleaseVersion
-		if releaseVersion == "" {
-			releaseVersion = "n/a"
+	if args.outputFormat == "json" {
+		outputBytes, err := json.MarshalIndent(response.Payload, outputJSONPrefix, outputJSONIndent)
+		if err != nil {
+			return "", microerror.Mask(err)
 		}
 
-		output = append(output, strings.Join([]string{
-			cluster.ID,
-			cluster.Owner,
-			cluster.Name,
-			releaseVersion,
-			created,
-		}, "|"))
-	}
+		return string(outputBytes), nil
+	} else {
+		if len(response.Payload) == 0 {
+			return color.YellowString("No clusters"), nil
+		}
+		// table headers
+		output := []string{strings.Join([]string{
+			color.CyanString("ID"),
+			color.CyanString("ORGANIZATION"),
+			color.CyanString("NAME"),
+			color.CyanString("RELEASE"),
+			color.CyanString("CREATED"),
+		}, "|")}
 
-	return columnize.SimpleFormat(output), nil
+		// sort clusters by ID
+		sort.Slice(response.Payload[:], func(i, j int) bool {
+			return response.Payload[i].ID < response.Payload[j].ID
+		})
+
+		for _, cluster := range response.Payload {
+			created := util.ShortDate(util.ParseDate(cluster.CreateDate))
+			releaseVersion := cluster.ReleaseVersion
+			if releaseVersion == "" {
+				releaseVersion = "n/a"
+			}
+
+			output = append(output, strings.Join([]string{
+				cluster.ID,
+				cluster.Owner,
+				cluster.Name,
+				releaseVersion,
+				created,
+			}, "|"))
+		}
+
+		return columnize.SimpleFormat(output), nil
+	}
 }

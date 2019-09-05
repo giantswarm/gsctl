@@ -666,6 +666,16 @@ func IsWorkersMinMaxInvalid(err error) bool {
 	return microerror.Cause(err) == WorkersMinMaxInvalidError
 }
 
+// OutputFormatInvalidError is raised when the user specifies an unsupported output format.
+var OutputFormatInvalidError = &microerror.Error{
+	Kind: "OutputFormatInvalidError",
+}
+
+// IsOutputFormatInvalid asserts OutputFormatInvalidError.
+func IsOutputFormatInvalid(err error) bool {
+	return microerror.Cause(err) == OutputFormatInvalidError
+}
+
 // NoOpError is raised when the user calls a command without any meaningful
 // parameters, resulting in no change/nothing done.
 var NoOpError = &microerror.Error{
