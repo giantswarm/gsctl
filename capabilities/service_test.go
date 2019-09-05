@@ -16,49 +16,49 @@ type testInput struct {
 
 var capabilityTests = []struct {
 	in  testInput
-	out []*CapabilityDefinition
+	out []string
 }{
 	{
 		testInput{
 			Provider:       "aws",
 			ReleaseVersion: "1.2.3",
 		},
-		[]*CapabilityDefinition{},
+		[]string{},
 	},
 	{
 		testInput{
 			Provider:       "aws",
 			ReleaseVersion: "6.1.2",
 		},
-		[]*CapabilityDefinition{&AvailabilityZones},
+		[]string{AvailabilityZones.Name},
 	},
 	{
 		testInput{
 			Provider:       "aws",
 			ReleaseVersion: "6.4.0",
 		},
-		[]*CapabilityDefinition{&Autoscaling, &AvailabilityZones},
+		[]string{Autoscaling.Name, AvailabilityZones.Name},
 	},
 	{
 		testInput{
 			Provider:       "aws",
 			ReleaseVersion: "9.0.0",
 		},
-		[]*CapabilityDefinition{&Autoscaling, &AvailabilityZones, &NodePools},
+		[]string{Autoscaling.Name, AvailabilityZones.Name, NodePools.Name},
 	},
 	{
 		testInput{
 			Provider:       "aws",
 			ReleaseVersion: "9.1.2",
 		},
-		[]*CapabilityDefinition{&Autoscaling, &AvailabilityZones, &NodePools},
+		[]string{Autoscaling.Name, AvailabilityZones.Name, NodePools.Name},
 	},
 	{
 		testInput{
 			Provider:       "kvm",
 			ReleaseVersion: "9.1.2",
 		},
-		[]*CapabilityDefinition{},
+		[]string{},
 	},
 }
 
@@ -110,7 +110,12 @@ func TestGetCapabilities(t *testing.T) {
 		if err != nil {
 			t.Errorf("Test %d: Error: %s", index, err)
 		}
-		if diff := cmp.Diff(tt.out, cap, nil); diff != "" {
+
+		names := []string{}
+		for _, capability := range cap {
+			names = append(names, capability.Name)
+		}
+		if diff := cmp.Diff(tt.out, names, nil); diff != "" {
 			t.Errorf("Test %d - Resulting args unequal. (-expected +got):\n%s", index, diff)
 		}
 	}

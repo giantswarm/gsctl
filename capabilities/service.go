@@ -12,11 +12,14 @@ import (
 // Service provides methods to get more details on the installation's
 // and tenant cluster's capabilities.
 type Service struct {
-	// Provider identifies the installation's provide,r e. g. 'aws' or 'azure'.
-	Provider string
+	// provider identifies the installation's provide,r e. g. 'aws' or 'azure'.
+	provider string
 
-	// Client is an API client the service can use to fetch info.
-	ClientWrapper *client.Wrapper
+	// client is an API client the service can use to fetch info.
+	clientWrapper *client.Wrapper
+
+	// allCapabilities is a list of all the capabilities this package knows about.
+	allCapabilities []CapabilityDefinition
 }
 
 // New creates a new configured Service.
@@ -28,8 +31,14 @@ func New(provider string, clientWrapper *client.Wrapper) (*Service, error) {
 	}
 
 	s := &Service{
-		Provider:      provider,
-		ClientWrapper: clientWrapper,
+		provider:      provider,
+		clientWrapper: clientWrapper,
+
+		allCapabilities: []CapabilityDefinition{
+			Autoscaling,
+			AvailabilityZones,
+			NodePools,
+		},
 	}
 
 	err := s.initCapabilities()
@@ -42,7 +51,7 @@ func New(provider string, clientWrapper *client.Wrapper) (*Service, error) {
 
 // initCapabilities adds information taken from the API to our internal capabilities data.
 func (s *Service) initCapabilities() error {
-	info, err := s.ClientWrapper.GetInfo(nil)
+	info, err := s.clientWrapper.GetInfo(nil)
 	if err != nil {
 		return microerror.Maskf(couldNotFetchFeatures, err.Error())
 	}
@@ -61,16 +70,15 @@ func (s *Service) initCapabilities() error {
 }
 
 // GetCapabilities returns the list of capabilities that applies to a given release version,
-// copnsidering the installation's provider.
-// This is where some capability definitions get completed using information from the API.
-func (s *Service) GetCapabilities(releaseVersion string) ([]*CapabilityDefinition, error) {
-	capabilities := []*CapabilityDefinition{}
+// considering the installation's provider.
+func (s *Service) GetCapabilities(releaseVersion string) ([]CapabilityDefinition, error) {
+	capabilities := []CapabilityDefinition{}
 
 	// iterate all capabilities and find the ones that apply
-	for _, capability := range AllCapabilityDefinitions {
+	for _, capability := range s.allCapabilities {
 		hasCap, err := s.HasCapability(releaseVersion, capability)
 		if err != nil {
-			return []*CapabilityDefinition{}, microerror.Mask(err)
+			return []CapabilityDefinition{}, microerror.Mask(err)
 		}
 		if hasCap {
 			capabilities = append(capabilities, capability)
@@ -82,7 +90,7 @@ func (s *Service) GetCapabilities(releaseVersion string) ([]*CapabilityDefinitio
 
 // HasCapability returns true if the current context (provider, release) provides
 // the given capabililty.
-func (s *Service) HasCapability(releaseVersion string, capability *CapabilityDefinition) (bool, error) {
+func (s *Service) HasCapability(releaseVersion string, capability CapabilityDefinition) (bool, error) {
 	ver, err := semver.NewVersion(releaseVersion)
 	if err != nil {
 		return false, microerror.Mask(err)
@@ -90,7 +98,7 @@ func (s *Service) HasCapability(releaseVersion string, capability *CapabilityDef
 
 	// check which release/provider pair matches ours
 	for _, releaseProviderPair := range capability.RequiredReleasePerProvider {
-		if s.Provider == releaseProviderPair.Provider {
+		if s.provider == releaseProviderPair.Provider {
 			if !ver.LessThan(releaseProviderPair.ReleaseVersion) {
 				return true, nil
 			}

@@ -31,11 +31,4 @@ var (
 	NodePools = CapabilityDefinition{
 		Name: "NodePools",
 	}
-
-	// AllCapabilityDefinitions contains all the capabilities
-	AllCapabilityDefinitions = []*CapabilityDefinition{
-		&Autoscaling,
-		&AvailabilityZones,
-		&NodePools,
-	}
 )
