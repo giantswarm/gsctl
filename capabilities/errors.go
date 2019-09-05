@@ -5,15 +5,6 @@ import (
 	"github.com/giantswarm/microerror"
 )
 
-var invalidConfigError = &microerror.Error{
-	Kind: "invalidConfigError",
-}
-
-// IsInvalidConfig asserts invalidConfigError.
-func IsInvalidConfig(err error) bool {
-	return microerror.Cause(err) == invalidConfigError
-}
-
 var couldNotFetchFeatures = &microerror.Error{
 	Kind: "couldNotFetchFeatures",
 }
@@ -30,6 +21,15 @@ var couldNotInitializeCapabilities = &microerror.Error{
 // IsCouldNotInitializeCapabilities asserts couldNotInitializeCapabilities.
 func IsCouldNotInitializeCapabilities(err error) bool {
 	return microerror.Cause(err) == couldNotInitializeCapabilities
+}
+
+var invalidConfigError = &microerror.Error{
+	Kind: "invalidConfigError",
+}
+
+// IsInvalidConfig asserts invalidConfigError.
+func IsInvalidConfig(err error) bool {
+	return microerror.Cause(err) == invalidConfigError
 }
 
 // IsInvalidSemVer asserts semver.ErrInvalidSemVer, as semver unfortunately
