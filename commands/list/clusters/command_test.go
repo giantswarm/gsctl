@@ -59,8 +59,9 @@ func Test_ListClusters(t *testing.T) {
 	defer mockServer.Close()
 
 	args := Arguments{
-		apiEndpoint: mockServer.URL,
-		authToken:   "testtoken",
+		apiEndpoint:  mockServer.URL,
+		authToken:    "testtoken",
+		outputFormat: "table",
 	}
 
 	err := verifyListClusterPreconditions(args)
@@ -86,8 +87,9 @@ func Test_ListClustersEmpty(t *testing.T) {
 	defer mockServer.Close()
 
 	args := Arguments{
-		apiEndpoint: mockServer.URL,
-		authToken:   "testtoken",
+		apiEndpoint:  mockServer.URL,
+		authToken:    "testtoken",
+		outputFormat: "table",
 	}
 
 	err := verifyListClusterPreconditions(args)
@@ -115,8 +117,9 @@ func Test_ListClustersUnauthorized(t *testing.T) {
 	defer mockServer.Close()
 
 	args := Arguments{
-		apiEndpoint: mockServer.URL,
-		authToken:   "testtoken",
+		apiEndpoint:  mockServer.URL,
+		authToken:    "testtoken",
+		outputFormat: "table",
 	}
 
 	err := verifyListClusterPreconditions(args)
