@@ -68,7 +68,7 @@ func Test_ListClusters(t *testing.T) {
 		t.Error(err)
 	}
 
-	table, err := clustersTable(args)
+	table, err := getClustersOutput(args)
 	if err != nil {
 		t.Error(err)
 	}
@@ -95,7 +95,7 @@ func Test_ListClustersEmpty(t *testing.T) {
 		t.Error(err)
 	}
 
-	table, err := clustersTable(args)
+	table, err := getClustersOutput(args)
 	if err != nil {
 		t.Error(err)
 	}
@@ -124,7 +124,7 @@ func Test_ListClustersUnauthorized(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = clustersTable(args)
+	_, err = getClustersOutput(args)
 	if !errors.IsNotAuthorizedError(err) {
 		t.Errorf("Expected NotAuthorizedError, got %#v", err)
 	}
