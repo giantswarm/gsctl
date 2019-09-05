@@ -48,9 +48,10 @@ func Test_ListKeypairs_Empty(t *testing.T) {
 
 	// needed to prevent search for the default cluster
 	args := Arguments{
-		apiEndpoint: keyPairsMockServer.URL,
-		clusterID:   "my-cluster",
-		token:       "my-token",
+		apiEndpoint:  keyPairsMockServer.URL,
+		clusterID:    "my-cluster",
+		outputFormat: "table",
+		token:        "my-token",
 	}
 
 	err = listKeypairsValidate(&args)
@@ -83,10 +84,12 @@ func Test_ListKeypairs_NotFound(t *testing.T) {
 	}))
 	defer keyPairsMockServer.Close()
 
-	args := Arguments{}
-	args.apiEndpoint = keyPairsMockServer.URL
-	args.token = "my-token"
-	args.clusterID = "unknown-cluster"
+	args := Arguments{
+		apiEndpoint:  keyPairsMockServer.URL,
+		clusterID:    "unknown-cluster",
+		outputFormat: "json",
+		token:        "my-token",
+	}
 
 	err = listKeypairsValidate(&args)
 	if err != nil {
@@ -132,10 +135,12 @@ func Test_ListKeyPairs_Nonempty(t *testing.T) {
 	}))
 	defer keyPairsMockServer.Close()
 
-	args := Arguments{}
-	args.apiEndpoint = keyPairsMockServer.URL
-	args.token = "my-token"
-	args.clusterID = "my-cluster"
+	args := Arguments{
+		apiEndpoint:  keyPairsMockServer.URL,
+		clusterID:    "my-cluster",
+		outputFormat: "table",
+		token:        "my-token",
+	}
 
 	err = listKeypairsValidate(&args)
 	if err != nil {
