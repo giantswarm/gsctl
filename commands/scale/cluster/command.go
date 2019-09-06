@@ -242,17 +242,17 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	clusterID := cmdLineArgs[0]
 	desiredNumWorkers := flags.NumWorkers
 
+	clientWrapper, err := client.NewWithConfig(flags.APIEndpoint, flags.Token)
+	if err != nil {
+		fmt.Println(color.RedString(err.Error()))
+		os.Exit(1)
+	}
+
 	var currentScalingMax int64
 	var currentScalingMin int64
 	var currentWorkers int64
 	var releaseVersion string
 	{
-		clientWrapper, err := client.NewWithConfig(flags.APIEndpoint, flags.Token)
-		if err != nil {
-			fmt.Println(color.RedString(err.Error()))
-			os.Exit(1)
-		}
-
 		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = scaleClusterActivityName
 
@@ -292,7 +292,13 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 		desiredScalingMin = flags.WorkersMin
 	}
 
-	autoScalingEnabled, err := capabilities.HasCapability(config.Config.Provider, releaseVersion, capabilities.Autoscaling)
+	capabilityService, err := capabilities.New(config.Config.Provider, clientWrapper)
+	if err != nil {
+		fmt.Println(color.RedString(err.Error()))
+		os.Exit(1)
+	}
+
+	autoScalingEnabled, err := capabilityService.HasCapability(releaseVersion, capabilities.Autoscaling)
 	if err != nil {
 		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
