@@ -12,14 +12,14 @@ import (
 // Service provides methods to get more details on the installation's
 // and tenant cluster's capabilities.
 type Service struct {
-	// provider identifies the installation's provide,r e. g. 'aws' or 'azure'.
-	provider string
+	// allCapabilities is a list of all the capabilities this package knows about.
+	allCapabilities []CapabilityDefinition
 
 	// client is an API client the service can use to fetch info.
 	clientWrapper *client.Wrapper
 
-	// allCapabilities is a list of all the capabilities this package knows about.
-	allCapabilities []CapabilityDefinition
+	// provider identifies the installation's provide,r e. g. 'aws' or 'azure'.
+	provider string
 }
 
 // New creates a new configured Service.
