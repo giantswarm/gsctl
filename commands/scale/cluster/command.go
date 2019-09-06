@@ -298,7 +298,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 		os.Exit(1)
 	}
 
-	autoScalingEnabled, err := capabilityService.HasCapability(releaseVersion, &capabilities.Autoscaling)
+	autoScalingEnabled, err := capabilityService.HasCapability(releaseVersion, capabilities.Autoscaling)
 	if err != nil {
 		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)

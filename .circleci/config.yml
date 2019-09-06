@@ -28,15 +28,14 @@ jobs:
       - run:
           name: Execute the built binary
           command: ./gsctl info
-# Commented out because of a major outage at coveralls.
-# See https://status.coveralls.io/
-#      - run:
-#          name: Update Coveralls
-#          command: |
-#            go get golang.org/x/tools/cmd/cover
-#            go get github.com/mattn/goveralls
-#            go test ./... -v -covermode=count -coverprofile=coverage.out
-#            goveralls -coverprofile=coverage.out -service=circle-ci -repotoken $COVERALLS_TOKEN
+
+      - run:
+          name: Update Coveralls
+          command: |
+            go get golang.org/x/tools/cmd/cover
+            go get github.com/mattn/goveralls
+            go test ./... -v -covermode=count -coverprofile=coverage.out
+            goveralls -coverprofile=coverage.out -service=circle-ci -repotoken $COVERALLS_TOKEN
   dist:
     machine: true
     steps:
