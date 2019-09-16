@@ -1,4 +1,26 @@
-// Package cluster defines the 'create cluster' command.
+/*
+Package cluster defines the 'create cluster' command.
+
+The command deals with a few delicacies/spiecialties:
+
+- Cluster spec details, e. g. which instance type to use for workers, can
+  be specified by the user, but don't have to. The backend will
+  fill in missing details using defaulting.
+
+- Cluster spec details can be provided either using command line flags
+  or by passing a YAML definition. When passing a YAML definition, some
+  attributes from that definition can even be overridden using flags.
+
+- The command features a dry-run mode, which is enabled using a flag. In
+  this mode the resulting cluster definition is printed, but the final
+  API call for cluster creation is not actually submitted.
+
+- On AWS, starting from a certain release version, clusters will have
+  node pools and will be created using the v5 API endpoint. On other providers
+  as well as on AWS for older releases, the v4 API endpoint has to be used.
+
+*/
+
 package cluster
 
 import (
@@ -502,8 +524,8 @@ func createAddClusterBody(d *types.ClusterDefinition) *models.V4AddClusterReques
 	return a
 }
 
-// addCluster actually adds a cluster, interpreting all the input Configuration
-// and returning a structured result
+// addCluster actually adds a cluster, interpreting all the input configuration
+// and returning a structured result.
 func addCluster(args Arguments) (*creationResult, error) {
 	result := &creationResult{
 		definition: &types.ClusterDefinition{},
