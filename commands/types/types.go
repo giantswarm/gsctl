@@ -36,8 +36,8 @@ type NodeDefinition struct {
 	Azure   AzureSpecificDefinition `yaml:"azure,omitempty"`
 }
 
-// ClusterDefinition defines a tenant cluster spec.
-type ClusterDefinition struct {
+// ClusterDefinitionV4 defines a tenant cluster spec compatible with the v4 API.
+type ClusterDefinitionV4 struct {
 	Name              string            `yaml:"name,omitempty"`
 	Owner             string            `yaml:"owner,omitempty"`
 	ReleaseVersion    string            `yaml:"release_version,omitempty"`
