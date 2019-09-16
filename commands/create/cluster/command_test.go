@@ -178,31 +178,31 @@ func Test_verifyPreconditions(t *testing.T) {
 	}
 }
 
-// Test_ReadDefinitionFiles tests the readDefinitionFromFile with all
+// Test_ReadDefinitionFilesV4 tests the readDefinitionFromFile with all
 // YAML files in the testdata directory.
-func Test_ReadDefinitionFiles(t *testing.T) {
+func Test_ReadDefinitionFilesV4(t *testing.T) {
 	basePath := "testdata"
 	fs := afero.NewOsFs()
 	files, _ := afero.ReadDir(fs, basePath)
 	for _, f := range files {
 		path := basePath + "/" + f.Name()
-		_, err := readDefinitionFromFile(fs, path)
+		_, err := readDefinitionFromFileV4(fs, path)
 		if err != nil {
 			t.Error(err)
 		}
 	}
 }
 
-// Test_ParseYAMLDefinition tests parsing YAML definition files.
-func Test_ParseYAMLDefinition(t *testing.T) {
+// Test_ParseYAMLDefinitionV4 tests parsing YAML definition files.
+func Test_ParseYAMLDefinitionV4(t *testing.T) {
 	var testCases = []struct {
 		inputYAML      []byte
-		expectedOutput *types.ClusterDefinition
+		expectedOutput *types.ClusterDefinitionV4
 	}{
 		// Minimal YAML.
 		{
 			[]byte(`owner: myorg`),
-			&types.ClusterDefinition{
+			&types.ClusterDefinitionV4{
 				Owner: "myorg",
 			},
 		},
@@ -215,7 +215,7 @@ availability_zones: 3
 scaling:
   min: 3
   max: 5`),
-			&types.ClusterDefinition{
+			&types.ClusterDefinitionV4{
 				Owner:             "myorg",
 				Name:              "My cluster",
 				ReleaseVersion:    "1.2.3",
@@ -243,7 +243,7 @@ workers:
   storage:
     size_gb: 50
 `),
-			&types.ClusterDefinition{
+			&types.ClusterDefinitionV4{
 				Owner: "myorg",
 				Workers: []types.NodeDefinition{
 					types.NodeDefinition{
@@ -263,7 +263,7 @@ workers:
 
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			def, err := readDefinitionFromYAML(tc.inputYAML)
+			def, err := readDefinitionFromYAMLV4(tc.inputYAML)
 			if err != nil {
 				t.Errorf("Case %d - Unexpected error %v", i, err)
 			}
@@ -278,7 +278,7 @@ workers:
 // Test_CreateFromBadYAML01 tests how non-conforming YAML is treated.
 func Test_CreateFromBadYAML01(t *testing.T) {
 	data := []byte(`o: myorg`)
-	def := types.ClusterDefinition{}
+	def := types.ClusterDefinitionV4{}
 
 	err := yaml.Unmarshal(data, &def)
 	if err != nil {

@@ -20,7 +20,6 @@ The command deals with a few delicacies/spiecialties:
   as well as on AWS for older releases, the v4 API endpoint has to be used.
 
 */
-
 package cluster
 
 import (
@@ -33,7 +32,6 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
-	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/juju/errgo"
 	"github.com/spf13/afero"
@@ -106,8 +104,8 @@ type creationResult struct {
 	id string
 	// location to fetch details on new cluster from
 	location string
-	// cluster definition assembled
-	definition *types.ClusterDefinition
+	// cluster definition assembled, v4 compatible
+	definitionV4 *types.ClusterDefinitionV4
 }
 
 const (
@@ -321,10 +319,10 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 
 	// success output
 	if !args.DryRun {
-		if result.definition.Name != "" {
-			fmt.Println(color.GreenString("New cluster '%s' (ID '%s') for organization '%s' is launching.", result.definition.Name, result.id, result.definition.Owner))
+		if result.definitionV4.Name != "" {
+			fmt.Println(color.GreenString("New cluster '%s' (ID '%s') for organization '%s' is launching.", result.definitionV4.Name, result.id, result.definitionV4.Owner))
 		} else {
-			fmt.Println(color.GreenString("New cluster with ID '%s' for organization '%s' is launching.", result.id, result.definition.Owner))
+			fmt.Println(color.GreenString("New cluster with ID '%s' for organization '%s' is launching.", result.id, result.definitionV4.Owner))
 		}
 		fmt.Println("Add key pair and settings to kubectl using")
 		fmt.Println("")
@@ -396,139 +394,11 @@ func verifyPreconditions(args Arguments) error {
 	return nil
 }
 
-// readDefinitionFromYAML reads a cluster definition from YAML data.
-func readDefinitionFromYAML(yamlBytes []byte) (*types.ClusterDefinition, error) {
-	def := &types.ClusterDefinition{}
-
-	err := yaml.Unmarshal(yamlBytes, def)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	return def, nil
-}
-
-// readDefinitionFromFile reads a cluster definition from a YAML file.
-func readDefinitionFromFile(fs afero.Fs, path string) (*types.ClusterDefinition, error) {
-	data, err := afero.ReadFile(fs, path)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	return readDefinitionFromYAML(data)
-}
-
-// updateDefinitionFromFlags extend/overwrites a clusterDefinition based on the
-// flags/arguments the user has given.
-func updateDefinitionFromFlags(def *types.ClusterDefinition, args Arguments) {
-	if def == nil {
-		return
-	}
-
-	if args.AvailabilityZones != 0 {
-		def.AvailabilityZones = args.AvailabilityZones
-	}
-
-	if args.ClusterName != "" {
-		def.Name = args.ClusterName
-	}
-
-	if args.ReleaseVersion != "" {
-		def.ReleaseVersion = args.ReleaseVersion
-	}
-
-	if def.Scaling.Min > 0 && args.WorkersMin == 0 {
-		args.WorkersMin = def.Scaling.Min
-	}
-	if def.Scaling.Max > 0 && args.WorkersMax == 0 {
-		args.WorkersMax = def.Scaling.Max
-	}
-
-	if args.WorkersMax > 0 {
-		def.Scaling.Max = args.WorkersMax
-		args.NumWorkers = 1
-		if args.WorkersMin == 0 {
-			def.Scaling.Min = def.Scaling.Max
-		}
-	}
-	if args.WorkersMin > 0 {
-		def.Scaling.Min = args.WorkersMin
-		args.NumWorkers = 1
-		if args.WorkersMax == 0 {
-			def.Scaling.Max = def.Scaling.Min
-		}
-	}
-
-	if args.Owner != "" {
-		def.Owner = args.Owner
-	}
-
-	if def.Scaling.Min == 0 && def.Scaling.Max == 0 {
-		def.Scaling.Min = int64(args.NumWorkers)
-		def.Scaling.Max = int64(args.NumWorkers)
-	}
-
-	if def.Scaling.Min == 0 && def.Scaling.Max == 0 && args.NumWorkers == 0 {
-		def.Scaling.Min = 3
-		def.Scaling.Max = 3
-	}
-
-	workers := []types.NodeDefinition{}
-
-	worker := types.NodeDefinition{}
-	if args.WorkerNumCPUs != 0 {
-		worker.CPU = types.CPUDefinition{Cores: args.WorkerNumCPUs}
-	}
-	if args.WorkerStorageSizeGB != 0 {
-		worker.Storage = types.StorageDefinition{SizeGB: args.WorkerStorageSizeGB}
-	}
-	if args.WorkerMemorySizeGB != 0 {
-		worker.Memory = types.MemoryDefinition{SizeGB: args.WorkerMemorySizeGB}
-	}
-	// AWS-specific
-	if args.WorkerAwsEc2InstanceType != "" {
-		worker.AWS.InstanceType = args.WorkerAwsEc2InstanceType
-	}
-	// Azure
-	if args.WorkerAzureVMSize != "" {
-		worker.Azure.VMSize = args.WorkerAzureVMSize
-	}
-	workers = append(workers, worker)
-
-	def.Workers = workers
-}
-
-// creates a models.V4AddClusterRequest from clusterDefinition
-func createAddClusterBody(d *types.ClusterDefinition) *models.V4AddClusterRequest {
-	a := &models.V4AddClusterRequest{}
-	a.AvailabilityZones = int64(d.AvailabilityZones)
-	a.Name = d.Name
-	a.Owner = &d.Owner
-	a.ReleaseVersion = d.ReleaseVersion
-	a.Scaling = &models.V4AddClusterRequestScaling{
-		Min: d.Scaling.Min,
-		Max: d.Scaling.Max,
-	}
-
-	if len(d.Workers) == 1 {
-		ndmWorker := &models.V4AddClusterRequestWorkersItems{}
-		ndmWorker.Memory = &models.V4AddClusterRequestWorkersItemsMemory{SizeGb: float64(d.Workers[0].Memory.SizeGB)}
-		ndmWorker.CPU = &models.V4AddClusterRequestWorkersItemsCPU{Cores: int64(d.Workers[0].CPU.Cores)}
-		ndmWorker.Storage = &models.V4AddClusterRequestWorkersItemsStorage{SizeGb: float64(d.Workers[0].Storage.SizeGB)}
-		ndmWorker.Labels = d.Workers[0].Labels
-		ndmWorker.Aws = &models.V4AddClusterRequestWorkersItemsAws{InstanceType: d.Workers[0].AWS.InstanceType}
-		ndmWorker.Azure = &models.V4AddClusterRequestWorkersItemsAzure{VMSize: d.Workers[0].Azure.VMSize}
-		a.Workers = append(a.Workers, ndmWorker)
-	}
-
-	return a
-}
-
 // addCluster actually adds a cluster, interpreting all the input configuration
 // and returning a structured result.
 func addCluster(args Arguments) (*creationResult, error) {
 	result := &creationResult{
-		definition: &types.ClusterDefinition{},
+		definitionV4: &types.ClusterDefinitionV4{},
 	}
 
 	var err error
@@ -546,23 +416,23 @@ func addCluster(args Arguments) (*creationResult, error) {
 			return nil, microerror.Mask(err)
 		}
 
-		result.definition, err = readDefinitionFromYAML([]byte(yamlString))
+		result.definitionV4, err = readDefinitionFromYAMLV4([]byte(yamlString))
 		if err != nil {
 			return nil, microerror.Maskf(errors.YAMLFileNotReadableError, err.Error())
 		}
 	} else if args.InputYAMLFile != "" {
 		// definition from file (and optionally flags)
-		result.definition, err = readDefinitionFromFile(args.FileSystem, args.InputYAMLFile)
+		result.definitionV4, err = readDefinitionFromFileV4(args.FileSystem, args.InputYAMLFile)
 		if err != nil {
 			return nil, microerror.Maskf(errors.YAMLFileNotReadableError, err.Error())
 		}
 	}
 
 	// Let user-provided arguments (flags) overwrite/extend definition from YAML.
-	updateDefinitionFromFlags(result.definition, args)
+	updateDefinitionFromFlagsV4(result.definitionV4, args)
 
 	// Validate definition
-	if result.definition.Owner == "" {
+	if result.definitionV4.Owner == "" {
 		return nil, microerror.Mask(errors.ClusterOwnerMissingError)
 	}
 
@@ -570,13 +440,13 @@ func addCluster(args Arguments) (*creationResult, error) {
 	// For validations based on command line flags, see validatePreConditions()
 	if args.InputYAMLFile != "" {
 		// number of workers
-		if len(result.definition.Workers) > 0 && len(result.definition.Workers) < limits.MinimumNumWorkers {
+		if len(result.definitionV4.Workers) > 0 && len(result.definitionV4.Workers) < limits.MinimumNumWorkers {
 			return nil, microerror.Mask(errors.NotEnoughWorkerNodesError)
 		}
 	}
 
 	// create JSON API call payload to catch and handle errors early
-	addClusterBody := createAddClusterBody(result.definition)
+	addClusterBody := createAddClusterBodyV4(result.definitionV4)
 	_, marshalErr := json.Marshal(addClusterBody)
 	if marshalErr != nil {
 		return nil, microerror.Maskf(errors.CouldNotCreateJSONRequestBodyError, marshalErr.Error())
@@ -594,7 +464,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 	}
 
 	if !args.DryRun {
-		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
+		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definitionV4.Owner))
 
 		clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
 		if err != nil {
