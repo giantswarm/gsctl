@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/afero"
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
 	"github.com/giantswarm/gsctl/flags"
@@ -29,8 +30,8 @@ selected_endpoint: https://foo
 updated: 2017-09-29T11:23:15+02:00
 `
 
-// Test_CollectArgs tests whether collectArguments produces the expected results.
-func Test_CollectArgs(t *testing.T) {
+// Test_CollectArgsV4 tests whether collectArguments produces the expected results.
+func Test_CollectArgsV4(t *testing.T) {
 	var testCases = []struct {
 		// The flags we pass to the command.
 		flags []string
@@ -48,36 +49,16 @@ func Test_CollectArgs(t *testing.T) {
 		{
 			[]string{
 				"--owner=acme",
-				"--availability-zones=2",
 				"--name=ClusterName",
 				"--release=1.2.3",
-				"--num-workers=5",
-				"--workers-min=5",
-				"--workers-max=10",
-				"--aws-instance-type=m10.impossible",
-				"--azure-vm-size=DoesNotExist",
-				"--num-cpus=4",
-				"--memory-gb=20",
-				"--storage-gb=40",
-				"--dry-run=true",
 			},
 			Arguments{
-				APIEndpoint:              "https://foo",
-				AuthToken:                "some-token",
-				AvailabilityZones:        2,
-				ClusterName:              "ClusterName",
-				DryRun:                   true,
-				NumWorkers:               5,
-				Owner:                    "acme",
-				ReleaseVersion:           "1.2.3",
-				Scheme:                   "giantswarm",
-				WorkerAwsEc2InstanceType: "m10.impossible",
-				WorkerAzureVMSize:        "DoesNotExist",
-				WorkerMemorySizeGB:       20,
-				WorkerNumCPUs:            4,
-				WorkersMax:               10,
-				WorkersMin:               5,
-				WorkerStorageSizeGB:      40,
+				APIEndpoint:    "https://foo",
+				AuthToken:      "some-token",
+				ClusterName:    "ClusterName",
+				Owner:          "acme",
+				ReleaseVersion: "1.2.3",
+				Scheme:         "giantswarm",
 			},
 		},
 	}
@@ -117,47 +98,6 @@ func Test_verifyPreconditions(t *testing.T) {
 			},
 			errors.IsNotLoggedInError,
 		},
-		// Combining definition file with the wrong flags
-		{
-			Arguments{
-				AuthToken:     "token",
-				APIEndpoint:   "https://mock-url",
-				InputYAMLFile: "my-file.yaml",
-				WorkerNumCPUs: 8,
-			},
-			errors.IsConflictingFlagsError,
-		},
-		// Combining NumWorkers and  Min/Max.
-		{
-			Arguments{
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				NumWorkers:  3,
-				WorkersMin:  3,
-				WorkersMax:  3,
-			},
-			errors.IsConflictingWorkerFlagsUsed,
-		},
-		// Combining Min and Max in an unplausible way.
-		{
-			Arguments{
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				WorkersMin:  5,
-				WorkersMax:  3,
-			},
-			errors.IsWorkersMinMaxInvalid,
-		},
-		// Not enopugh CPU.
-		{
-			Arguments{
-				AuthToken:                "token",
-				APIEndpoint:              "https://mock-url",
-				WorkerNumCPUs:            1,
-				WorkerAwsEc2InstanceType: "my-mystic-type",
-			},
-			errors.IsIncompatibleSettingsError,
-		},
 	}
 
 	fs := afero.NewMemMapFs()
@@ -178,22 +118,24 @@ func Test_verifyPreconditions(t *testing.T) {
 	}
 }
 
-// Test_ReadDefinitionFilesV4 tests the readDefinitionFromFile with all
+// Test_ReadDefinitionFiles tests the readDefinitionFromFile with all
 // YAML files in the testdata directory.
-func Test_ReadDefinitionFilesV4(t *testing.T) {
+func Test_ReadDefinitionFiles(t *testing.T) {
 	basePath := "testdata"
 	fs := afero.NewOsFs()
 	files, _ := afero.ReadDir(fs, basePath)
-	for _, f := range files {
+
+	for i, f := range files {
+		t.Logf("Case %d, file %s", i, f.Name())
 		path := basePath + "/" + f.Name()
-		_, err := readDefinitionFromFileV4(fs, path)
+		_, err := readDefinitionFromFile(fs, path)
 		if err != nil {
-			t.Error(err)
+			t.Errorf("Unexpected error in case %d, file %s: %s", i, f.Name(), err)
 		}
 	}
 }
 
-// Test_ParseYAMLDefinitionV4 tests parsing YAML definition files.
+// Test_ParseYAMLDefinitionV4 tests parsing v4 YAML definition files.
 func Test_ParseYAMLDefinitionV4(t *testing.T) {
 	var testCases = []struct {
 		inputYAML      []byte
@@ -263,7 +205,94 @@ workers:
 
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			def, err := readDefinitionFromYAMLV4(tc.inputYAML)
+			def, err := readDefinitionFromYAML(tc.inputYAML)
+			if err != nil {
+				t.Errorf("Case %d - Unexpected error %v", i, err)
+			}
+
+			if diff := cmp.Diff(tc.expectedOutput, def); diff != "" {
+				t.Errorf("Case %d - Resulting definition unequal. (-expected +got):\n%s", i, diff)
+			}
+		})
+	}
+}
+
+// Test_ParseYAMLDefinitionV5 tests parsing v5 YAML definition files.
+func Test_ParseYAMLDefinitionV5(t *testing.T) {
+	var testCases = []struct {
+		inputYAML      []byte
+		expectedOutput *types.ClusterDefinitionV5
+	}{
+		// Minimal YAML.
+		{
+			[]byte(`api_version: v5
+owner: myorg`),
+			&types.ClusterDefinitionV5{
+				Owner: "myorg",
+			},
+		},
+		// More details.
+		{
+			[]byte(`api_version: v5
+owner: myorg
+name: My cluster
+release_version: 1.2.3
+`),
+			&types.ClusterDefinitionV5{
+				Owner:          "myorg",
+				Name:           "My cluster",
+				ReleaseVersion: "1.2.3",
+			},
+		},
+		// Node pools.
+		{
+			[]byte(`api_version: v5
+owner: myorg
+master:
+  availability_zone: my-zone-1a
+nodepools:
+- name: General purpose
+  availability_zones:
+    number: 2
+- name: Database
+  availability_zones:
+    zones:
+    - my-zone-1a
+    - my-zone-1b
+    - my-zone-1c
+  scaling:
+    min: 3
+    max: 10
+  node_spec:
+    aws:
+      instance_type: "m5.superlarge"
+- name: Batch
+`),
+			&types.ClusterDefinitionV5{
+				Owner:  "myorg",
+				Master: &types.MasterDefinition{AvailabilityZone: "my-zone-1a"},
+				NodePools: []*types.NodePoolDefinition{
+					&types.NodePoolDefinition{
+						Name:              "General purpose",
+						AvailabilityZones: &types.AvailabilityZonesDefinition{Number: 2},
+					},
+					&types.NodePoolDefinition{
+						Name:              "Database",
+						AvailabilityZones: &types.AvailabilityZonesDefinition{Zones: []string{"my-zone-1a", "my-zone-1b", "my-zone-1c"}},
+						Scaling:           &types.ScalingDefinition{Min: 3, Max: 10},
+						NodeSpec:          &types.NodeSpec{AWS: &types.AWSSpecificDefinition{InstanceType: "m5.superlarge"}},
+					},
+					&types.NodePoolDefinition{
+						Name: "Batch",
+					},
+				},
+			},
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			def, err := readDefinitionFromYAML(tc.inputYAML)
 			if err != nil {
 				t.Errorf("Case %d - Unexpected error %v", i, err)
 			}
@@ -306,49 +335,11 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		{
 			description: "Extensive arguments",
 			inputArgs: &Arguments{
-				ClusterName:         "UnitTestCluster",
-				NumWorkers:          4,
-				ReleaseVersion:      "0.3.0",
-				Owner:               "acme",
-				AuthToken:           "fake token",
-				WorkerNumCPUs:       3,
-				WorkerMemorySizeGB:  4,
-				WorkerStorageSizeGB: 10,
-				Verbose:             true,
-			},
-		},
-		{
-			description: "Max workers",
-			inputArgs: &Arguments{
-				Owner:      "acme",
-				WorkersMax: 4,
-				AuthToken:  "fake token",
-			},
-		},
-		{
-			description: "Min workers",
-			inputArgs: &Arguments{
-				Owner:      "acme",
-				WorkersMin: 4,
-				AuthToken:  "fake token",
-			},
-		},
-		{
-			description: "Min workers and max workers same",
-			inputArgs: &Arguments{
-				Owner:      "acme",
-				WorkersMin: 4,
-				WorkersMax: 4,
-				AuthToken:  "fake token",
-			},
-		},
-		{
-			description: "Min workers and max workers different",
-			inputArgs: &Arguments{
-				Owner:      "acme",
-				WorkersMin: 2,
-				WorkersMax: 4,
-				AuthToken:  "fake token",
+				ClusterName:    "UnitTestCluster",
+				ReleaseVersion: "0.3.0",
+				Owner:          "acme",
+				AuthToken:      "fake token",
+				Verbose:        true,
 			},
 		},
 		{
@@ -378,6 +369,16 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 				w.Header().Set("Location", "/v4/clusters/f6e8r/")
 				w.WriteHeader(http.StatusCreated)
 				w.Write([]byte(`{"code": "RESOURCE_CREATED", "message": "Yeah!"}`))
+			} else if r.Method == "GET" && r.URL.String() == "/v4/info/" {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{
+					"general": {
+					  "provider": "aws"
+					},
+					"features": {
+					  "nodepools": {"release_version_minimum": "9.0.0"}
+					}
+				  }`))
 			} else if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(`[
@@ -454,10 +455,9 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 				AuthToken:     "some-token",
 				FileSystem:    afero.NewOsFs(),
 				InputYAMLFile: "does/not/exist.yaml",
-				DryRun:        true,
 			},
 			serverResponseJSON: []byte(``),
-			responseStatus:     0,
+			responseStatus:     400,
 			errorMatcher:       errors.IsYAMLFileNotReadable,
 		},
 	}
@@ -468,9 +468,22 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 		// mock server
 		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			//t.Log("mockServer request: ", r.Method, r.URL)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(testCase.responseStatus)
-			w.Write([]byte(testCase.serverResponseJSON))
+			if r.Method == "GET" && r.URL.String() == "/v4/info/" {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{
+					"general": {
+					  "provider": "aws"
+					},
+					"features": {
+					  "nodepools": {"release_version_minimum": "9.0.0"}
+					}
+				  }`))
+			} else {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(testCase.responseStatus)
+				w.Write([]byte(testCase.serverResponseJSON))
+			}
 		}))
 		defer mockServer.Close()
 
@@ -494,69 +507,96 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 	}
 }
 
-func Test_CreateCluster_ValidationFailures(t *testing.T) {
+func Test_getLatestActiveReleaseVersion(t *testing.T) {
 	var testCases = []struct {
-		name         string
-		inputArgs    *Arguments
-		errorMatcher func(err error) bool
+		responseBody  string
+		latestRelease string
+		errorMatcher  func(err error) bool
 	}{
 		{
-			name: "case 0 workers min is higher than max",
-			inputArgs: &Arguments{
-				Owner:      "owner",
-				AuthToken:  "some-token",
-				WorkersMin: 4,
-				WorkersMax: 2,
-			},
-			errorMatcher: errors.IsWorkersMinMaxInvalid,
+			responseBody: `[
+				{
+					"timestamp": "2017-10-15T12:00:00Z",
+					"version": "0.3.0",
+					"active": true,
+					"changelog": [],
+					"components": []
+				},
+				{
+					"timestamp": "2017-10-15T12:00:00Z",
+					"version": "0.2.1",
+					"active": true,
+					"changelog": [],
+					"components": []
+				}
+			]`,
+			latestRelease: "0.3.0",
 		},
 		{
-			name: "case 1 workers min and max with legacy num workers",
-			inputArgs: &Arguments{
-				Owner:      "owner",
-				AuthToken:  "some-token",
-				WorkersMin: 4,
-				WorkersMax: 2,
-				NumWorkers: 2,
-			},
-			errorMatcher: errors.IsConflictingWorkerFlagsUsed,
-		},
-		{
-			name: "case 2 workers min with legacy num workers",
-			inputArgs: &Arguments{
-				Owner:      "owner",
-				AuthToken:  "some-token",
-				WorkersMin: 4,
-				NumWorkers: 2,
-			},
-			errorMatcher: errors.IsConflictingWorkerFlagsUsed,
-		},
-		{
-			name: "case 3 workers max with legacy num workers",
-			inputArgs: &Arguments{
-				Owner:      "owner",
-				AuthToken:  "some-token",
-				WorkersMax: 2,
-				NumWorkers: 2,
-			},
-			errorMatcher: errors.IsConflictingWorkerFlagsUsed,
+			responseBody: `[
+				{
+					"timestamp": "2017-10-15T12:00:00Z",
+					"version": "0.3.0",
+					"active": true,
+					"changelog": [],
+					"components": []
+				},
+				{
+					"timestamp": "2017-10-15T12:00:00Z",
+					"version": "1.6.1",
+					"active": true,
+					"changelog": [],
+					"components": []
+				},
+				{
+					"timestamp": "2017-10-15T12:00:00Z",
+					"version": "2.3.0",
+					"active": false,
+					"changelog": [],
+					"components": []
+				}
+			  ]`,
+			latestRelease: "1.6.1",
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			err := verifyPreconditions(*tc.inputArgs)
+	for i, tc := range testCases {
 
-			switch {
-			case err == nil && tc.errorMatcher == nil:
-				// correct; carry on
-			case err != nil && tc.errorMatcher == nil:
-				t.Fatalf("error == %#v, want nil", err)
-			case err == nil && tc.errorMatcher != nil:
-				t.Fatalf("error == nil, want non-nil")
-			case !tc.errorMatcher(err):
-				t.Fatalf("error == %#v, want matching", err)
+		// mock server
+		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			//t.Log("mockServer request: ", r.Method, r.URL)
+			if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(tc.responseBody))
+			} else {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(`{"code": "UNKNOWN_ERROR", "message": "Can't do this"}`))
 			}
-		})
+		}))
+		defer mockServer.Close()
+
+		// client
+		flags.APIEndpoint = mockServer.URL // required to make InitClient() work
+
+		args := &Arguments{
+			APIEndpoint: mockServer.URL,
+			AuthToken:   "some-token",
+		}
+
+		clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
+		if err != nil {
+			t.Errorf("Test case %d: Error %s", i, err)
+		}
+
+		latest, err := getLatestActiveReleaseVersion(clientWrapper, nil)
+		if err != nil {
+			t.Errorf("Test case %d: Error %s", i, err)
+		}
+
+		if latest != tc.latestRelease {
+			t.Errorf("Test case %d: Expected '%s' but got '%s'", i, tc.latestRelease, latest)
+		}
 	}
 }
