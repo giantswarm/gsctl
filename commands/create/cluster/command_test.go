@@ -28,8 +28,8 @@ selected_endpoint: https://foo
 updated: 2017-09-29T11:23:15+02:00
 `
 
-// Test_CollectArgsV4 tests whether collectArguments produces the expected results.
-func Test_CollectArgsV4(t *testing.T) {
+// Test_CollectArgs tests whether collectArguments produces the expected results.
+func Test_CollectArgs(t *testing.T) {
 	var testCases = []struct {
 		// The flags we pass to the command.
 		flags []string
@@ -140,7 +140,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			},
 		},
 		{
-			description: "Definition from YAML file",
+			description: "Definition from v4 YAML file",
 			inputArgs: &Arguments{
 				ClusterName:   "Cluster Name from Args",
 				FileSystem:    afero.NewOsFs(), // needed for YAML file access
