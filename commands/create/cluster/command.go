@@ -161,17 +161,6 @@ Examples:
 		PreRun: printValidation,
 		Run:    printResult,
 	}
-	cmdAvailabilityZones int
-	// path to the input file used optionally as cluster definition
-	cmdInputYAMLFile string
-	// cluster name set via flag on execution
-	cmdClusterName string
-	// owner organization of the cluster as set via flag on execution
-	cmdOwner string
-	// Azure VmSize to use, provided as a command line flag
-	cmdWorkerAzureVMSize string
-	// dry run command line flag
-	cmdDryRun bool
 )
 
 func init() {
