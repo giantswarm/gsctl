@@ -6,8 +6,6 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"strconv"
-
 	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/go-openapi/errors"
@@ -24,11 +22,6 @@ type V5AddClusterRequest struct {
 
 	// Cluster name
 	Name string `json:"name,omitempty"`
-
-	// Specification of node pools to be created immediately with the
-	// cluster.
-	//
-	Nodepools []*V5AddClusterRequestNodepoolsItems `json:"nodepools"`
 
 	// Name of the organization owning the cluster
 	//
@@ -47,10 +40,6 @@ func (m *V5AddClusterRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateMaster(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateNodepools(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -77,31 +66,6 @@ func (m *V5AddClusterRequest) validateMaster(formats strfmt.Registry) error {
 			}
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (m *V5AddClusterRequest) validateNodepools(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Nodepools) { // not required
-		return nil
-	}
-
-	for i := 0; i < len(m.Nodepools); i++ {
-		if swag.IsZero(m.Nodepools[i]) { // not required
-			continue
-		}
-
-		if m.Nodepools[i] != nil {
-			if err := m.Nodepools[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("nodepools" + "." + strconv.Itoa(i))
-				}
-				return err
-			}
-		}
-
 	}
 
 	return nil

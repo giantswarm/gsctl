@@ -97,11 +97,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0cea16243812458ebc6bfd7826e8a566ec78baf263db353a6c05e8a499d6adf4"
+  digest = "1:36862bdde8e9556691d591fefcae0208e0bad8aedfdca490ecd90c8c2aee9c17"
   name = "github.com/giantswarm/gsclientgen"
   packages = [
     "client",
     "client/app_configs",
+    "client/app_secrets",
     "client/apps",
     "client/auth_tokens",
     "client/clusters",
@@ -114,7 +115,7 @@
     "models",
   ]
   pruneopts = "NUT"
-  revision = "61772a0d6ebe8fd4a699b33ea0a11e8b199a2a73"
+  revision = "d602960d259479c688ba01ebd2eb06b2ddf0c32b"
 
 [[projects]]
   branch = "master"

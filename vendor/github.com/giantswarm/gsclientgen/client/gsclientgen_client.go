@@ -12,6 +12,7 @@ import (
 	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/giantswarm/gsclientgen/client/app_configs"
+	"github.com/giantswarm/gsclientgen/client/app_secrets"
 	"github.com/giantswarm/gsclientgen/client/apps"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 	"github.com/giantswarm/gsclientgen/client/clusters"
@@ -67,6 +68,8 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Gsclientge
 	cli.Transport = transport
 
 	cli.AppConfigs = app_configs.New(transport, formats)
+
+	cli.AppSecrets = app_secrets.New(transport, formats)
 
 	cli.Apps = apps.New(transport, formats)
 
@@ -132,6 +135,8 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 type Gsclientgen struct {
 	AppConfigs *app_configs.Client
 
+	AppSecrets *app_secrets.Client
+
 	Apps *apps.Client
 
 	AuthTokens *auth_tokens.Client
@@ -158,6 +163,8 @@ func (c *Gsclientgen) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
 
 	c.AppConfigs.SetTransport(transport)
+
+	c.AppSecrets.SetTransport(transport)
 
 	c.Apps.SetTransport(transport)
 

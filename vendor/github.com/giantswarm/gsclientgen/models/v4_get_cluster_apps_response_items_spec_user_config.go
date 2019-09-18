@@ -18,6 +18,9 @@ type V4GetClusterAppsResponseItemsSpecUserConfig struct {
 
 	// configmap
 	Configmap *V4GetClusterAppsResponseItemsSpecUserConfigConfigmap `json:"configmap,omitempty"`
+
+	// secret
+	Secret *V4GetClusterAppsResponseItemsSpecUserConfigSecret `json:"secret,omitempty"`
 }
 
 // Validate validates this v4 get cluster apps response items spec user config
@@ -25,6 +28,10 @@ func (m *V4GetClusterAppsResponseItemsSpecUserConfig) Validate(formats strfmt.Re
 	var res []error
 
 	if err := m.validateConfigmap(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSecret(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -44,6 +51,24 @@ func (m *V4GetClusterAppsResponseItemsSpecUserConfig) validateConfigmap(formats 
 		if err := m.Configmap.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("configmap")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V4GetClusterAppsResponseItemsSpecUserConfig) validateSecret(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Secret) { // not required
+		return nil
+	}
+
+	if m.Secret != nil {
+		if err := m.Secret.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("secret")
 			}
 			return err
 		}
