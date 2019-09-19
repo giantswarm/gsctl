@@ -38,6 +38,12 @@ func createAddClusterBodyV5(def *types.ClusterDefinitionV5) *models.V5AddCluster
 		ReleaseVersion: def.ReleaseVersion,
 	}
 
+	if def.Master != nil {
+		b.Master = &models.V5AddClusterRequestMaster{
+			AvailabilityZone: def.Master.AvailabilityZone,
+		}
+	}
+
 	return b
 }
 

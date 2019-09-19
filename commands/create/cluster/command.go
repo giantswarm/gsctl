@@ -78,12 +78,17 @@ func collectArguments() Arguments {
 // creationResult is the struct to gather all our API call results.
 type creationResult struct {
 	// cluster ID
-	id string
+	ID string
 	// location to fetch details on new cluster from
-	location string
+	Location string
 	// cluster definition assembled, v4 compatible
-	definitionV4 *types.ClusterDefinitionV4
-	definitionV5 *types.ClusterDefinitionV5
+	DefinitionV4 *types.ClusterDefinitionV4
+	DefinitionV5 *types.ClusterDefinitionV5
+
+	// HasErrors should be true if we saw some non-critical errors.
+	// This is only relevant in v5 and should only be used if a node
+	// pool could not be created successfully.
+	HasErrors bool
 }
 
 const (
@@ -288,18 +293,18 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 
 	// success output
-	if result.definitionV4.Name != "" {
-		fmt.Println(color.GreenString("New cluster '%s' (ID '%s') for organization '%s' is launching.", result.definitionV4.Name, result.id, result.definitionV4.Owner))
+	if result.DefinitionV4.Name != "" {
+		fmt.Println(color.GreenString("New cluster '%s' (ID '%s') for organization '%s' is launching.", result.DefinitionV4.Name, result.ID, result.DefinitionV4.Owner))
 	} else {
-		fmt.Println(color.GreenString("New cluster with ID '%s' for organization '%s' is launching.", result.id, result.definitionV4.Owner))
+		fmt.Println(color.GreenString("New cluster with ID '%s' for organization '%s' is launching.", result.ID, result.DefinitionV4.Owner))
 	}
 	fmt.Println("Add key pair and settings to kubectl using")
 	fmt.Println("")
-	fmt.Printf("    %s", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s \n", result.id)))
+	fmt.Printf("    %s", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s \n", result.ID)))
 	fmt.Println("")
 	fmt.Println("Take into consideration all clusters have enabled RBAC and may you want to provide a correct organization for the certificates (like operators, testers, developer, ...)")
 	fmt.Println("")
-	fmt.Printf("    %s \n", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s --certificate-organizations system:masters", result.id)))
+	fmt.Printf("    %s \n", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s --certificate-organizations system:masters", result.ID)))
 	fmt.Println("")
 	fmt.Println("To know more about how to create the kubeconfig run")
 	fmt.Println("")
@@ -429,37 +434,54 @@ func addCluster(args Arguments) (*creationResult, error) {
 
 	result := &creationResult{}
 
+	if definitionInterface != nil {
+		if def, ok := definitionInterface.(*types.ClusterDefinitionV5); ok {
+			result.DefinitionV5 = def
+			nodePoolsEnabled = true
+		} else if def, ok := definitionInterface.(*types.ClusterDefinitionV4); ok {
+			result.DefinitionV4 = def
+		} else {
+			return nil, microerror.Mask(errors.YAMLNotParseableError)
+		}
+	}
+
 	if nodePoolsEnabled {
 		if args.Verbose {
 			fmt.Println(color.WhiteString("Using the v5 API to create a cluster with node pool support"))
 		}
 
-		// TODO: make the v5 call, handle result
+		if result.DefinitionV5 == nil {
+			result.DefinitionV5 = &types.ClusterDefinitionV5{}
+		}
+
+		updateDefinitionFromFlagsV5(result.DefinitionV5, args.ClusterName, args.ReleaseVersion, args.Owner)
+
+		id, hasErrors, err := addClusterV5(result.DefinitionV5, args, clientWrapper, auxParams)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		result.ID = id
+		result.HasErrors = hasErrors
 
 	} else {
 		if args.Verbose {
 			fmt.Println(color.WhiteString("Using the v4 API to create a cluster"))
 		}
 
-		result.definitionV4 = &types.ClusterDefinitionV4{}
-
-		if definitionInterface != nil {
-			if def, ok := definitionInterface.(*types.ClusterDefinitionV4); ok {
-				result.definitionV4 = def
-			} else {
-				return nil, microerror.Mask(errors.YAMLNotParseableError)
-			}
+		if result.DefinitionV4 == nil {
+			result.DefinitionV4 = &types.ClusterDefinitionV4{}
 		}
 
-		updateDefinitionFromFlagsV4(result.definitionV4, args.ClusterName, args.ReleaseVersion, args.Owner)
+		updateDefinitionFromFlagsV4(result.DefinitionV4, args.ClusterName, args.ReleaseVersion, args.Owner)
 
-		id, location, err := addClusterV4(result.definitionV4, args, clientWrapper, auxParams)
+		id, location, err := addClusterV4(result.DefinitionV4, args, clientWrapper, auxParams)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
 
-		result.id = id
-		result.location = location
+		result.ID = id
+		result.Location = location
 	}
 
 	return result, nil

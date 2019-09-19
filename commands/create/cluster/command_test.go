@@ -14,6 +14,7 @@ import (
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/commands/types"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/testutils"
 )
@@ -119,14 +120,20 @@ func Test_verifyPreconditions(t *testing.T) {
 // Test_CreateClusterSuccessfully tests cluster creations that should succeed.
 func Test_CreateClusterSuccessfully(t *testing.T) {
 	var testCases = []struct {
-		description string
-		inputArgs   *Arguments
+		description    string
+		inputArgs      *Arguments
+		expectedResult *creationResult
 	}{
 		{
 			description: "Minimal arguments",
 			inputArgs: &Arguments{
 				Owner:     "acme",
 				AuthToken: "fake token",
+			},
+			expectedResult: &creationResult{
+				ID:           "f6e8r",
+				Location:     "/v4/clusters/f6e8r/",
+				DefinitionV4: &types.ClusterDefinitionV4{Owner: "acme"},
 			},
 		},
 		{
@@ -137,6 +144,15 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 				Owner:          "acme",
 				AuthToken:      "fake token",
 				Verbose:        true,
+			},
+			expectedResult: &creationResult{
+				ID:       "f6e8r",
+				Location: "/v4/clusters/f6e8r/",
+				DefinitionV4: &types.ClusterDefinitionV4{
+					Name:           "UnitTestCluster",
+					Owner:          "acme",
+					ReleaseVersion: "0.3.0",
+				},
 			},
 		},
 		{
@@ -149,23 +165,63 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 				AuthToken:     "fake token",
 				Verbose:       true,
 			},
+			expectedResult: &creationResult{
+				ID:       "f6e8r",
+				Location: "/v4/clusters/f6e8r/",
+				DefinitionV4: &types.ClusterDefinitionV4{
+					Name:  "Cluster Name from Args",
+					Owner: "acme",
+				},
+			},
+		},
+		{
+			description: "Definition from v5 YAML file",
+			inputArgs: &Arguments{
+				ClusterName:   "Cluster Name from Args",
+				FileSystem:    afero.NewOsFs(), // needed for YAML file access
+				InputYAMLFile: "testdata/v5_minimal.yaml",
+				Owner:         "acme",
+				AuthToken:     "fake token",
+				Verbose:       true,
+			},
+			expectedResult: &creationResult{
+				ID: "f6e8r",
+				DefinitionV5: &types.ClusterDefinitionV5{
+					APIVersion: "v5",
+					Name:       "Cluster Name from Args",
+					Owner:      "acme",
+				},
+			},
 		},
 	}
 
-	for i, testCase := range testCases {
-		t.Logf("Case %d: %s", i, testCase.description)
+	for i, tc := range testCases {
+		t.Logf("Case %d: %s", i, tc.description)
 
 		// mock server always responding positively
 		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			t.Log("mockServer request: ", r.Method, r.URL)
 			w.Header().Set("Content-Type", "application/json")
-			if !strings.Contains(r.Header.Get("Authorization"), testCase.inputArgs.AuthToken) {
+			if !strings.Contains(r.Header.Get("Authorization"), tc.inputArgs.AuthToken) {
 				t.Errorf("Authorization header incomplete: '%s'", r.Header.Get("Authorization"))
 			}
 			if r.Method == "POST" && r.URL.String() == "/v4/clusters/" {
 				w.Header().Set("Location", "/v4/clusters/f6e8r/")
 				w.WriteHeader(http.StatusCreated)
 				w.Write([]byte(`{"code": "RESOURCE_CREATED", "message": "Yeah!"}`))
+			} else if r.Method == "POST" && r.URL.String() == "/v4/clusters/" {
+				w.Header().Set("Location", "/v5/clusters/f6e8r/")
+				w.WriteHeader(http.StatusCreated)
+				w.Write([]byte(`{
+					"id": "f6e8r",
+					"owner": "acme",
+					"release_version": "7.1.0",
+					"name": "Node Pool Cluster",
+					"master": {
+						"availability_zone": "europe-central-1c"
+					},
+					"nodepools": []
+				}`))
 			} else if r.Method == "GET" && r.URL.String() == "/v4/info/" {
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(`{
@@ -201,16 +257,21 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		}))
 		defer mockServer.Close()
 
-		testCase.inputArgs.APIEndpoint = mockServer.URL
-		testCase.inputArgs.UserProvidedToken = testCase.inputArgs.AuthToken
+		tc.inputArgs.APIEndpoint = mockServer.URL
+		tc.inputArgs.UserProvidedToken = tc.inputArgs.AuthToken
 
-		err := verifyPreconditions(*testCase.inputArgs)
+		err := verifyPreconditions(*tc.inputArgs)
 		if err != nil {
-			t.Errorf("Validation error in testCase %d: %s", i, err.Error())
+			t.Errorf("Validation error in test case %d: %s", i, err.Error())
 		}
-		_, err = addCluster(*testCase.inputArgs)
+
+		result, err := addCluster(*tc.inputArgs)
 		if err != nil {
-			t.Errorf("Execution error in testCase %d: %s", i, err.Error())
+			t.Errorf("Execution error in test case %d: %s", i, err.Error())
+		}
+
+		if diff := cmp.Diff(tc.expectedResult, result, nil); diff != "" {
+			t.Errorf("Case %d - Results unequal. (-expected +got):\n%s", i, diff)
 		}
 	}
 }
