@@ -120,7 +120,8 @@ func Test_ParseYAMLDefinitionV5(t *testing.T) {
 			[]byte(`api_version: v5
 owner: myorg`),
 			&types.ClusterDefinitionV5{
-				Owner: "myorg",
+				APIVersion: "v5",
+				Owner:      "myorg",
 			},
 		},
 		// More details.
@@ -131,6 +132,7 @@ name: My cluster
 release_version: 1.2.3
 `),
 			&types.ClusterDefinitionV5{
+				APIVersion:     "v5",
 				Owner:          "myorg",
 				Name:           "My cluster",
 				ReleaseVersion: "1.2.3",
@@ -161,8 +163,9 @@ nodepools:
 - name: Batch
 `),
 			&types.ClusterDefinitionV5{
-				Owner:  "myorg",
-				Master: &types.MasterDefinition{AvailabilityZone: "my-zone-1a"},
+				APIVersion: "v5",
+				Owner:      "myorg",
+				Master:     &types.MasterDefinition{AvailabilityZone: "my-zone-1a"},
 				NodePools: []*types.NodePoolDefinition{
 					&types.NodePoolDefinition{
 						Name:              "General purpose",
