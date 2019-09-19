@@ -48,6 +48,7 @@ type ClusterDefinitionV4 struct {
 
 // ClusterDefinitionV5 defines a tenant cluster spec compatible with the v5 API.
 type ClusterDefinitionV5 struct {
+	APIVersion     string                `yaml:"api_version,omitempty"`
 	Name           string                `yaml:"name,omitempty"`
 	Owner          string                `yaml:"owner,omitempty"`
 	ReleaseVersion string                `yaml:"release_version,omitempty"`
