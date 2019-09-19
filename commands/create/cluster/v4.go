@@ -14,7 +14,6 @@ import (
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
-	"github.com/giantswarm/gsctl/limits"
 )
 
 // updateDefinitionFromFlagsV4 extend/overwrites a clusterDefinition based on the
@@ -85,14 +84,6 @@ func addClusterV4(def *types.ClusterDefinitionV4, args Arguments, clientWrapper 
 	// Validate definition
 	if def.Owner == "" {
 		return "", "", microerror.Mask(errors.ClusterOwnerMissingError)
-	}
-
-	// Validations based on definition file.
-	if args.InputYAMLFile != "" {
-		// number of workers
-		if len(def.Workers) > 0 && len(def.Workers) < limits.MinimumNumWorkers {
-			return "", "", microerror.Mask(errors.NotEnoughWorkerNodesError)
-		}
 	}
 
 	// create JSON API call payload to catch and handle errors early
