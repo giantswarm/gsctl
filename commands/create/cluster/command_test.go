@@ -209,7 +209,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 				w.Header().Set("Location", "/v4/clusters/f6e8r/")
 				w.WriteHeader(http.StatusCreated)
 				w.Write([]byte(`{"code": "RESOURCE_CREATED", "message": "Yeah!"}`))
-			} else if r.Method == "POST" && r.URL.String() == "/v4/clusters/" {
+			} else if r.Method == "POST" && r.URL.String() == "/v5/clusters/" {
 				w.Header().Set("Location", "/v5/clusters/f6e8r/")
 				w.WriteHeader(http.StatusCreated)
 				w.Write([]byte(`{
