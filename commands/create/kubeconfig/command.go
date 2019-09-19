@@ -383,7 +383,7 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	{
 		if args.tenantInternal {
 			baseEndpoint := strings.Split(clusterDetailsResponse.Payload.APIEndpoint, urlDelimiter)[1:]
-			apiEndpoint = fmt.Sprintf("%s.%s", tenantInternalAPIPrefix, strings.Join(baseEndpoint, urlDelimiter))
+			apiEndpoint = fmt.Sprintf("https://%s.%s", tenantInternalAPIPrefix, strings.Join(baseEndpoint, urlDelimiter))
 		} else {
 			apiEndpoint = clusterDetailsResponse.Payload.APIEndpoint
 		}
