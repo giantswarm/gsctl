@@ -7,6 +7,7 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
@@ -76,6 +77,11 @@ const (
 
 	// windows download page
 	kubectlWindowsInstallURL = "https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md"
+
+	// tenant internal api prefix
+	tenantInternalAPIPrefix = "internal-api"
+
+	urlDelimiter = "."
 )
 
 // Arguments is an argument struct to pass to our business
@@ -90,6 +96,7 @@ type Arguments struct {
 	description       string
 	fileSystem        afero.Fs
 	force             bool
+	tenantInternal    bool
 	scheme            string
 	selfContainedPath string
 	ttlHours          int32
@@ -132,6 +139,7 @@ func collectArguments() (Arguments, error) {
 		description:       description,
 		fileSystem:        config.FileSystem,
 		force:             flags.Force,
+		tenantInternal:    flags.TenantInternal,
 		scheme:            scheme,
 		selfContainedPath: cmdKubeconfigSelfContained,
 		ttlHours:          int32(ttl.Hours()),
@@ -166,6 +174,7 @@ func init() {
 	Command.Flags().StringVarP(&cmdKubeconfigContextName, "context", "", "", "Set a custom context name. Defaults to 'giantswarm-<cluster-id>'.")
 	Command.Flags().StringVarP(&flags.CertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
 	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation.")
+	Command.Flags().BoolVarP(&flags.TenantInternal, "tenant-internal", "", false, "If set, kubeconfig will be rendered with internal Kubernets API address.")
 	Command.Flags().StringVarP(&flags.TTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
 
 	Command.MarkFlagRequired("cluster")
@@ -370,7 +379,16 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 		return result, microerror.Mask(err)
 	}
 
-	result.apiEndpoint = clusterDetailsResponse.Payload.APIEndpoint
+	var apiEndpoint string
+	{
+		if args.tenantInternal {
+			baseEndpoint := strings.Split(clusterDetailsResponse.Payload.APIEndpoint, urlDelimiter)[1:]
+			apiEndpoint = fmt.Sprintf("%s.%s", tenantInternalAPIPrefix, strings.Join(baseEndpoint, urlDelimiter))
+		} else {
+			apiEndpoint = clusterDetailsResponse.Payload.APIEndpoint
+		}
+	}
+	result.apiEndpoint = apiEndpoint
 
 	addKeyPairBody := &models.V4AddKeyPairRequest{
 		Description:              &args.description,

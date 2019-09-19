@@ -25,6 +25,10 @@ var (
 	// Description represents the description passed as a flag.
 	Description string
 
+	// TenantInternal represents the type of Kubernetes API endpoints
+	// used to generate kubeconfig
+	TenantInternal bool
+
 	// TTL represents a TTL (time to live) value passed as a flag.
 	TTL string
 
