@@ -68,7 +68,7 @@ In case you want to use internal Kubernetes API, pass `--tenant-internal=true` t
 $ gsctl create kubeconfig -c h8d0j
 ```
 
-This will render kubeconfig with internal Kubernetes API server (`internal-api`).
+This will render a kubeconfig with the internal Kubernetes API server address (`internal-api`).
 
 * Internal API is available only on AWS installations.
 
