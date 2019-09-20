@@ -70,7 +70,7 @@ $ gsctl create kubeconfig -c h8d0j
 
 This will render kubeconfig with internal Kubernetes API server (`internal-api`).
 
-* Internal API is awailable only for AWS installations.
+* Internal API is available only on AWS installations.
 
 ## Install
 
