@@ -61,7 +61,7 @@ Whenever you want to switch to using this context:
 
 #### Cluster acccess via internal networks
 
-Internal Kubernetes API allows you talking to Kubernetes via internal load balancer. That can be useful for peered networks.
+The Internal Kubernetes API allows you to talk to Kubernetes via the internal load balancer. That can be useful for peered networks.
 
 In case you want to use internal Kubernetes API, pass `--tenant-internal=true` to gsctl:
 ```nohighlight
