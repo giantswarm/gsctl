@@ -63,7 +63,7 @@ Whenever you want to switch to using this context:
 
 The Internal Kubernetes API allows you to talk to Kubernetes via the internal load balancer. That can be useful for peered networks.
 
-In case you want to use internal Kubernetes API, pass `--tenant-internal=true` to gsctl:
+In case you want to use the internal Kubernetes API, pass `--tenant-internal=true` to gsctl:
 ```nohighlight
 $ gsctl create kubeconfig -c h8d0j
 ```
