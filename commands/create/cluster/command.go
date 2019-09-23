@@ -432,6 +432,8 @@ func addCluster(args Arguments) (*creationResult, error) {
 		nodePoolsEnabled, err = capabilityService.HasCapability(wantedRelease, capabilities.NodePools)
 	}
 
+	// TODO: Account fo edge case where user uses v5 definition but selects older release that would enforce v4.
+
 	result := &creationResult{}
 
 	if definitionInterface != nil {
