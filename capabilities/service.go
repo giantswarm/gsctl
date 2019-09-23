@@ -57,7 +57,7 @@ func (s *Service) initCapabilities() error {
 	}
 
 	// Enhance feature info for Node Pools, if available.
-	if info.Payload.Features.Nodepools != nil {
+	if info.Payload.Features != nil && info.Payload.Features.Nodepools != nil {
 		NodePools.RequiredReleasePerProvider = []ReleaseProviderPair{
 			ReleaseProviderPair{
 				Provider:       info.Payload.General.Provider,
