@@ -104,17 +104,14 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 		for i, np := range def.NodePools {
 			nodePoolRequestBody := createAddNodePoolBody(np)
 
-			if args.Verbose {
-				fmt.Println(color.WhiteString("Adding node pool %d", i+1))
-			}
+			fmt.Println(color.WhiteString("Adding node pool %d", i+1))
 
-			// TODO: fire creation request, store result
 			npResponse, err := clientWrapper.CreateNodePool(response.Payload.ID, nodePoolRequestBody, auxParams)
 			if err != nil {
 				fmt.Println(color.RedString("Error creating node pool %d: %s", i+1, err.Error()))
 				hasErrors = true
 			} else if args.Verbose {
-				fmt.Println(color.WhiteString("Added node pool with ID %s named '%s'", i+1, npResponse.Payload.ID, npResponse.Payload.Name))
+				fmt.Println(color.WhiteString("Added node pool %d with ID %s named '%s'", i+1, npResponse.Payload.ID, npResponse.Payload.Name))
 			}
 		}
 	}
