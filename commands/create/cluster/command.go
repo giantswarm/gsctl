@@ -43,16 +43,17 @@ import (
 // Arguments contains all possible input parameter needed
 // (and optionally available) for creating a cluster.
 type Arguments struct {
-	APIEndpoint       string
-	AuthToken         string
-	ClusterName       string
-	FileSystem        afero.Fs
-	InputYAMLFile     string
-	Owner             string
-	ReleaseVersion    string
-	Scheme            string
-	UserProvidedToken string
-	Verbose           bool
+	APIEndpoint           string
+	AuthToken             string
+	CreateDefaultNodePool bool
+	ClusterName           string
+	FileSystem            afero.Fs
+	InputYAMLFile         string
+	Owner                 string
+	ReleaseVersion        string
+	Scheme                string
+	UserProvidedToken     string
+	Verbose               bool
 }
 
 // collectArguments gets arguments from flags and returns an Arguments object.
@@ -62,16 +63,17 @@ func collectArguments() Arguments {
 	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	return Arguments{
-		APIEndpoint:       endpoint,
-		AuthToken:         token,
-		ClusterName:       flags.ClusterName,
-		FileSystem:        config.FileSystem,
-		InputYAMLFile:     flags.InputYAMLFile,
-		Owner:             flags.Owner,
-		ReleaseVersion:    flags.Release,
-		Scheme:            scheme,
-		UserProvidedToken: flags.Token,
-		Verbose:           flags.Verbose,
+		APIEndpoint:           endpoint,
+		AuthToken:             token,
+		ClusterName:           flags.ClusterName,
+		CreateDefaultNodePool: flags.CreateDefaultNodePool,
+		FileSystem:            config.FileSystem,
+		InputYAMLFile:         flags.InputYAMLFile,
+		Owner:                 flags.Owner,
+		ReleaseVersion:        flags.Release,
+		Scheme:                scheme,
+		UserProvidedToken:     flags.Token,
+		Verbose:               flags.Verbose,
 	}
 }
 
@@ -170,6 +172,7 @@ func initFlags() {
 	Command.Flags().StringVarP(&flags.ClusterName, "name", "n", "", "Cluster name")
 	Command.Flags().StringVarP(&flags.Owner, "owner", "o", "", "Organization to own the cluster")
 	Command.Flags().StringVarP(&flags.Release, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
+	Command.Flags().BoolVarP(&flags.CreateDefaultNodePool, "create-default-nodepool", "", true, "Whether a default node pool should be created if none is specified in the definition. Requires node pool support.")
 }
 
 // printValidation runs our pre-checks.
@@ -401,24 +404,24 @@ func addCluster(args Arguments) (*creationResult, error) {
 	}
 
 	var wantedRelease string
-	if config.Config.Provider == "aws" {
-		if args.ReleaseVersion != "" {
-			wantedRelease = args.ReleaseVersion
-		} else {
-			// look at release version from YAML definition
-			if defV5, okV5 := definitionInterface.(types.ClusterDefinitionV5); okV5 {
-				if defV5.ReleaseVersion != "" {
-					wantedRelease = defV5.ReleaseVersion
-				}
-			}
-			if defV4, okV4 := definitionInterface.(types.ClusterDefinitionV4); okV4 {
-				if defV4.ReleaseVersion != "" {
-					wantedRelease = defV4.ReleaseVersion
-				}
+	if args.ReleaseVersion != "" {
+		wantedRelease = args.ReleaseVersion
+	} else {
+		// look at release version from YAML definition
+		if defV5, okV5 := definitionInterface.(types.ClusterDefinitionV5); okV5 {
+			if defV5.ReleaseVersion != "" {
+				wantedRelease = defV5.ReleaseVersion
 			}
 		}
+		if defV4, okV4 := definitionInterface.(types.ClusterDefinitionV4); okV4 {
+			if defV4.ReleaseVersion != "" {
+				wantedRelease = defV4.ReleaseVersion
+			}
+		}
+	}
 
-		// As no other is set, use latest active release.
+	if config.Config.Provider == "aws" {
+		// If no release is set, use latest active release.
 		if wantedRelease == "" {
 			latest, err := getLatestActiveReleaseVersion(clientWrapper, auxParams)
 			if err != nil {
@@ -432,6 +435,10 @@ func addCluster(args Arguments) (*creationResult, error) {
 		capabilityService, err := capabilities.New(config.Config.Provider, clientWrapper)
 		if err != nil {
 			return nil, microerror.Mask(err)
+		}
+
+		if args.Verbose {
+			fmt.Println(color.WhiteString("Fetching installation capabilities"))
 		}
 
 		nodePoolsEnabled, err = capabilityService.HasCapability(wantedRelease, capabilities.NodePools)

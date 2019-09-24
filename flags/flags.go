@@ -25,6 +25,10 @@ var (
 	// CNPrefix represents the CN prefix passed as a flag.
 	CNPrefix string
 
+	// CreateDefaultNodePool defines whether a default node pool should be created
+	// in the case that none was defined in the cluster definition.
+	CreateDefaultNodePool bool
+
 	// Description represents the description passed as a flag.
 	Description string
 

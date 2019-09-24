@@ -104,7 +104,7 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 		for i, np := range def.NodePools {
 			nodePoolRequestBody := createAddNodePoolBody(np)
 
-			fmt.Println(color.WhiteString("Adding node pool %d", i+1))
+			fmt.Printf("Adding node pool %d\n", i+1)
 
 			npResponse, err := clientWrapper.CreateNodePool(response.Payload.ID, nodePoolRequestBody, auxParams)
 			if err != nil {
@@ -113,6 +113,17 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 			} else if args.Verbose {
 				fmt.Println(color.WhiteString("Added node pool %d with ID %s named '%s'", i+1, npResponse.Payload.ID, npResponse.Payload.Name))
 			}
+		}
+	} else if args.CreateDefaultNodePool {
+		fmt.Println("Adding a default node pool")
+
+		nodePoolRequestBody := &models.V5AddNodePoolRequest{}
+		npResponse, err := clientWrapper.CreateNodePool(response.Payload.ID, nodePoolRequestBody, auxParams)
+		if err != nil {
+			fmt.Println(color.RedString("Error creating default node pool: %s", err.Error()))
+			hasErrors = true
+		} else if args.Verbose {
+			fmt.Println(color.WhiteString("Added default node pool with ID %s", npResponse.Payload.ID))
 		}
 	}
 

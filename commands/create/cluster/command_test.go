@@ -40,9 +40,10 @@ func Test_CollectArgs(t *testing.T) {
 		{
 			[]string{""},
 			Arguments{
-				APIEndpoint: "https://foo",
-				AuthToken:   "some-token",
-				Scheme:      "giantswarm",
+				APIEndpoint:           "https://foo",
+				AuthToken:             "some-token",
+				CreateDefaultNodePool: true,
+				Scheme:                "giantswarm",
 			},
 		},
 		{
@@ -52,12 +53,13 @@ func Test_CollectArgs(t *testing.T) {
 				"--release=1.2.3",
 			},
 			Arguments{
-				APIEndpoint:    "https://foo",
-				AuthToken:      "some-token",
-				ClusterName:    "ClusterName",
-				Owner:          "acme",
-				ReleaseVersion: "1.2.3",
-				Scheme:         "giantswarm",
+				APIEndpoint:           "https://foo",
+				AuthToken:             "some-token",
+				ClusterName:           "ClusterName",
+				CreateDefaultNodePool: true,
+				Owner:                 "acme",
+				ReleaseVersion:        "1.2.3",
+				Scheme:                "giantswarm",
 			},
 		},
 	}
@@ -177,12 +179,13 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		{
 			description: "Definition from v5 YAML file",
 			inputArgs: &Arguments{
-				ClusterName:   "Cluster Name from Args",
-				FileSystem:    afero.NewOsFs(), // needed for YAML file access
-				InputYAMLFile: "testdata/v5_minimal.yaml",
-				Owner:         "acme",
-				AuthToken:     "fake token",
-				Verbose:       true,
+				ClusterName:           "Cluster Name from Args",
+				CreateDefaultNodePool: false,
+				FileSystem:            afero.NewOsFs(), // needed for YAML file access
+				InputYAMLFile:         "testdata/v5_minimal.yaml",
+				Owner:                 "acme",
+				AuthToken:             "fake token",
+				Verbose:               true,
 			},
 			expectedResult: &creationResult{
 				ID: "f6e8r",
@@ -253,6 +256,19 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			    ]
 			  }
 			]`))
+			} else if r.Method == "POST" && r.URL.String() == "/v5/clusters/f6e8r/nodepools/" {
+				w.WriteHeader(http.StatusCreated)
+				w.Write([]byte(`{
+					"id": "a1b2",
+					"name": "DEfault node pool name",
+					"availability_zones": ["eu-central-1a"],
+					"scaling": {"min": 3, "max": 3},
+					"node_spec": {
+					  "aws": {
+						"instance_type": "m4.2xlarge"
+					  }
+					}
+				  }`))
 			}
 		}))
 		defer mockServer.Close()
