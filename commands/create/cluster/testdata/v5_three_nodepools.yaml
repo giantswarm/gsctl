@@ -1,0 +1,20 @@
+api_version: v5
+master:
+  availability_zone: eu-central-1a
+nodepools:
+- name: Node pool with 2 random AZs
+  availability_zones:
+    number: 2
+- name: Node pool with 3 specific AZs A, B, C, scaling 3-10, m5.xlarge
+  availability_zones:
+    zones:
+    - eu-central-1a
+    - eu-central-1b
+    - eu-central-1c
+  scaling:
+    min: 3
+    max: 10
+  node_spec:
+    aws:
+      instance_type: "m5.xlarge"
+- name: Node pool using defaults only
