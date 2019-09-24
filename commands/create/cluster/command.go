@@ -37,7 +37,6 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
 	"github.com/giantswarm/gsctl/flags"
-	"github.com/giantswarm/gsctl/limits"
 )
 
 // Arguments contains all possible input parameter needed
@@ -192,27 +191,6 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		case errors.IsConflictingFlagsError(err):
 			headline = "Conflicting flags used"
 			subtext = "When specifying a definition via a YAML file, certain flags must not be used."
-		case errors.IsConflictingWorkerFlagsUsed(err):
-			headline = "Conflicting flags used"
-			subtext = "When specifying --num-workers, neither --workers-max nor --workers-min must be used."
-		case errors.IsWorkersMinMaxInvalid(err):
-			headline = "Number of worker nodes invalid"
-			subtext = "Node count flag --workers-min must not be higher than --workers-max."
-		case errors.IsNumWorkerNodesMissingError(err):
-			headline = "Number of worker nodes required"
-			subtext = "When specifying worker node details, you must also specify the number of worker nodes."
-		case errors.IsNotEnoughWorkerNodesError(err):
-			headline = "Not enough worker nodes specified"
-			subtext = fmt.Sprintf("You'll need at least %v worker nodes for a useful cluster.", limits.MinimumNumWorkers)
-		case errors.IsNotEnoughCPUCoresPerWorkerError(err):
-			headline = "Not enough CPUs per worker specified"
-			subtext = fmt.Sprintf("You'll need at least %v CPU cores per worker node.", limits.MinimumWorkerNumCPUs)
-		case errors.IsNotEnoughMemoryPerWorkerError(err):
-			headline = "Not enough Memory per worker specified"
-			subtext = fmt.Sprintf("You'll need at least %.1f GB per worker node.", limits.MinimumWorkerMemorySizeGB)
-		case errors.IsNotEnoughStoragePerWorkerError(err):
-			headline = "Not enough Storage per worker specified"
-			subtext = fmt.Sprintf("You'll need at least %.1f GB per worker node.", limits.MinimumWorkerStorageSizeGB)
 		default:
 			headline = err.Error()
 		}
@@ -247,9 +225,6 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 			if args.InputYAMLFile != "" {
 				subtext = "Please specify an owner organization for the cluster in your definition file or set one via the --owner flag."
 			}
-		case errors.IsNotEnoughWorkerNodesError(err):
-			headline = "Not enough worker nodes specified"
-			subtext = fmt.Sprintf("If you specify workers in your definition file, you'll have to specify at least %d worker nodes for a useful cluster.", limits.MinimumNumWorkers)
 		case errors.IsYAMLNotParseable(err):
 			headline = "Could not parse YAML"
 			if args.InputYAMLFile == "-" {
