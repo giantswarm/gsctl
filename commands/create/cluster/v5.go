@@ -49,20 +49,34 @@ func createAddClusterBodyV5(def *types.ClusterDefinitionV5) *models.V5AddCluster
 
 func createAddNodePoolBody(def *types.NodePoolDefinition) *models.V5AddNodePoolRequest {
 	b := &models.V5AddNodePoolRequest{
-		Name: def.Name,
-		AvailabilityZones: &models.V5AddNodePoolRequestAvailabilityZones{
-			Number: def.AvailabilityZones.Number,
-			Zones:  def.AvailabilityZones.Zones,
-		},
-		Scaling: &models.V5AddNodePoolRequestScaling{
-			Min: def.Scaling.Min,
-			Max: def.Scaling.Min,
-		},
-		NodeSpec: &models.V5AddNodePoolRequestNodeSpec{
-			Aws: &models.V5AddNodePoolRequestNodeSpecAws{
-				InstanceType: def.NodeSpec.AWS.InstanceType,
-			},
-		},
+		Name:              def.Name,
+		AvailabilityZones: &models.V5AddNodePoolRequestAvailabilityZones{},
+		Scaling:           &models.V5AddNodePoolRequestScaling{},
+		NodeSpec:          &models.V5AddNodePoolRequestNodeSpec{},
+	}
+
+	if def.AvailabilityZones != nil {
+		if def.AvailabilityZones.Number != 0 {
+			b.AvailabilityZones.Number = def.AvailabilityZones.Number
+		}
+		if len(def.AvailabilityZones.Zones) != 0 {
+			b.AvailabilityZones.Zones = def.AvailabilityZones.Zones
+		}
+	}
+
+	if def.Scaling != nil {
+		if def.Scaling.Min != 0 {
+			b.Scaling.Min = def.Scaling.Min
+		}
+		if def.Scaling.Max != 0 {
+			b.Scaling.Max = def.Scaling.Max
+		}
+	}
+
+	if def.NodeSpec != nil && def.NodeSpec.AWS != nil {
+		b.NodeSpec.Aws = &models.V5AddNodePoolRequestNodeSpecAws{
+			InstanceType: def.NodeSpec.AWS.InstanceType,
+		}
 	}
 
 	return b
