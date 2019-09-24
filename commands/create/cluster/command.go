@@ -293,16 +293,21 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 
 	// success output
-	if result.DefinitionV4.Name != "" {
-		fmt.Println(color.GreenString("New cluster '%s' (ID '%s') for organization '%s' is launching.", result.DefinitionV4.Name, result.ID, result.DefinitionV4.Owner))
-	} else {
-		fmt.Println(color.GreenString("New cluster with ID '%s' for organization '%s' is launching.", result.ID, result.DefinitionV4.Owner))
+	if result.DefinitionV4 != nil {
+		if result.DefinitionV4.Name != "" {
+			fmt.Println(color.GreenString("New cluster '%s' (ID '%s') for organization '%s' is launching.", result.DefinitionV4.Name, result.ID, result.DefinitionV4.Owner))
+		} else {
+			fmt.Println(color.GreenString("New cluster with ID '%s' for organization '%s' is launching.", result.ID, result.DefinitionV4.Owner))
+		}
 	}
-	fmt.Println("Add key pair and settings to kubectl using")
+
+	// TODO: v5 success output
+
+	fmt.Println("\nAdd a key pair and settings for kubectl using")
 	fmt.Println("")
 	fmt.Printf("    %s", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s \n", result.ID)))
 	fmt.Println("")
-	fmt.Println("Take into consideration all clusters have enabled RBAC and may you want to provide a correct organization for the certificates (like operators, testers, developer, ...)")
+	fmt.Println("Take into consideration all clusters have enabled RBAC and may you want to provide a correct organization for the certificates (like operators, testers, developer, ...).")
 	fmt.Println("")
 	fmt.Printf("    %s \n", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s --certificate-organizations system:masters", result.ID)))
 	fmt.Println("")
@@ -432,7 +437,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 		nodePoolsEnabled, err = capabilityService.HasCapability(wantedRelease, capabilities.NodePools)
 	}
 
-	// TODO: Account fo edge case where user uses v5 definition but selects older release that would enforce v4.
+	// TODO: Account for edge case where user uses v5 definition but selects older release that would enforce v4.
 
 	result := &creationResult{}
 
