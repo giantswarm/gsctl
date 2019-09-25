@@ -18,7 +18,7 @@ func readDefinitionFromYAML(yamlBytes []byte) (interface{}, error) {
 
 	err := yaml.Unmarshal(yamlBytes, rawMap)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, microerror.Maskf(unmashalToMapFailedError, err.Error())
 	}
 
 	// Detecting v5 purely based on the existence of the 'api_version' key.

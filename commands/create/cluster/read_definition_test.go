@@ -32,24 +32,31 @@ func Test_ParseYAMLDefinitionV4(t *testing.T) {
 	var testCases = []struct {
 		inputYAML      []byte
 		expectedOutput *types.ClusterDefinitionV4
+		errorMatcher   func(error) bool
 	}{
 		// Minimal YAML.
 		{
-			[]byte(`owner: myorg`),
-			&types.ClusterDefinitionV4{
+			inputYAML: []byte(`owner: myorg`),
+			expectedOutput: &types.ClusterDefinitionV4{
 				Owner: "myorg",
 			},
 		},
+		// Invalid YAML.
+		{
+			inputYAML:      []byte(`owner\n    foo`),
+			expectedOutput: nil,
+			errorMatcher:   IsUnmashalToMapFailed,
+		},
 		// More details.
 		{
-			[]byte(`owner: myorg
+			inputYAML: []byte(`owner: myorg
 name: My cluster
 release_version: 1.2.3
 availability_zones: 3
 scaling:
   min: 3
   max: 5`),
-			&types.ClusterDefinitionV4{
+			expectedOutput: &types.ClusterDefinitionV4{
 				Owner:             "myorg",
 				Name:              "My cluster",
 				ReleaseVersion:    "1.2.3",
@@ -62,7 +69,7 @@ scaling:
 		},
 		// KVM worker details.
 		{
-			[]byte(`owner: myorg
+			inputYAML: []byte(`owner: myorg
 workers:
 - memory:
     size_gb: 16.5
@@ -77,7 +84,7 @@ workers:
   storage:
     size_gb: 50
 `),
-			&types.ClusterDefinitionV4{
+			expectedOutput: &types.ClusterDefinitionV4{
 				Owner: "myorg",
 				Workers: []types.NodeDefinition{
 					types.NodeDefinition{
@@ -98,12 +105,18 @@ workers:
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			def, err := readDefinitionFromYAML(tc.inputYAML)
-			if err != nil {
+			if tc.errorMatcher != nil {
+				if !tc.errorMatcher(err) {
+					t.Errorf("Case %d - Expected error, got %v", i, err)
+				}
+			} else if err != nil {
 				t.Errorf("Case %d - Unexpected error %v", i, err)
 			}
 
-			if diff := cmp.Diff(tc.expectedOutput, def); diff != "" {
-				t.Errorf("Case %d - Resulting definition unequal. (-expected +got):\n%s", i, diff)
+			if err == nil {
+				if diff := cmp.Diff(tc.expectedOutput, def); diff != "" {
+					t.Errorf("Case %d - Resulting definition unequal. (-expected +got):\n%s", i, diff)
+				}
 			}
 		})
 	}
