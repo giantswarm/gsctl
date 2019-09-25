@@ -12,17 +12,63 @@ import (
 
 // Test_ReadDefinitionFiles tests the readDefinitionFromFile with all
 // YAML files in the testdata directory.
-func Test_ReadDefinitionFiles(t *testing.T) {
+func Test_readDefinitionFromFile(t *testing.T) {
 	basePath := "testdata"
 	fs := afero.NewOsFs()
-	files, _ := afero.ReadDir(fs, basePath)
 
-	for i, f := range files {
-		t.Logf("Case %d, file %s", i, f.Name())
-		path := basePath + "/" + f.Name()
+	var testCases = []struct {
+		fileName     string
+		errorMatcher func(error) bool
+	}{
+		{
+			fileName:     "v4_complete_aws.yaml",
+			errorMatcher: nil,
+		},
+		{
+			fileName:     "v4_complete.yaml",
+			errorMatcher: nil,
+		},
+		{
+			fileName:     "v4_minimal.yaml",
+			errorMatcher: nil,
+		},
+		{
+			fileName:     "v4_not_enough_workers.yaml",
+			errorMatcher: nil,
+		},
+		{
+			fileName:     "v5_minimal.yaml",
+			errorMatcher: nil,
+		},
+		{
+			fileName:     "v5_three_nodepools.yaml",
+			errorMatcher: nil,
+		},
+		{
+			fileName:     "invalid01.yaml",
+			errorMatcher: IsInvalidDefinitionYAML,
+		},
+		{
+			fileName:     "invalid02.yaml",
+			errorMatcher: IsInvalidDefinitionYAML,
+		},
+		{
+			fileName:     "invalid03.yaml",
+			errorMatcher: IsInvalidDefinitionYAML,
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Logf("Case %d, file %s", i, tc.fileName)
+		path := basePath + "/" + tc.fileName
+
 		_, err := readDefinitionFromFile(fs, path)
-		if err != nil {
-			t.Errorf("Unexpected error in case %d, file %s: %s", i, f.Name(), err)
+		if tc.errorMatcher != nil {
+			if !tc.errorMatcher(err) {
+				t.Errorf("Unexpected error in case %d, file %s: %s", i, tc.fileName, err)
+			}
+		} else if err != nil {
+			t.Errorf("Unexpected error in case %d, file %s: %s", i, tc.fileName, err)
 		}
 	}
 }

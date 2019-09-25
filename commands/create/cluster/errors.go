@@ -12,3 +12,23 @@ var unmashalToMapFailedError = &microerror.Error{
 func IsUnmashalToMapFailed(err error) bool {
 	return microerror.Cause(err) == unmashalToMapFailedError
 }
+
+// invalidV5DefinitionYAMLError is used when the YAML definition can't be parsed as valid v5.
+var invalidV5DefinitionYAMLError = &microerror.Error{
+	Kind: "invalidV5DefinitionYAMLError",
+}
+
+// IsInvalidV5DefinitionYAML asserts invalidV4DefinitionYAMLError.
+func IsInvalidV5DefinitionYAML(err error) bool {
+	return microerror.Cause(err) == invalidV5DefinitionYAMLError
+}
+
+// invalidDefinitionYAMLError is used when the YAML definition can't be parsed as any valid cluster definition.
+var invalidDefinitionYAMLError = &microerror.Error{
+	Kind: "invalidDefinitionYAMLError",
+}
+
+// IsInvalidDefinitionYAML asserts invalidDefinitionYAMLError.
+func IsInvalidDefinitionYAML(err error) bool {
+	return microerror.Cause(err) == invalidDefinitionYAMLError
+}

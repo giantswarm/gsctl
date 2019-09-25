@@ -1,0 +1,4 @@
+# This file is an invalid v4 definition, as it does not define enough workers
+name: Tiny cluster
+owner: littleco
+workers: []

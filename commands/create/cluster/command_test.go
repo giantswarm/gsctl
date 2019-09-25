@@ -161,7 +161,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			inputArgs: &Arguments{
 				ClusterName:    "Cluster Name from Args",
 				FileSystem:     afero.NewOsFs(), // needed for YAML file access
-				InputYAMLFile:  "testdata/minimal.yaml",
+				InputYAMLFile:  "testdata/v4_minimal.yaml",
 				Owner:          "acme",
 				AuthToken:      "fake token",
 				ReleaseVersion: "1.0.0",
@@ -210,10 +210,11 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			expectedResult: &creationResult{
 				ID: "f6e8r",
 				DefinitionV5: &types.ClusterDefinitionV5{
-					APIVersion: "v5",
-					Name:       "Cluster with three node pools",
-					Owner:      "acme",
-					Master:     &types.MasterDefinition{AvailabilityZone: "eu-central-1a"},
+					APIVersion:     "v5",
+					Name:           "Cluster with three node pools",
+					Owner:          "acme",
+					ReleaseVersion: "9.0.0",
+					Master:         &types.MasterDefinition{AvailabilityZone: "eu-central-1a"},
 					NodePools: []*types.NodePoolDefinition{
 						&types.NodePoolDefinition{
 							Name:              "Node pool with 2 random AZs",
