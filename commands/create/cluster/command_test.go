@@ -134,8 +134,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			},
 			expectedResult: &creationResult{
 				ID:           "f6e8r",
-				Location:     "/v4/clusters/f6e8r/",
-				DefinitionV4: &types.ClusterDefinitionV4{Owner: "acme"},
+				DefinitionV5: &types.ClusterDefinitionV5{Owner: "acme"},
 			},
 		},
 		{
@@ -158,26 +157,28 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			},
 		},
 		{
-			description: "Definition from v4 YAML file",
+			description: "Definition from v4 YAML file, release version via args",
 			inputArgs: &Arguments{
-				ClusterName:   "Cluster Name from Args",
-				FileSystem:    afero.NewOsFs(), // needed for YAML file access
-				InputYAMLFile: "testdata/minimal.yaml",
-				Owner:         "acme",
-				AuthToken:     "fake token",
-				Verbose:       true,
+				ClusterName:    "Cluster Name from Args",
+				FileSystem:     afero.NewOsFs(), // needed for YAML file access
+				InputYAMLFile:  "testdata/minimal.yaml",
+				Owner:          "acme",
+				AuthToken:      "fake token",
+				ReleaseVersion: "1.0.0",
+				Verbose:        true,
 			},
 			expectedResult: &creationResult{
 				ID:       "f6e8r",
 				Location: "/v4/clusters/f6e8r/",
 				DefinitionV4: &types.ClusterDefinitionV4{
-					Name:  "Cluster Name from Args",
-					Owner: "acme",
+					Name:           "Cluster Name from Args",
+					Owner:          "acme",
+					ReleaseVersion: "1.0.0",
 				},
 			},
 		},
 		{
-			description: "Definition from v5 YAML file",
+			description: "Definition from minimal v5 YAML file, no release version",
 			inputArgs: &Arguments{
 				ClusterName:           "Cluster Name from Args",
 				CreateDefaultNodePool: false,
@@ -196,10 +197,60 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 				},
 			},
 		},
+		{
+			description: "Definition from complex v5 YAML file",
+			inputArgs: &Arguments{
+				CreateDefaultNodePool: false,
+				FileSystem:            afero.NewOsFs(),
+				InputYAMLFile:         "testdata/v5_three_nodepools.yaml",
+				Owner:                 "acme",
+				AuthToken:             "fake token",
+				Verbose:               true,
+			},
+			expectedResult: &creationResult{
+				ID: "f6e8r",
+				DefinitionV5: &types.ClusterDefinitionV5{
+					APIVersion: "v5",
+					Name:       "Cluster with three node pools",
+					Owner:      "acme",
+					Master:     &types.MasterDefinition{AvailabilityZone: "eu-central-1a"},
+					NodePools: []*types.NodePoolDefinition{
+						&types.NodePoolDefinition{
+							Name:              "Node pool with 2 random AZs",
+							AvailabilityZones: &types.AvailabilityZonesDefinition{Number: 2},
+						},
+						&types.NodePoolDefinition{
+							Name: "Node pool with 3 specific AZs A, B, C, scaling 3-10, m5.xlarge",
+							AvailabilityZones: &types.AvailabilityZonesDefinition{
+								Zones: []string{"eu-central-1a", "eu-central-1b", "eu-central-1c"},
+							},
+							Scaling: &types.ScalingDefinition{
+								Min: 3,
+								Max: 10,
+							},
+							NodeSpec: &types.NodeSpec{
+								AWS: &types.AWSSpecificDefinition{
+									InstanceType: "m5.xlarge",
+								},
+							},
+						},
+						&types.NodePoolDefinition{
+							Name: "Node pool using defaults only",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range testCases {
 		t.Logf("Case %d: %s", i, tc.description)
+
+		fs := afero.NewMemMapFs()
+		_, err := testutils.TempConfig(fs, configYAML)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		// mock server always responding positively
 		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -218,10 +269,10 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 				w.Write([]byte(`{
 					"id": "f6e8r",
 					"owner": "acme",
-					"release_version": "7.1.0",
+					"release_version": "9.0.0",
 					"name": "Node Pool Cluster",
 					"master": {
-						"availability_zone": "europe-central-1c"
+						"availability_zone": "eu-central-1c"
 					},
 					"nodepools": []
 				}`))
@@ -238,29 +289,26 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			} else if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(`[
-			  {
-					"timestamp": "2017-10-15T12:00:00Z",
-			    "version": "0.3.0",
-			    "active": true,
-			    "changelog": [
-			      {
-			        "component": "firstComponent",
-			        "description": "firstComponent added."
-			      }
-			    ],
-			    "components": [
-			      {
-			        "name": "firstComponent",
-			        "version": "0.0.1"
-			      }
-			    ]
-			  }
-			]`))
+					{
+						"timestamp": "2019-01-01T12:00:00Z",
+						"version": "1.0.0",
+						"active": true,
+						"changelog": [],
+						"components": []
+					},
+					{
+						"timestamp": "2019-09-23T12:00:00Z",
+						"version": "9.0.0",
+						"active": true,
+						"changelog": [],
+						"components": []
+					}
+				]`))
 			} else if r.Method == "POST" && r.URL.String() == "/v5/clusters/f6e8r/nodepools/" {
 				w.WriteHeader(http.StatusCreated)
 				w.Write([]byte(`{
 					"id": "a1b2",
-					"name": "DEfault node pool name",
+					"name": "Default node pool name",
 					"availability_zones": ["eu-central-1a"],
 					"scaling": {"min": 3, "max": 3},
 					"node_spec": {
@@ -276,18 +324,18 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 		tc.inputArgs.APIEndpoint = mockServer.URL
 		tc.inputArgs.UserProvidedToken = tc.inputArgs.AuthToken
 
-		err := verifyPreconditions(*tc.inputArgs)
+		err = verifyPreconditions(*tc.inputArgs)
 		if err != nil {
-			t.Errorf("Validation error in test case %d: %s", i, err.Error())
+			t.Errorf("Case %d - Validation error: %s", i, err.Error())
 		}
 
 		result, err := addCluster(*tc.inputArgs)
 		if err != nil {
-			t.Errorf("Execution error in test case %d: %s", i, err.Error())
+			t.Errorf("Case %d - Execution error: %s", i, err.Error())
 		}
 
 		if diff := cmp.Diff(tc.expectedResult, result, nil); diff != "" {
-			t.Errorf("Case %d - Results unequal. (-expected +got):\n%s", i, diff)
+			t.Errorf("Case %d - Results unequal (-expected +got):\n%s", i, diff)
 		}
 	}
 }

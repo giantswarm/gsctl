@@ -1,4 +1,6 @@
 api_version: v5
+relase_version: "8.2.0"
+name: Cluster with three node pools
 master:
   availability_zone: eu-central-1a
 nodepools:
@@ -16,5 +18,5 @@ nodepools:
     max: 10
   node_spec:
     aws:
-      instance_type: "m5.xlarge"
+      instance_type: m5.xlarge
 - name: Node pool using defaults only
