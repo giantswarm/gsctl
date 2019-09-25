@@ -155,9 +155,6 @@ Examples:
 
 	// the client wrapper we will use in this command.
 	clientWrapper *client.Wrapper
-
-	// nodePoolsEnabled stores whether we can assume the v5 API (node pools) for this command execution.
-	nodePoolsEnabled = false
 )
 
 func init() {
@@ -235,6 +232,10 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		case errors.IsYAMLFileNotReadable(err):
 			headline = "Could not read YAML file"
 			subtext = fmt.Sprintf("The file '%s' could not be read. Please make sure that it is readable and contains valid YAML.", args.InputYAMLFile)
+		case errors.IsIncompatibleSettings(err):
+			headline = "Incompatible settings"
+			subtext = "The provided cluster details/definition are not compatible with the capabilities of the installation and/or release.\n"
+			subtext += fmt.Sprintf("Error details: %s", err.Error())
 		case errors.IsCouldNotCreateJSONRequestBodyError(err):
 			headline = "Could not create the JSON body for cluster creation API request"
 			subtext = "There seems to be a problem in parsing the cluster definition. Please contact Giant Swarm via Slack or via support@giantswarm.io with details on how you executes this command."
@@ -336,7 +337,8 @@ func getLatestActiveReleaseVersion(clientWrapper *client.Wrapper, auxParams *cli
 }
 
 // addCluster collects information to decide whether to create a cluster
-// via the v4 or v5 API endpoint, then returns results.
+// via the v4 or v5 API endpoint, then calls the according functions
+// and returns results.
 func addCluster(args Arguments) (*creationResult, error) {
 	var err error
 
@@ -359,7 +361,10 @@ func addCluster(args Arguments) (*creationResult, error) {
 			return nil, microerror.Mask(err)
 		}
 
-		config.Config.SetProvider(info.Payload.General.Provider)
+		err = config.Config.SetProvider(info.Payload.General.Provider)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
 	}
 
 	// Process YAML definition (if given), so we can take a 'release_version' key into consideration.
@@ -378,59 +383,85 @@ func addCluster(args Arguments) (*creationResult, error) {
 		}
 	}
 
+	// The release version we are selecting, based on command line flags, YAML definition,
+	// or as the latest release available.
 	var wantedRelease string
-	if args.ReleaseVersion != "" {
-		wantedRelease = args.ReleaseVersion
-	} else {
-		// look at release version from YAML definition
-		if defV5, okV5 := definitionInterface.(types.ClusterDefinitionV5); okV5 {
-			if defV5.ReleaseVersion != "" {
-				wantedRelease = defV5.ReleaseVersion
-			}
-		}
-		if defV4, okV4 := definitionInterface.(types.ClusterDefinitionV4); okV4 {
-			if defV4.ReleaseVersion != "" {
-				wantedRelease = defV4.ReleaseVersion
-			}
-		}
+
+	// nodePoolsEnabled stores whether we can assume the v5 API (node pools) for this command execution.
+	var nodePoolsEnabled = false
+
+	var usesV4Definition, usesV5Definition bool
+	var defV4 types.ClusterDefinitionV4
+	var defV5 types.ClusterDefinitionV5
+
+	// Assert YAML definition version.
+	// Order is important here! We try v5 first. Only if that fails, we try v4.
+	switch def := definitionInterface.(type) {
+	case *types.ClusterDefinitionV5:
+		usesV5Definition = true
+		defV5 = *def
+	case *types.ClusterDefinitionV4:
+		usesV4Definition = true
+		defV4 = *def
+	default:
+		// Intentionally doing nothing.
 	}
 
-	if config.Config.Provider == "aws" {
-		// If no release is set, use latest active release.
-		if wantedRelease == "" {
-			latest, err := getLatestActiveReleaseVersion(clientWrapper, auxParams)
-			if err != nil {
-				return nil, microerror.Mask(err)
-			}
+	// Check for wanted release from YAML definition.
+	if usesV5Definition && defV5.ReleaseVersion != "" {
+		wantedRelease = defV5.ReleaseVersion
+	} else if usesV4Definition && defV4.ReleaseVersion != "" {
+		wantedRelease = defV4.ReleaseVersion
+	}
 
-			wantedRelease = latest
-		}
+	// args overwrite definition content.
+	if args.ReleaseVersion != "" {
+		wantedRelease = args.ReleaseVersion
+	}
 
-		// Fetch node pools capabilities info.
-		capabilityService, err := capabilities.New(config.Config.Provider, clientWrapper)
+	// If no release is set, use latest active release.
+	// We need a release version here in order to be able to check capabilities.
+	if wantedRelease == "" {
+		latest, err := getLatestActiveReleaseVersion(clientWrapper, auxParams)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
 
-		if args.Verbose {
-			fmt.Println(color.WhiteString("Fetching installation capabilities"))
-		}
-
-		nodePoolsEnabled, err = capabilityService.HasCapability(wantedRelease, capabilities.NodePools)
+		wantedRelease = latest
 	}
 
-	// TODO: Account for edge case where user uses v5 definition but selects older release that would enforce v4.
+	// Fetch node pools capabilities info.
+	capabilityService, err := capabilities.New(config.Config.Provider, clientWrapper)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	if args.Verbose {
+		fmt.Println(color.WhiteString("Fetching installation capabilities"))
+	}
+
+	nodePoolsEnabled, err = capabilityService.HasCapability(wantedRelease, capabilities.NodePools)
+
+	// Fail for edge cases:
+	// - User uses v5 definition, but the installation doesn't support node pools.
+	// - User uses v5 definition, but the release version requires v4.
+	// - User uses v4 definition, but the release version requires v5.
+	if nodePoolsEnabled && usesV4Definition {
+		return nil, microerror.Maskf(errors.IncompatibleSettingsError, "please use a v5 definition or specify a release version that allows v4")
+	} else if !nodePoolsEnabled && usesV5Definition {
+		return nil, microerror.Maskf(errors.IncompatibleSettingsError, "please use a v4 definition or specify a release version that allows v5")
+	}
 
 	result := &creationResult{}
 
 	if definitionInterface != nil {
-		if def, ok := definitionInterface.(*types.ClusterDefinitionV5); ok {
-			result.DefinitionV5 = def
+		if usesV5Definition {
+			result.DefinitionV5 = &defV5
 			nodePoolsEnabled = true
-		} else if def, ok := definitionInterface.(*types.ClusterDefinitionV4); ok {
-			result.DefinitionV4 = def
+		} else if usesV4Definition {
+			result.DefinitionV4 = &defV4
 		} else {
-			return nil, microerror.Mask(errors.YAMLNotParseableError)
+			return nil, microerror.Maskf(errors.YAMLNotParseableError, "unclear whether v4 or v5 cluster should be created")
 		}
 	}
 
