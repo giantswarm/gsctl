@@ -374,8 +374,8 @@ var IncompatibleSettingsError = &microerror.Error{
 	Kind: "IncompatibleSettingsError",
 }
 
-// IsIncompatibleSettingsError asserts IncompatibleSettingsError.
-func IsIncompatibleSettingsError(err error) bool {
+// IsIncompatibleSettings asserts IncompatibleSettingsError.
+func IsIncompatibleSettings(err error) bool {
 	return microerror.Cause(err) == IncompatibleSettingsError
 }
 
