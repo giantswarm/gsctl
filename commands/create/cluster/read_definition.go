@@ -25,19 +25,19 @@ func readDefinitionFromYAML(yamlBytes []byte) (interface{}, error) {
 	if _, apiVersionOK := rawMap["api_version"]; apiVersionOK {
 		// v5
 		def := &types.ClusterDefinitionV5{}
-		err := yaml.Unmarshal(yamlBytes, def)
+		err := yaml.UnmarshalStrict(yamlBytes, def)
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, microerror.Maskf(invalidV5DefinitionYAMLError, err.Error())
 		}
 
 		return def, nil
 	}
 
-	// v4 (default)
+	// v4 (default/fall back)
 	def := &types.ClusterDefinitionV4{}
-	err = yaml.Unmarshal(yamlBytes, def)
+	err = yaml.UnmarshalStrict(yamlBytes, def)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, microerror.Maskf(invalidDefinitionYAMLError, err.Error())
 	}
 
 	return def, nil
