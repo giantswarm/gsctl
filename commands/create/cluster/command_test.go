@@ -480,6 +480,39 @@ func Test_getLatestActiveReleaseVersion(t *testing.T) {
 			  ]`,
 			latestRelease: "1.6.1",
 		},
+		{
+			responseBody: `[
+				{
+					"timestamp": "2017-10-15T12:00:00Z",
+					"version": "",
+					"active": true,
+					"changelog": [],
+					"components": []
+				},
+				{
+					"timestamp": "2017-10-15T12:00:00Z",
+					"version": "1.6.1",
+					"active": true,
+					"changelog": [],
+					"components": []
+				},
+				{
+					"timestamp": "2017-10-15T12:00:00Z",
+					"version": "quirks",
+					"active": true,
+					"changelog": [],
+					"components": []
+				},
+				{
+					"timestamp": "2017-10-15T12:00:00Z",
+					"version": "2.3.0",
+					"active": true,
+					"changelog": [],
+					"components": []
+				}
+			  ]`,
+			latestRelease: "2.3.0",
+		},
 	}
 
 	for i, tc := range testCases {
