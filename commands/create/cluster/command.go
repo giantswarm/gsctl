@@ -139,7 +139,7 @@ Examples:
 
   gsctl create cluster --owner acme
 
-  gsctl create cluster --owner myorg --name "Production Cluster"
+  gsctl create cluster --owner acme --name "Production Cluster"
 
   gsctl create cluster --file ./cluster.yaml
 
@@ -148,6 +148,16 @@ Examples:
 
   cat my-cluster.yaml | gsctl create cluster -f -
 
+With Bash and other compatible shells, the syntax shown below can be used to
+create a YAML defininition and pass it to the command in one go, without the 
+need for a file:
+
+gsctl create cluster -f - <<EOF
+owner: acme
+name: Test cluster using two AZs
+release: 8.2.0
+availability_zones: 2
+EOF
   `,
 		PreRun: printValidation,
 		Run:    printResult,
