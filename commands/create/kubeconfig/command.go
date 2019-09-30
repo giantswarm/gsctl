@@ -101,6 +101,7 @@ type Arguments struct {
 	selfContainedPath string
 	ttlHours          int32
 	userProvidedToken string
+	verbose           bool
 }
 
 // collectArguments gathers arguments based on command line
@@ -144,6 +145,7 @@ func collectArguments() (Arguments, error) {
 		selfContainedPath: cmdKubeconfigSelfContained,
 		ttlHours:          int32(ttl.Hours()),
 		userProvidedToken: flags.Token,
+		verbose:           flags.Verbose,
 	}, nil
 }
 
@@ -339,10 +341,12 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println(color.YellowString("    kubectl cluster-info\n"))
 
 	} else {
-		fmt.Println("Certificate and key files written to:")
-		fmt.Println(result.caCertPath)
-		fmt.Println(result.clientCertPath)
-		fmt.Println(result.clientKeyPath)
+		if args.verbose {
+			fmt.Println(color.WhiteString("Certificate and key files written to:"))
+			fmt.Println(color.WhiteString(result.caCertPath))
+			fmt.Println(color.WhiteString(result.clientCertPath))
+			fmt.Println(color.WhiteString(result.clientKeyPath))
+		}
 
 		fmt.Printf("Switched to kubectl context '%s'\n\n", result.contextName)
 

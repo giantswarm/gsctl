@@ -49,6 +49,7 @@ type Arguments struct {
 	scheme                   string
 	ttlHours                 int32
 	userProvidedToken        string
+	verbose                  bool
 }
 
 // collectArguments puts together arguments for our business function
@@ -83,6 +84,7 @@ func collectArguments() (Arguments, error) {
 		scheme:                   scheme,
 		ttlHours:                 int32(ttl.Hours()),
 		userProvidedToken:        flags.Token,
+		verbose:                  flags.Verbose,
 	}, nil
 }
 
