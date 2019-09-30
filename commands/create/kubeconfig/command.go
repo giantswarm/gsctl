@@ -367,28 +367,48 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = createKubeconfigActivityName
 
-	// get cluster details
-	clusterDetailsResponse, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
+	// Try v5 first, then fall back to v4.
+	if args.verbose {
+		fmt.Println(color.WhiteString("Fetching cluster details using the v5 API endpoint"))
+	}
+	clusterDetailsResponseV5, err := clientWrapper.GetClusterV5(args.clusterID, auxParams)
 	if err != nil {
-		// TODO: return properly typed errors
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			return result, microerror.Maskf(clientErr,
-				fmt.Sprintf("HTTP Status: %d, %s", clientErr.HTTPStatusCode, clientErr.ErrorMessage))
-		}
-
-		return result, microerror.Mask(err)
-	}
-
-	var apiEndpoint string
-	{
-		if args.tenantInternal {
-			baseEndpoint := strings.Split(clusterDetailsResponse.Payload.APIEndpoint, urlDelimiter)[1:]
-			apiEndpoint = fmt.Sprintf("https://%s.%s", tenantInternalAPIPrefix, strings.Join(baseEndpoint, urlDelimiter))
+		if clienterror.IsNotFoundError(err) {
+			// We ignore a 404 here and try v4 next.
+			if args.verbose {
+				fmt.Println(color.WhiteString("Cluster not found via the v5 endpoint"))
+			}
 		} else {
-			apiEndpoint = clusterDetailsResponse.Payload.APIEndpoint
+			// For all other errors than 404, we fail.
+			return result, microerror.Mask(err)
 		}
+	} else {
+		result.apiEndpoint = clusterDetailsResponseV5.Payload.APIEndpoint
 	}
-	result.apiEndpoint = apiEndpoint
+
+	if result.apiEndpoint == "" {
+		// get cluster details v4
+		if args.verbose {
+			fmt.Println(color.WhiteString("Fetching cluster details using the v4 API endpoint"))
+		}
+		clusterDetailsResponseV4, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
+		if err != nil {
+			if clientErr, ok := err.(*clienterror.APIError); ok {
+				return result, microerror.Maskf(clientErr,
+					fmt.Sprintf("HTTP Status: %d, %s", clientErr.HTTPStatusCode, clientErr.ErrorMessage))
+			}
+
+			return result, microerror.Mask(err)
+		}
+
+		result.apiEndpoint = clusterDetailsResponseV4.Payload.APIEndpoint
+	}
+
+	// Set internal API endpoint if requested.
+	if args.tenantInternal {
+		baseEndpoint := strings.Split(result.apiEndpoint, urlDelimiter)[1:]
+		result.apiEndpoint = fmt.Sprintf("https://%s.%s", tenantInternalAPIPrefix, strings.Join(baseEndpoint, urlDelimiter))
+	}
 
 	addKeyPairBody := &models.V4AddKeyPairRequest{
 		Description:              &args.description,
