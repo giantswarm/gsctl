@@ -3,6 +3,7 @@ module github.com/giantswarm/gsctl
 go 1.13
 
 require (
+	github.com/Jeffail/gabs v1.4.0
 	github.com/Masterminds/semver v1.4.2
 	github.com/PuerkitoBio/purell v1.1.1
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
