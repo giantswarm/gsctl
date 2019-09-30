@@ -158,7 +158,17 @@ name: Test cluster using two AZs
 release: 8.2.0
 availability_zones: 2
 EOF
-  `,
+
+For v5 clusters (those with node pool support) gsctl automatically creates a
+node pool using default settings, if you don't specify your own node pools.
+You can suppress the creation of the default node pool by setting the
+flag --create-default-nodepool to false. Example:
+
+  gsctl create cluster \
+    --owner acme \
+    --name "Empty cluster" \
+    --create-default-nodepool=false
+`,
 		PreRun: printValidation,
 		Run:    printResult,
 	}
