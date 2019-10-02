@@ -298,6 +298,19 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		} else {
 			fmt.Println(color.GreenString("New cluster with ID '%s' for organization '%s' is launching.", result.ID, result.DefinitionV4.Owner))
 		}
+	} else if result.DefinitionV5 != nil {
+		if result.DefinitionV5.Name != "" {
+			fmt.Println(color.GreenString("New cluster '%s' (ID '%s') for organization '%s' has been created.", result.DefinitionV5.Name, result.ID, result.DefinitionV5.Owner))
+		} else {
+			fmt.Println(color.GreenString("New cluster with ID '%s' for organization '%s' has been created.", result.ID, result.DefinitionV5.Owner))
+		}
+
+		if result.HasErrors {
+			fmt.Println("Note: Some error(s) occurred during node pool creation. Please check the error details above.")
+			fmt.Printf("To verify that nodes are coming up, please use the following commands:\n\n")
+			fmt.Printf("    %s \n", color.YellowString(fmt.Sprintf("gsctl list nodepools %s", result.ID)))
+			fmt.Printf("    %s \n", color.YellowString(fmt.Sprintf("gsctl show nodepool %s/<nodepool-id>", result.ID)))
+		}
 	}
 
 	// TODO: v5 success output
@@ -447,6 +460,9 @@ func addCluster(args Arguments) (*creationResult, error) {
 			return nil, microerror.Mask(err)
 		}
 
+		if args.Verbose {
+			fmt.Println(color.WhiteString("Determined release version %s is the latest, so this will be used.", latest))
+		}
 		wantedRelease = latest
 	}
 
