@@ -2,6 +2,7 @@
 package kubeconfig
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -469,7 +470,9 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	} else {
 		// create a self-contained kubeconfig
 		var yamlBytes []byte
-		logger, err := micrologger.New(micrologger.Config{})
+		logger, err := micrologger.New(micrologger.Config{
+			IOWriter: new(bytes.Buffer), // to suppress any log output
+		})
 		if err != nil {
 			return result, microerror.Mask(err)
 		}
