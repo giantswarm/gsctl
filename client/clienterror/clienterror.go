@@ -109,8 +109,8 @@ func New(err error) *APIError {
 			ErrorMessage:   createClusterDefaultErr.Error(),
 		}
 		if ae.HTTPStatusCode == http.StatusNotFound {
-			ae.ErrorMessage = "Organization does not exist"
-			ae.ErrorDetails = "The organization to own the cluster does not exist. Please check the name."
+			ae.ErrorMessage = "Not found"
+			ae.ErrorDetails = "A 404 error has occurred when attempting to create the cluster."
 		} else if ae.HTTPStatusCode == http.StatusBadRequest {
 			ae.ErrorMessage = "Invalid parameters"
 			ae.ErrorDetails = "The cluster cannot be created. Some parameter(s) are considered invalid.\n"
