@@ -358,6 +358,40 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 }
 
+// getClusterDetails fetches cluster details to get the tenant cluster API endpoint,
+// and attempts first v5 and then falls back to v4.
+func getClusterDetails(clientWrapper *client.Wrapper, clusterID string, auxParams *client.AuxiliaryParams, verbose bool) (string, error) {
+	// Try v5 first, then fall back to v4.
+	if verbose {
+		fmt.Println(color.WhiteString("Fetching cluster details using the v5 API endpoint"))
+	}
+	clusterDetailsResponseV5, err := clientWrapper.GetClusterV5(clusterID, auxParams)
+	if err != nil {
+		if clienterror.IsNotFoundError(err) {
+			// We ignore a 404 here and try v4 next.
+			if verbose {
+				fmt.Println(color.WhiteString("Cluster not found via the v5 endpoint. Attempting v4 endpoint."))
+			}
+			clusterDetailsResponseV4, err := clientWrapper.GetClusterV4(clusterID, auxParams)
+			if err != nil {
+				if clientErr, ok := err.(*clienterror.APIError); ok {
+					return "", microerror.Maskf(clientErr,
+						fmt.Sprintf("HTTP Status: %d, %s", clientErr.HTTPStatusCode, clientErr.ErrorMessage))
+				}
+
+				return "", microerror.Mask(err)
+			}
+
+			return clusterDetailsResponseV4.Payload.APIEndpoint, nil
+		}
+
+		// For all other errors than 404, we fail.
+		return "", microerror.Mask(err)
+	}
+
+	return clusterDetailsResponseV5.Payload.APIEndpoint, nil
+}
+
 // createKubeconfig is our business function talking to the API to create a keypair
 // and creating a new kubectl context
 func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResult, error) {
@@ -371,41 +405,9 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = createKubeconfigActivityName
 
-	// Try v5 first, then fall back to v4.
-	if args.verbose {
-		fmt.Println(color.WhiteString("Fetching cluster details using the v5 API endpoint"))
-	}
-	clusterDetailsResponseV5, err := clientWrapper.GetClusterV5(args.clusterID, auxParams)
+	result.apiEndpoint, err = getClusterDetails(clientWrapper, args.clusterID, auxParams, args.verbose)
 	if err != nil {
-		if clienterror.IsNotFoundError(err) {
-			// We ignore a 404 here and try v4 next.
-			if args.verbose {
-				fmt.Println(color.WhiteString("Cluster not found via the v5 endpoint"))
-			}
-		} else {
-			// For all other errors than 404, we fail.
-			return result, microerror.Mask(err)
-		}
-	} else {
-		result.apiEndpoint = clusterDetailsResponseV5.Payload.APIEndpoint
-	}
-
-	if result.apiEndpoint == "" {
-		// get cluster details v4
-		if args.verbose {
-			fmt.Println(color.WhiteString("Fetching cluster details using the v4 API endpoint"))
-		}
-		clusterDetailsResponseV4, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
-		if err != nil {
-			if clientErr, ok := err.(*clienterror.APIError); ok {
-				return result, microerror.Maskf(clientErr,
-					fmt.Sprintf("HTTP Status: %d, %s", clientErr.HTTPStatusCode, clientErr.ErrorMessage))
-			}
-
-			return result, microerror.Mask(err)
-		}
-
-		result.apiEndpoint = clusterDetailsResponseV4.Payload.APIEndpoint
+		return result, microerror.Mask(err)
 	}
 
 	// Set internal API endpoint if requested.
