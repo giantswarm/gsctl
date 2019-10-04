@@ -21,7 +21,10 @@ func makeMockServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("mockServer request: %s %s\n", r.Method, r.URL)
 		w.Header().Set("Content-Type", "application/json")
-		if r.Method == "GET" && r.URL.String() == "/v4/clusters/test-cluster-id/" {
+		if r.Method == "GET" && r.URL.String() == "/v5/clusters/test-cluster-id/" {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"code": "RESOURCE_NOT_FOUND", "message": "There is no v5 cluster with this ID."}`))
+		} else if r.Method == "GET" && r.URL.String() == "/v4/clusters/test-cluster-id/" {
 			// return cluster details
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{
