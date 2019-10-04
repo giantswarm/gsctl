@@ -32,13 +32,6 @@ var (
 	// Description represents the description passed as a flag.
 	Description string
 
-	// TenantInternal represents the type of Kubernetes API endpoints
-	// used to generate kubeconfig
-	TenantInternal bool
-
-	// TTL represents a TTL (time to live) value passed as a flag.
-	TTL string
-
 	// Force represents the value of the force flag, passed as a flag.
 	// If true, all warnings should be suppressed.
 	Force bool
@@ -63,6 +56,10 @@ var (
 
 	// Release sets a release to use, provided as a command line flag.
 	Release string
+
+	// TenantInternal represents the type of Kubernetes API endpoints
+	// used to generate kubeconfig
+	TenantInternal bool
 
 	// Token represents the auth token passed as a flag.
 	Token string
