@@ -367,30 +367,29 @@ func getClusterDetails(clientWrapper *client.Wrapper, clusterID string, auxParam
 		fmt.Println(color.WhiteString("Fetching cluster details using the v5 API endpoint"))
 	}
 	clusterDetailsResponseV5, err := clientWrapper.GetClusterV5(clusterID, auxParams)
-	if err != nil {
-		if clienterror.IsNotFoundError(err) {
-			// We ignore a 404 here and try v4 next.
-			if verbose {
-				fmt.Println(color.WhiteString("Cluster not found via the v5 endpoint. Attempting v4 endpoint."))
-			}
-			clusterDetailsResponseV4, err := clientWrapper.GetClusterV4(clusterID, auxParams)
-			if err != nil {
-				if clientErr, ok := err.(*clienterror.APIError); ok {
-					return "", microerror.Maskf(clientErr,
-						fmt.Sprintf("HTTP Status: %d, %s", clientErr.HTTPStatusCode, clientErr.ErrorMessage))
-				}
+	if err == nil {
+		return clusterDetailsResponseV5.Payload.APIEndpoint, nil
+	}
 
-				return "", microerror.Mask(err)
-			}
-
+	if clienterror.IsNotFoundError(err) {
+		// If v5 failed with a 404 Not Found error, we try v4.
+		if verbose {
+			fmt.Println(color.WhiteString("Cluster not found via the v5 endpoint. Attempting v4 endpoint."))
+		}
+		clusterDetailsResponseV4, err := clientWrapper.GetClusterV4(clusterID, auxParams)
+		if err == nil {
 			return clusterDetailsResponseV4.Payload.APIEndpoint, nil
 		}
 
-		// For all other errors than 404, we fail.
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			return "", microerror.Maskf(clientErr,
+				fmt.Sprintf("HTTP Status: %d, %s", clientErr.HTTPStatusCode, clientErr.ErrorMessage))
+		}
+
 		return "", microerror.Mask(err)
 	}
 
-	return clusterDetailsResponseV5.Payload.APIEndpoint, nil
+	return "", microerror.Mask(err)
 }
 
 // createKubeconfig is our business function talking to the API to create a keypair
