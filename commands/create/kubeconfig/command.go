@@ -2,11 +2,13 @@
 package kubeconfig
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"regexp"
 	"runtime"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
@@ -76,6 +78,11 @@ const (
 
 	// windows download page
 	kubectlWindowsInstallURL = "https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md"
+
+	// tenant internal api prefix
+	tenantInternalAPIPrefix = "internal-api"
+
+	urlDelimiter = "."
 )
 
 // Arguments is an argument struct to pass to our business
@@ -90,10 +97,12 @@ type Arguments struct {
 	description       string
 	fileSystem        afero.Fs
 	force             bool
+	tenantInternal    bool
 	scheme            string
 	selfContainedPath string
 	ttlHours          int32
 	userProvidedToken string
+	verbose           bool
 }
 
 // collectArguments gathers arguments based on command line
@@ -132,10 +141,12 @@ func collectArguments() (Arguments, error) {
 		description:       description,
 		fileSystem:        config.FileSystem,
 		force:             flags.Force,
+		tenantInternal:    flags.TenantInternal,
 		scheme:            scheme,
 		selfContainedPath: cmdKubeconfigSelfContained,
 		ttlHours:          int32(ttl.Hours()),
 		userProvidedToken: flags.Token,
+		verbose:           flags.Verbose,
 	}, nil
 }
 
@@ -166,6 +177,7 @@ func init() {
 	Command.Flags().StringVarP(&cmdKubeconfigContextName, "context", "", "", "Set a custom context name. Defaults to 'giantswarm-<cluster-id>'.")
 	Command.Flags().StringVarP(&flags.CertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
 	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation.")
+	Command.Flags().BoolVarP(&flags.TenantInternal, "tenant-internal", "", false, "If set, kubeconfig will be rendered with internal Kubernets API address.")
 	Command.Flags().StringVarP(&flags.TTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
 
 	Command.MarkFlagRequired("cluster")
@@ -330,10 +342,12 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println(color.YellowString("    kubectl cluster-info\n"))
 
 	} else {
-		fmt.Println("Certificate and key files written to:")
-		fmt.Println(result.caCertPath)
-		fmt.Println(result.clientCertPath)
-		fmt.Println(result.clientKeyPath)
+		if args.verbose {
+			fmt.Println(color.WhiteString("Certificate and key files written to:"))
+			fmt.Println(color.WhiteString(result.caCertPath))
+			fmt.Println(color.WhiteString(result.clientCertPath))
+			fmt.Println(color.WhiteString(result.clientKeyPath))
+		}
 
 		fmt.Printf("Switched to kubectl context '%s'\n\n", result.contextName)
 
@@ -343,6 +357,38 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println(color.GreenString("Whenever you want to switch to using this context:\n"))
 		fmt.Println(color.YellowString("    kubectl config use-context %s\n", result.contextName))
 	}
+}
+
+// getClusterDetails fetches cluster details to get the tenant cluster API endpoint,
+// and attempts first v5 and then falls back to v4.
+func getClusterDetails(clientWrapper *client.Wrapper, clusterID string, auxParams *client.AuxiliaryParams, verbose bool) (string, error) {
+	// Try v5 first, then fall back to v4.
+	if verbose {
+		fmt.Println(color.WhiteString("Fetching cluster details using the v5 API endpoint"))
+	}
+	clusterDetailsResponseV5, err := clientWrapper.GetClusterV5(clusterID, auxParams)
+	if err == nil {
+		return clusterDetailsResponseV5.Payload.APIEndpoint, nil
+	}
+
+	if clienterror.IsNotFoundError(err) {
+		// If v5 failed with a 404 Not Found error, we try v4.
+		if verbose {
+			fmt.Println(color.WhiteString("Cluster not found via the v5 endpoint. Attempting v4 endpoint."))
+		}
+		clusterDetailsResponseV4, err := clientWrapper.GetClusterV4(clusterID, auxParams)
+		if err == nil {
+			return clusterDetailsResponseV4.Payload.APIEndpoint, nil
+		}
+
+		if clientErr, ok := err.(*clienterror.APIError); ok {
+			return "", microerror.Maskf(clientErr, "HTTP Status: %d, %s", clientErr.HTTPStatusCode, clientErr.ErrorMessage)
+		}
+
+		return "", microerror.Mask(err)
+	}
+
+	return "", microerror.Mask(err)
 }
 
 // createKubeconfig is our business function talking to the API to create a keypair
@@ -358,19 +404,16 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = createKubeconfigActivityName
 
-	// get cluster details
-	clusterDetailsResponse, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
+	result.apiEndpoint, err = getClusterDetails(clientWrapper, args.clusterID, auxParams, args.verbose)
 	if err != nil {
-		// TODO: return properly typed errors
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			return result, microerror.Maskf(clientErr,
-				fmt.Sprintf("HTTP Status: %d, %s", clientErr.HTTPStatusCode, clientErr.ErrorMessage))
-		}
-
 		return result, microerror.Mask(err)
 	}
 
-	result.apiEndpoint = clusterDetailsResponse.Payload.APIEndpoint
+	// Set internal API endpoint if requested.
+	if args.tenantInternal {
+		baseEndpoint := strings.Split(result.apiEndpoint, urlDelimiter)[1:]
+		result.apiEndpoint = fmt.Sprintf("https://%s.%s", tenantInternalAPIPrefix, strings.Join(baseEndpoint, urlDelimiter))
+	}
 
 	addKeyPairBody := &models.V4AddKeyPairRequest{
 		Description:              &args.description,
@@ -425,7 +468,9 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	} else {
 		// create a self-contained kubeconfig
 		var yamlBytes []byte
-		logger, err := micrologger.New(micrologger.Config{})
+		logger, err := micrologger.New(micrologger.Config{
+			IOWriter: new(bytes.Buffer), // to suppress any log output
+		})
 		if err != nil {
 			return result, microerror.Mask(err)
 		}
