@@ -33,9 +33,10 @@ require (
 	github.com/go-openapi/swag v0.19.4
 	github.com/go-openapi/validate v0.19.2
 	github.com/go-stack/stack v1.8.0
-	github.com/gobuffalo/envy v1.7.0
+	github.com/gobuffalo/envy v1.7.1
 	github.com/gobuffalo/packd v0.3.0
 	github.com/gobuffalo/packr v1.30.1 // indirect
+	github.com/gobuffalo/packr/v2 v2.7.1 // indirect
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.2
 	github.com/google/btree v1.0.0
@@ -50,6 +51,7 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/json-iterator/go v1.1.7
 	github.com/juju/errgo v0.0.0-20140925100237-08cceb5d0b53
+	github.com/karrick/godirwalk v1.12.0 // indirect
 	github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515
 	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e
 	github.com/mattn/go-colorable v0.0.9
@@ -60,16 +62,16 @@ require (
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742
 	github.com/petar/GoLLRB v0.0.0-20190514000832-33fb24c13b99
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
-	github.com/rogpeppe/go-internal v1.3.0
+	github.com/rogpeppe/go-internal v1.4.0
 	github.com/skratchdot/open-golang v0.0.0-20190402232053-79abb63cd66e
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v0.0.6-0.20190724161051-1c9c46d5c1cc
-	github.com/spf13/pflag v1.0.3
+	github.com/spf13/pflag v1.0.5
 	go.mongodb.org/mongo-driver v1.0.4
-	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
+	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7
+	golang.org/x/sys v0.0.0-20191005200804-aed5e4c7ecf9
 	golang.org/x/text v0.3.2
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	google.golang.org/appengine v1.6.1
