@@ -79,7 +79,7 @@ func collectArguments() Arguments {
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	args := collectArguments()
-	err := verifyShowClusterPreconditions(args, cmdLineArgs)
+	err := verifyPreconditions(args, cmdLineArgs)
 
 	if err == nil {
 		return
@@ -92,7 +92,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	os.Exit(1)
 }
 
-func verifyShowClusterPreconditions(args Arguments, cmdLineArgs []string) error {
+func verifyPreconditions(args Arguments, cmdLineArgs []string) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
