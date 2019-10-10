@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"runtime"
 	"strconv"
 	"testing"
 
@@ -15,6 +17,16 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/testutils"
 )
+
+// configYAML is a mock configuration.
+const configYAML = `last_version_check: 0001-01-01T00:00:00Z
+endpoints:
+  https://foo:
+    email: email@example.com
+    token: some-token
+selected_endpoint: https://foo
+updated: 2017-09-29T11:23:15+02:00
+`
 
 func TestCollectArguments(t *testing.T) {
 	var testCases = []struct {
@@ -90,16 +102,6 @@ func TestCollectArguments(t *testing.T) {
 		},
 	}
 
-	// configYAML is a mock configuration.
-	const configYAML = `last_version_check: 0001-01-01T00:00:00Z
-endpoints:
-  https://foo:
-    email: email@example.com
-    token: some-token
-selected_endpoint: https://foo
-updated: 2017-09-29T11:23:15+02:00
-`
-
 	fs := afero.NewMemMapFs()
 	_, err := testutils.TempConfig(fs, configYAML)
 	if err != nil {
@@ -117,6 +119,78 @@ updated: 2017-09-29T11:23:15+02:00
 			}
 			if diff := cmp.Diff(tc.resultingArgs, args); diff != "" {
 				t.Errorf("Case %d - Resulting args unequal. (-expected +got):\n%s", i, diff)
+			}
+		})
+	}
+}
+
+func TestVerifyPreconditions(t *testing.T) {
+	var testCases = []struct {
+		// What we pass as input
+		testArgs Arguments
+		// Error matcher (nil if we don't expect an error)
+		errorMatcher func(error) bool
+	}{
+		{
+			Arguments{
+				APIEndpoint: "https://unknown",
+				ClusterID:   "foo",
+				Workers:     10,
+				WorkersSet:  true,
+			},
+			errors.IsNotLoggedInError,
+		},
+		{
+			Arguments{
+				APIEndpoint: "https://foo",
+				AuthToken:   "some-token",
+				ClusterID:   "foo",
+				Workers:     10,
+				WorkersSet:  true,
+			},
+			nil,
+		},
+		{
+			Arguments{
+				APIEndpoint:   "https://foo",
+				AuthToken:     "some-token",
+				ClusterID:     "foo",
+				Workers:       10,
+				WorkersSet:    true,
+				WorkersMin:    4,
+				WorkersMinSet: true,
+			},
+			errors.IsConflictingWorkerFlagsUsed,
+		},
+		{
+			Arguments{
+				APIEndpoint: "https://foo",
+				AuthToken:   "some-token",
+				ClusterID:   "foo",
+			},
+			errors.IsRequiredFlagMissingError,
+		},
+	}
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			initFlags()
+
+			err := verifyPreconditions(tc.testArgs)
+			if tc.errorMatcher == nil {
+				if err != nil {
+					t.Errorf("Case %d - Unexpected error '%s'", i, err)
+				}
+			} else {
+				if !tc.errorMatcher(err) {
+					t.Errorf("Case %d - Expected error %v, got %v", i, runtime.FuncForPC(reflect.ValueOf(tc.errorMatcher).Pointer()).Name(), err)
+				}
 			}
 		})
 	}
