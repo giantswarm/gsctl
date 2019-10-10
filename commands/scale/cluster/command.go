@@ -228,19 +228,6 @@ func scaleCluster(args Arguments) (*Result, error) {
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = scaleClusterActivityName
 
-	// Make sure we have provider info in the current endpoint
-	if config.Config.Provider == "" {
-		if args.Verbose {
-			fmt.Println(color.WhiteString("Fetching provider information"))
-		}
-
-		info, err := clientWrapper.GetInfo(auxParams)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-		config.Config.SetProvider(info.Payload.General.Provider)
-	}
-
 	if args.Verbose {
 		fmt.Println(color.WhiteString("Fetching v4 cluster details"))
 	}
