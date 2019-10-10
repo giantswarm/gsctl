@@ -198,6 +198,7 @@ func TestVerifyPreconditions(t *testing.T) {
 				APIEndpoint: mockServer.URL,
 				AuthToken:   "some-token",
 				ClusterID:   "v5-cluster-id",
+				Verbose:     true,
 				Workers:     10,
 				WorkersSet:  true,
 			},
@@ -272,12 +273,12 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 // TestScaleCluster tests scaling a cluster under normal conditions:
 // user logged in.
 func TestScaleCluster(t *testing.T) {
-
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("mockServer: %s %s", r.Method, r.URL.String())
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
 		if r.Method == "GET" && r.URL.String() == "/v4/clusters/cluster-id/" {
 			// cluster details before the patch
+			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{
 				"id": "cluster-id",
 				"name": "",
@@ -296,6 +297,7 @@ func TestScaleCluster(t *testing.T) {
 			}`))
 		} else if r.Method == "PATCH" && r.URL.String() == "/v4/clusters/cluster-id/" {
 			// inspect PATCH request body
+			w.WriteHeader(http.StatusOK)
 			patchBytes, readErr := ioutil.ReadAll(r.Body)
 			if readErr != nil {
 				t.Error(readErr)
@@ -323,7 +325,7 @@ func TestScaleCluster(t *testing.T) {
 				]
 			}`))
 		} else if r.Method == "GET" && r.URL.String() == "/v4/clusters/cluster-id/status/" {
-
+			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{
 				"cluster": {
 					"conditions": [
@@ -357,6 +359,9 @@ func TestScaleCluster(t *testing.T) {
 					]
 				}
 			}`))
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Could not find this."}`))
 		}
 	}))
 	defer mockServer.Close()
