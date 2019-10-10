@@ -32,9 +32,10 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 	testArgs := Arguments{
 		apiEndpoint: mockServer.URL,
 		clusterID:   "cluster-id",
+		workers:     5,
 	}
 
-	err := validateScaleCluster(testArgs, []string{testArgs.clusterID}, 5, 5, 5)
+	err := verifyPreconditions(testArgs)
 	if !errors.IsNotLoggedInError(err) {
 		t.Error("Expected NotLoggedInError, got", err)
 	}
@@ -148,25 +149,18 @@ selected_endpoint: ` + mockServer.URL
 	}
 
 	testArgs := Arguments{
-		apiEndpoint: mockServer.URL,
-		clusterID:   "cluster-id",
-		workersMax:  int64(5),
-		workersMin:  int64(5),
+		apiEndpoint:       mockServer.URL,
+		clusterID:         "cluster-id",
+		workersMax:        int64(5),
+		workersMin:        int64(5),
+		userProvidedToken: "my-token",
+		workersMinSet:     true,
+		workersMaxSet:     true,
 	}
-	config.Config.Token = "my-token"
 
-	err = validateScaleCluster(testArgs, []string{testArgs.clusterID}, 3, 3, 3)
+	err = verifyPreconditions(testArgs)
 	if err != nil {
 		t.Error(err)
-	}
-
-	status, err := getClusterStatus(testArgs.clusterID, "scale-cluster")
-	if err != nil {
-		t.Error(err)
-	}
-
-	if status.Cluster.Scaling.DesiredCapacity != 3 {
-		t.Errorf("Expected status.Scaling.DesiredCapacity to be 3, but is %d. status: %#v", status.Cluster.Scaling.DesiredCapacity, status)
 	}
 
 	_, scaleErr := scaleCluster(testArgs)
@@ -174,4 +168,6 @@ selected_endpoint: ` + mockServer.URL
 	if scaleErr != nil {
 		t.Error(scaleErr)
 	}
+
+	// TODO: checks result
 }
