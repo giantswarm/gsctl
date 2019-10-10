@@ -11,6 +11,7 @@ import (
 
 	"github.com/Jeffail/gabs"
 	"github.com/giantswarm/gscliauth/config"
+	"github.com/giantswarm/microerror"
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
 
@@ -125,6 +126,28 @@ func TestCollectArguments(t *testing.T) {
 }
 
 func TestVerifyPreconditions(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("mockServer: %s %s", r.Method, r.URL.String())
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == "GET" && r.URL.String() == "/v5/clusters/v5-cluster-id/" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{
+				"id": "v5-cluster-id",
+				"name": "v5 cluster",
+				"api_endpoint": "https://some-url",
+				"create_date": "2017-05-16T09:30:31.192170835Z",
+				"owner": "acmeorg"
+			}`))
+		} else if r.Method == "GET" && r.URL.String() == "/v5/clusters/v5-cluster-id/nodepools/" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[]`))
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Could not find this."}`))
+		}
+	}))
+	defer mockServer.Close()
+
 	var testCases = []struct {
 		// What we pass as input
 		testArgs Arguments
@@ -133,8 +156,8 @@ func TestVerifyPreconditions(t *testing.T) {
 	}{
 		{
 			Arguments{
-				APIEndpoint: "https://unknown",
-				ClusterID:   "foo",
+				APIEndpoint: mockServer.URL,
+				ClusterID:   "v4-cluster-id",
 				Workers:     10,
 				WorkersSet:  true,
 			},
@@ -142,9 +165,9 @@ func TestVerifyPreconditions(t *testing.T) {
 		},
 		{
 			Arguments{
-				APIEndpoint: "https://foo",
+				APIEndpoint: mockServer.URL,
 				AuthToken:   "some-token",
-				ClusterID:   "foo",
+				ClusterID:   "v4-cluster-id",
 				Workers:     10,
 				WorkersSet:  true,
 			},
@@ -152,9 +175,9 @@ func TestVerifyPreconditions(t *testing.T) {
 		},
 		{
 			Arguments{
-				APIEndpoint:   "https://foo",
+				APIEndpoint:   mockServer.URL,
 				AuthToken:     "some-token",
-				ClusterID:     "foo",
+				ClusterID:     "v4-cluster-id",
 				Workers:       10,
 				WorkersSet:    true,
 				WorkersMin:    4,
@@ -164,16 +187,35 @@ func TestVerifyPreconditions(t *testing.T) {
 		},
 		{
 			Arguments{
-				APIEndpoint: "https://foo",
+				APIEndpoint: mockServer.URL,
 				AuthToken:   "some-token",
-				ClusterID:   "foo",
+				ClusterID:   "v4-cluster-id",
 			},
 			errors.IsRequiredFlagMissingError,
 		},
+		{
+			Arguments{
+				APIEndpoint: mockServer.URL,
+				AuthToken:   "some-token",
+				ClusterID:   "v5-cluster-id",
+				Workers:     10,
+				WorkersSet:  true,
+			},
+			errors.IsCannotScaleCluster,
+		},
 	}
 
+	var thisConfigYAML = `last_version_check: 0001-01-01T00:00:00Z
+endpoints:
+  ` + mockServer.URL + `:
+    email: email@example.com
+    token: some-token
+selected_endpoint: ` + mockServer.URL + `
+updated: 2017-09-29T11:23:15+02:00
+`
+
 	fs := afero.NewMemMapFs()
-	_, err := testutils.TempConfig(fs, "")
+	_, err := testutils.TempConfig(fs, thisConfigYAML)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,6 +232,9 @@ func TestVerifyPreconditions(t *testing.T) {
 			} else {
 				if !tc.errorMatcher(err) {
 					t.Errorf("Case %d - Expected error %v, got %v", i, runtime.FuncForPC(reflect.ValueOf(tc.errorMatcher).Pointer()).Name(), err)
+					if err != nil {
+						t.Logf("Case %d - Stack: %s", i, microerror.Stack(err))
+					}
 				}
 			}
 		})
