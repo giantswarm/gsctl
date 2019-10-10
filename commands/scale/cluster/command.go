@@ -58,22 +58,35 @@ const (
 	scaleClusterActivityName = "scale-cluster"
 )
 
+func init() {
+	initFlags()
+}
+
+// initFlags initializes flags in a re-usable way, so we can call it from multiple tests.
+func initFlags() {
+	Command.ResetFlags()
+	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, no confirmation is required.")
+	Command.Flags().Int64VarP(&flags.WorkersMax, cmdWorkersMaxName, "", 0, "Maximum number of worker nodes to have after scaling.")
+	Command.Flags().Int64VarP(&flags.WorkersMin, cmdWorkersMinName, "", 0, "Minimum number of worker nodes to have after scaling.")
+	Command.Flags().IntVarP(&flags.NumWorkers, cmdWorkersNumName, "w", 0, "Shorthand to set --workers-min and --workers-max to the same value.")
+}
+
 // Arguments contains all arguments that influence the business function.
 type Arguments struct {
-	apiEndpoint         string
-	authToken           string
-	clusterID           string
-	numWorkersDesired   int
-	oppressConfirmation bool
-	scheme              string
-	userProvidedToken   string
-	verbose             bool
-	workersMax          int64
-	workersMaxSet       bool
-	workersMin          int64
-	workersMinSet       bool
-	workers             int
-	workersSet          bool
+	APIEndpoint         string
+	AuthToken           string
+	ClusterID           string
+	NumWorkersDesired   int
+	OppressConfirmation bool
+	Scheme              string
+	UserProvidedToken   string
+	Verbose             bool
+	WorkersMax          int64
+	WorkersMaxSet       bool
+	WorkersMin          int64
+	WorkersMinSet       bool
+	Workers             int
+	WorkersSet          bool
 }
 
 // Result is the resulting data we get from our business function.
@@ -85,23 +98,16 @@ type Result struct {
 	scalingMaxAfter  int
 }
 
-func init() {
-	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, no confirmation is required.")
-	Command.Flags().Int64VarP(&flags.WorkersMax, cmdWorkersMaxName, "", 0, "Maximum number of worker nodes to have after scaling.")
-	Command.Flags().Int64VarP(&flags.WorkersMin, cmdWorkersMinName, "", 0, "Minimum number of worker nodes to have after scaling.")
-	Command.Flags().IntVarP(&flags.NumWorkers, cmdWorkersNumName, "w", 0, "Shorthand to set --workers-min and --workers-max to the same value.")
-}
-
 // getConfirmation asks the user for confirmation for scaling actions.
 func getConfirmation(args Arguments, maxBefore int, minBefore int, currentWorkers int) error {
-	if int64(currentWorkers) > args.workersMax && args.workersMax == args.workersMin {
-		confirmed := confirm.Ask(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to pin the number of worker nodes to %d?", currentWorkers, args.workersMin))
+	if int64(currentWorkers) > args.WorkersMax && args.WorkersMax == args.WorkersMin {
+		confirmed := confirm.Ask(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to pin the number of worker nodes to %d?", currentWorkers, args.WorkersMin))
 		if !confirmed {
 			return microerror.Mask(errors.CommandAbortedError)
 		}
 	}
-	if int64(currentWorkers) > args.workersMax && args.workersMax != args.workersMin {
-		confirmed := confirm.Ask(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to change the limits to be min=%d, max=%d?", currentWorkers, args.workersMin, args.workersMax))
+	if int64(currentWorkers) > args.WorkersMax && args.WorkersMax != args.WorkersMin {
+		confirmed := confirm.Ask(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to change the limits to be min=%d, max=%d?", currentWorkers, args.WorkersMin, args.WorkersMax))
 		if !confirmed {
 			return microerror.Mask(errors.CommandAbortedError)
 		}
@@ -120,49 +126,49 @@ func collectArguments(cmd *cobra.Command, positionalArgs []string) (Arguments, e
 	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	args := Arguments{
-		apiEndpoint:         endpoint,
-		authToken:           token,
-		clusterID:           positionalArgs[0],
-		oppressConfirmation: flags.Force,
-		scheme:              scheme,
-		userProvidedToken:   flags.Token,
-		verbose:             flags.Verbose,
-		workersMax:          flags.WorkersMax,
-		workersMin:          flags.WorkersMin,
-		workers:             flags.NumWorkers,
-		workersMaxSet:       cmd.Flags().Changed(cmdWorkersMaxName),
-		workersMinSet:       cmd.Flags().Changed(cmdWorkersMinName),
-		workersSet:          cmd.Flags().Changed(cmdWorkersNumName),
+		APIEndpoint:         endpoint,
+		AuthToken:           token,
+		ClusterID:           positionalArgs[0],
+		OppressConfirmation: flags.Force,
+		Scheme:              scheme,
+		UserProvidedToken:   flags.Token,
+		Verbose:             flags.Verbose,
+		WorkersMax:          flags.WorkersMax,
+		WorkersMin:          flags.WorkersMin,
+		Workers:             flags.NumWorkers,
+		WorkersMaxSet:       cmd.Flags().Changed(cmdWorkersMaxName),
+		WorkersMinSet:       cmd.Flags().Changed(cmdWorkersMinName),
+		WorkersSet:          cmd.Flags().Changed(cmdWorkersNumName),
 	}
 
-	if args.workers > 0 {
-		args.workersMin = int64(args.workers)
-		args.workersMax = int64(args.workers)
+	if args.Workers > 0 {
+		args.WorkersMin = int64(args.Workers)
+		args.WorkersMax = int64(args.Workers)
 	}
 
 	return args, nil
 }
 
 func verifyPreconditions(args Arguments) error {
-	if config.Config.Token == "" && args.authToken == "" {
+	if config.Config.Token == "" && args.AuthToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
-	if args.clusterID == "" {
+	if args.ClusterID == "" {
 		return microerror.Mask(errors.ClusterIDMissingError)
 	}
-	if args.workersSet && (args.workersMinSet || args.workersMaxSet) {
+	if args.WorkersSet && (args.WorkersMinSet || args.WorkersMaxSet) {
 		return microerror.Mask(errors.ConflictingWorkerFlagsUsedError)
 	}
-	if args.workersMax > 0 && args.workersMax < int64(limits.MinimumNumWorkers) {
+	if args.WorkersMax > 0 && args.WorkersMax < int64(limits.MinimumNumWorkers) {
 		return microerror.Mask(errors.CannotScaleBelowMinimumWorkersError)
 	}
-	if args.workersMin > 0 && args.workersMin < int64(limits.MinimumNumWorkers) {
+	if args.WorkersMin > 0 && args.WorkersMin < int64(limits.MinimumNumWorkers) {
 		return microerror.Mask(errors.NotEnoughWorkerNodesError)
 	}
-	if args.workers != 0 && args.workers < limits.MinimumNumWorkers {
+	if args.Workers != 0 && args.Workers < limits.MinimumNumWorkers {
 		return microerror.Mask(errors.NotEnoughWorkerNodesError)
 	}
-	if !args.workersSet && !args.workersMinSet && !args.workersMaxSet {
+	if !args.WorkersSet && !args.WorkersMinSet && !args.WorkersMaxSet {
 		return microerror.Maskf(errors.RequiredFlagMissingError, "--%s or --%s/--%s", cmdWorkersNumName, cmdWorkersMinName, cmdWorkersMaxName)
 	}
 
@@ -224,7 +230,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 
 	// Make sure we have provider info in the current endpoint
 	if config.Config.Provider == "" {
-		if args.verbose {
+		if args.Verbose {
 			fmt.Println(color.WhiteString("Fetching provider information"))
 		}
 
@@ -235,10 +241,10 @@ func scaleCluster(args Arguments) (*Result, error) {
 		config.Config.SetProvider(info.Payload.General.Provider)
 	}
 
-	if args.verbose {
+	if args.Verbose {
 		fmt.Println(color.WhiteString("Fetching v4 cluster details"))
 	}
-	clusterDetails, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
+	clusterDetails, err := clientWrapper.GetClusterV4(args.ClusterID, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -251,11 +257,11 @@ func scaleCluster(args Arguments) (*Result, error) {
 
 	var statusWorkers int
 
-	if args.verbose {
+	if args.Verbose {
 		fmt.Println(color.WhiteString("Fetching v4 cluster status"))
 	}
 
-	status, err := clientWrapper.GetClusterStatus(args.clusterID, auxParams)
+	status, err := clientWrapper.GetClusterStatus(args.ClusterID, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -285,22 +291,22 @@ func scaleCluster(args Arguments) (*Result, error) {
 	// Preparing API call.
 	reqBody := &models.V4ModifyClusterRequest{
 		Scaling: &models.V4ModifyClusterRequestScaling{
-			Max: args.workersMax,
-			Min: args.workersMin,
+			Max: args.WorkersMax,
+			Min: args.WorkersMin,
 		},
 	}
 
 	// perform API call
-	if args.verbose {
+	if args.Verbose {
 		fmt.Println(color.WhiteString("Sending API request to modify cluster"))
 	}
-	_, err = clientWrapper.ModifyCluster(args.clusterID, reqBody, auxParams)
+	_, err = clientWrapper.ModifyCluster(args.ClusterID, reqBody, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	scalingResult.scalingMinAfter = int(args.workersMin)
-	scalingResult.scalingMaxAfter = int(args.workersMax)
+	scalingResult.scalingMinAfter = int(args.WorkersMin)
+	scalingResult.scalingMaxAfter = int(args.WorkersMax)
 
 	return scalingResult, nil
 }
