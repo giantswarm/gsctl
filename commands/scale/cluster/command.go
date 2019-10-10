@@ -150,7 +150,7 @@ func collectArguments(cmd *cobra.Command, positionalArgs []string) (Arguments, e
 }
 
 func verifyPreconditions(args Arguments) error {
-	if config.Config.Token == "" && args.AuthToken == "" {
+	if args.AuthToken == "" && args.UserProvidedToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 	if args.ClusterID == "" {
