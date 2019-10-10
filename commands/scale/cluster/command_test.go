@@ -4,15 +4,197 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"runtime"
+	"strconv"
 	"testing"
 
 	"github.com/Jeffail/gabs"
 	"github.com/giantswarm/gscliauth/config"
+	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/testutils"
 )
+
+// configYAML is a mock configuration.
+const configYAML = `last_version_check: 0001-01-01T00:00:00Z
+endpoints:
+  https://foo:
+    email: email@example.com
+    token: some-token
+selected_endpoint: https://foo
+updated: 2017-09-29T11:23:15+02:00
+`
+
+func TestCollectArguments(t *testing.T) {
+	var testCases = []struct {
+		// The command line arguments passed
+		cmdLineArgs []string
+		// What we expect as arguments.
+		resultingArgs Arguments
+	}{
+		{
+			[]string{"clusterid"},
+			Arguments{
+				APIEndpoint: "https://foo",
+				AuthToken:   "some-token",
+				ClusterID:   "clusterid",
+				Scheme:      "giantswarm",
+			},
+		},
+		{
+			[]string{"clusterid", "--num-workers=5"},
+			Arguments{
+				APIEndpoint:   "https://foo",
+				AuthToken:     "some-token",
+				ClusterID:     "clusterid",
+				Scheme:        "giantswarm",
+				WorkersMax:    5,
+				WorkersMaxSet: false,
+				WorkersMin:    5,
+				WorkersMinSet: false,
+				Workers:       5,
+				WorkersSet:    true,
+			},
+		},
+		{
+			[]string{"clusterid", "--workers-min=12"},
+			Arguments{
+				APIEndpoint:   "https://foo",
+				AuthToken:     "some-token",
+				ClusterID:     "clusterid",
+				Scheme:        "giantswarm",
+				WorkersMaxSet: false,
+				WorkersMin:    12,
+				WorkersMinSet: true,
+				WorkersSet:    false,
+			},
+		},
+		{
+			[]string{"clusterid", "--workers-max=12"},
+			Arguments{
+				APIEndpoint:   "https://foo",
+				AuthToken:     "some-token",
+				ClusterID:     "clusterid",
+				Scheme:        "giantswarm",
+				WorkersMaxSet: true,
+				WorkersMax:    12,
+				WorkersMinSet: false,
+				WorkersSet:    false,
+			},
+		},
+		{
+			[]string{"clusterid", "--num-workers=5", "--workers-min=4", "--workers-max=6"},
+			Arguments{
+				APIEndpoint:   "https://foo",
+				AuthToken:     "some-token",
+				ClusterID:     "clusterid",
+				Scheme:        "giantswarm",
+				WorkersMax:    5,
+				WorkersMaxSet: true,
+				WorkersMin:    5,
+				WorkersMinSet: true,
+				Workers:       5,
+				WorkersSet:    true,
+			},
+		},
+	}
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, configYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			initFlags()
+			Command.ParseFlags(tc.cmdLineArgs)
+
+			args, err := collectArguments(Command, tc.cmdLineArgs)
+			if err != nil {
+				t.Errorf("Case %d - Unexpected error '%s'", i, err)
+			}
+			if diff := cmp.Diff(tc.resultingArgs, args); diff != "" {
+				t.Errorf("Case %d - Resulting args unequal. (-expected +got):\n%s", i, diff)
+			}
+		})
+	}
+}
+
+func TestVerifyPreconditions(t *testing.T) {
+	var testCases = []struct {
+		// What we pass as input
+		testArgs Arguments
+		// Error matcher (nil if we don't expect an error)
+		errorMatcher func(error) bool
+	}{
+		{
+			Arguments{
+				APIEndpoint: "https://unknown",
+				ClusterID:   "foo",
+				Workers:     10,
+				WorkersSet:  true,
+			},
+			errors.IsNotLoggedInError,
+		},
+		{
+			Arguments{
+				APIEndpoint: "https://foo",
+				AuthToken:   "some-token",
+				ClusterID:   "foo",
+				Workers:     10,
+				WorkersSet:  true,
+			},
+			nil,
+		},
+		{
+			Arguments{
+				APIEndpoint:   "https://foo",
+				AuthToken:     "some-token",
+				ClusterID:     "foo",
+				Workers:       10,
+				WorkersSet:    true,
+				WorkersMin:    4,
+				WorkersMinSet: true,
+			},
+			errors.IsConflictingWorkerFlagsUsed,
+		},
+		{
+			Arguments{
+				APIEndpoint: "https://foo",
+				AuthToken:   "some-token",
+				ClusterID:   "foo",
+			},
+			errors.IsRequiredFlagMissingError,
+		},
+	}
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			initFlags()
+
+			err := verifyPreconditions(tc.testArgs)
+			if tc.errorMatcher == nil {
+				if err != nil {
+					t.Errorf("Case %d - Unexpected error '%s'", i, err)
+				}
+			} else {
+				if !tc.errorMatcher(err) {
+					t.Errorf("Case %d - Expected error %v, got %v", i, runtime.FuncForPC(reflect.ValueOf(tc.errorMatcher).Pointer()).Name(), err)
+				}
+			}
+		})
+	}
+}
 
 // TestScaleClusterNotLoggedIn tests if we can prevent an attempt to do things
 // when not logged in and no token has been provided.
@@ -30,11 +212,12 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 	config.Initialize(fs, configDir)
 
 	testArgs := Arguments{
-		apiEndpoint: mockServer.URL,
-		clusterID:   "cluster-id",
+		APIEndpoint: mockServer.URL,
+		ClusterID:   "cluster-id",
+		Workers:     5,
 	}
 
-	err := validateScaleCluster(testArgs, []string{testArgs.clusterID}, 5, 5, 5)
+	err := verifyPreconditions(testArgs)
 	if !errors.IsNotLoggedInError(err) {
 		t.Error("Expected NotLoggedInError, got", err)
 	}
@@ -148,25 +331,18 @@ selected_endpoint: ` + mockServer.URL
 	}
 
 	testArgs := Arguments{
-		apiEndpoint: mockServer.URL,
-		clusterID:   "cluster-id",
-		workersMax:  int64(5),
-		workersMin:  int64(5),
+		APIEndpoint:       mockServer.URL,
+		ClusterID:         "cluster-id",
+		WorkersMax:        int64(5),
+		WorkersMin:        int64(5),
+		UserProvidedToken: "my-token",
+		WorkersMinSet:     true,
+		WorkersMaxSet:     true,
 	}
-	config.Config.Token = "my-token"
 
-	err = validateScaleCluster(testArgs, []string{testArgs.clusterID}, 3, 3, 3)
+	err = verifyPreconditions(testArgs)
 	if err != nil {
 		t.Error(err)
-	}
-
-	status, err := getClusterStatus(testArgs.clusterID, "scale-cluster")
-	if err != nil {
-		t.Error(err)
-	}
-
-	if status.Cluster.Scaling.DesiredCapacity != 3 {
-		t.Errorf("Expected status.Scaling.DesiredCapacity to be 3, but is %d. status: %#v", status.Cluster.Scaling.DesiredCapacity, status)
 	}
 
 	_, scaleErr := scaleCluster(testArgs)
@@ -174,4 +350,6 @@ selected_endpoint: ` + mockServer.URL
 	if scaleErr != nil {
 		t.Error(scaleErr)
 	}
+
+	// TODO: check result
 }
