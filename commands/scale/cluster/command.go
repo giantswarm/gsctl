@@ -156,6 +156,58 @@ func verifyPreconditions(args Arguments) error {
 	if args.ClusterID == "" {
 		return microerror.Mask(errors.ClusterIDMissingError)
 	}
+
+	// Check if the cluster is v5, so we can provide helpful details.
+	{
+		clientWrapper, err := client.NewWithConfig(flags.APIEndpoint, flags.Token)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+		auxParams := clientWrapper.DefaultAuxiliaryParams()
+		auxParams.ActivityName = scaleClusterActivityName
+
+		if args.Verbose {
+			fmt.Println(color.WhiteString("Checking whether this is a v5 cluster"))
+		}
+		_, err = clientWrapper.GetClusterV5(args.ClusterID, auxParams)
+		if errors.IsClusterNotFoundError(err) {
+			// The cluster is not a v5 cluster. So do nothing.
+		} else if err != nil {
+			return microerror.Mask(err)
+		} else {
+			thisErr := errors.CannotScaleClusterError
+
+			// Get node pools list to provide a more specific error message.
+			if args.Verbose {
+				fmt.Println(color.WhiteString("Getting v5 cluster node pools information"))
+			}
+			nodePools, err := clientWrapper.GetNodePools(args.ClusterID, auxParams)
+			if err != nil {
+				return microerror.Mask(err)
+			}
+
+			switch len(nodePools.Payload) {
+			case 0:
+				if args.Verbose {
+					fmt.Println(color.WhiteString("No node pools found"))
+				}
+				thisErr.Desc = "This cluster has no worker nodes. Please use the 'gsctl create nodepool' command to add some first."
+			case 1:
+				if args.Verbose {
+					fmt.Println(color.WhiteString("Found one node pool with ID %s", nodePools.Payload[0].ID))
+				}
+				thisErr.Desc = fmt.Sprintf("To scale the node pool of this cluster, please use the 'gsctl update nodepool %s/%s' command.", args.ClusterID, nodePools.Payload[0].ID)
+			default:
+				if args.Verbose {
+					fmt.Println(color.WhiteString("Found several node pools"))
+				}
+				thisErr.Desc = fmt.Sprintf("This cluster has %d node pools. Please use 'gsctl list nodepools %s' to list them. Then use 'gsctl update nodepool %s/<nodepool-id>' for scaling.", len(nodePools.Payload), args.ClusterID, args.ClusterID)
+			}
+
+			return microerror.Mask(thisErr)
+		}
+	}
+
 	if args.WorkersSet && (args.WorkersMinSet || args.WorkersMaxSet) {
 		return microerror.Mask(errors.ConflictingWorkerFlagsUsedError)
 	}
@@ -206,6 +258,9 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	case errors.IsRequiredFlagMissingError(err):
 		headline = "Missing flag: " + err.Error()
 		subtext = "Please use --help to see details regarding the command's usage."
+	case errors.IsCannotScaleCluster(err):
+		headline = "This cluster cannot be scaled as a whole."
+		subtext = microerrorDesc(err)
 	default:
 		headline = err.Error()
 	}
@@ -216,6 +271,24 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		fmt.Println(subtext)
 	}
 	os.Exit(1)
+}
+
+// microerrorDesc gets the Desc of a microerror.Error
+// TODO: obsolete when https://github.com/giantswarm/microerror/pull/23 gets merged
+func microerrorDesc(err error) string {
+	c := microerror.Cause(err)
+	switch c.(type) {
+	case nil:
+		return ""
+	case *microerror.Error:
+		e, ok := c.(*microerror.Error)
+		if ok {
+			return e.Desc
+		}
+		return ""
+	default:
+		return ""
+	}
 }
 
 // scaleCluster is the actual function submitting the API call and handling the response.

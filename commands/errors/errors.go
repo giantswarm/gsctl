@@ -413,6 +413,17 @@ func IsCannotScaleBelowMinimumWorkersError(err error) bool {
 	return microerror.Cause(err) == CannotScaleBelowMinimumWorkersError
 }
 
+// CannotScaleClusterError means the user tries to scale a cluster that does not support
+// scaling, e. g. because it is a v5 cluster (node pools).
+var CannotScaleClusterError = &microerror.Error{
+	Kind: "CannotScaleClusterError",
+}
+
+// IsCannotScaleCluster asserts CannotScaleClusterError.
+func IsCannotScaleCluster(err error) bool {
+	return microerror.Cause(err) == CannotScaleClusterError
+}
+
 // IncompatibleSettingsError means user has mixed incompatible settings related to different providers.
 var IncompatibleSettingsError = &microerror.Error{
 	Kind: "IncompatibleSettingsError",
