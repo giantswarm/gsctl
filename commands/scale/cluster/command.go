@@ -190,9 +190,8 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 
 	errors.HandleCommonErrors(err)
 
-	headline := ""
-	subtext := ""
-
+	var headline string
+	var subtext string
 	switch {
 	case errors.IsConflictingWorkerFlagsUsed(err):
 		headline = "Conflicting flags used"
@@ -315,9 +314,8 @@ func printResult(cmd *cobra.Command, commandLineArgs []string) {
 		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
 
-		headline := ""
-		subtext := ""
-
+		var headline string
+		var subtext string
 		switch {
 		case errors.IsCannotScaleBelowMinimumWorkersError(err):
 			headline = "Desired worker node count is too low."
