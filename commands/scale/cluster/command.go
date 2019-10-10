@@ -159,7 +159,7 @@ func verifyPreconditions(args Arguments) error {
 
 	// Check if the cluster is v5, so we can provide helpful details.
 	{
-		clientWrapper, err := client.NewWithConfig(flags.APIEndpoint, flags.Token)
+		clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.AuthToken)
 		if err != nil {
 			return microerror.Mask(err)
 		}
