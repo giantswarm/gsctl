@@ -219,7 +219,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 
 // scaleCluster is the actual function submitting the API call and handling the response.
 func scaleCluster(args Arguments) (*Result, error) {
-	clientWrapper, err := client.NewWithConfig(flags.APIEndpoint, flags.Token)
+	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.AuthToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -265,7 +265,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 	}
 
 	// Ask for confirmation for the scaling action.
-	if !flags.Force {
+	if !args.OppressConfirmation {
 		// get confirmation and handle result
 		err = getConfirmation(args, scalingResult.scalingMaxBefore, scalingResult.scalingMinBefore, statusWorkers)
 		if err != nil {
