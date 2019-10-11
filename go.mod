@@ -14,7 +14,7 @@ require (
 	github.com/giantswarm/gscliauth v0.0.0-20190725094024-6a88de70cd85
 	github.com/giantswarm/gsclientgen v2.0.0+incompatible
 	github.com/giantswarm/kubeconfig v0.0.0-20190403073151-2c7a472873b0
-	github.com/giantswarm/microerror v0.0.0-20190723062816-5b803268ed51
+	github.com/giantswarm/microerror v0.0.0-20191011121515-e0ebc4ecf5a5
 	github.com/giantswarm/micrologger v0.0.0-20190118112544-0926d9b7c541
 	github.com/giantswarm/operatorkit v0.0.0-20190717094611-a2a6a2f14115
 	github.com/go-kit/kit v0.6.0 // indirect

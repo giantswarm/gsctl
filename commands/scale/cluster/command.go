@@ -260,7 +260,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		subtext = "Please use --help to see details regarding the command's usage."
 	case errors.IsCannotScaleCluster(err):
 		headline = "This cluster cannot be scaled as a whole."
-		subtext = microerrorDesc(err)
+		subtext = microerror.Desc(err)
 	default:
 		headline = err.Error()
 	}
@@ -271,24 +271,6 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		fmt.Println(subtext)
 	}
 	os.Exit(1)
-}
-
-// microerrorDesc gets the Desc of a microerror.Error
-// TODO: obsolete when https://github.com/giantswarm/microerror/pull/23 gets merged
-func microerrorDesc(err error) string {
-	c := microerror.Cause(err)
-	switch c.(type) {
-	case nil:
-		return ""
-	case *microerror.Error:
-		e, ok := c.(*microerror.Error)
-		if ok {
-			return e.Desc
-		}
-		return ""
-	default:
-		return ""
-	}
 }
 
 // scaleCluster is the actual function submitting the API call and handling the response.
