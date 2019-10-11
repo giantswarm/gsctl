@@ -398,7 +398,7 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 
 	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
-		return result, microerror.Mask(err)
+		return createKubeconfigResult{}, microerror.Mask(err)
 	}
 
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
@@ -406,7 +406,7 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 
 	result.apiEndpoint, err = getClusterDetails(clientWrapper, args.clusterID, auxParams, args.verbose)
 	if err != nil {
-		return result, microerror.Mask(err)
+		return createKubeconfigResult{}, microerror.Mask(err)
 	}
 
 	// Set internal API endpoint if requested.
