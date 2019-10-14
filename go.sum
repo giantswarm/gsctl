@@ -47,8 +47,8 @@ github.com/giantswarm/gsclientgen v2.0.0+incompatible h1:0CUCnDltK1e3lVymzpkg4Ta
 github.com/giantswarm/gsclientgen v2.0.0+incompatible/go.mod h1:w3fPQmyNcZPB0I/eULLADOfkk0VTSn8Pijvj7JacnNQ=
 github.com/giantswarm/kubeconfig v0.0.0-20190403073151-2c7a472873b0 h1:X/NIxCdhA6tpBI9DynV1YMB2dFIY6R6ZKdj0vHUEy1s=
 github.com/giantswarm/kubeconfig v0.0.0-20190403073151-2c7a472873b0/go.mod h1:XJHVL/1hBzfAPkCtwTNg/1NTS6AFbj5h2HzUCi01Ox4=
-github.com/giantswarm/microerror v0.0.0-20190723062816-5b803268ed51 h1:9Irh4Yi7S/9krO49cSNugD4BUeMrOhKvWVTxTO4Fn5Y=
-github.com/giantswarm/microerror v0.0.0-20190723062816-5b803268ed51/go.mod h1://Lo9dKJ8P2TBciuky5fDHEItccyvZOWE+B/0JiJT8A=
+github.com/giantswarm/microerror v0.0.0-20191011121515-e0ebc4ecf5a5 h1:ZjMQRWyxNkGlFP8yOf+G86XH7DugnigsBpzie1R/nxM=
+github.com/giantswarm/microerror v0.0.0-20191011121515-e0ebc4ecf5a5/go.mod h1://Lo9dKJ8P2TBciuky5fDHEItccyvZOWE+B/0JiJT8A=
 github.com/giantswarm/micrologger v0.0.0-20190118112544-0926d9b7c541 h1:FFIytfpzwoorYU6DkmgVfS3kqoAoQNzOsXx7wW5FsXA=
 github.com/giantswarm/micrologger v0.0.0-20190118112544-0926d9b7c541/go.mod h1:2O9GG1AfKI8px8oseWx+TTD6A6aEdUo16ZjAKv2wOVk=
 github.com/giantswarm/operatorkit v0.0.0-20190717094611-a2a6a2f14115 h1:lEg40uwBGmcRYnoUa9Gojvzeyuh8f7orLuDpJfGrH9g=
