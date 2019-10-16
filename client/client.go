@@ -34,7 +34,7 @@ import (
 
 var (
 	// DefaultTimeout is the standard request timeout applied if not specified.
-	DefaultTimeout = 60 * time.Second
+	DefaultTimeout = 10 * time.Second
 
 	randomStringCharset = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
