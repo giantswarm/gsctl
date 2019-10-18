@@ -533,3 +533,114 @@ func Test_CertificateSignedByUnknownAuthority(t *testing.T) {
 		t.Errorf("Expected x509.UnknownAuthorityError, got %#v", err)
 	}
 }
+
+func TestGetApp(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`[
+		{
+		  "metadata": {
+			"name": "my-awesome-prometheus"
+		  },
+		  "spec": {
+			"catalog": "sample-catalog",
+			"name": "prometheus-chart",
+			"namespace": "giantswarm",
+			"version": "0.2.0",
+			"user_config": {
+			  "configmap": {
+				"name": "prometheus-user-values",
+				"namespace": "123ab"
+			  }
+			}
+		  },
+		  "status": {
+			"app_version": "1.0.0",
+			"release": {
+			  "last_deployed": "2019-04-08T12:34:00Z",
+			  "status": "DEPLOYED"
+			},
+			"version": "0.2.0"
+		  }
+		}
+	  ]`))
+	}))
+	defer ts.Close()
+
+	config := &Configuration{
+		Endpoint: ts.URL,
+	}
+
+	gsClient, err := New(config)
+	if err != nil {
+		t.Error(err)
+	}
+
+	app, err := gsClient.GetApp("cluster-id", "my-awesome-prometheus", nil)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if app.Metadata.Name != "my-awesome-prometheus" {
+		t.Errorf("Expected  name should be my-awesome-prometheus got %v", app.Metadata.Name)
+	}
+	if app.Status.AppVersion != "1.0.0" {
+		t.Errorf("Expected app version should be 1.0.0 got %v", app.Status.Version)
+	}
+}
+
+func TestGetAppStatus(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`[
+		{
+		  "metadata": {
+			"name": "my-awesome-prometheus"
+		  },
+		  "spec": {
+			"catalog": "sample-catalog",
+			"name": "prometheus-chart",
+			"namespace": "giantswarm",
+			"version": "0.2.0",
+			"user_config": {
+			  "configmap": {
+				"name": "prometheus-user-values",
+				"namespace": "123ab"
+			  }
+			}
+		  },
+		  "status": {
+			"app_version": "1.0.0",
+			"release": {
+			  "last_deployed": "2019-04-08T12:34:00Z",
+			  "status": "DEPLOYED"
+			},
+			"version": "0.2.0"
+		  }
+		}
+	  ]`))
+	}))
+	defer ts.Close()
+
+	config := &Configuration{
+		Endpoint: ts.URL,
+	}
+
+	gsClient, err := New(config)
+	if err != nil {
+		t.Error(err)
+	}
+
+	appStatus, err := gsClient.GetAppStatus("cluster-id", "my-awesome-prometheus", nil)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if appStatus != "DEPLOYED" {
+		t.Errorf("Expected status should be DEPLOYED got %v", appStatus)
+	}
+}

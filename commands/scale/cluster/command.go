@@ -2,7 +2,6 @@
 package cluster
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -12,11 +11,8 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/capabilities"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
-	"github.com/giantswarm/gsctl/commands/scale/cluster/defaulting"
-	"github.com/giantswarm/gsctl/commands/scale/cluster/request"
 	"github.com/giantswarm/gsctl/confirm"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/limits"
@@ -46,6 +42,8 @@ Examples:
   gsctl scale cluster c7t2o --num-workers 3
 `,
 
+		PreRun: printValidation,
+
 		// Run calls the business function and prints results and errors.
 		Run: printResult,
 	}
@@ -54,169 +52,229 @@ Examples:
 	cmdWorkersMaxName = "workers-max"
 	cmdWorkersMinName = "workers-min"
 	cmdWorkersNumName = "num-workers"
-
-	cmdWorkerMemorySizeGBName  = "memory-gb"
-	cmdWorkerNumCPUsName       = "num-cpus"
-	cmdWorkerStorageSizeGBName = "storage-gb"
 )
 
 const (
 	scaleClusterActivityName = "scale-cluster"
 )
 
-// Arguments contains all arguments that influence the business function.
-type Arguments struct {
-	apiEndpoint         string
-	authToken           string
-	clusterID           string
-	numWorkersDesired   int
-	oppressConfirmation bool
-	scheme              string
-	userProvidedToken   string
-	verbose             bool
-	workersMax          int64
-	workersMin          int64
+func init() {
+	initFlags()
 }
 
-func init() {
+// initFlags initializes flags in a re-usable way, so we can call it from multiple tests.
+func initFlags() {
+	Command.ResetFlags()
 	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, no confirmation is required.")
 	Command.Flags().Int64VarP(&flags.WorkersMax, cmdWorkersMaxName, "", 0, "Maximum number of worker nodes to have after scaling.")
 	Command.Flags().Int64VarP(&flags.WorkersMin, cmdWorkersMinName, "", 0, "Minimum number of worker nodes to have after scaling.")
 	Command.Flags().IntVarP(&flags.NumWorkers, cmdWorkersNumName, "w", 0, "Shorthand to set --workers-min and --workers-max to the same value.")
+}
 
-	// deprecated
-	Command.Flags().Float32VarP(&flags.WorkerStorageSizeGB, cmdWorkerStorageSizeGBName, "", 0, "Local storage size per added worker node.")
-	Command.Flags().IntVarP(&flags.WorkerNumCPUs, cmdWorkerNumCPUsName, "", 0, "Number of CPU cores per added worker node.")
-	Command.Flags().Float32VarP(&flags.WorkerMemorySizeGB, cmdWorkerMemorySizeGBName, "", 0, "RAM per added worker node.")
-	Command.Flags().MarkDeprecated(cmdWorkerMemorySizeGBName, "Changing the amount of Memory is no longer supported while scaling.")
-	Command.Flags().MarkDeprecated(cmdWorkerNumCPUsName, "Changing the number of CPUs is no longer supported while scaling.")
-	Command.Flags().MarkDeprecated(cmdWorkerStorageSizeGBName, "Changing the amount of Storage is no longer supported while scaling.")
+// Arguments contains all arguments that influence the business function.
+type Arguments struct {
+	APIEndpoint         string
+	AuthToken           string
+	ClusterID           string
+	NumWorkersDesired   int
+	OppressConfirmation bool
+	Scheme              string
+	UserProvidedToken   string
+	Verbose             bool
+	WorkersMax          int64
+	WorkersMaxSet       bool
+	WorkersMin          int64
+	WorkersMinSet       bool
+	Workers             int
+	WorkersSet          bool
+}
+
+// Result is the resulting data we get from our business function.
+type Result struct {
+	numWorkersBefore int
+	scalingMinBefore int
+	scalingMinAfter  int
+	scalingMaxBefore int
+	scalingMaxAfter  int
 }
 
 // getConfirmation asks the user for confirmation for scaling actions.
-func getConfirmation(args Arguments, maxBefore int64, minBefore int64, currentWorkers int64) error {
-	if currentWorkers > args.workersMax && args.workersMax == args.workersMin {
-		confirmed := confirm.Ask(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to pin the number of worker nodes to %d?", currentWorkers, args.workersMin))
+func getConfirmation(args Arguments, maxBefore int, minBefore int, currentWorkers int) error {
+	if int64(currentWorkers) > args.WorkersMax && args.WorkersMax == args.WorkersMin {
+		confirmed := confirm.Ask(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to pin the number of worker nodes to %d?", currentWorkers, args.WorkersMin))
 		if !confirmed {
 			return microerror.Mask(errors.CommandAbortedError)
 		}
 	}
-	if currentWorkers > args.workersMax && args.workersMax != args.workersMin {
-		confirmed := confirm.Ask(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to change the limits to be min=%d, max=%d?", currentWorkers, args.workersMin, args.workersMax))
+	if int64(currentWorkers) > args.WorkersMax && args.WorkersMax != args.WorkersMin {
+		confirmed := confirm.Ask(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to change the limits to be min=%d, max=%d?", currentWorkers, args.WorkersMin, args.WorkersMax))
 		if !confirmed {
 			return microerror.Mask(errors.CommandAbortedError)
 		}
 	}
 
 	return nil
-
 }
 
-func collectArguments(ctx context.Context, cmd *cobra.Command, clusterID string, autoScalingEnabled bool, currentScalingMax int64, currentScalingMin int64, desiredScalingMax int64, desiredScalingMin int64, desiredNumWorkers int64) (Arguments, error) {
-	var err error
+func collectArguments(cmd *cobra.Command, positionalArgs []string) (Arguments, error) {
+	if len(positionalArgs) == 0 {
+		return Arguments{}, microerror.Mask(errors.ClusterIDMissingError)
+	}
 
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
 	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
-	scaleArgs := Arguments{
-		apiEndpoint:         endpoint,
-		authToken:           token,
-		clusterID:           clusterID,
-		numWorkersDesired:   int(desiredNumWorkers),
-		oppressConfirmation: flags.Force,
-		scheme:              scheme,
-		userProvidedToken:   flags.Token,
-		verbose:             flags.Verbose,
-		workersMax:          flags.WorkersMax,
-		workersMin:          flags.WorkersMin,
+	args := Arguments{
+		APIEndpoint:         endpoint,
+		AuthToken:           token,
+		ClusterID:           positionalArgs[0],
+		OppressConfirmation: flags.Force,
+		Scheme:              scheme,
+		UserProvidedToken:   flags.Token,
+		Verbose:             flags.Verbose,
+		WorkersMax:          flags.WorkersMax,
+		WorkersMin:          flags.WorkersMin,
+		Workers:             flags.NumWorkers,
+		WorkersMaxSet:       cmd.Flags().Changed(cmdWorkersMaxName),
+		WorkersMinSet:       cmd.Flags().Changed(cmdWorkersMinName),
+		WorkersSet:          cmd.Flags().Changed(cmdWorkersNumName),
 	}
 
-	desiredNumWorkersChanged := cmd.Flags().Changed(cmdWorkersNumName)
-	desiredScalingMinChanged := cmd.Flags().Changed(cmdWorkersMinName)
-	desiredScalingMaxChanged := cmd.Flags().Changed(cmdWorkersMaxName)
-
-	var scaling *defaulting.Scaling
-	{
-		c := defaulting.ScalingConfig{
-			AutoScalingEnabled:       &autoScalingEnabled,
-			CurrentScalingMax:        &currentScalingMax,
-			CurrentScalingMin:        &currentScalingMin,
-			DesiredNumWorkers:        &desiredNumWorkers,
-			DesiredNumWorkersChanged: &desiredNumWorkersChanged,
-			DesiredScalingMax:        &desiredScalingMax,
-			DesiredScalingMaxChanged: &desiredScalingMaxChanged,
-			DesiredScalingMin:        &desiredScalingMin,
-			DesiredScalingMinChanged: &desiredScalingMinChanged,
-		}
-
-		scaling, err = defaulting.NewScaling(c)
-		if err != nil {
-			return Arguments{}, microerror.Mask(err)
-		}
+	if args.Workers > 0 {
+		args.WorkersMin = int64(args.Workers)
+		args.WorkersMax = int64(args.Workers)
 	}
 
-	req := request.Request{}
-
-	req.Cluster.Scaling = scaling.Default(ctx, req.Cluster.Scaling)
-
-	scaleArgs.workersMax = req.Cluster.Scaling.Max
-	scaleArgs.workersMin = req.Cluster.Scaling.Min
-
-	return scaleArgs, nil
+	return args, nil
 }
 
-// getClusterStatus returns the status for one cluster.
-func getClusterStatus(clusterID, activityName string) (*client.ClusterStatus, error) {
-	clientWrapper, err := client.NewWithConfig(flags.APIEndpoint, flags.Token)
-	if err != nil {
-		return nil, microerror.Mask(err)
+func verifyPreconditions(args Arguments) error {
+	if args.AuthToken == "" && args.UserProvidedToken == "" {
+		return microerror.Mask(errors.NotLoggedInError)
+	}
+	if args.ClusterID == "" {
+		return microerror.Mask(errors.ClusterIDMissingError)
 	}
 
-	auxParams := clientWrapper.DefaultAuxiliaryParams()
-	auxParams.ActivityName = activityName
-
-	// Make sure we have provider info in the current endpoint
-	if config.Config.Provider == "" {
-		if flags.Verbose {
-			fmt.Println(color.WhiteString("Fetching provider information"))
-		}
-
-		info, err := clientWrapper.GetInfo(auxParams)
+	// Check if the cluster is v5, so we can provide helpful details.
+	{
+		clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.AuthToken)
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return microerror.Mask(err)
 		}
-		config.Config.SetProvider(info.Payload.General.Provider)
+		auxParams := clientWrapper.DefaultAuxiliaryParams()
+		auxParams.ActivityName = scaleClusterActivityName
+
+		if args.Verbose {
+			fmt.Println(color.WhiteString("Checking whether this is a v5 cluster"))
+		}
+		_, err = clientWrapper.GetClusterV5(args.ClusterID, auxParams)
+		if errors.IsClusterNotFoundError(err) {
+			// The cluster is not a v5 cluster. So do nothing.
+		} else if err != nil {
+			return microerror.Mask(err)
+		} else {
+			thisErr := errors.CannotScaleClusterError
+
+			// Get node pools list to provide a more specific error message.
+			if args.Verbose {
+				fmt.Println(color.WhiteString("Getting v5 cluster node pools information"))
+			}
+			nodePools, err := clientWrapper.GetNodePools(args.ClusterID, auxParams)
+			if err != nil {
+				return microerror.Mask(err)
+			}
+
+			switch len(nodePools.Payload) {
+			case 0:
+				if args.Verbose {
+					fmt.Println(color.WhiteString("No node pools found"))
+				}
+				thisErr.Desc = "This cluster has no worker nodes. Please use the 'gsctl create nodepool' command to add some first."
+			case 1:
+				if args.Verbose {
+					fmt.Println(color.WhiteString("Found one node pool with ID %s", nodePools.Payload[0].ID))
+				}
+				thisErr.Desc = fmt.Sprintf("To scale the node pool of this cluster, please use the 'gsctl update nodepool %s/%s' command.", args.ClusterID, nodePools.Payload[0].ID)
+			default:
+				if args.Verbose {
+					fmt.Println(color.WhiteString("Found several node pools"))
+				}
+				thisErr.Desc = fmt.Sprintf("This cluster has %d node pools. Please use 'gsctl list nodepools %s' to list them. Then use 'gsctl update nodepool %s/<nodepool-id>' for scaling.", len(nodePools.Payload), args.ClusterID, args.ClusterID)
+			}
+
+			return microerror.Mask(thisErr)
+		}
 	}
 
-	// perform API call
-	if flags.Verbose {
-		fmt.Println(color.WhiteString("Fetching current cluster size"))
+	if args.WorkersSet && (args.WorkersMinSet || args.WorkersMaxSet) {
+		return microerror.Mask(errors.ConflictingWorkerFlagsUsedError)
 	}
-	status, err := clientWrapper.GetClusterStatus(clusterID, auxParams)
+	if args.WorkersMax > 0 && args.WorkersMax < int64(limits.MinimumNumWorkers) {
+		return microerror.Mask(errors.CannotScaleBelowMinimumWorkersError)
+	}
+	if args.WorkersMin > 0 && args.WorkersMin < int64(limits.MinimumNumWorkers) {
+		return microerror.Mask(errors.NotEnoughWorkerNodesError)
+	}
+	if args.Workers != 0 && args.Workers < limits.MinimumNumWorkers {
+		return microerror.Mask(errors.NotEnoughWorkerNodesError)
+	}
+	if !args.WorkersSet && !args.WorkersMinSet && !args.WorkersMaxSet {
+		return microerror.Maskf(errors.RequiredFlagMissingError, "--%s or --%s/--%s", cmdWorkersNumName, cmdWorkersMinName, cmdWorkersMaxName)
+	}
+
+	return nil
+}
+
+func printValidation(cmd *cobra.Command, positionalArgs []string) {
+	args, err := collectArguments(cmd, positionalArgs)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		fmt.Println(color.RedString(err.Error()))
+		os.Exit(1)
 	}
 
-	return status, nil
+	err = verifyPreconditions(args)
+
+	if err == nil {
+		return
+	}
+
+	errors.HandleCommonErrors(err)
+
+	var headline string
+	var subtext string
+	switch {
+	case errors.IsConflictingWorkerFlagsUsed(err):
+		headline = "Conflicting flags used"
+		subtext = fmt.Sprintf("When specifying --%s, neither --%s nor --%s must be used.", cmdWorkersNumName, cmdWorkersMaxName, cmdWorkersMinName)
+	case errors.IsWorkersMinMaxInvalid(err):
+		headline = "Number of worker nodes invalid"
+		subtext = fmt.Sprintf("Node count flag --%s must not be higher than --%s.", cmdWorkersMinName, cmdWorkersMaxName)
+	case errors.IsCannotScaleBelowMinimumWorkersError(err):
+		headline = "Not enough worker nodes specified"
+		subtext = fmt.Sprintf("You'll need at least %v worker nodes for a useful cluster.", limits.MinimumNumWorkers)
+	case errors.IsRequiredFlagMissingError(err):
+		headline = "Missing flag: " + err.Error()
+		subtext = "Please use --help to see details regarding the command's usage."
+	case errors.IsCannotScaleCluster(err):
+		headline = "This cluster cannot be scaled as a whole."
+		subtext = microerror.Desc(err)
+	default:
+		headline = err.Error()
+	}
+
+	// handle non-common errors
+	fmt.Println(color.RedString(headline))
+	if subtext != "" {
+		fmt.Println(subtext)
+	}
+	os.Exit(1)
 }
 
 // scaleCluster is the actual function submitting the API call and handling the response.
-func scaleCluster(args Arguments) (*models.V4ClusterDetailsResponse, error) {
-	// Preparing API call.
-	reqBody := &models.V4ModifyClusterRequest{
-		Scaling: &models.V4ModifyClusterRequestScaling{
-			Max: args.workersMax,
-			Min: args.workersMin,
-		},
-	}
-
-	// perform API call
-	if args.verbose {
-		fmt.Println(color.WhiteString("Sending API request to modify cluster"))
-	}
-
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
+func scaleCluster(args Arguments) (*Result, error) {
+	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.AuthToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -224,175 +282,95 @@ func scaleCluster(args Arguments) (*models.V4ClusterDetailsResponse, error) {
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = scaleClusterActivityName
 
-	response, err := clientWrapper.ModifyCluster(args.clusterID, reqBody, auxParams)
+	if args.Verbose {
+		fmt.Println(color.WhiteString("Fetching v4 cluster details"))
+	}
+	clusterDetails, err := clientWrapper.GetClusterV4(args.ClusterID, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	return response.Payload, nil
-}
-
-// printResult invokes the actual cluster scaling and prints the result and/or errors.
-// TODO: split into a testable business function and one that handles confirmation
-// and prints results.
-func printResult(cmd *cobra.Command, cmdLineArgs []string) {
-	if len(cmdLineArgs) == 0 {
-		errors.HandleCommonErrors(errors.ClusterIDMissingError)
-	}
-	clusterID := cmdLineArgs[0]
-	desiredNumWorkers := flags.NumWorkers
-
-	var currentScalingMax int64
-	var currentScalingMin int64
-	var currentWorkers int64
-	var releaseVersion string
-	{
-		clientWrapper, err := client.NewWithConfig(flags.APIEndpoint, flags.Token)
-		if err != nil {
-			fmt.Println(color.RedString(err.Error()))
-			os.Exit(1)
-		}
-
-		auxParams := clientWrapper.DefaultAuxiliaryParams()
-		auxParams.ActivityName = scaleClusterActivityName
-
-		response, err := clientWrapper.GetClusterV4(clusterID, auxParams)
-		if err != nil {
-			errors.HandleCommonErrors(err)
-			client.HandleErrors(err)
-
-			var headline string
-			var subtext string
-
-			switch {
-			case errors.IsCommandAbortedError(err):
-				headline = "Cancelled"
-				subtext = "Scaling settings of this cluster stay as they are."
-			default:
-				headline = err.Error()
-			}
-
-			fmt.Println(color.RedString(headline))
-			if subtext != "" {
-				fmt.Println(subtext)
-			}
-			os.Exit(1)
-		}
-
-		currentScalingMax = response.Payload.Scaling.Max
-		currentScalingMin = response.Payload.Scaling.Min
-		currentWorkers = int64(len(response.Payload.Workers))
-		releaseVersion = response.Payload.ReleaseVersion
+	scalingResult := &Result{
+		numWorkersBefore: int(len(clusterDetails.Payload.Workers)),
+		scalingMaxBefore: int(clusterDetails.Payload.Scaling.Max),
+		scalingMinBefore: int(clusterDetails.Payload.Scaling.Min),
 	}
 
-	var desiredScalingMax int64
-	var desiredScalingMin int64
-	{
-		desiredScalingMax = flags.WorkersMax
-		desiredScalingMin = flags.WorkersMin
+	var statusWorkers int
+
+	if args.Verbose {
+		fmt.Println(color.WhiteString("Fetching v4 cluster status"))
 	}
 
-	autoScalingEnabled, err := capabilities.HasCapability(config.Config.Provider, releaseVersion, capabilities.Autoscaling)
+	status, err := clientWrapper.GetClusterStatus(args.ClusterID, auxParams)
 	if err != nil {
-		fmt.Println(color.RedString(err.Error()))
-		os.Exit(1)
+		return nil, microerror.Mask(err)
 	}
 
-	var desiredCapacity int64
-	var statusWorkers int64
-
-	if autoScalingEnabled {
-		// We only need the status if autoscaling is enabled, because we are only
-		// interested in the DesiredCapacity.
-		status, err := getClusterStatus(clusterID, scaleClusterActivityName)
-		if err != nil {
-			errors.HandleCommonErrors(err)
-			client.HandleErrors(err)
-
-			fmt.Println(color.RedString(err.Error()))
-			os.Exit(1)
-		}
-		desiredCapacity = int64(status.Cluster.Scaling.DesiredCapacity)
-
-		if len(status.Cluster.Nodes) >= 1 {
-			// Count all nodes as workers which are not explicitly marked as master.
-			for _, node := range status.Cluster.Nodes {
-				val, ok := node.Labels["role"]
-				if ok && val == "master" {
-					// don't count this
-				} else {
-					statusWorkers++
-				}
+	if len(status.Cluster.Nodes) >= 1 {
+		// Count all nodes as workers which are not explicitly marked as master.
+		for _, node := range status.Cluster.Nodes {
+			val, ok := node.Labels["role"]
+			if ok && val == "master" {
+				// don't count this
+			} else {
+				statusWorkers++
 			}
 		}
-
-	} else {
-		// Default to the length of the workers array. We don't know how old the
-		// cluster is and the workers array should be a reliable source of truth for
-		// older clusters.
-		currentScalingMax = currentWorkers
-		currentScalingMin = currentWorkers
-		desiredCapacity = currentWorkers
-		statusWorkers = currentWorkers
-	}
-
-	// Default all necessary information from flags.
-	args, err := collectArguments(context.Background(), cmd, clusterID, autoScalingEnabled, currentScalingMax, currentScalingMin, desiredScalingMax, desiredScalingMin, int64(desiredNumWorkers))
-	if err != nil {
-		errors.HandleCommonErrors(err)
-		client.HandleErrors(err)
-
-		fmt.Println(color.RedString(err.Error()))
-		os.Exit(1)
-	}
-
-	headline := ""
-	subtext := ""
-
-	// Validate the input for obvious errors.
-	err = validateScaleCluster(args, cmdLineArgs, currentScalingMax, currentScalingMin, desiredCapacity)
-	if err != nil {
-		errors.HandleCommonErrors(err)
-		client.HandleErrors(err)
-
-		switch {
-		case errors.IsConflictingWorkerFlagsUsed(err):
-			headline = "Conflicting flags used"
-			subtext = fmt.Sprintf("When specifying --%s, neither --%s nor --%s must be used.", cmdWorkersNumName, cmdWorkersMaxName, cmdWorkersMinName)
-		case errors.IsWorkersMinMaxInvalid(err):
-			headline = "Number of worker nodes invalid"
-			subtext = fmt.Sprintf("Node count flag --%s must not be higher than --%s.", cmdWorkersMinName, cmdWorkersMaxName)
-		case errors.IsCannotScaleBelowMinimumWorkersError(err):
-			headline = "Not enough worker nodes specified"
-			subtext = fmt.Sprintf("You'll need at least %v worker nodes for a useful cluster.", limits.MinimumNumWorkers)
-		default:
-			headline = err.Error()
-		}
-
-		// print output
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
-		os.Exit(1)
 	}
 
 	// Ask for confirmation for the scaling action.
-	if !flags.Force {
+	if !args.OppressConfirmation {
 		// get confirmation and handle result
-		err = getConfirmation(args, currentScalingMax, currentScalingMin, statusWorkers)
+		err = getConfirmation(args, scalingResult.scalingMaxBefore, scalingResult.scalingMinBefore, statusWorkers)
 		if err != nil {
 			fmt.Println(color.GreenString("Scaling cancelled"))
 			os.Exit(0)
 		}
 	}
 
-	// Actually make the scaling request to the API.
-	details, err := scaleCluster(args)
+	// Preparing API call.
+	reqBody := &models.V4ModifyClusterRequest{
+		Scaling: &models.V4ModifyClusterRequestScaling{
+			Max: args.WorkersMax,
+			Min: args.WorkersMin,
+		},
+	}
+
+	// perform API call
+	if args.Verbose {
+		fmt.Println(color.WhiteString("Sending API request to modify cluster"))
+	}
+	_, err = clientWrapper.ModifyCluster(args.ClusterID, reqBody, auxParams)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	scalingResult.scalingMinAfter = int(args.WorkersMin)
+	scalingResult.scalingMaxAfter = int(args.WorkersMax)
+
+	return scalingResult, nil
+}
+
+// printResult invokes the actual cluster scaling and prints the result and/or errors.
+func printResult(cmd *cobra.Command, commandLineArgs []string) {
+	args, err := collectArguments(cmd, commandLineArgs)
 	if err != nil {
 		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
 
+		fmt.Println(color.RedString(err.Error()))
+		os.Exit(1)
+	}
+
+	// Actually make the scaling request to the API.
+	result, err := scaleCluster(args)
+	if err != nil {
+		errors.HandleCommonErrors(err)
+		client.HandleErrors(err)
+
+		var headline string
+		var subtext string
 		switch {
 		case errors.IsCannotScaleBelowMinimumWorkersError(err):
 			headline = "Desired worker node count is too low."
@@ -404,6 +382,9 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 			headline = "The cluster could not be scaled."
 			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
 			subtext += " Sorry for the inconvenience!"
+		case errors.IsCommandAbortedError(err):
+			headline = "Cancelled"
+			subtext = "Scaling settings of this cluster stay as they are."
 		default:
 			headline = err.Error()
 		}
@@ -417,42 +398,5 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	fmt.Println(color.GreenString("The cluster is being scaled"))
-	fmt.Printf("The cluster limits have been changed from min = %d and max = %d to min = %d and max = %d workers.\n", currentScalingMin, currentScalingMax, details.Scaling.Min, details.Scaling.Max)
-}
-
-// validatyScaleCluster does a few general checks and returns an error in case something is missing.
-func validateScaleCluster(args Arguments, cmdLineArgs []string, maxBefore int64, minBefore int64, desiredCapacity int64) error {
-	desiredWorkersExists := (args.numWorkersDesired > 0)
-	scalingParameterIsPresent := (args.workersMax > 0 || args.workersMin > 0)
-	desiredWorkersDifferFromMaxNumOfWorkers := (int64(args.numWorkersDesired) != args.workersMax)
-	desiredWorkersDifferFromMinNumOfWorkers := (int64(args.numWorkersDesired) != args.workersMin)
-	desiredWorkersAreNotAtScalingLimits := (desiredWorkersDifferFromMaxNumOfWorkers || desiredWorkersDifferFromMinNumOfWorkers)
-
-	if config.Config.Token == "" && args.authToken == "" {
-		return microerror.Mask(errors.NotLoggedInError)
-	}
-
-	if maxBefore == args.workersMax && minBefore == args.workersMin {
-		return microerror.Mask(errors.DesiredEqualsCurrentStateError)
-	}
-
-	// flag conflicts.
-	if desiredWorkersExists && scalingParameterIsPresent && desiredWorkersAreNotAtScalingLimits {
-		return microerror.Mask(errors.ConflictingWorkerFlagsUsedError)
-	}
-
-	if desiredWorkersExists && args.numWorkersDesired < limits.MinimumNumWorkers {
-		return microerror.Mask(errors.NotEnoughWorkerNodesError)
-	}
-	if args.workersMax > 0 && args.workersMax < int64(limits.MinimumNumWorkers) {
-		return microerror.Mask(errors.CannotScaleBelowMinimumWorkersError)
-	}
-	if args.workersMin > 0 && args.workersMin < int64(limits.MinimumNumWorkers) {
-		return microerror.Mask(errors.NotEnoughWorkerNodesError)
-	}
-	if scalingParameterIsPresent && args.workersMin > args.workersMax {
-		return microerror.Mask(errors.WorkersMinMaxInvalidError)
-	}
-
-	return nil
+	fmt.Printf("The cluster limits have been changed from min=%d and max=%d to min=%d and max=%d workers.\n", result.scalingMinBefore, result.scalingMaxBefore, result.scalingMinAfter, result.scalingMaxAfter)
 }

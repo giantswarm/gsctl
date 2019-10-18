@@ -14,6 +14,7 @@ import (
 	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
 	"github.com/giantswarm/gscliauth/config"
 	gsclient "github.com/giantswarm/gsclientgen/client"
+	"github.com/giantswarm/gsclientgen/client/apps"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/client/info"
@@ -33,7 +34,7 @@ import (
 
 var (
 	// DefaultTimeout is the standard request timeout applied if not specified.
-	DefaultTimeout = 60 * time.Second
+	DefaultTimeout = 10 * time.Second
 
 	randomStringCharset = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
@@ -688,4 +689,118 @@ func (w *Wrapper) GetClusterStatus(clusterID string, p *AuxiliaryParams) (*Clust
 	}
 
 	return &status, nil
+}
+
+// CreateApp creates an App in a cluster.
+func (w *Wrapper) CreateApp(clusterID string, appName string, addAppRequest *models.V4CreateAppRequest, p *AuxiliaryParams) (*apps.CreateClusterAppOK, error) {
+
+	params := apps.NewCreateClusterAppParams().WithClusterID(clusterID).WithAppName(appName).WithBody(addAppRequest)
+
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Apps.CreateClusterApp(params, authWriter)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+//GetApp fetches details on a cluster using the gsclientgen client.
+func (w *Wrapper) GetApp(clusterID string, appName string, p *AuxiliaryParams) (*models.V4GetClusterAppsResponseItems, error) {
+
+	params := apps.NewGetClusterAppsParams().WithClusterID(clusterID)
+
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Apps.GetClusterApps(params, authWriter)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	apps := response.Payload
+
+	for _, app := range apps {
+		if app.Metadata.Name == appName {
+			return app, nil
+		}
+	}
+
+	return nil, nil
+}
+
+// GetAppStatus fetches details on a cluster using the gsclientgen client.
+func (w *Wrapper) GetAppStatus(clusterID string, appName string, p *AuxiliaryParams) (string, error) {
+
+	params := apps.NewGetClusterAppsParams().WithClusterID(clusterID)
+
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Apps.GetClusterApps(params, authWriter)
+	if err != nil {
+		return "", clienterror.New(err)
+	}
+
+	//type V4GetClusterAppsResponse []*V4GetClusterAppsResponseItems
+	apps := response.Payload
+
+	for _, app := range apps {
+		if app.Metadata.Name == appName {
+			return app.Status.Release.Status, nil
+		}
+	}
+
+	return "", nil
+}
+
+// DeleteApp deletes an app using the gsclientgen client.
+func (w *Wrapper) DeleteApp(clusterID string, appName string, p *AuxiliaryParams) (*apps.DeleteClusterAppOK, error) {
+	params := apps.NewDeleteClusterAppParams().WithClusterID(clusterID).WithAppName(appName)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Apps.DeleteClusterApp(params, authWriter)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+// ModifyApp modifies an app using the gsclientgen client.
+func (w *Wrapper) ModifyApp(clusterID string, appName string, body *models.V4ModifyAppRequest, p *AuxiliaryParams) (*apps.ModifyClusterAppOK, error) {
+
+	params := apps.NewModifyClusterAppParams().WithClusterID(clusterID).WithAppName(appName).WithBody(body)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Apps.ModifyClusterApp(params, authWriter)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
 }

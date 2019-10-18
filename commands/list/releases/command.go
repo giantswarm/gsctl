@@ -114,6 +114,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 	if len(releases) == 0 {
 		fmt.Println(color.RedString("No releases available."))
 		fmt.Println("We cannot find any releases. Please contact the Giant Swarm support team to find out if there is a problem to be solved.")
+		return
 	}
 
 	// table headers

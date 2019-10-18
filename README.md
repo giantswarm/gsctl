@@ -59,6 +59,19 @@ Whenever you want to switch to using this context:
     kubectl config use-context giantswarm-xl8t1
 ```
 
+#### Cluster acccess via internal networks
+
+The Internal Kubernetes API allows you to talk to Kubernetes via the internal load balancer. That can be useful for peered networks.
+
+In case you want to use the internal Kubernetes API, pass `--tenant-internal=true` to gsctl:
+```nohighlight
+$ gsctl create kubeconfig -c h8d0j
+```
+
+This will render a kubeconfig with the internal Kubernetes API server address (`internal-api`).
+
+* Internal API is available only on AWS installations.
+
 ## Install
 
 See the [`gsctl` reference docs](https://docs.giantswarm.io/reference/gsctl/#install)

@@ -4,8 +4,7 @@ Please read this if you intend to develop on gsctl.
 
 ## Required Tools, Prerequisites
 
-- Go environment (`brew install go`)
-- [`dep`](https://github.com/golang/dep)
+- Go environment (`brew install go`). Check the `GOVERSION` variable in the `Makefile` for the required version.
 - GNU Make
 - `git`
 - Docker
@@ -32,7 +31,9 @@ So the repo content will end up in `$GOPATH/src/github.com/giantswarm/gsctl`.
 
 ## Dependencies
 
-Dependencies are managed using [`go dep`](https://github.com/golang/dep).
+Dependencies are managed using the [Go modules](https://github.com/golang/go/wiki/Modules) tooling.
+
+This means the `GO111MODULE`  environment variable has to be set to `auto` or `yes`.
 
 ## Executing gsctl during development
 

@@ -63,7 +63,7 @@ func TestShowAWSClusterV4(t *testing.T) {
 		verbose:     true,
 	}
 
-	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := verifyPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
@@ -168,7 +168,7 @@ func TestShowAWSClusterV5(t *testing.T) {
 		verbose:     true,
 	}
 
-	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := verifyPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
@@ -226,7 +226,7 @@ func TestShowClusterNotAuthorized(t *testing.T) {
 		authToken:   "my-wrong-token",
 	}
 
-	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := verifyPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
 		t.Error(err)
 	}
@@ -268,7 +268,7 @@ func TestShowClusterNotFound(t *testing.T) {
 		authToken:   "my-token",
 	}
 
-	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := verifyPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
 		t.Error(err)
 	}
@@ -309,7 +309,7 @@ func TestShowClusterInternalServerError(t *testing.T) {
 		authToken:   "my-token",
 	}
 
-	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := verifyPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
 		t.Error(err)
 	}
@@ -337,7 +337,7 @@ func TestShowClusterNotLoggedIn(t *testing.T) {
 		authToken:   "",
 	}
 
-	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := verifyPreconditions(testArgs, []string{testArgs.clusterID})
 	if !errors.IsNotLoggedInError(err) {
 		t.Errorf("Expected NotLoggedInError, got '%s'", err.Error())
 	}
@@ -357,7 +357,7 @@ func TestShowClusterMissingID(t *testing.T) {
 		authToken:   "auth-token",
 	}
 
-	err := verifyShowClusterPreconditions(testArgs, []string{})
+	err := verifyPreconditions(testArgs, []string{})
 	if !errors.IsClusterIDMissingError(err) {
 		t.Errorf("Expected clusterIdMissingError, got '%s'", err.Error())
 	}
@@ -445,7 +445,7 @@ func TestShowAWSBYOCClusterV4(t *testing.T) {
 		authToken:   "my-token",
 	}
 
-	err := verifyShowClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := verifyPreconditions(testArgs, []string{testArgs.clusterID})
 	if err != nil {
 		t.Error(err)
 	}
