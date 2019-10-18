@@ -59,8 +59,9 @@ func Test_ListClusters(t *testing.T) {
 	defer mockServer.Close()
 
 	args := Arguments{
-		apiEndpoint: mockServer.URL,
-		authToken:   "testtoken",
+		apiEndpoint:  mockServer.URL,
+		authToken:    "testtoken",
+		outputFormat: "table",
 	}
 
 	err := verifyListClusterPreconditions(args)
@@ -68,7 +69,7 @@ func Test_ListClusters(t *testing.T) {
 		t.Error(err)
 	}
 
-	table, err := clustersTable(args)
+	table, err := getClustersOutput(args)
 	if err != nil {
 		t.Error(err)
 	}
@@ -86,8 +87,9 @@ func Test_ListClustersEmpty(t *testing.T) {
 	defer mockServer.Close()
 
 	args := Arguments{
-		apiEndpoint: mockServer.URL,
-		authToken:   "testtoken",
+		apiEndpoint:  mockServer.URL,
+		authToken:    "testtoken",
+		outputFormat: "table",
 	}
 
 	err := verifyListClusterPreconditions(args)
@@ -95,7 +97,7 @@ func Test_ListClustersEmpty(t *testing.T) {
 		t.Error(err)
 	}
 
-	table, err := clustersTable(args)
+	table, err := getClustersOutput(args)
 	if err != nil {
 		t.Error(err)
 	}
@@ -115,8 +117,9 @@ func Test_ListClustersUnauthorized(t *testing.T) {
 	defer mockServer.Close()
 
 	args := Arguments{
-		apiEndpoint: mockServer.URL,
-		authToken:   "testtoken",
+		apiEndpoint:  mockServer.URL,
+		authToken:    "testtoken",
+		outputFormat: "table",
 	}
 
 	err := verifyListClusterPreconditions(args)
@@ -124,7 +127,7 @@ func Test_ListClustersUnauthorized(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = clustersTable(args)
+	_, err = getClustersOutput(args)
 	if !errors.IsNotAuthorizedError(err) {
 		t.Errorf("Expected NotAuthorizedError, got %#v", err)
 	}
