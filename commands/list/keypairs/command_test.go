@@ -3,8 +3,10 @@ package keypairs
 import (
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/commands/errors"
@@ -138,7 +140,7 @@ func Test_ListKeyPairs_Nonempty(t *testing.T) {
 	args := Arguments{
 		apiEndpoint:  keyPairsMockServer.URL,
 		clusterID:    "my-cluster",
-		outputFormat: "table",
+		outputFormat: "json",
 		token:        "my-token",
 	}
 
@@ -156,5 +158,79 @@ func Test_ListKeyPairs_Nonempty(t *testing.T) {
 	}
 	if result.keypairs[1].ID != "52:64:7d:ca:75:3c:7b:46:06:2f:a0:ce:42:9a:76:c9:2b:76:aa:9e" {
 		t.Error("Keypairs returned were not in the expected order.")
+	}
+}
+
+func Test_ListKeyPairsOutput(t *testing.T) {
+	jsonOutput := `[
+  {
+    "create_date": "2017-01-23T13:57:57.755631763Z",
+    "description": "Added by user oliver.ponder@gmail.com using Happa web interface",
+    "id": "74:2d:de:d2:6b:9f:4d:a5:e5:0d:eb:6e:98:14:02:6c:79:40:f6:58",
+    "ttl_hours": 720
+  },
+  {
+    "create_date": "2017-03-17T12:41:23.053271166Z",
+    "description": "Added by user marian@sendung.de using 'gsctl create kubeconfig'",
+    "id": "52:64:7d:ca:75:3c:7b:46:06:2f:a0:ce:42:9a:76:c9:2b:76:aa:9e",
+    "ttl_hours": 720
+  }
+]
+`
+
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("%s %s", r.Method, r.URL)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(jsonOutput))
+	}))
+	defer mockServer.Close()
+
+	testCases := []struct {
+		name           string
+		args           []string
+		expectedOutput string
+	}{
+		{
+			name:           "case 0: table output",
+			args:           []string{"-c=foo"},
+			expectedOutput: "CREATED                 EXPIRES                 ID          DESCRIPTION                                                      CN  O\n2017 Jan 23, 13:57 UTC  2017 Feb 22, 13:57 UTC  742dded26…  Added by user oliver.ponder@gmail.com using Happa web interface      \n2017 Mar 17, 12:41 UTC  2017 Apr 16, 12:41 UTC  52647dca7…  Added by user marian@sendung.de using 'gsctl create kubeconfig'      \n",
+		},
+
+		{
+			name:           "case 1: json output",
+			args:           []string{"-c=foo", "-o=json"},
+			expectedOutput: jsonOutput,
+		},
+	}
+
+	// temp config
+	// config
+	configYAML := `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  ` + mockServer.URL + `:
+    email: email@example.com
+    token: some-token
+selected_endpoint: ` + mockServer.URL
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, configYAML)
+	if err != nil {
+		t.Error(err)
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			output := testutils.CaptureOutput(func() {
+				initFlags()
+				Command.SetArgs(tc.args)
+				Command.Execute()
+			})
+
+			if !cmp.Equal(output, tc.expectedOutput) {
+				t.Fatalf("\n\n%s\n", cmp.Diff(tc.expectedOutput, output))
+			}
+		})
 	}
 }
