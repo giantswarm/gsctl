@@ -172,6 +172,11 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		os.Exit(1)
 	}
 
+	if len(nodePools) == 0 {
+		fmt.Println(color.YellowString("This cluster has no node pools"))
+		return
+	}
+
 	table := []string{}
 
 	headers := []string{
