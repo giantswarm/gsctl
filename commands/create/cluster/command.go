@@ -313,8 +313,6 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		}
 	}
 
-	// TODO: v5 success output
-
 	fmt.Println("\nAdd a key pair and settings for kubectl using")
 	fmt.Println("")
 	fmt.Printf("    %s", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s \n", result.ID)))
