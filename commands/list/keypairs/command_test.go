@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -161,6 +162,7 @@ func Test_ListKeyPairs_Nonempty(t *testing.T) {
 	}
 }
 
+// Test_ListKeyPairsOutput tests the output under various conditions.
 func Test_ListKeyPairsOutput(t *testing.T) {
 	jsonOutput := `[
   {
@@ -179,7 +181,6 @@ func Test_ListKeyPairsOutput(t *testing.T) {
 `
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Logf("%s %s", r.Method, r.URL)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(jsonOutput))
@@ -192,13 +193,27 @@ func Test_ListKeyPairsOutput(t *testing.T) {
 		expectedOutput string
 	}{
 		{
-			name:           "case 0: table output",
-			args:           []string{"-c=foo"},
-			expectedOutput: "CREATED                 EXPIRES                 ID          DESCRIPTION                                                      CN  O\n2017 Jan 23, 13:57 UTC  2017 Feb 22, 13:57 UTC  742dded26…  Added by user oliver.ponder@gmail.com using Happa web interface      \n2017 Mar 17, 12:41 UTC  2017 Apr 16, 12:41 UTC  52647dca7…  Added by user marian@sendung.de using 'gsctl create kubeconfig'      \n",
+			name: "case 0: table output",
+			args: []string{"-c=foo"},
+			expectedOutput: strings.Join([]string{
+				"CREATED                 EXPIRES                 ID          DESCRIPTION                                                      CN  O",
+				"2017 Jan 23, 13:57 UTC  2017 Feb 22, 13:57 UTC  742dded26…  Added by user oliver.ponder@gmail.com using Happa web interface      ",
+				"2017 Mar 17, 12:41 UTC  2017 Apr 16, 12:41 UTC  52647dca7…  Added by user marian@sendung.de using 'gsctl create kubeconfig'      ",
+				"",
+			}, "\n"),
 		},
-
 		{
-			name:           "case 1: json output",
+			name: "case 1: table output, untruncated",
+			args: []string{"-c=foo", "--full"},
+			expectedOutput: strings.Join([]string{
+				"CREATED                 EXPIRES                 ID                                        DESCRIPTION                                                      CN  O",
+				"2017 Jan 23, 13:57 UTC  2017 Feb 22, 13:57 UTC  742dded26b9f4da5e50deb6e9814026c7940f658  Added by user oliver.ponder@gmail.com using Happa web interface      ",
+				"2017 Mar 17, 12:41 UTC  2017 Apr 16, 12:41 UTC  52647dca753c7b46062fa0ce429a76c92b76aa9e  Added by user marian@sendung.de using 'gsctl create kubeconfig'      ",
+				"",
+			}, "\n"),
+		},
+		{
+			name:           "case 2: JSON output",
 			args:           []string{"-c=foo", "-o=json"},
 			expectedOutput: jsonOutput,
 		},
@@ -229,7 +244,7 @@ selected_endpoint: ` + mockServer.URL
 			})
 
 			if !cmp.Equal(output, tc.expectedOutput) {
-				t.Fatalf("\n\n%s\n", cmp.Diff(tc.expectedOutput, output))
+				t.Errorf("\n\n%s\n", cmp.Diff(tc.expectedOutput, output))
 			}
 		})
 	}
