@@ -2,6 +2,7 @@
 package keypairs
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -25,6 +26,12 @@ import (
 
 const (
 	listKeypairsActivityName = "list-keypairs"
+
+	outputFormatJSON  = "json"
+	outputFormatTable = "table"
+
+	outputJSONPrefix = ""
+	outputJSONIndent = "  "
 )
 
 var (
@@ -37,6 +44,8 @@ var (
 		PreRun: printValidation,
 		Run:    printResult,
 	}
+
+	cmdOutput string
 )
 
 // Arguments are the actual arguments used to call the
@@ -45,6 +54,7 @@ type Arguments struct {
 	apiEndpoint       string
 	clusterID         string
 	full              bool
+	outputFormat      string
 	token             string
 	userProvidedToken string
 	scheme            string
@@ -61,6 +71,7 @@ func collectArguments() Arguments {
 		apiEndpoint:       endpoint,
 		clusterID:         flags.ClusterID,
 		full:              flags.Full,
+		outputFormat:      cmdOutput,
 		token:             token,
 		userProvidedToken: flags.Token,
 		scheme:            scheme,
@@ -73,8 +84,15 @@ type listKeypairsResult struct {
 }
 
 func init() {
+	initFlags()
+}
+
+func initFlags() {
+	Command.ResetFlags()
+
 	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "ID of the cluster to list key pairs for")
 	Command.Flags().BoolVarP(&flags.Full, "full", "", false, "Enables output of full, untruncated values")
+	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output. Defaults to human-friendly table output.")
 
 	Command.MarkFlagRequired("cluster")
 }
@@ -100,6 +118,9 @@ func printValidation(cmd *cobra.Command, extraArgs []string) {
 func listKeypairsValidate(args *Arguments) error {
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(errors.NotLoggedInError)
+	}
+	if args.outputFormat != outputFormatJSON && args.outputFormat != outputFormatTable {
+		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is unknown", args.outputFormat))
 	}
 
 	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
@@ -149,45 +170,56 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 		os.Exit(1)
 	}
 
-	// success output
-	if len(result.keypairs) == 0 {
-		fmt.Println(color.YellowString("No key pairs available for this cluster."))
-		fmt.Println("You can create a new key pair using the 'gsctl create kubeconfig' or 'gsctl create keypair' command.")
+	if args.outputFormat == "json" {
+		outputBytes, err := json.MarshalIndent(result.keypairs, outputJSONPrefix, outputJSONIndent)
+		if err != nil {
+			fmt.Println(color.RedString("Error while encoding JSON"))
+			fmt.Printf("Details: %s", err.Error())
+			os.Exit(1)
+		}
+
+		fmt.Println(string(outputBytes))
 	} else {
-		output := []string{}
+		// success output
+		if len(result.keypairs) == 0 {
+			fmt.Println(color.YellowString("No key pairs available for this cluster."))
+			fmt.Println("You can create a new key pair using the 'gsctl create kubeconfig' or 'gsctl create keypair' command.")
+		} else {
+			output := []string{}
 
-		headers := []string{
-			color.CyanString("CREATED"),
-			color.CyanString("EXPIRES"),
-			color.CyanString("ID"),
-			color.CyanString("DESCRIPTION"),
-			color.CyanString("CN"),
-			color.CyanString("O"),
-		}
-		output = append(output, strings.Join(headers, "|"))
-
-		for _, keypair := range result.keypairs {
-			createdTime := util.ParseDate(keypair.CreateDate)
-			expiryTime := createdTime.Add(time.Duration(keypair.TTLHours) * time.Hour)
-			expiryDuration := expiryTime.Sub(time.Now())
-			expires := util.ShortDate(expiryTime)
-
-			if expiryDuration < (24 * time.Hour) {
-				expires = color.YellowString(expires)
+			headers := []string{
+				color.CyanString("CREATED"),
+				color.CyanString("EXPIRES"),
+				color.CyanString("ID"),
+				color.CyanString("DESCRIPTION"),
+				color.CyanString("CN"),
+				color.CyanString("O"),
 			}
+			output = append(output, strings.Join(headers, "|"))
 
-			// Idea: skip if expired, or only display when verbose
-			row := []string{
-				util.ShortDate(createdTime),
-				expires,
-				util.Truncate(formatting.CleanKeypairID(keypair.ID), 10, !args.full),
-				keypair.Description,
-				util.Truncate(keypair.CommonName, 24, !args.full),
-				keypair.CertificateOrganizations,
+			for _, keypair := range result.keypairs {
+				createdTime := util.ParseDate(keypair.CreateDate)
+				expiryTime := createdTime.Add(time.Duration(keypair.TTLHours) * time.Hour)
+				expiryDuration := expiryTime.Sub(time.Now())
+				expires := util.ShortDate(expiryTime)
+
+				if expiryDuration < (24 * time.Hour) {
+					expires = color.YellowString(expires)
+				}
+
+				// Idea: skip if expired, or only display when verbose
+				row := []string{
+					util.ShortDate(createdTime),
+					expires,
+					util.Truncate(formatting.CleanKeypairID(keypair.ID), 10, !args.full),
+					keypair.Description,
+					util.Truncate(keypair.CommonName, 24, !args.full),
+					keypair.CertificateOrganizations,
+				}
+				output = append(output, strings.Join(row, "|"))
 			}
-			output = append(output, strings.Join(row, "|"))
+			fmt.Println(columnize.SimpleFormat(output))
 		}
-		fmt.Println(columnize.SimpleFormat(output))
 	}
 }
 
