@@ -178,7 +178,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 			os.Exit(1)
 		}
 
-		fmt.Printf(string(outputBytes))
+		fmt.Println(string(outputBytes))
 	} else {
 		// success output
 		if len(result.keypairs) == 0 {
