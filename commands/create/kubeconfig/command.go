@@ -372,7 +372,7 @@ func getClusterDetails(clientWrapper *client.Wrapper, clusterID string, auxParam
 	}
 
 	if clienterror.IsNotFoundError(err) || clienterror.IsBadRequestError(err) {
-		// If v5 failed with a 404 Not Found error, we try v4.
+		// If v5 failed with a 404 Not Found or 400 Bad Request error, we try v4.
 		if verbose {
 			fmt.Println(color.WhiteString("Cluster not found via the v5 endpoint. Attempting v4 endpoint."))
 		}
