@@ -29,8 +29,9 @@ func Test_ListReleases_Empty(t *testing.T) {
 
 	// needed to prevent search for the default cluster
 	args := Arguments{
-		apiEndpoint: releasesMockServer.URL,
-		token:       "my-token",
+		apiEndpoint:  releasesMockServer.URL,
+		token:        "my-token",
+		outputFormat: "json",
 	}
 
 	err = listReleasesPreconditions(&args)
@@ -189,8 +190,9 @@ func Test_ListReleases_Nonempty(t *testing.T) {
 	defer releasesMockServer.Close()
 
 	args := Arguments{
-		apiEndpoint: releasesMockServer.URL,
-		token:       "my-token",
+		apiEndpoint:  releasesMockServer.URL,
+		token:        "my-token",
+		outputFormat: "table",
 	}
 
 	err = listReleasesPreconditions(&args)
