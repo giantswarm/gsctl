@@ -243,9 +243,9 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 				calicoVersion,
 			}, "|"))
 		}
-
-		fmt.Println(columnize.SimpleFormat(output))
 	}
+
+	fmt.Println(columnize.SimpleFormat(output))
 }
 
 // listReleases fetches releases and returns them as a structured result.
