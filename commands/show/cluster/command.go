@@ -555,7 +555,17 @@ func formatNodePoolDetails(nodePools *models.V5GetNodePoolsResponse) []string {
 		}
 	}
 
-	rows = append(rows, color.YellowString("Size:")+fmt.Sprintf("|%d nodes in %d node pools", numNodes, numNodePools))
+	nodesTerm := "nodes"
+	if numNodes == 1 {
+		nodesTerm = "node"
+	}
+
+	nodePoolsTerm := "node pools"
+	if numNodePools == 1 {
+		nodePoolsTerm = "node pool"
+	}
+
+	rows = append(rows, color.YellowString("Size:")+fmt.Sprintf("|%d %s in %d %s", numNodes, nodesTerm, numNodePools, nodePoolsTerm))
 	rows = append(rows, color.YellowString("CPUs in nodes:")+fmt.Sprintf("|%d", cpus))
 	rows = append(rows, color.YellowString("RAM in nodes (GB):")+fmt.Sprintf("|%d", ramGB))
 
