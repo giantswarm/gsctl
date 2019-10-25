@@ -238,10 +238,11 @@ func getClusterDetails(args Arguments) (
 
 	} else {
 		// If this is a 404 error, we assume the cluster is not a V5 one.
+		// If it is 400, it's likely "not supported on this provider". We swallow this in order to test for v4 next.
 		// If this is a "Malformed response" error, we assume the API is not capable of
 		// handling V5 yet. TODO: This can be phased out once the API is up-to-date.
 		// In both these case we continue below, otherwise we return the error.
-		if !errors.IsClusterNotFoundError(v5Err) && !clienterror.IsMalformedResponseError(v5Err) {
+		if !errors.IsClusterNotFoundError(v5Err) && !clienterror.IsMalformedResponseError(v5Err) && !clienterror.IsBadRequestError(v5Err) {
 			return nil, nil, nil, nil, nil, microerror.Mask(v5Err)
 		}
 
