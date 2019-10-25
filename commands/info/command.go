@@ -2,6 +2,7 @@ package info
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/fatih/color"
@@ -59,16 +60,17 @@ func collectArguments() Arguments {
 
 // infoResult is the struct used to return all the info we might want to print
 type infoResult struct {
-	apiEndpoint      string
-	apiEndpointAlias string
-	commitHash       string
-	email            string
-	token            string
-	version          string
-	buildDate        string
-	configFilePath   string
-	kubeConfigPaths  []string
-	infoResponse     *clientinfo.GetInfoOK
+	apiEndpoint          string
+	apiEndpointAlias     string
+	commitHash           string
+	email                string
+	token                string
+	version              string
+	buildDate            string
+	configFilePath       string
+	kubeConfigPaths      []string
+	infoResponse         *clientinfo.GetInfoOK
+	environmentVariables map[string]string
 }
 
 // validatePreconditions simply returns nil, as the command should work under
@@ -176,6 +178,17 @@ func printInfo(cmd *cobra.Command, args []string) {
 
 	fmt.Println(columnize.SimpleFormat(output))
 
+	if len(result.environmentVariables) > 0 {
+		envTable := []string{}
+
+		for k, v := range result.environmentVariables {
+			envTable = append(envTable, color.YellowString(k)+"|"+color.CyanString(v))
+		}
+
+		fmt.Printf("\nRelevant environment variables\n")
+		fmt.Println(columnize.SimpleFormat(envTable))
+	}
+
 	if err != nil {
 		fmt.Println()
 		fmt.Println(color.RedString("Some error occurred:"))
@@ -229,5 +242,31 @@ func info(args Arguments) (infoResult, error) {
 		result.infoResponse = response
 	}
 
+	result.environmentVariables = getEnvironmentVariables()
+
 	return result, nil
+}
+
+func getEnvironmentVariables() map[string]string {
+	// all environment variables relevant to gsctl
+	vars := []string{
+		"GSCTL_CAFILE",
+		"GSCTL_CAPATH",
+		"GSCTL_DISABLE_CMDLINE_TRACKING",
+		"GSCTL_DISABLE_COLORS",
+		"GSCTL_ENDPOINT",
+		"HTTP_PROXY",
+		"KUBECONFIG",
+	}
+
+	out := make(map[string]string)
+
+	for _, name := range vars {
+		val := os.Getenv(name)
+		if val != "" {
+			out[name] = val
+		}
+	}
+
+	return out
 }
