@@ -3,6 +3,7 @@ package update
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/commands/update/cluster"
 	"github.com/giantswarm/gsctl/commands/update/nodepool"
 	"github.com/giantswarm/gsctl/commands/update/organization"
 )
@@ -17,6 +18,7 @@ var (
 )
 
 func init() {
+	Command.AddCommand(cluster.Command)
 	Command.AddCommand(organization.Command)
 	Command.AddCommand(nodepool.Command)
 }
