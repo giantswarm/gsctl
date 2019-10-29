@@ -369,6 +369,17 @@ func IsCannotScaleBelowMinimumWorkersError(err error) bool {
 	return microerror.Cause(err) == CannotScaleBelowMinimumWorkersError
 }
 
+// CannotScaleClusterError means the user tries to scale a cluster that does not support
+// scaling, e. g. because it is a v5 cluster (node pools).
+var CannotScaleClusterError = &microerror.Error{
+	Kind: "CannotScaleClusterError",
+}
+
+// IsCannotScaleCluster asserts CannotScaleClusterError.
+func IsCannotScaleCluster(err error) bool {
+	return microerror.Cause(err) == CannotScaleClusterError
+}
+
 // IncompatibleSettingsError means user has mixed incompatible settings related to different providers.
 var IncompatibleSettingsError = &microerror.Error{
 	Kind: "IncompatibleSettingsError",
@@ -620,6 +631,16 @@ var WorkersMinMaxInvalidError = &microerror.Error{
 // IsWorkersMinMaxInvalid asserts WorkersMinMaxInvalidError.
 func IsWorkersMinMaxInvalid(err error) bool {
 	return microerror.Cause(err) == WorkersMinMaxInvalidError
+}
+
+// OutputFormatInvalidError is raised when the user specifies an unsupported output format.
+var OutputFormatInvalidError = &microerror.Error{
+	Kind: "OutputFormatInvalidError",
+}
+
+// IsOutputFormatInvalid asserts OutputFormatInvalidError.
+func IsOutputFormatInvalid(err error) bool {
+	return microerror.Cause(err) == OutputFormatInvalidError
 }
 
 // NoOpError is raised when the user calls a command without any meaningful

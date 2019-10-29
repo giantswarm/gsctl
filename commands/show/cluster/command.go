@@ -79,7 +79,7 @@ func collectArguments() Arguments {
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	args := collectArguments()
-	err := verifyShowClusterPreconditions(args, cmdLineArgs)
+	err := verifyPreconditions(args, cmdLineArgs)
 
 	if err == nil {
 		return
@@ -92,7 +92,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	os.Exit(1)
 }
 
-func verifyShowClusterPreconditions(args Arguments, cmdLineArgs []string) error {
+func verifyPreconditions(args Arguments, cmdLineArgs []string) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
@@ -238,10 +238,11 @@ func getClusterDetails(args Arguments) (
 
 	} else {
 		// If this is a 404 error, we assume the cluster is not a V5 one.
+		// If it is 400, it's likely "not supported on this provider". We swallow this in order to test for v4 next.
 		// If this is a "Malformed response" error, we assume the API is not capable of
 		// handling V5 yet. TODO: This can be phased out once the API is up-to-date.
 		// In both these case we continue below, otherwise we return the error.
-		if !errors.IsClusterNotFoundError(v5Err) && !clienterror.IsMalformedResponseError(v5Err) {
+		if !errors.IsClusterNotFoundError(v5Err) && !clienterror.IsMalformedResponseError(v5Err) && !clienterror.IsBadRequestError(v5Err) {
 			return nil, nil, nil, nil, nil, microerror.Mask(v5Err)
 		}
 
@@ -555,7 +556,17 @@ func formatNodePoolDetails(nodePools *models.V5GetNodePoolsResponse) []string {
 		}
 	}
 
-	rows = append(rows, color.YellowString("Size:")+fmt.Sprintf("|%d nodes in %d node pools", numNodes, numNodePools))
+	nodesTerm := "nodes"
+	if numNodes == 1 {
+		nodesTerm = "node"
+	}
+
+	nodePoolsTerm := "node pools"
+	if numNodePools == 1 {
+		nodePoolsTerm = "node pool"
+	}
+
+	rows = append(rows, color.YellowString("Size:")+fmt.Sprintf("|%d %s in %d %s", numNodes, nodesTerm, numNodePools, nodePoolsTerm))
 	rows = append(rows, color.YellowString("CPUs in nodes:")+fmt.Sprintf("|%d", cpus))
 	rows = append(rows, color.YellowString("RAM in nodes (GB):")+fmt.Sprintf("|%d", ramGB))
 

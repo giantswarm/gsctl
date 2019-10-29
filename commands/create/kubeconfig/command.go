@@ -371,8 +371,8 @@ func getClusterDetails(clientWrapper *client.Wrapper, clusterID string, auxParam
 		return clusterDetailsResponseV5.Payload.APIEndpoint, nil
 	}
 
-	if clienterror.IsNotFoundError(err) {
-		// If v5 failed with a 404 Not Found error, we try v4.
+	if clienterror.IsNotFoundError(err) || clienterror.IsBadRequestError(err) {
+		// If v5 failed with a 404 Not Found or 400 Bad Request error, we try v4.
 		if verbose {
 			fmt.Println(color.WhiteString("Cluster not found via the v5 endpoint. Attempting v4 endpoint."))
 		}
@@ -398,7 +398,7 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 
 	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
-		return result, microerror.Mask(err)
+		return createKubeconfigResult{}, microerror.Mask(err)
 	}
 
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
@@ -406,7 +406,7 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 
 	result.apiEndpoint, err = getClusterDetails(clientWrapper, args.clusterID, auxParams, args.verbose)
 	if err != nil {
-		return result, microerror.Mask(err)
+		return createKubeconfigResult{}, microerror.Mask(err)
 	}
 
 	// Set internal API endpoint if requested.

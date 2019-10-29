@@ -2,6 +2,7 @@
 package releases
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -24,6 +25,12 @@ import (
 
 const (
 	listReleasesActivityName = "list-releases"
+
+	outputFormatJSON  = "json"
+	outputFormatTable = "table"
+
+	outputJSONPrefix = ""
+	outputJSONIndent = "  "
 )
 
 var (
@@ -37,14 +44,27 @@ A release is a software bundle that constitutes a cluster. It is identified by i
 		PreRun: printValidation,
 		Run:    printResult,
 	}
+
+	cmdOutput string
 )
+
+func init() {
+	initFlags()
+}
+
+func initFlags() {
+	Command.ResetFlags()
+
+	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output.")
+}
 
 // Arguments are the actual arguments used to call the
 // listReleases() function.
 type Arguments struct {
 	apiEndpoint       string
-	token             string
+	outputFormat      string
 	scheme            string
+	token             string
 	userProvidedToken string
 }
 
@@ -57,6 +77,7 @@ func collectArguments() Arguments {
 
 	return Arguments{
 		apiEndpoint:       endpoint,
+		outputFormat:      cmdOutput,
 		token:             token,
 		scheme:            scheme,
 		userProvidedToken: flags.Token,
@@ -85,6 +106,9 @@ func listReleasesPreconditions(args *Arguments) error {
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
+	if args.outputFormat != outputFormatJSON && args.outputFormat != outputFormatTable {
+		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is unknown", args.outputFormat))
+	}
 
 	return nil
 }
@@ -110,10 +134,23 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 		os.Exit(1)
 	}
 
+	if args.outputFormat == "json" {
+		outputBytes, err := json.MarshalIndent(releases, outputJSONPrefix, outputJSONIndent)
+		if err != nil {
+			fmt.Println(color.RedString("Error while encoding JSON"))
+			fmt.Printf("Details: %s", err.Error())
+			os.Exit(1)
+		}
+
+		fmt.Println(string(outputBytes))
+		return
+	}
+
 	// success
 	if len(releases) == 0 {
 		fmt.Println(color.RedString("No releases available."))
 		fmt.Println("We cannot find any releases. Please contact the Giant Swarm support team to find out if there is a problem to be solved.")
+		return
 	}
 
 	// table headers
