@@ -12,7 +12,7 @@ var (
 	// Command is the command to modify resources
 	Command = &cobra.Command{
 		Use:   "update",
-		Short: "Modify node pool or organization details",
+		Short: "Modify cluster, node pool, or organization details",
 		Long:  `Modify details of a node pool or an organization`,
 	}
 )
