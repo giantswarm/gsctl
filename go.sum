@@ -43,8 +43,12 @@ github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatibl
 github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatible/go.mod h1:V/9Aa/R3o321yAbarEACmGhTg0SiPge6nFDtIH7CTvE=
 github.com/giantswarm/gscliauth v0.0.0-20190725094024-6a88de70cd85 h1:LYeRTofeQacoK7jz0esmnbCXsVAIXUUAogzJK9ZlDEo=
 github.com/giantswarm/gscliauth v0.0.0-20190725094024-6a88de70cd85/go.mod h1:qYjj5CylbM318aJhK1qc912yMTp9fUk0na2IaIQU7xc=
+github.com/giantswarm/gsclientgen v0.0.0-20191029094646-c110dc909ccf h1:mLmI6tP5PBXvLmKintUtONwoIQTurq+quVPulQnhfEw=
+github.com/giantswarm/gsclientgen v0.0.0-20191029094646-c110dc909ccf/go.mod h1:w3fPQmyNcZPB0I/eULLADOfkk0VTSn8Pijvj7JacnNQ=
 github.com/giantswarm/gsclientgen v2.0.0+incompatible h1:0CUCnDltK1e3lVymzpkg4TaxAaFxPKvO+HUkR4DXp3U=
 github.com/giantswarm/gsclientgen v2.0.0+incompatible/go.mod h1:w3fPQmyNcZPB0I/eULLADOfkk0VTSn8Pijvj7JacnNQ=
+github.com/giantswarm/gsclientgen v2.0.1-0.20191029094646-c110dc909ccf+incompatible h1:0iSsMuu4P1oh5aiIrtzoXsxYOQQlejo/vFhiKrm+yQ8=
+github.com/giantswarm/gsclientgen v2.0.1-0.20191029094646-c110dc909ccf+incompatible/go.mod h1:w3fPQmyNcZPB0I/eULLADOfkk0VTSn8Pijvj7JacnNQ=
 github.com/giantswarm/kubeconfig v0.0.0-20190403073151-2c7a472873b0 h1:X/NIxCdhA6tpBI9DynV1YMB2dFIY6R6ZKdj0vHUEy1s=
 github.com/giantswarm/kubeconfig v0.0.0-20190403073151-2c7a472873b0/go.mod h1:XJHVL/1hBzfAPkCtwTNg/1NTS6AFbj5h2HzUCi01Ox4=
 github.com/giantswarm/microerror v0.0.0-20191011121515-e0ebc4ecf5a5 h1:ZjMQRWyxNkGlFP8yOf+G86XH7DugnigsBpzie1R/nxM=

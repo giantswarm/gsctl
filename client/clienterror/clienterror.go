@@ -15,7 +15,7 @@ import (
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/client/info"
 	"github.com/giantswarm/gsclientgen/client/key_pairs"
-	"github.com/giantswarm/gsclientgen/client/nodepools"
+	"github.com/giantswarm/gsclientgen/client/node_pools"
 	"github.com/giantswarm/gsclientgen/client/organizations"
 	"github.com/giantswarm/gsclientgen/client/releases"
 )
@@ -259,7 +259,7 @@ func New(err error) *APIError {
 	}
 
 	// create node pool
-	if addNodePoolUnauthorizedErr, ok := err.(*nodepools.AddNodePoolUnauthorized); ok {
+	if addNodePoolUnauthorizedErr, ok := err.(*node_pools.AddNodePoolUnauthorized); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
 			OriginalError:  addNodePoolUnauthorizedErr,
@@ -267,7 +267,7 @@ func New(err error) *APIError {
 			ErrorDetails:   "You don't have permission to add a node pool to this cluster.",
 		}
 	}
-	if addNodePoolBadRequestErr, ok := err.(*nodepools.AddNodePoolBadRequest); ok {
+	if addNodePoolBadRequestErr, ok := err.(*node_pools.AddNodePoolBadRequest); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusBadRequest,
 			OriginalError:  addNodePoolBadRequestErr,
@@ -275,7 +275,7 @@ func New(err error) *APIError {
 			ErrorDetails:   addNodePoolBadRequestErr.Payload.Message,
 		}
 	}
-	if addNodePoolNotFoundErr, ok := err.(*nodepools.AddNodePoolNotFound); ok {
+	if addNodePoolNotFoundErr, ok := err.(*node_pools.AddNodePoolNotFound); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusNotFound,
 			OriginalError:  addNodePoolNotFoundErr,
@@ -283,7 +283,7 @@ func New(err error) *APIError {
 			ErrorDetails:   "The cluster could not be found.",
 		}
 	}
-	if addNodePoolDefaultErr, ok := err.(*nodepools.AddNodePoolDefault); ok {
+	if addNodePoolDefaultErr, ok := err.(*node_pools.AddNodePoolDefault); ok {
 		return &APIError{
 			HTTPStatusCode: addNodePoolDefaultErr.Code(),
 			OriginalError:  addNodePoolDefaultErr,
@@ -292,7 +292,7 @@ func New(err error) *APIError {
 	}
 
 	// get node pool
-	if getNodePoolUnauthorizedErr, ok := err.(*nodepools.GetNodePoolUnauthorized); ok {
+	if getNodePoolUnauthorizedErr, ok := err.(*node_pools.GetNodePoolUnauthorized); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
 			OriginalError:  getNodePoolUnauthorizedErr,
@@ -300,7 +300,7 @@ func New(err error) *APIError {
 			ErrorDetails:   "You don't have permission to access this node pool.",
 		}
 	}
-	if getNodePoolNotFoundErr, ok := err.(*nodepools.GetNodePoolNotFound); ok {
+	if getNodePoolNotFoundErr, ok := err.(*node_pools.GetNodePoolNotFound); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusNotFound,
 			OriginalError:  getNodePoolNotFoundErr,
@@ -310,7 +310,7 @@ func New(err error) *APIError {
 	}
 
 	// get node pools
-	if getNodePoolsUnauthorizedErr, ok := err.(*nodepools.GetNodePoolsUnauthorized); ok {
+	if getNodePoolsUnauthorizedErr, ok := err.(*node_pools.GetNodePoolsUnauthorized); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
 			OriginalError:  getNodePoolsUnauthorizedErr,
@@ -318,7 +318,7 @@ func New(err error) *APIError {
 			ErrorDetails:   "You don't have permission to access this cluster's node pools.",
 		}
 	}
-	if getNodePoolsNotFoundErr, ok := err.(*nodepools.GetNodePoolsNotFound); ok {
+	if getNodePoolsNotFoundErr, ok := err.(*node_pools.GetNodePoolsNotFound); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusNotFound,
 			OriginalError:  getNodePoolsNotFoundErr,
@@ -326,7 +326,7 @@ func New(err error) *APIError {
 			ErrorDetails:   "The cluster was not found or you don't have access to it.",
 		}
 	}
-	if getNodePoolsDefaultErr, ok := err.(*nodepools.GetNodePoolsDefault); ok {
+	if getNodePoolsDefaultErr, ok := err.(*node_pools.GetNodePoolsDefault); ok {
 		return &APIError{
 			HTTPStatusCode: getNodePoolsDefaultErr.Code(),
 			OriginalError:  getNodePoolsDefaultErr,
@@ -335,7 +335,7 @@ func New(err error) *APIError {
 	}
 
 	// modify node pool
-	if modifyNodePoolsUnauthorizedErr, ok := err.(*nodepools.ModifyNodePoolUnauthorized); ok {
+	if modifyNodePoolsUnauthorizedErr, ok := err.(*node_pools.ModifyNodePoolUnauthorized); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
 			OriginalError:  modifyNodePoolsUnauthorizedErr,
@@ -343,7 +343,7 @@ func New(err error) *APIError {
 			ErrorDetails:   "You don't have permission to modify this node pool.",
 		}
 	}
-	if modifyNodePoolsNotFoundErr, ok := err.(*nodepools.ModifyNodePoolNotFound); ok {
+	if modifyNodePoolsNotFoundErr, ok := err.(*node_pools.ModifyNodePoolNotFound); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusNotFound,
 			OriginalError:  modifyNodePoolsNotFoundErr,
@@ -351,7 +351,7 @@ func New(err error) *APIError {
 			ErrorDetails:   "The cluster or node pool was not found or you don't have access to it.",
 		}
 	}
-	if modifyNodePoolsDefaultErr, ok := err.(*nodepools.ModifyNodePoolDefault); ok {
+	if modifyNodePoolsDefaultErr, ok := err.(*node_pools.ModifyNodePoolDefault); ok {
 		return &APIError{
 			HTTPStatusCode: modifyNodePoolsDefaultErr.Code(),
 			OriginalError:  modifyNodePoolsDefaultErr,
@@ -360,7 +360,7 @@ func New(err error) *APIError {
 	}
 
 	// delete node pool
-	if deleteNodePoolsUnauthorizedErr, ok := err.(*nodepools.DeleteNodePoolUnauthorized); ok {
+	if deleteNodePoolsUnauthorizedErr, ok := err.(*node_pools.DeleteNodePoolUnauthorized); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
 			OriginalError:  deleteNodePoolsUnauthorizedErr,
@@ -368,7 +368,7 @@ func New(err error) *APIError {
 			ErrorDetails:   "You don't have permission to delete this node pool.",
 		}
 	}
-	if deleteNodePoolsNotFoundErr, ok := err.(*nodepools.DeleteNodePoolNotFound); ok {
+	if deleteNodePoolsNotFoundErr, ok := err.(*node_pools.DeleteNodePoolNotFound); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusNotFound,
 			OriginalError:  deleteNodePoolsNotFoundErr,
@@ -376,7 +376,7 @@ func New(err error) *APIError {
 			ErrorDetails:   "The cluster or node pool was not found or you don't have access to it.",
 		}
 	}
-	if deleteNodePoolsDefaultErr, ok := err.(*nodepools.DeleteNodePoolDefault); ok {
+	if deleteNodePoolsDefaultErr, ok := err.(*node_pools.DeleteNodePoolDefault); ok {
 		return &APIError{
 			HTTPStatusCode: deleteNodePoolsDefaultErr.Code(),
 			OriginalError:  deleteNodePoolsDefaultErr,

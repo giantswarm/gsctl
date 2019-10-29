@@ -19,7 +19,7 @@ import (
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/client/info"
 	"github.com/giantswarm/gsclientgen/client/key_pairs"
-	"github.com/giantswarm/gsclientgen/client/nodepools"
+	"github.com/giantswarm/gsclientgen/client/node_pools"
 	"github.com/giantswarm/gsclientgen/client/organizations"
 	"github.com/giantswarm/gsclientgen/client/releases"
 	"github.com/giantswarm/gsclientgen/models"
@@ -423,8 +423,8 @@ func (w *Wrapper) GetClusterV5(clusterID string, p *AuxiliaryParams) (*clusters.
 }
 
 // CreateNodePool creates a node pool.
-func (w *Wrapper) CreateNodePool(clusterID string, addNodePoolRequest *models.V5AddNodePoolRequest, p *AuxiliaryParams) (*nodepools.AddNodePoolCreated, error) {
-	params := nodepools.NewAddNodePoolParams().WithBody(addNodePoolRequest).WithClusterID(clusterID)
+func (w *Wrapper) CreateNodePool(clusterID string, addNodePoolRequest *models.V5AddNodePoolRequest, p *AuxiliaryParams) (*node_pools.AddNodePoolCreated, error) {
+	params := node_pools.NewAddNodePoolParams().WithBody(addNodePoolRequest).WithClusterID(clusterID)
 	setParams(p, w, params)
 
 	authWriter, err := getAuthorization(w)
@@ -432,7 +432,7 @@ func (w *Wrapper) CreateNodePool(clusterID string, addNodePoolRequest *models.V5
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Nodepools.AddNodePool(params, authWriter)
+	response, err := w.gsclient.NodePools.AddNodePool(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -441,8 +441,8 @@ func (w *Wrapper) CreateNodePool(clusterID string, addNodePoolRequest *models.V5
 }
 
 // GetNodePool fetches a node pool.
-func (w *Wrapper) GetNodePool(clusterID, nodePoolID string, p *AuxiliaryParams) (*nodepools.GetNodePoolOK, error) {
-	params := nodepools.NewGetNodePoolParams().WithClusterID(clusterID).WithNodepoolID(nodePoolID)
+func (w *Wrapper) GetNodePool(clusterID, nodePoolID string, p *AuxiliaryParams) (*node_pools.GetNodePoolOK, error) {
+	params := node_pools.NewGetNodePoolParams().WithClusterID(clusterID).WithNodepoolID(nodePoolID)
 	setParams(p, w, params)
 
 	authWriter, err := getAuthorization(w)
@@ -450,7 +450,7 @@ func (w *Wrapper) GetNodePool(clusterID, nodePoolID string, p *AuxiliaryParams) 
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Nodepools.GetNodePool(params, authWriter)
+	response, err := w.gsclient.NodePools.GetNodePool(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -459,8 +459,8 @@ func (w *Wrapper) GetNodePool(clusterID, nodePoolID string, p *AuxiliaryParams) 
 }
 
 // GetNodePools fetches a list of node pools.
-func (w *Wrapper) GetNodePools(clusterID string, p *AuxiliaryParams) (*nodepools.GetNodePoolsOK, error) {
-	params := nodepools.NewGetNodePoolsParams().WithClusterID(clusterID)
+func (w *Wrapper) GetNodePools(clusterID string, p *AuxiliaryParams) (*node_pools.GetNodePoolsOK, error) {
+	params := node_pools.NewGetNodePoolsParams().WithClusterID(clusterID)
 	setParams(p, w, params)
 
 	authWriter, err := getAuthorization(w)
@@ -468,7 +468,7 @@ func (w *Wrapper) GetNodePools(clusterID string, p *AuxiliaryParams) (*nodepools
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Nodepools.GetNodePools(params, authWriter)
+	response, err := w.gsclient.NodePools.GetNodePools(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -477,8 +477,8 @@ func (w *Wrapper) GetNodePools(clusterID string, p *AuxiliaryParams) (*nodepools
 }
 
 // ModifyNodePool modifies a node pool.
-func (w *Wrapper) ModifyNodePool(clusterID, nodePoolID string, modifyNodePoolRequest *models.V5ModifyNodePoolRequest, p *AuxiliaryParams) (*nodepools.ModifyNodePoolOK, error) {
-	params := nodepools.NewModifyNodePoolParams().WithClusterID(clusterID).WithNodepoolID(nodePoolID).WithBody(modifyNodePoolRequest)
+func (w *Wrapper) ModifyNodePool(clusterID, nodePoolID string, modifyNodePoolRequest *models.V5ModifyNodePoolRequest, p *AuxiliaryParams) (*node_pools.ModifyNodePoolOK, error) {
+	params := node_pools.NewModifyNodePoolParams().WithClusterID(clusterID).WithNodepoolID(nodePoolID).WithBody(modifyNodePoolRequest)
 	setParams(p, w, params)
 
 	authWriter, err := getAuthorization(w)
@@ -486,7 +486,7 @@ func (w *Wrapper) ModifyNodePool(clusterID, nodePoolID string, modifyNodePoolReq
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Nodepools.ModifyNodePool(params, authWriter)
+	response, err := w.gsclient.NodePools.ModifyNodePool(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -495,8 +495,8 @@ func (w *Wrapper) ModifyNodePool(clusterID, nodePoolID string, modifyNodePoolReq
 }
 
 // DeleteNodePool deletes a node pool.
-func (w *Wrapper) DeleteNodePool(clusterID, nodePoolID string, p *AuxiliaryParams) (*nodepools.DeleteNodePoolAccepted, error) {
-	params := nodepools.NewDeleteNodePoolParams().WithClusterID(clusterID).WithNodepoolID(nodePoolID)
+func (w *Wrapper) DeleteNodePool(clusterID, nodePoolID string, p *AuxiliaryParams) (*node_pools.DeleteNodePoolAccepted, error) {
+	params := node_pools.NewDeleteNodePoolParams().WithClusterID(clusterID).WithNodepoolID(nodePoolID)
 	setParams(p, w, params)
 
 	authWriter, err := getAuthorization(w)
@@ -504,7 +504,7 @@ func (w *Wrapper) DeleteNodePool(clusterID, nodePoolID string, p *AuxiliaryParam
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Nodepools.DeleteNodePool(params, authWriter)
+	response, err := w.gsclient.NodePools.DeleteNodePool(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
