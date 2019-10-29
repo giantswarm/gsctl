@@ -350,6 +350,24 @@ func (w *Wrapper) ModifyCluster(clusterID string, body *models.V4ModifyClusterRe
 	return response, nil
 }
 
+// ModifyClusterV5 modifies a V5 cluster.
+func (w *Wrapper) ModifyClusterV5(clusterID string, body *models.V5ModifyClusterRequest, p *AuxiliaryParams) (*clusters.ModifyClusterV5OK, error) {
+	params := clusters.NewModifyClusterV5Params().WithClusterID(clusterID).WithBody(body)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Clusters.ModifyClusterV5(params, authWriter)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
 // DeleteCluster deletes a cluster using the gsclientgen client.
 func (w *Wrapper) DeleteCluster(clusterID string, p *AuxiliaryParams) (*clusters.DeleteClusterAccepted, error) {
 	params := clusters.NewDeleteClusterParams().WithClusterID(clusterID)

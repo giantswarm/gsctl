@@ -156,6 +156,45 @@ func New(err error) *APIError {
 			ErrorDetails:   "You don't have permission to modify this cluster.",
 		}
 	}
+	if modifyClusterFailedErr, ok := err.(*clusters.ModifyClusterV5Default); ok {
+		ae := &APIError{
+			HTTPStatusCode: modifyClusterFailedErr.Code(),
+			OriginalError:  modifyClusterFailedErr,
+			ErrorMessage:   modifyClusterFailedErr.Error(),
+		}
+
+		if ae.HTTPStatusCode == http.StatusInternalServerError {
+			ae.ErrorMessage = "Internal error"
+			ae.ErrorDetails = "The cluster cannot be modified. Please try scaling using the web UI, or contact the support team.\n"
+			ae.ErrorDetails += "Details: " + modifyClusterFailedErr.Payload.Message
+		}
+
+		if modifyClusterFailedErr.Payload.Code == "INVALID_INPUT" {
+			ae.ErrorMessage = "Invalid parameters"
+			ae.ErrorDetails = "The cluster could not be updated."
+		} else if modifyClusterFailedErr.Payload.Code == "NOT_SUPPORTED" {
+			ae.ErrorMessage = "Not supported"
+			ae.ErrorDetails = "This function is not supported on this installation."
+		}
+
+		return ae
+	}
+	if modifyClusterFailedErr, ok := err.(*clusters.ModifyClusterV5NotFound); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusNotFound,
+			OriginalError:  modifyClusterFailedErr,
+			ErrorMessage:   "Cluster not found",
+			ErrorDetails:   "The cluster to be modified could not be found.",
+		}
+	}
+	if modifyClusterFailedErr, ok := err.(*clusters.ModifyClusterV5Unauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  modifyClusterFailedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to modify this cluster.",
+		}
+	}
 
 	// delete cluster
 	if deleteClusterUnauthorizedErr, ok := err.(*clusters.DeleteClusterUnauthorized); ok {
