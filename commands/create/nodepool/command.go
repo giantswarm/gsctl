@@ -44,12 +44,11 @@ When creating a node pool, all arguments (except for the cluster ID) are
 optional. Where an argument is not given, a default will be applied as
 follows:
 
-- Name: will be "Unnamed node pool <n>".
+- Name: will be "Unnamed node pool".
 - Availability zones: the node pool will use 1 zone selected randomly.
 - Instance type: the default instance type of the installation will be
   used. Check 'gsctl info' to find out what that is.
-- Scaling settings: the minimum and maximum size will be set to 3,
-  meaning that autoscaling is disabled.
+- Scaling settings: the minimum will be 3 and maximum 10 nodes.
 
 Examples:
 
