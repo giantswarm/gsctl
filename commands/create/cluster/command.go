@@ -1,14 +1,29 @@
-// Package cluster defines the 'create cluster' command.
+/*
+Package cluster defines the 'create cluster' command.
+
+The command deals with a few delicacies/spiecialties:
+
+- Cluster spec details, e. g. which instance type to use for workers, can
+  be specified by the user, but don't have to. The backend will
+  fill in missing details using defaulting.
+
+- Cluster spec details can be provided either using command line flags
+  or by passing a YAML definition. When passing a YAML definition, some
+  attributes from that definition can even be overridden using flags.
+
+- On AWS, starting from a certain release version, clusters will have
+  node pools and will be created using the v5 API endpoint. On other providers
+  as well as on AWS for older releases, the v4 API endpoint has to be used.
+
+*/
 package cluster
 
 import (
-	"bufio"
-	"encoding/json"
 	"fmt"
-	"log"
 	"os"
-	"strings"
+	"sort"
 
+	"github.com/Masterminds/semver"
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
@@ -16,76 +31,65 @@ import (
 	"github.com/juju/errgo"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	yaml "gopkg.in/yaml.v2"
 
+	"github.com/giantswarm/gsctl/capabilities"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
 	"github.com/giantswarm/gsctl/flags"
-	"github.com/giantswarm/gsctl/limits"
 )
 
 // Arguments contains all possible input parameter needed
 // (and optionally available) for creating a cluster.
 type Arguments struct {
-	APIEndpoint              string
-	AuthToken                string
-	AvailabilityZones        int
-	ClusterName              string
-	DryRun                   bool
-	FileSystem               afero.Fs
-	InputYAMLFile            string
-	NumWorkers               int
-	Owner                    string
-	ReleaseVersion           string
-	Scheme                   string
-	UserProvidedToken        string
-	Verbose                  bool
-	WorkerAwsEc2InstanceType string
-	WorkerAzureVMSize        string
-	WorkerMemorySizeGB       float32
-	WorkerNumCPUs            int
-	WorkersMax               int64
-	WorkersMin               int64
-	WorkerStorageSizeGB      float32
+	APIEndpoint           string
+	AuthToken             string
+	CreateDefaultNodePool bool
+	ClusterName           string
+	FileSystem            afero.Fs
+	InputYAMLFile         string
+	Owner                 string
+	ReleaseVersion        string
+	Scheme                string
+	UserProvidedToken     string
+	Verbose               bool
 }
 
+// collectArguments gets arguments from flags and returns an Arguments object.
 func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
 	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	return Arguments{
-		APIEndpoint:              endpoint,
-		AuthToken:                token,
-		AvailabilityZones:        cmdAvailabilityZones,
-		ClusterName:              cmdClusterName,
-		DryRun:                   cmdDryRun,
-		FileSystem:               config.FileSystem,
-		InputYAMLFile:            cmdInputYAMLFile,
-		NumWorkers:               flags.NumWorkers,
-		Owner:                    cmdOwner,
-		ReleaseVersion:           flags.Release,
-		Scheme:                   scheme,
-		UserProvidedToken:        flags.Token,
-		Verbose:                  flags.Verbose,
-		WorkerAwsEc2InstanceType: flags.WorkerAwsEc2InstanceType,
-		WorkerAzureVMSize:        cmdWorkerAzureVMSize,
-		WorkerMemorySizeGB:       flags.WorkerMemorySizeGB,
-		WorkerNumCPUs:            flags.WorkerNumCPUs,
-		WorkersMax:               flags.WorkersMax,
-		WorkersMin:               flags.WorkersMin,
-		WorkerStorageSizeGB:      flags.WorkerStorageSizeGB,
+		APIEndpoint:           endpoint,
+		AuthToken:             token,
+		ClusterName:           flags.ClusterName,
+		CreateDefaultNodePool: flags.CreateDefaultNodePool,
+		FileSystem:            config.FileSystem,
+		InputYAMLFile:         flags.InputYAMLFile,
+		Owner:                 flags.Owner,
+		ReleaseVersion:        flags.Release,
+		Scheme:                scheme,
+		UserProvidedToken:     flags.Token,
+		Verbose:               flags.Verbose,
 	}
 }
 
+// creationResult is the struct to gather all our API call results.
 type creationResult struct {
 	// cluster ID
-	id string
+	ID string
 	// location to fetch details on new cluster from
-	location string
-	// cluster definition assembled
-	definition *types.ClusterDefinition
+	Location string
+	// cluster definition assembled, v4 compatible
+	DefinitionV4 *types.ClusterDefinitionV4
+	DefinitionV5 *types.ClusterDefinitionV5
+
+	// HasErrors should be true if we saw some non-critical errors.
+	// This is only relevant in v5 and should only be used if a node
+	// pool could not be created successfully.
+	HasErrors bool
 }
 
 const (
@@ -99,59 +103,78 @@ var (
 		Short: "Create cluster",
 		Long: `Creates a new Kubernetes cluster.
 
-For simple specification of a set of equal worker nodes, command line flags can
-be used.
+You can specify a few cluster attributes like name, owner and release version
+using command line flags. Additional attributes regarding the worker node
+specification can be added using a YAML definition file.
 
-Alternatively, the --file|-f flag allows to pass a detailed definition YAML file
-that can contain specs for each individual worker node, like number of CPUs,
-memory size, local storage size, and node labels.
+For details about the cluster definition YAML format, see
 
-When using a definition file, some command line flags like --name|-n and
---owner|-o can be used to extend the definition given as a file. Command line
-flags take precedence.
+  https://docs.giantswarm.io/reference/cluster-definition/
+
+Note that you can also command line flags override settings from the YAML
+definition.
+
+Defaults
+--------
+
+All parameters you don't set explicitly will be set using defaults. You can
+get some information on these defaults using the 'gsctl info' command, as they
+might be specific for the installation you are working with. Here are some
+general defaults:
+
+- Release: the latest release is used.
+- Workers
+  - On AWS and when using the latest release, the cluster will be created
+    without any node pools. You may define node pools in your cluster
+    definition YAML or add node pools one by one using 'gsctl create nodepool'.
+  - On AWS with releases prior to node pools, and with Azure and KVM, the
+    cluster will have three worker nodes by default, using pretty much the
+	minimal spec for a working cluster.
+  - Autoscaling will be inactive initially, as the minimum and maximum of the
+    scaling range  will be set to 3.
+  - All worker nodes will be in the same availability zone.
+  - The cluster will have a generic name.
 
 Examples:
 
-  gsctl create cluster --file my-cluster.yaml
+  gsctl create cluster --owner acme
 
-  gsctl create cluster \
-    -o myorg -n "My KVM Cluster" \
-    --num-workers 5 --num-cpus 2
+  gsctl create cluster --owner acme --name "Production Cluster"
 
-  gsctl create cluster \
-    -o myorg -n "My AWS Autoscaling Cluster" \
-    --workers-min 3 --workers-max 6 \
-    --aws-instance-type m3.xlarge
+  gsctl create cluster --file ./cluster.yaml
 
-  gsctl create cluster \
-    -o myorg -n "My Azure Cluster" \
-    --num-workers 5 \
-    --azure-vm-size Standard_D2s_v3
-
-  gsctl create cluster \
-    -o myorg -n "Cluster using specific version" \
-    --release 1.2.3
-
-  gsctl create cluster \
-    -o myorg --num-workers 3 \
-	--dry-run --verbose
+  gsctl create cluster --file ./staging-cluster.yaml \
+    --owner acme --name Staging
 
   cat my-cluster.yaml | gsctl create cluster -f -
+
+With Bash and other compatible shells, the syntax shown below can be used to
+create a YAML defininition and pass it to the command in one go, without the 
+need for a file:
+
+gsctl create cluster -f - <<EOF
+owner: acme
+name: Test cluster using two AZs
+release: 8.2.0
+availability_zones: 2
+EOF
+
+For v5 clusters (those with node pool support) gsctl automatically creates a
+node pool using default settings, if you don't specify your own node pools.
+You can suppress the creation of the default node pool by setting the
+flag --create-default-nodepool to false. Example:
+
+  gsctl create cluster \
+    --owner acme \
+    --name "Empty cluster" \
+    --create-default-nodepool=false
 `,
 		PreRun: printValidation,
 		Run:    printResult,
 	}
-	cmdAvailabilityZones int
-	// path to the input file used optionally as cluster definition
-	cmdInputYAMLFile string
-	// cluster name set via flag on execution
-	cmdClusterName string
-	// owner organization of the cluster as set via flag on execution
-	cmdOwner string
-	// Azure VmSize to use, provided as a command line flag
-	cmdWorkerAzureVMSize string
-	// dry run command line flag
-	cmdDryRun bool
+
+	// the client wrapper we will use in this command.
+	clientWrapper *client.Wrapper
 )
 
 func init() {
@@ -161,32 +184,23 @@ func init() {
 func initFlags() {
 	Command.ResetFlags()
 
-	Command.Flags().IntVarP(&cmdAvailabilityZones, "availability-zones", "", 0, "Number of availability zones to use on AWS. Default is 1.")
-	Command.Flags().StringVarP(&cmdInputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file. Use '-' to read from STDIN.")
-	Command.Flags().StringVarP(&cmdClusterName, "name", "n", "", "Cluster name")
-	Command.Flags().StringVarP(&cmdOwner, "owner", "o", "", "Organization to own the cluster")
+	Command.Flags().StringVarP(&flags.InputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file. Use '-' to read from STDIN.")
+	Command.Flags().StringVarP(&flags.ClusterName, "name", "n", "", "Cluster name")
+	Command.Flags().StringVarP(&flags.Owner, "owner", "o", "", "Organization to own the cluster")
 	Command.Flags().StringVarP(&flags.Release, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
-	Command.Flags().IntVarP(&flags.NumWorkers, "num-workers", "", 0, "Shorthand to set --workers-min and --workers-max to the same value. Can't be used with -f|--file.")
-	Command.Flags().Int64VarP(&flags.WorkersMin, "workers-min", "", 0, "Minimum number of worker nodes. Can't be used with -f|--file.")
-	Command.Flags().Int64VarP(&flags.WorkersMax, "workers-max", "", 0, "Maximum number of worker nodes. Can't be used with -f|--file.")
-	Command.Flags().StringVarP(&flags.WorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers (AWS only), e. g. 'm3.large'")
-	Command.Flags().StringVarP(&cmdWorkerAzureVMSize, "azure-vm-size", "", "", "VmSize to use for workers (Azure only), e. g. 'Standard_D2s_v3'")
-	Command.Flags().IntVarP(&flags.WorkerNumCPUs, "num-cpus", "", 0, "Number of CPU cores per worker node. Can't be used with -f|--file.")
-	Command.Flags().Float32VarP(&flags.WorkerMemorySizeGB, "memory-gb", "", 0, "RAM per worker node. Can't be used with -f|--file.")
-	Command.Flags().Float32VarP(&flags.WorkerStorageSizeGB, "storage-gb", "", 0, "Local storage size per worker node. Can't be used with -f|--file.")
-	Command.Flags().BoolVarP(&cmdDryRun, "dry-run", "", false, "If set, the cluster won't be created. Useful with -v|--verbose.")
+	Command.Flags().BoolVarP(&flags.CreateDefaultNodePool, "create-default-nodepool", "", true, "Whether a default node pool should be created if none is specified in the definition. Requires node pool support.")
 }
 
 // printValidation runs our pre-checks.
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	aca := collectArguments()
+	args := collectArguments()
 
 	headline := ""
 	subtext := ""
 
-	err := verifyPreconditions(aca)
+	err := verifyPreconditions(args)
 	if err != nil {
 		errors.HandleCommonErrors(err)
 
@@ -194,27 +208,6 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		case errors.IsConflictingFlagsError(err):
 			headline = "Conflicting flags used"
 			subtext = "When specifying a definition via a YAML file, certain flags must not be used."
-		case errors.IsConflictingWorkerFlagsUsed(err):
-			headline = "Conflicting flags used"
-			subtext = "When specifying --num-workers, neither --workers-max nor --workers-min must be used."
-		case errors.IsWorkersMinMaxInvalid(err):
-			headline = "Number of worker nodes invalid"
-			subtext = "Node count flag --workers-min must not be higher than --workers-max."
-		case errors.IsNumWorkerNodesMissingError(err):
-			headline = "Number of worker nodes required"
-			subtext = "When specifying worker node details, you must also specify the number of worker nodes."
-		case errors.IsNotEnoughWorkerNodesError(err):
-			headline = "Not enough worker nodes specified"
-			subtext = fmt.Sprintf("You'll need at least %v worker nodes for a useful cluster.", limits.MinimumNumWorkers)
-		case errors.IsNotEnoughCPUCoresPerWorkerError(err):
-			headline = "Not enough CPUs per worker specified"
-			subtext = fmt.Sprintf("You'll need at least %v CPU cores per worker node.", limits.MinimumWorkerNumCPUs)
-		case errors.IsNotEnoughMemoryPerWorkerError(err):
-			headline = "Not enough Memory per worker specified"
-			subtext = fmt.Sprintf("You'll need at least %.1f GB per worker node.", limits.MinimumWorkerMemorySizeGB)
-		case errors.IsNotEnoughStoragePerWorkerError(err):
-			headline = "Not enough Storage per worker specified"
-			subtext = fmt.Sprintf("You'll need at least %.1f GB per worker node.", limits.MinimumWorkerStorageSizeGB)
 		default:
 			headline = err.Error()
 		}
@@ -249,9 +242,6 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 			if args.InputYAMLFile != "" {
 				subtext = "Please specify an owner organization for the cluster in your definition file or set one via the --owner flag."
 			}
-		case errors.IsNotEnoughWorkerNodesError(err):
-			headline = "Not enough worker nodes specified"
-			subtext = fmt.Sprintf("If you specify workers in your definition file, you'll have to specify at least %d worker nodes for a useful cluster.", limits.MinimumNumWorkers)
 		case errors.IsYAMLNotParseable(err):
 			headline = "Could not parse YAML"
 			if args.InputYAMLFile == "-" {
@@ -262,6 +252,10 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		case errors.IsYAMLFileNotReadable(err):
 			headline = "Could not read YAML file"
 			subtext = fmt.Sprintf("The file '%s' could not be read. Please make sure that it is readable and contains valid YAML.", args.InputYAMLFile)
+		case errors.IsIncompatibleSettings(err):
+			headline = "Incompatible settings"
+			subtext = "The provided cluster details/definition are not compatible with the capabilities of the installation and/or release.\n"
+			subtext += fmt.Sprintf("Error details: %s", err.Error())
 		case errors.IsCouldNotCreateJSONRequestBodyError(err):
 			headline = "Could not create the JSON body for cluster creation API request"
 			subtext = "There seems to be a problem in parsing the cluster definition. Please contact Giant Swarm via Slack or via support@giantswarm.io with details on how you executes this command."
@@ -298,24 +292,38 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 
 	// success output
-	if !args.DryRun {
-		if result.definition.Name != "" {
-			fmt.Println(color.GreenString("New cluster '%s' (ID '%s') for organization '%s' is launching.", result.definition.Name, result.id, result.definition.Owner))
+	if result.DefinitionV4 != nil {
+		if result.DefinitionV4.Name != "" {
+			fmt.Println(color.GreenString("New cluster '%s' (ID '%s') for organization '%s' is launching.", result.DefinitionV4.Name, result.ID, result.DefinitionV4.Owner))
 		} else {
-			fmt.Println(color.GreenString("New cluster with ID '%s' for organization '%s' is launching.", result.id, result.definition.Owner))
+			fmt.Println(color.GreenString("New cluster with ID '%s' for organization '%s' is launching.", result.ID, result.DefinitionV4.Owner))
 		}
-		fmt.Println("Add key pair and settings to kubectl using")
-		fmt.Println("")
-		fmt.Printf("    %s", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s \n", result.id)))
-		fmt.Println("")
-		fmt.Println("Take into consideration all clusters have enabled RBAC and may you want to provide a correct organization for the certificates (like operators, testers, developer, ...)")
-		fmt.Println("")
-		fmt.Printf("    %s \n", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s --certificate-organizations system:masters", result.id)))
-		fmt.Println("")
-		fmt.Println("To know more about how to create the kubeconfig run")
-		fmt.Println("")
-		fmt.Printf("    %s \n\n", color.YellowString("gsctl create kubeconfig --help"))
+	} else if result.DefinitionV5 != nil {
+		if result.DefinitionV5.Name != "" {
+			fmt.Println(color.GreenString("New cluster '%s' (ID '%s') for organization '%s' has been created.", result.DefinitionV5.Name, result.ID, result.DefinitionV5.Owner))
+		} else {
+			fmt.Println(color.GreenString("New cluster with ID '%s' for organization '%s' has been created.", result.ID, result.DefinitionV5.Owner))
+		}
+
+		if result.HasErrors {
+			fmt.Println("Note: Some error(s) occurred during node pool creation. Please check the error details above.")
+			fmt.Printf("To verify that nodes are coming up, please use the following commands:\n\n")
+			fmt.Printf("    %s \n", color.YellowString(fmt.Sprintf("gsctl list nodepools %s", result.ID)))
+			fmt.Printf("    %s \n", color.YellowString(fmt.Sprintf("gsctl show nodepool %s/<nodepool-id>", result.ID)))
+		}
 	}
+
+	fmt.Println("\nAdd a key pair and settings for kubectl using")
+	fmt.Println("")
+	fmt.Printf("    %s", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s \n", result.ID)))
+	fmt.Println("")
+	fmt.Println("Take into consideration all clusters have enabled RBAC and may you want to provide a correct organization for the certificates (like operators, testers, developer, ...).")
+	fmt.Println("")
+	fmt.Printf("    %s \n", color.YellowString(fmt.Sprintf("gsctl create kubeconfig --cluster=%s --certificate-organizations system:masters", result.ID)))
+	fmt.Println("")
+	fmt.Println("To know more about how to create the kubeconfig run")
+	fmt.Println("")
+	fmt.Printf("    %s \n\n", color.YellowString("gsctl create kubeconfig --help"))
 }
 
 // verifyPreconditions checks preconditions and returns an error in case.
@@ -325,273 +333,210 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 
-	// false flag combination?
-	if args.InputYAMLFile != "" {
-		if args.NumWorkers != 0 || args.WorkerNumCPUs != 0 || args.WorkerMemorySizeGB != 0 || args.WorkerStorageSizeGB != 0 || args.WorkerAwsEc2InstanceType != "" || args.WorkerAzureVMSize != "" {
-			return microerror.Mask(errors.ConflictingFlagsError)
-		}
-	}
-
-	// validate number of workers specified by flag
-	if args.NumWorkers > 0 && (args.WorkersMax > 0 || args.WorkersMin > 0) {
-		return microerror.Mask(errors.ConflictingWorkerFlagsUsedError)
-	}
-	if args.NumWorkers > 0 && args.NumWorkers < limits.MinimumNumWorkers {
-		return microerror.Mask(errors.NotEnoughWorkerNodesError)
-	}
-	if args.WorkersMax > 0 && args.WorkersMax < int64(limits.MinimumNumWorkers) {
-		return microerror.Mask(errors.NotEnoughWorkerNodesError)
-	}
-	if args.WorkersMin > 0 && args.WorkersMin < int64(limits.MinimumNumWorkers) {
-		return microerror.Mask(errors.NotEnoughWorkerNodesError)
-	}
-	if args.WorkersMin > 0 && args.WorkersMax > 0 && args.WorkersMin > args.WorkersMax {
-		return microerror.Mask(errors.WorkersMinMaxInvalidError)
-	}
-
-	// validate number of CPUs specified by flag
-	if args.WorkerNumCPUs > 0 && args.WorkerNumCPUs < limits.MinimumWorkerNumCPUs {
-		return microerror.Mask(errors.NotEnoughCPUCoresPerWorkerError)
-	}
-
-	// validate memory size specified by flag
-	if args.WorkerMemorySizeGB > 0 && args.WorkerMemorySizeGB < limits.MinimumWorkerMemorySizeGB {
-		return microerror.Mask(errors.NotEnoughMemoryPerWorkerError)
-	}
-
-	// validate storage size specified by flag
-	if args.WorkerStorageSizeGB > 0 && args.WorkerStorageSizeGB < limits.MinimumWorkerStorageSizeGB {
-		return microerror.Mask(errors.NotEnoughStoragePerWorkerError)
-	}
-
-	if args.WorkerAwsEc2InstanceType != "" || args.WorkerAzureVMSize != "" {
-		// check for incompatibilities
-		if args.WorkerNumCPUs != 0 || args.WorkerMemorySizeGB != 0 || args.WorkerStorageSizeGB != 0 {
-			return microerror.Mask(errors.IncompatibleSettingsError)
-		}
-	}
-
 	return nil
 }
 
-// readDefinitionFromYAML reads a cluster definition from YAML data.
-func readDefinitionFromYAML(yamlBytes []byte) (*types.ClusterDefinition, error) {
-	def := &types.ClusterDefinition{}
-
-	err := yaml.Unmarshal(yamlBytes, def)
+// getLatestActiveReleaseVersion returns the latest active release.
+func getLatestActiveReleaseVersion(clientWrapper *client.Wrapper, auxParams *client.AuxiliaryParams) (string, error) {
+	response, err := clientWrapper.GetReleases(auxParams)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return "", microerror.Mask(err)
 	}
 
-	return def, nil
-}
-
-// readDefinitionFromFile reads a cluster definition from a YAML file.
-func readDefinitionFromFile(fs afero.Fs, path string) (*types.ClusterDefinition, error) {
-	data, err := afero.ReadFile(fs, path)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	return readDefinitionFromYAML(data)
-}
-
-// updateDefinitionFromFlags extend/overwrites a clusterDefinition based on the
-// flags/arguments the user has given.
-func updateDefinitionFromFlags(def *types.ClusterDefinition, args Arguments) {
-	if def == nil {
-		return
-	}
-
-	if args.AvailabilityZones != 0 {
-		def.AvailabilityZones = args.AvailabilityZones
-	}
-
-	if args.ClusterName != "" {
-		def.Name = args.ClusterName
-	}
-
-	if args.ReleaseVersion != "" {
-		def.ReleaseVersion = args.ReleaseVersion
-	}
-
-	if def.Scaling.Min > 0 && args.WorkersMin == 0 {
-		args.WorkersMin = def.Scaling.Min
-	}
-	if def.Scaling.Max > 0 && args.WorkersMax == 0 {
-		args.WorkersMax = def.Scaling.Max
-	}
-
-	if args.WorkersMax > 0 {
-		def.Scaling.Max = args.WorkersMax
-		args.NumWorkers = 1
-		if args.WorkersMin == 0 {
-			def.Scaling.Min = def.Scaling.Max
-		}
-	}
-	if args.WorkersMin > 0 {
-		def.Scaling.Min = args.WorkersMin
-		args.NumWorkers = 1
-		if args.WorkersMax == 0 {
-			def.Scaling.Max = def.Scaling.Min
+	activeReleases := []*models.V4ReleaseListItem{}
+	for _, r := range response.Payload {
+		if r.Active {
+			activeReleases = append(activeReleases, r)
 		}
 	}
 
-	if args.Owner != "" {
-		def.Owner = args.Owner
-	}
+	// sort releases by version (descending)
+	sort.Slice(activeReleases[:], func(i, j int) bool {
+		vi, err := semver.NewVersion(*activeReleases[i].Version)
+		if err != nil {
+			return false
+		}
+		vj, err := semver.NewVersion(*activeReleases[j].Version)
+		if err != nil {
+			return true
+		}
 
-	if def.Scaling.Min == 0 && def.Scaling.Max == 0 {
-		def.Scaling.Min = int64(args.NumWorkers)
-		def.Scaling.Max = int64(args.NumWorkers)
-	}
+		return vi.GreaterThan(vj)
+	})
 
-	if def.Scaling.Min == 0 && def.Scaling.Max == 0 && args.NumWorkers == 0 {
-		def.Scaling.Min = 3
-		def.Scaling.Max = 3
-	}
-
-	workers := []types.NodeDefinition{}
-
-	worker := types.NodeDefinition{}
-	if args.WorkerNumCPUs != 0 {
-		worker.CPU = types.CPUDefinition{Cores: args.WorkerNumCPUs}
-	}
-	if args.WorkerStorageSizeGB != 0 {
-		worker.Storage = types.StorageDefinition{SizeGB: args.WorkerStorageSizeGB}
-	}
-	if args.WorkerMemorySizeGB != 0 {
-		worker.Memory = types.MemoryDefinition{SizeGB: args.WorkerMemorySizeGB}
-	}
-	// AWS-specific
-	if args.WorkerAwsEc2InstanceType != "" {
-		worker.AWS.InstanceType = args.WorkerAwsEc2InstanceType
-	}
-	// Azure
-	if args.WorkerAzureVMSize != "" {
-		worker.Azure.VMSize = args.WorkerAzureVMSize
-	}
-	workers = append(workers, worker)
-
-	def.Workers = workers
+	return *activeReleases[0].Version, nil
 }
 
-// creates a models.V4AddClusterRequest from clusterDefinition
-func createAddClusterBody(d *types.ClusterDefinition) *models.V4AddClusterRequest {
-	a := &models.V4AddClusterRequest{}
-	a.AvailabilityZones = int64(d.AvailabilityZones)
-	a.Name = d.Name
-	a.Owner = &d.Owner
-	a.ReleaseVersion = d.ReleaseVersion
-	a.Scaling = &models.V4AddClusterRequestScaling{
-		Min: d.Scaling.Min,
-		Max: d.Scaling.Max,
-	}
-
-	if len(d.Workers) == 1 {
-		ndmWorker := &models.V4AddClusterRequestWorkersItems{}
-		ndmWorker.Memory = &models.V4AddClusterRequestWorkersItemsMemory{SizeGb: float64(d.Workers[0].Memory.SizeGB)}
-		ndmWorker.CPU = &models.V4AddClusterRequestWorkersItemsCPU{Cores: int64(d.Workers[0].CPU.Cores)}
-		ndmWorker.Storage = &models.V4AddClusterRequestWorkersItemsStorage{SizeGb: float64(d.Workers[0].Storage.SizeGB)}
-		ndmWorker.Labels = d.Workers[0].Labels
-		ndmWorker.Aws = &models.V4AddClusterRequestWorkersItemsAws{InstanceType: d.Workers[0].AWS.InstanceType}
-		ndmWorker.Azure = &models.V4AddClusterRequestWorkersItemsAzure{VMSize: d.Workers[0].Azure.VMSize}
-		a.Workers = append(a.Workers, ndmWorker)
-	}
-
-	return a
-}
-
-// addCluster actually adds a cluster, interpreting all the input Configuration
-// and returning a structured result
+// addCluster collects information to decide whether to create a cluster
+// via the v4 or v5 API endpoint, then calls the according functions
+// and returns results.
 func addCluster(args Arguments) (*creationResult, error) {
-	result := &creationResult{
-		definition: &types.ClusterDefinition{},
-	}
-
 	var err error
 
-	if args.InputYAMLFile == "-" {
-		// Definintion coming from STDIN.
-		yamlString := ""
-		scanner := bufio.NewScanner(os.Stdin)
+	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
 
-		for scanner.Scan() {
-			yamlString += scanner.Text() + "\n"
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
+	auxParams.ActivityName = createClusterActivityName
+
+	// Ensure provider information is there.
+	if config.Config.Provider == "" {
+		if flags.Verbose {
+			fmt.Println(color.WhiteString("Fetching installation information"))
 		}
 
-		if err := scanner.Err(); err != nil {
+		info, err := clientWrapper.GetInfo(auxParams)
+		if err != nil {
 			return nil, microerror.Mask(err)
 		}
 
-		result.definition, err = readDefinitionFromYAML([]byte(yamlString))
+		err = config.Config.SetProvider(info.Payload.General.Provider)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
+	// Process YAML definition (if given), so we can take a 'release_version' key into consideration.
+	var definitionInterface interface{}
+	if args.InputYAMLFile == "-" {
+		definitionInterface, err = readDefinitionFromSTDIN()
+
 		if err != nil {
 			return nil, microerror.Maskf(errors.YAMLFileNotReadableError, err.Error())
 		}
 	} else if args.InputYAMLFile != "" {
 		// definition from file (and optionally flags)
-		result.definition, err = readDefinitionFromFile(args.FileSystem, args.InputYAMLFile)
+		definitionInterface, err = readDefinitionFromFile(args.FileSystem, args.InputYAMLFile)
 		if err != nil {
 			return nil, microerror.Maskf(errors.YAMLFileNotReadableError, err.Error())
 		}
 	}
 
-	// Let user-provided arguments (flags) overwrite/extend definition from YAML.
-	updateDefinitionFromFlags(result.definition, args)
+	// The release version we are selecting, based on command line flags, YAML definition,
+	// or as the latest release available.
+	var wantedRelease string
 
-	// Validate definition
-	if result.definition.Owner == "" {
-		return nil, microerror.Mask(errors.ClusterOwnerMissingError)
+	// nodePoolsEnabled stores whether we can assume the v5 API (node pools) for this command execution.
+	var nodePoolsEnabled = false
+
+	var usesV4Definition, usesV5Definition bool
+	var defV4 types.ClusterDefinitionV4
+	var defV5 types.ClusterDefinitionV5
+
+	// Assert YAML definition version.
+	// Order is important here! We try v5 first. Only if that fails, we try v4.
+	switch def := definitionInterface.(type) {
+	case *types.ClusterDefinitionV5:
+		usesV5Definition = true
+		defV5 = *def
+	case *types.ClusterDefinitionV4:
+		usesV4Definition = true
+		defV4 = *def
+	default:
+		// Intentionally doing nothing.
 	}
 
-	// Validations based on definition file.
-	// For validations based on command line flags, see validatePreConditions()
-	if args.InputYAMLFile != "" {
-		// number of workers
-		if len(result.definition.Workers) > 0 && len(result.definition.Workers) < limits.MinimumNumWorkers {
-			return nil, microerror.Mask(errors.NotEnoughWorkerNodesError)
+	// Check for wanted release from YAML definition.
+	if usesV5Definition && defV5.ReleaseVersion != "" {
+		wantedRelease = defV5.ReleaseVersion
+	} else if usesV4Definition && defV4.ReleaseVersion != "" {
+		wantedRelease = defV4.ReleaseVersion
+	}
+
+	// args overwrite definition content.
+	if args.ReleaseVersion != "" {
+		wantedRelease = args.ReleaseVersion
+	}
+
+	// If no release is set, use latest active release.
+	// We need a release version here in order to be able to check capabilities.
+	if wantedRelease == "" {
+		latest, err := getLatestActiveReleaseVersion(clientWrapper, auxParams)
+		if err != nil {
+			return nil, microerror.Mask(err)
 		}
+
+		if args.Verbose {
+			fmt.Println(color.WhiteString("Determined release version %s is the latest, so this will be used.", latest))
+		}
+		wantedRelease = latest
 	}
 
-	// create JSON API call payload to catch and handle errors early
-	addClusterBody := createAddClusterBody(result.definition)
-	_, marshalErr := json.Marshal(addClusterBody)
-	if marshalErr != nil {
-		return nil, microerror.Maskf(errors.CouldNotCreateJSONRequestBodyError, marshalErr.Error())
+	// Fetch node pools capabilities info.
+	capabilityService, err := capabilities.New(config.Config.Provider, clientWrapper)
+	if err != nil {
+		return nil, microerror.Mask(err)
 	}
 
-	// Preview in YAML format
 	if args.Verbose {
-		fmt.Println("\nDefinition for the requested cluster:")
-		d, marshalErr := yaml.Marshal(addClusterBody)
-		if marshalErr != nil {
-			log.Fatalf("error: %v", marshalErr)
-		}
-		fmt.Printf(color.CyanString(string(d)))
-		fmt.Println()
+		fmt.Println(color.WhiteString("Fetching installation capabilities"))
 	}
 
-	if !args.DryRun {
-		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(result.definition.Owner))
+	nodePoolsEnabled, err = capabilityService.HasCapability(wantedRelease, capabilities.NodePools)
 
-		clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
+	// Fail for edge cases:
+	// - User uses v5 definition, but the installation doesn't support node pools.
+	// - User uses v5 definition, but the release version requires v4.
+	// - User uses v4 definition, but the release version requires v5.
+	if nodePoolsEnabled && usesV4Definition {
+		return nil, microerror.Maskf(errors.IncompatibleSettingsError, "please use a v5 definition or specify a release version that allows v4")
+	} else if !nodePoolsEnabled && usesV5Definition {
+		return nil, microerror.Maskf(errors.IncompatibleSettingsError, "please use a v4 definition or specify a release version that allows v5")
+	}
+
+	result := &creationResult{}
+
+	if definitionInterface != nil {
+		if usesV5Definition {
+			result.DefinitionV5 = &defV5
+			nodePoolsEnabled = true
+		} else if usesV4Definition {
+			result.DefinitionV4 = &defV4
+		} else {
+			return nil, microerror.Maskf(errors.YAMLNotParseableError, "unclear whether v4 or v5 cluster should be created")
+		}
+	}
+
+	if nodePoolsEnabled {
+		if args.Verbose {
+			fmt.Println(color.WhiteString("Using the v5 API to create a cluster with node pool support"))
+		}
+
+		if result.DefinitionV5 == nil {
+			result.DefinitionV5 = &types.ClusterDefinitionV5{}
+		}
+
+		updateDefinitionFromFlagsV5(result.DefinitionV5, args.ClusterName, args.ReleaseVersion, args.Owner)
+
+		id, hasErrors, err := addClusterV5(result.DefinitionV5, args, clientWrapper, auxParams)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
 
-		auxParams := clientWrapper.DefaultAuxiliaryParams()
-		auxParams.ActivityName = createClusterActivityName
-		// perform API call
-		response, err := clientWrapper.CreateCluster(addClusterBody, auxParams)
+		result.ID = id
+		result.HasErrors = hasErrors
+
+	} else {
+		if args.Verbose {
+			fmt.Println(color.WhiteString("Using the v4 API to create a cluster"))
+		}
+
+		if result.DefinitionV4 == nil {
+			result.DefinitionV4 = &types.ClusterDefinitionV4{}
+		}
+
+		updateDefinitionFromFlagsV4(result.DefinitionV4, args.ClusterName, args.ReleaseVersion, args.Owner)
+
+		id, location, err := addClusterV4(result.DefinitionV4, args, clientWrapper, auxParams)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
 
-		// success
-		result.location = response.Location
-		result.id = strings.Split(result.location, "/")[3]
+		result.ID = id
+		result.Location = location
 	}
 
 	return result, nil
-
 }

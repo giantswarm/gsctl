@@ -199,17 +199,6 @@ func IsNotAuthorizedError(err error) bool {
 
 // Errors for cluster creation
 
-// NumWorkerNodesMissingError means that the user has not specified how many
-// worker nodes a new cluster should have
-var NumWorkerNodesMissingError = &microerror.Error{
-	Kind: "NumWorkerNodesMissingError",
-}
-
-// IsNumWorkerNodesMissingError asserts NumWorkerNodesMissingError.
-func IsNumWorkerNodesMissingError(err error) bool {
-	return microerror.Cause(err) == NumWorkerNodesMissingError
-}
-
 // NotEnoughWorkerNodesError means that the user has specified a too low
 // number of worker nodes for a cluster
 var NotEnoughWorkerNodesError = &microerror.Error{
@@ -219,39 +208,6 @@ var NotEnoughWorkerNodesError = &microerror.Error{
 // IsNotEnoughWorkerNodesError asserts NotEnoughWorkerNodesError.
 func IsNotEnoughWorkerNodesError(err error) bool {
 	return microerror.Cause(err) == NotEnoughWorkerNodesError
-}
-
-// NotEnoughCPUCoresPerWorkerError means the user did not request enough CPUs
-// for the worker nodes
-var NotEnoughCPUCoresPerWorkerError = &microerror.Error{
-	Kind: "NotEnoughCPUCoresPerWorkerError",
-}
-
-// IsNotEnoughCPUCoresPerWorkerError asserts NotEnoughCPUCoresPerWorkerError.
-func IsNotEnoughCPUCoresPerWorkerError(err error) bool {
-	return microerror.Cause(err) == NotEnoughCPUCoresPerWorkerError
-}
-
-// NotEnoughMemoryPerWorkerError means the user did not request enough RAM
-// for the worker nodes
-var NotEnoughMemoryPerWorkerError = &microerror.Error{
-	Kind: "NotEnoughMemoryPerWorkerError",
-}
-
-// IsNotEnoughMemoryPerWorkerError asserts NotEnoughMemoryPerWorkerError.
-func IsNotEnoughMemoryPerWorkerError(err error) bool {
-	return microerror.Cause(err) == NotEnoughMemoryPerWorkerError
-}
-
-// NotEnoughStoragePerWorkerError means the user did not request enough disk space
-// for the worker nodes
-var NotEnoughStoragePerWorkerError = &microerror.Error{
-	Kind: "NotEnoughStoragePerWorkerError",
-}
-
-// IsNotEnoughStoragePerWorkerError asserts NotEnoughStoragePerWorkerError.
-func IsNotEnoughStoragePerWorkerError(err error) bool {
-	return microerror.Cause(err) == NotEnoughStoragePerWorkerError
 }
 
 // ClusterOwnerMissingError means that the user has not specified an owner organization
@@ -429,8 +385,8 @@ var IncompatibleSettingsError = &microerror.Error{
 	Kind: "IncompatibleSettingsError",
 }
 
-// IsIncompatibleSettingsError asserts IncompatibleSettingsError.
-func IsIncompatibleSettingsError(err error) bool {
+// IsIncompatibleSettings asserts IncompatibleSettingsError.
+func IsIncompatibleSettings(err error) bool {
 	return microerror.Cause(err) == IncompatibleSettingsError
 }
 

@@ -93,7 +93,7 @@ func New(err error) *APIError {
 		return ae
 	}
 
-	// create cluster
+	// create cluster V4
 	if createClusterUnauthorizedErr, ok := err.(*clusters.AddClusterUnauthorized); ok {
 		return &APIError{
 			HTTPStatusCode: http.StatusUnauthorized,
@@ -103,6 +103,32 @@ func New(err error) *APIError {
 		}
 	}
 	if createClusterDefaultErr, ok := err.(*clusters.AddClusterDefault); ok {
+		ae := &APIError{
+			HTTPStatusCode: createClusterDefaultErr.Code(),
+			OriginalError:  createClusterDefaultErr,
+			ErrorMessage:   createClusterDefaultErr.Error(),
+		}
+		if ae.HTTPStatusCode == http.StatusNotFound {
+			ae.ErrorMessage = "Not found"
+			ae.ErrorDetails = "A 404 error has occurred when attempting to create the cluster."
+		} else if ae.HTTPStatusCode == http.StatusBadRequest {
+			ae.ErrorMessage = "Invalid parameters"
+			ae.ErrorDetails = "The cluster cannot be created. Some parameter(s) are considered invalid.\n"
+			ae.ErrorDetails += "Details: " + createClusterDefaultErr.Payload.Message
+		}
+		return ae
+	}
+
+	// create cluster V5
+	if createClusterUnauthorizedErr, ok := err.(*clusters.AddClusterV5Unauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  createClusterUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to create a cluster for this organization.",
+		}
+	}
+	if createClusterDefaultErr, ok := err.(*clusters.AddClusterV5Default); ok {
 		ae := &APIError{
 			HTTPStatusCode: createClusterDefaultErr.Code(),
 			OriginalError:  createClusterDefaultErr,
