@@ -96,6 +96,7 @@ func printValidation(cmd *cobra.Command, args []string) {
 
 	err := validatePreconditions(dca)
 	if err != nil {
+		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
 
 		var headline = ""
@@ -145,8 +146,8 @@ func printResult(cmd *cobra.Command, args []string) {
 	dca := collectArguments(args)
 	deleted, err := deleteCluster(dca)
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		var headline = ""
 		var subtext = ""

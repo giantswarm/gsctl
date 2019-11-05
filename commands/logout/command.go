@@ -75,8 +75,8 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 			os.Exit(0)
 		}
 
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		// handle non-common errors
 		fmt.Println(color.RedString(err.Error()))

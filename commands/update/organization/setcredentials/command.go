@@ -131,6 +131,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 		return
 	}
 
+	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 
 	// From here on we handle errors that can only occur in this command
@@ -279,8 +280,8 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	result, err := setOrgCredentials(args)
 
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		// From here on we handle errors that can only occur in this command
 		headline := ""

@@ -132,8 +132,8 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		return
 	}
 
-	errors.HandleCommonErrors(err)
 	client.HandleErrors(err)
+	errors.HandleCommonErrors(err)
 
 	headline := ""
 	subtext := ""
@@ -183,8 +183,8 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 
 	deleted, err := deleteNodePool(args)
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		headline := ""
 		subtext := ""
