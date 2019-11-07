@@ -134,6 +134,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 		return
 	}
 
+	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 
 	headline := ""
@@ -186,8 +187,8 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	result, err := createKeypair(args)
 
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		var headline string
 		var subtext string

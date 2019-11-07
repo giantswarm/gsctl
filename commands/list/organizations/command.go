@@ -61,6 +61,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 		return
 	}
 
+	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 }
 
@@ -80,8 +81,8 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 	args := collectArguments()
 	output, err := orgsTable(args)
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			fmt.Println(color.RedString(clientErr.ErrorMessage))

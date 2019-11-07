@@ -107,6 +107,34 @@ func New(err error) *APIError {
 			HTTPStatusCode: createClusterDefaultErr.Code(),
 			OriginalError:  createClusterDefaultErr,
 			ErrorMessage:   createClusterDefaultErr.Error(),
+			ErrorDetails:   createClusterDefaultErr.Payload.Message,
+		}
+		if ae.HTTPStatusCode == http.StatusNotFound {
+			ae.ErrorMessage = "Not found"
+			ae.ErrorDetails = "A 404 error has occurred when attempting to create the cluster."
+		} else if ae.HTTPStatusCode == http.StatusBadRequest {
+			ae.ErrorMessage = "Invalid parameters"
+			ae.ErrorDetails = "The cluster cannot be created. Some parameter(s) are considered invalid.\n"
+			ae.ErrorDetails += "Details: " + createClusterDefaultErr.Payload.Message
+		}
+		return ae
+	}
+
+	// create cluster V5
+	if createClusterUnauthorizedErr, ok := err.(*clusters.AddClusterV5Unauthorized); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusUnauthorized,
+			OriginalError:  createClusterUnauthorizedErr,
+			ErrorMessage:   "Unauthorized",
+			ErrorDetails:   "You don't have permission to create a cluster for this organization.",
+		}
+	}
+	if createClusterDefaultErr, ok := err.(*clusters.AddClusterV5Default); ok {
+		ae := &APIError{
+			HTTPStatusCode: createClusterDefaultErr.Code(),
+			OriginalError:  createClusterDefaultErr,
+			ErrorMessage:   createClusterDefaultErr.Error(),
+			ErrorDetails:   createClusterDefaultErr.Payload.Message,
 		}
 		if ae.HTTPStatusCode == http.StatusNotFound {
 			ae.ErrorMessage = "Organization does not exist"
@@ -125,6 +153,7 @@ func New(err error) *APIError {
 			HTTPStatusCode: modifyClusterFailedErr.Code(),
 			OriginalError:  modifyClusterFailedErr,
 			ErrorMessage:   modifyClusterFailedErr.Error(),
+			ErrorDetails:   modifyClusterFailedErr.Payload.Message,
 		}
 
 		if ae.HTTPStatusCode == http.StatusInternalServerError {
@@ -161,6 +190,7 @@ func New(err error) *APIError {
 			HTTPStatusCode: modifyClusterFailedErr.Code(),
 			OriginalError:  modifyClusterFailedErr,
 			ErrorMessage:   modifyClusterFailedErr.Error(),
+			ErrorDetails:   modifyClusterFailedErr.Payload.Message,
 		}
 
 		if ae.HTTPStatusCode == http.StatusInternalServerError {
@@ -218,6 +248,7 @@ func New(err error) *APIError {
 			HTTPStatusCode: deleteClusterDefaultErr.Code(),
 			OriginalError:  deleteClusterDefaultErr,
 			ErrorMessage:   deleteClusterDefaultErr.Error(),
+			ErrorDetails:   deleteClusterDefaultErr.Payload.Message,
 		}
 	}
 
@@ -235,6 +266,7 @@ func New(err error) *APIError {
 			HTTPStatusCode: getClustersDefaultErr.Code(),
 			OriginalError:  getClustersDefaultErr,
 			ErrorMessage:   getClustersDefaultErr.Error(),
+			ErrorDetails:   getClustersDefaultErr.Payload.Message,
 		}
 	}
 
@@ -260,6 +292,7 @@ func New(err error) *APIError {
 			HTTPStatusCode: getClusterDefaultErr.Code(),
 			OriginalError:  getClusterDefaultErr,
 			ErrorMessage:   getClusterDefaultErr.Error(),
+			ErrorDetails:   getClusterDefaultErr.Payload.Message,
 		}
 	}
 
@@ -269,6 +302,7 @@ func New(err error) *APIError {
 			HTTPStatusCode: getClusterStatusDefaultErr.Code(),
 			OriginalError:  getClusterStatusDefaultErr,
 			ErrorMessage:   getClusterStatusDefaultErr.Error(),
+			ErrorDetails:   getClusterStatusDefaultErr.Payload.Message,
 		}
 	}
 
@@ -294,6 +328,7 @@ func New(err error) *APIError {
 			HTTPStatusCode: getClusterDefaultErr.Code(),
 			OriginalError:  getClusterDefaultErr,
 			ErrorMessage:   getClusterDefaultErr.Error(),
+			ErrorDetails:   getClusterDefaultErr.Payload.Message,
 		}
 	}
 
@@ -327,6 +362,7 @@ func New(err error) *APIError {
 			HTTPStatusCode: addNodePoolDefaultErr.Code(),
 			OriginalError:  addNodePoolDefaultErr,
 			ErrorMessage:   addNodePoolDefaultErr.Error(),
+			ErrorDetails:   addNodePoolDefaultErr.Payload.Message,
 		}
 	}
 
@@ -370,6 +406,7 @@ func New(err error) *APIError {
 			HTTPStatusCode: getNodePoolsDefaultErr.Code(),
 			OriginalError:  getNodePoolsDefaultErr,
 			ErrorMessage:   getNodePoolsDefaultErr.Error(),
+			ErrorDetails:   getNodePoolsDefaultErr.Payload.Message,
 		}
 	}
 
@@ -395,6 +432,7 @@ func New(err error) *APIError {
 			HTTPStatusCode: modifyNodePoolsDefaultErr.Code(),
 			OriginalError:  modifyNodePoolsDefaultErr,
 			ErrorMessage:   modifyNodePoolsDefaultErr.Error(),
+			ErrorDetails:   modifyNodePoolsDefaultErr.Payload.Message,
 		}
 	}
 
@@ -420,6 +458,7 @@ func New(err error) *APIError {
 			HTTPStatusCode: deleteNodePoolsDefaultErr.Code(),
 			OriginalError:  deleteNodePoolsDefaultErr,
 			ErrorMessage:   deleteNodePoolsDefaultErr.Error(),
+			ErrorDetails:   deleteNodePoolsDefaultErr.Payload.Message,
 		}
 	}
 
@@ -447,6 +486,7 @@ func New(err error) *APIError {
 			HTTPStatusCode: getKeyPairsDefaultErr.Code(),
 			OriginalError:  getKeyPairsDefaultErr,
 			ErrorMessage:   getKeyPairsDefaultErr.Error(),
+			ErrorDetails:   getKeyPairsDefaultErr.Payload.Message,
 		}
 	}
 
@@ -461,6 +501,7 @@ func New(err error) *APIError {
 	}
 	if getInfoDefaultErr, ok := err.(*info.GetInfoDefault); ok {
 		return &APIError{
+			ErrorDetails:   getInfoDefaultErr.Payload.Message,
 			ErrorMessage:   getInfoDefaultErr.Error(),
 			HTTPStatusCode: getInfoDefaultErr.Code(),
 			OriginalError:  getInfoDefaultErr,
@@ -488,6 +529,7 @@ func New(err error) *APIError {
 	}
 	if getOrganizationsDefault, ok := err.(*organizations.GetOrganizationsDefault); ok {
 		return &APIError{
+			ErrorDetails:   getOrganizationsDefault.Payload.Message,
 			ErrorMessage:   getOrganizationsDefault.Error(),
 			HTTPStatusCode: getOrganizationsDefault.Code(),
 			OriginalError:  getOrganizationsDefault,
@@ -513,6 +555,7 @@ func New(err error) *APIError {
 	}
 	if addCredentialsDefault, ok := err.(*organizations.AddCredentialsDefault); ok {
 		return &APIError{
+			ErrorDetails:   addCredentialsDefault.Payload.Message,
 			ErrorMessage:   addCredentialsDefault.Error(),
 			HTTPStatusCode: addCredentialsDefault.Code(),
 			OriginalError:  addCredentialsDefault,
@@ -522,6 +565,7 @@ func New(err error) *APIError {
 	// get credential
 	if myerr, ok := err.(*organizations.GetCredentialDefault); ok {
 		return &APIError{
+			ErrorDetails:   myerr.Payload.Message,
 			ErrorMessage:   myerr.Error(),
 			HTTPStatusCode: myerr.Code(),
 			OriginalError:  myerr,
