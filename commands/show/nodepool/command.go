@@ -103,6 +103,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		return
 	}
 
+	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 }
 
@@ -149,6 +150,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	args := collectArguments(positionalArgs)
 	data, err := fetchNodePool(args)
 	if err != nil {
+		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
 	}
 

@@ -85,6 +85,7 @@ func printValidation(cmd *cobra.Command, extraArgs []string) {
 	err := validatePreconditions(args)
 
 	if err != nil {
+		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
 	}
 }

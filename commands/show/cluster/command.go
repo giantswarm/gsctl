@@ -85,6 +85,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 		return
 	}
 
+	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 
 	// handle non-common errors
@@ -347,6 +348,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 
 	clusterDetailsV4, clusterDetailsV5, nodePools, clusterStatus, credentialDetails, err := getClusterDetails(args)
 	if err != nil {
+		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
 
 		headline := ""

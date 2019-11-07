@@ -113,6 +113,7 @@ func upgradeClusterValidationOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	err := validateUpgradeClusterPreconditions(args, cmdLineArgs)
 
 	if err != nil {
+		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
 
 		switch {
@@ -160,8 +161,8 @@ func upgradeClusterExecutionOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	result, err := upgradeCluster(args)
 
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		var headline = ""
 		var subtext = ""

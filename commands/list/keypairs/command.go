@@ -103,6 +103,7 @@ func printValidation(cmd *cobra.Command, extraArgs []string) {
 	args := collectArguments()
 	err := listKeypairsValidate(&args)
 	if err != nil {
+		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
 
 		fmt.Println(color.RedString(err.Error()))
@@ -149,8 +150,8 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 
 	// error output
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		var headline string
 		var subtext string

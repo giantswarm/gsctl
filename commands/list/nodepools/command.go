@@ -105,6 +105,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		return
 	}
 
+	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 }
 
@@ -156,9 +157,10 @@ func fetchNodePools(args Arguments) ([]*resultRow, error) {
 func printResult(cmd *cobra.Command, positionalArgs []string) {
 	args := collectArguments(positionalArgs)
 	nodePools, err := fetchNodePools(args)
+
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			fmt.Println(color.RedString(clientErr.ErrorMessage))

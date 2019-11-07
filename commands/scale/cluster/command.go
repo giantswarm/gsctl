@@ -240,6 +240,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		return
 	}
 
+	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 
 	var headline string
@@ -260,6 +261,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	case errors.IsCannotScaleCluster(err):
 		headline = "This cluster cannot be scaled as a whole."
 		subtext = microerror.Desc(err)
+
 	default:
 		headline = err.Error()
 	}
@@ -356,8 +358,8 @@ func scaleCluster(args Arguments) (*Result, error) {
 func printResult(cmd *cobra.Command, commandLineArgs []string) {
 	args, err := collectArguments(cmd, commandLineArgs)
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
@@ -366,8 +368,8 @@ func printResult(cmd *cobra.Command, commandLineArgs []string) {
 	// Actually make the scaling request to the API.
 	result, err := scaleCluster(args)
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		var headline string
 		var subtext string

@@ -68,17 +68,29 @@ func HandleErrors(err error) {
 
 	var headline = ""
 	var subtext = ""
+	var httpStatusCode int
+	var message string
+	var details string
 
 	if convertedErr, ok := microerror.Cause(err).(*clienterror.APIError); ok {
-		headline = convertedErr.ErrorMessage
-		subtext = convertedErr.ErrorDetails
+		httpStatusCode = convertedErr.HTTPStatusCode
+		message = convertedErr.ErrorMessage
+		details = convertedErr.ErrorDetails
 	} else if convertedErr, ok := err.(*clienterror.APIError); ok {
-		headline = convertedErr.ErrorMessage
-		subtext = convertedErr.ErrorDetails
+		httpStatusCode = convertedErr.HTTPStatusCode
+		message = convertedErr.ErrorMessage
+		details = convertedErr.ErrorDetails
 	} else if IsEndpointNotSpecifiedError(err) {
 		// legacy client error handling
 		headline = "No endpoint has been specified."
 		subtext = "Please use the '-e|--endpoint' flag or select an endpoint using 'gsctl select endpoint'."
+	}
+
+	if httpStatusCode == 500 {
+		headline = "An internal error occurred."
+		subtext = details
+	} else if message != "" {
+		headline = message
 	}
 
 	if headline == "" {
