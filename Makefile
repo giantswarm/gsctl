@@ -1,7 +1,7 @@
 PROJECT=gsctl
 ORGANISATION=giantswarm
 BIN=$(PROJECT)
-GOVERSION := 1.13.1
+GOVERSION := 1.13.4
 BUILDDATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 COMMITHASH := $(shell git rev-parse HEAD)
 VERSION := $(shell (test -f VERSION && cat VERSION) || echo "")
