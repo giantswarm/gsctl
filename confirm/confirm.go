@@ -33,3 +33,28 @@ func Ask(s string) bool {
 		}
 	}
 }
+
+// AskStrict asks the user for confirmation. A user must type the expected confirmation text and
+// then press enter.
+func AskStrict(s string, c string) bool {
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Printf("%s: ", color.YellowString(s))
+
+	for {
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		switch strings.ToLower(strings.TrimSpace(response)) {
+		case c:
+			return true
+		case "n", "no":
+			return false
+		default:
+			fmt.Printf(color.YellowString("Cluster ID does not match."))
+			fmt.Printf(color.YellowString("Try again or abort the deletion typing 'no': "))
+		}
+	}
+}
