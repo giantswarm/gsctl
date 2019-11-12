@@ -94,6 +94,8 @@ type creationResult struct {
 
 const (
 	createClusterActivityName = "create-cluster"
+
+	standardInputSpecialPath = "-"
 )
 
 var (
@@ -245,7 +247,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 			}
 		case errors.IsYAMLNotParseable(err):
 			headline = "Could not parse YAML"
-			if args.InputYAMLFile == "-" {
+			if args.InputYAMLFile == standardInputSpecialPath {
 				subtext = "The YAML data given via STDIN could not be parsed into a cluster definition."
 			} else {
 				subtext = fmt.Sprintf("The YAML data read from file '%s' could not be parsed into a cluster definition.", args.InputYAMLFile)
@@ -401,7 +403,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 
 	// Process YAML definition (if given), so we can take a 'release_version' key into consideration.
 	var definitionInterface interface{}
-	if args.InputYAMLFile == "-" {
+	if args.InputYAMLFile == standardInputSpecialPath {
 		definitionInterface, err = readDefinitionFromSTDIN()
 
 		if err != nil {
