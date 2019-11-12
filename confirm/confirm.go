@@ -53,7 +53,7 @@ func AskStrict(s string, c string) bool {
 		case "n", "no":
 			return false
 		default:
-			fmt.Printf(color.YellowString("Cluster ID does not match."))
+			fmt.Printf(color.YellowString("The input entered does not match."))
 			fmt.Printf(color.YellowString("Try again or abort the deletion typing 'no': "))
 		}
 	}
