@@ -16,7 +16,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
-	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/formatting"
@@ -63,6 +62,7 @@ type Arguments struct {
 	clusterID         string
 	scheme            string
 	userProvidedToken string
+	verbose           bool
 }
 
 // resultRow represents one nope pool row as returned by fetchNodePools.
@@ -87,6 +87,7 @@ func collectArguments(cmdLineArgs []string) Arguments {
 		clusterID:         cmdLineArgs[0],
 		scheme:            scheme,
 		userProvidedToken: flags.Token,
+		verbose:           flags.Verbose,
 	}
 }
 
@@ -122,6 +123,18 @@ func fetchNodePools(args Arguments) ([]*resultRow, error) {
 
 	response, err := clientWrapper.GetNodePools(args.clusterID, auxParams)
 	if err != nil {
+		if errors.IsClusterNotFoundError(err) {
+			// Check if there is a v4 cluster of this ID, to provide a specific error for this case.
+			if args.verbose {
+				fmt.Println(color.WhiteString("Couldn't find a node pools (v5) cluster with ID %s. Checking v4.", args.clusterID))
+			}
+
+			_, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
+			if err == nil {
+				return nil, microerror.Mask(errors.ClusterDoesNotSupportNodePoolsError)
+			}
+		}
+
 		return nil, microerror.Mask(err)
 	}
 
@@ -162,13 +175,20 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
 
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			fmt.Println(color.RedString(clientErr.ErrorMessage))
-			if clientErr.ErrorDetails != "" {
-				fmt.Println(clientErr.ErrorDetails)
-			}
-		} else {
-			fmt.Println(color.RedString("Error: %s", err.Error()))
+		headline := ""
+		subtext := ""
+
+		switch {
+		case errors.IsClusterDoesNotSupportNodePools(err):
+			headline = "This cluster does not support node pools."
+			subtext = "Node pools cannot be listed for this cluster. Please use 'gsctl show cluster' to get information on worker nodes."
+		default:
+			headline = err.Error()
+		}
+
+		fmt.Println(color.RedString(headline))
+		if subtext != "" {
+			fmt.Println(subtext)
 		}
 		os.Exit(1)
 	}
