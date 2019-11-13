@@ -94,6 +94,8 @@ type creationResult struct {
 
 const (
 	createClusterActivityName = "create-cluster"
+
+	standardInputSpecialPath = "-"
 )
 
 var (
@@ -245,14 +247,21 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 			}
 		case errors.IsYAMLNotParseable(err):
 			headline = "Could not parse YAML"
-			if args.InputYAMLFile == "-" {
+			if args.InputYAMLFile == standardInputSpecialPath {
 				subtext = "The YAML data given via STDIN could not be parsed into a cluster definition."
 			} else {
 				subtext = fmt.Sprintf("The YAML data read from file '%s' could not be parsed into a cluster definition.", args.InputYAMLFile)
 			}
 		case errors.IsYAMLFileNotReadable(err):
-			headline = "Could not read YAML file"
-			subtext = fmt.Sprintf("The file '%s' could not be read. Please make sure that it is readable and contains valid YAML.", args.InputYAMLFile)
+			if args.InputYAMLFile == standardInputSpecialPath {
+				headline = "Could not read YAML from STDIN"
+				subtext = "The YAML definition given via standard input could not be parsed.\n"
+				subtext += fmt.Sprintf("Details: %s", err.Error())
+			} else {
+				headline = "Could not read YAML file"
+				subtext = fmt.Sprintf("The file '%s' could not be read. Please make sure that it is readable and contains valid YAML.\n", args.InputYAMLFile)
+				subtext += fmt.Sprintf("Details: %s", err.Error())
+			}
 		case errors.IsIncompatibleSettings(err):
 			headline = "Incompatible settings"
 			subtext = "The provided cluster details/definition are not compatible with the capabilities of the installation and/or release.\n"
@@ -401,7 +410,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 
 	// Process YAML definition (if given), so we can take a 'release_version' key into consideration.
 	var definitionInterface interface{}
-	if args.InputYAMLFile == "-" {
+	if args.InputYAMLFile == standardInputSpecialPath {
 		definitionInterface, err = readDefinitionFromSTDIN()
 
 		if err != nil {
