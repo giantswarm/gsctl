@@ -124,6 +124,18 @@ func fetchNodePools(args Arguments) ([]*resultRow, error) {
 
 	response, err := clientWrapper.GetNodePools(args.clusterID, auxParams)
 	if err != nil {
+		if errors.IsClusterNotFoundError(err) {
+			// Check if there is a v4 cluster of this ID, to provide a specific error for this case.
+			if args.verbose {
+				fmt.Println(color.WhiteString("Couldn't find a node pools (v5) cluster with ID %s. Checking v4.", args.clusterID))
+			}
+
+			_, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
+			if err == nil {
+				return nil, microerror.Mask(errors.ClusterDoesNotSupportNodePoolsError)
+			}
+		}
+
 		return nil, microerror.Mask(err)
 	}
 
