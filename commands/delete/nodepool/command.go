@@ -203,7 +203,13 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		subtext := ""
 
 		switch {
-		// If there are specific errors to handle, add them here.
+		case errors.IsClusterNotFoundError(err):
+			headline = "Cluster not found"
+			subtext = fmt.Sprintf("Could not find a cluster with ID %s. Please check the ID.", args.ClusterID)
+		case errors.IsNodePoolNotFound(err):
+			headline = "Node pool not found"
+			subtext = fmt.Sprintf("Could not find a node pool with ID %s in this cluster. ", args.NodePoolID)
+		// TODO: handle errors.ClusterDoesNotSupportNodePoolsError
 		default:
 			headline = err.Error()
 		}
