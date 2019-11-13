@@ -157,7 +157,7 @@ need for a file:
 gsctl create cluster -f - <<EOF
 owner: acme
 name: Test cluster using two AZs
-release: 8.2.0
+release_version: 8.2.0
 availability_zones: 2
 EOF
 
