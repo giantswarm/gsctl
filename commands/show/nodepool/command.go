@@ -23,7 +23,6 @@ var (
 	// ShowNodepoolCommand is the cobra command for 'gsctl show nodepool'
 	ShowNodepoolCommand = &cobra.Command{
 		DisableFlagsInUseLine: true,
-		Hidden:                true,
 		Use:                   "nodepool <cluster-id>/<nodepool-id>",
 		Aliases:               []string{"np"},
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
@@ -104,6 +103,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		return
 	}
 
+	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 }
 
@@ -150,6 +150,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	args := collectArguments(positionalArgs)
 	data, err := fetchNodePool(args)
 	if err != nil {
+		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
 	}
 

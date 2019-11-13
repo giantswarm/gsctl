@@ -314,8 +314,8 @@ func (w *Wrapper) DeleteAuthToken(authToken string, p *AuxiliaryParams) (*auth_t
 	return response, nil
 }
 
-// CreateCluster creates cluster using the gsclientgen client.
-func (w *Wrapper) CreateCluster(addClusterRequest *models.V4AddClusterRequest, p *AuxiliaryParams) (*clusters.AddClusterCreated, error) {
+// CreateClusterV4 creates a v4 cluster using the gsclientgen client.
+func (w *Wrapper) CreateClusterV4(addClusterRequest *models.V4AddClusterRequest, p *AuxiliaryParams) (*clusters.AddClusterCreated, error) {
 	params := clusters.NewAddClusterParams().WithBody(addClusterRequest)
 	setParams(p, w, params)
 
@@ -325,6 +325,24 @@ func (w *Wrapper) CreateCluster(addClusterRequest *models.V4AddClusterRequest, p
 	}
 
 	response, err := w.gsclient.Clusters.AddCluster(params, authWriter)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+// CreateClusterV5 creates a V5 cluster using the gsclientgen client.
+func (w *Wrapper) CreateClusterV5(addClusterRequest *models.V5AddClusterRequest, p *AuxiliaryParams) (*clusters.AddClusterV5Created, error) {
+	params := clusters.NewAddClusterV5Params().WithBody(addClusterRequest)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Clusters.AddClusterV5(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}

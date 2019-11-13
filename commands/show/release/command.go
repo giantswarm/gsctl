@@ -74,6 +74,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 		return
 	}
 
+	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 
 	// handle non-common errors
@@ -132,8 +133,8 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 
 	// error output
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		var headline = ""
 		var subtext = ""

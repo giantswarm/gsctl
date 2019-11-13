@@ -16,7 +16,7 @@ var (
 	// Command is the command to list things.
 	Command = &cobra.Command{
 		Use:   "list",
-		Short: "List things, like organizations, clusters, key pairs",
+		Short: "List clusters, endpoints, key pairs, node pools, organizations, releases",
 		Long:  `Prints a list of the things you have access to.`,
 	}
 )

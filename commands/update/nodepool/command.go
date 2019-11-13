@@ -18,9 +18,8 @@ import (
 )
 
 var (
-	// Command is the cobra command for 'gsctl show nodepool'
+	// Command is the cobra command for 'gsctl update nodepool'
 	Command = &cobra.Command{
-		Hidden:  true, // TODO: set to false to make this command visible once the release is out.
 		Use:     "nodepool <cluster-id>/<nodepool-id>",
 		Aliases: []string{"np"},
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
@@ -125,6 +124,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		return
 	}
 
+	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 
 	headline := ""
@@ -183,8 +183,8 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 
 	r, err := updateNodePool(args)
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		headline := ""
 		subtext := ""

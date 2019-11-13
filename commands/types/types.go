@@ -36,8 +36,8 @@ type NodeDefinition struct {
 	Azure   AzureSpecificDefinition `yaml:"azure,omitempty"`
 }
 
-// ClusterDefinition defines a tenant cluster spec.
-type ClusterDefinition struct {
+// ClusterDefinitionV4 defines a tenant cluster spec compatible with the v4 API.
+type ClusterDefinitionV4 struct {
 	Name              string            `yaml:"name,omitempty"`
 	Owner             string            `yaml:"owner,omitempty"`
 	ReleaseVersion    string            `yaml:"release_version,omitempty"`
@@ -46,8 +46,42 @@ type ClusterDefinition struct {
 	Workers           []NodeDefinition  `yaml:"workers,omitempty"`
 }
 
+// ClusterDefinitionV5 defines a tenant cluster spec compatible with the v5 API.
+type ClusterDefinitionV5 struct {
+	APIVersion     string                `yaml:"api_version,omitempty"`
+	Name           string                `yaml:"name,omitempty"`
+	Owner          string                `yaml:"owner,omitempty"`
+	ReleaseVersion string                `yaml:"release_version,omitempty"`
+	Master         *MasterDefinition     `yaml:"master,omitempty"`
+	NodePools      []*NodePoolDefinition `yaml:"nodepools,omitempty"`
+}
+
 // ScalingDefinition defines how a tenant cluster can scale.
 type ScalingDefinition struct {
 	Min int64 `yaml:"min,omitempty"`
 	Max int64 `yaml:"max,omitempty"`
+}
+
+// MasterDefinition defines a master in cluster creation, as introduced by the V5 API.
+type MasterDefinition struct {
+	AvailabilityZone string `yaml:"availability_zone,omitempty"`
+}
+
+// AvailabilityZonesDefinition defines the availability zones for a node pool, as intgroduc ed in the V5 API.
+type AvailabilityZonesDefinition struct {
+	Number int64    `yaml:"number,omitempty"`
+	Zones  []string `yaml:"zones,omitempty"`
+}
+
+// NodeSpec defines the specification of the nodes in a node pool, as intriduced with the V5 API.
+type NodeSpec struct {
+	AWS *AWSSpecificDefinition `yaml:"aws,omitempty"`
+}
+
+// NodePoolDefinition defines a node pool as introduces by the V5 API.
+type NodePoolDefinition struct {
+	Name              string                       `yaml:"name,omitempty"`
+	AvailabilityZones *AvailabilityZonesDefinition `yaml:"availability_zones,omitempty"`
+	Scaling           *ScalingDefinition           `yaml:"scaling,omitempty"`
+	NodeSpec          *NodeSpec                    `yaml:"node_spec,omitempty"`
 }

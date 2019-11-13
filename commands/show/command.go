@@ -12,7 +12,7 @@ var (
 	// Command is the command to display single items
 	Command = &cobra.Command{
 		Use:   "show",
-		Short: "Show things, like clusters, releases",
+		Short: "Show clusters, node pools, releases",
 		Long:  `Print details of a cluster or a release`,
 	}
 )

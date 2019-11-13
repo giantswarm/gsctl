@@ -204,6 +204,7 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		return
 	}
 
+	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 
 	var headline string
@@ -285,8 +286,8 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	result, err := createKubeconfig(ctx, args)
 
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		var headline string
 		var subtext string

@@ -1,4 +1,4 @@
-# This YAML file is a minimal specification for a cluster
+# This YAML file is a minimal v4 specification for a cluster
 # to be passed via the `gsctl create cluster -f` command.
 # All ommitted specifications will be set via defaults.
 name: Minimal cluster spec

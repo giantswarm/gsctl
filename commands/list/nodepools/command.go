@@ -25,7 +25,6 @@ import (
 var (
 	// Command performs the "list nodepools" function
 	Command = &cobra.Command{
-		Hidden:  true,
 		Use:     "nodepools <cluster-id>",
 		Aliases: []string{"nps", "np"},
 
@@ -107,6 +106,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		return
 	}
 
+	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 }
 
@@ -170,9 +170,10 @@ func fetchNodePools(args Arguments) ([]*resultRow, error) {
 func printResult(cmd *cobra.Command, positionalArgs []string) {
 	args := collectArguments(positionalArgs)
 	nodePools, err := fetchNodePools(args)
+
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		headline := ""
 		subtext := ""

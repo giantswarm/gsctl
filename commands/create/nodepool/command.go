@@ -21,7 +21,6 @@ import (
 var (
 	// Command is the cobra command for 'gsctl create nodepool'
 	Command = &cobra.Command{
-		Hidden:  true, // TODO: set to false to make this command visible once the release is out.
 		Use:     "nodepool <cluster-id>",
 		Aliases: []string{"np"},
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
@@ -44,12 +43,11 @@ When creating a node pool, all arguments (except for the cluster ID) are
 optional. Where an argument is not given, a default will be applied as
 follows:
 
-- Name: will be "Unnamed node pool <n>".
+- Name: will be "Unnamed node pool".
 - Availability zones: the node pool will use 1 zone selected randomly.
 - Instance type: the default instance type of the installation will be
   used. Check 'gsctl info' to find out what that is.
-- Scaling settings: the minimum and maximum size will be set to 3,
-  meaning that autoscaling is disabled.
+- Scaling settings: the minimum will be 3 and maximum 10 nodes.
 
 Examples:
 
@@ -238,8 +236,8 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		return
 	}
 
-	errors.HandleCommonErrors(err)
 	client.HandleErrors(err)
+	errors.HandleCommonErrors(err)
 
 	headline := ""
 	subtext := ""
@@ -335,8 +333,8 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		headline := ""
 		subtext := ""

@@ -13,7 +13,7 @@ var (
 	// Command is the command to create things.
 	Command = &cobra.Command{
 		Use:   "create",
-		Short: "Create clusters, key pairs, ...",
+		Short: "Create clusters, key pairs, node pools",
 		Long:  `Lets you create things like clusters, key pairs or kubectl configuration files`,
 	}
 )
