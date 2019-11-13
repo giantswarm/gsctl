@@ -653,6 +653,17 @@ func IsOutputFormatInvalid(err error) bool {
 	return microerror.Cause(err) == OutputFormatInvalidError
 }
 
+// ClusterDoesNotSupportNodePoolsError is raised when the user tries to do something with node pools
+// on a cluster that does not support node pools.
+var ClusterDoesNotSupportNodePoolsError = &microerror.Error{
+	Kind: "ClusterDoesNotSupportNodePoolsError",
+}
+
+// IsClusterDoesNotSupportNodePools asserts OutputFormatInvalidError.
+func IsClusterDoesNotSupportNodePools(err error) bool {
+	return microerror.Cause(err) == ClusterDoesNotSupportNodePoolsError
+}
+
 // NoOpError is raised when the user calls a command without any meaningful
 // parameters, resulting in no change/nothing done.
 var NoOpError = &microerror.Error{
