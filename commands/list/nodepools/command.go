@@ -175,13 +175,20 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
 
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			fmt.Println(color.RedString(clientErr.ErrorMessage))
-			if clientErr.ErrorDetails != "" {
-				fmt.Println(clientErr.ErrorDetails)
-			}
-		} else {
-			fmt.Println(color.RedString("Error: %s", err.Error()))
+		headline := ""
+		subtext := ""
+
+		switch {
+		case errors.IsClusterDoesNotSupportNodePools(err):
+			headline = "This cluster does not support node pools."
+			subtext = "Node pools cannot be listed for this cluster. Please use 'gsctl show cluster' to get information on worker nodes."
+		default:
+			headline = err.Error()
+		}
+
+		fmt.Println(color.RedString(headline))
+		if subtext != "" {
+			fmt.Println(subtext)
 		}
 		os.Exit(1)
 	}
