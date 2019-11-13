@@ -170,6 +170,19 @@ func deleteNodePool(args Arguments) (bool, error) {
 	if clienterror.IsAccessForbiddenError(err) {
 		return false, microerror.Mask(errors.AccessForbiddenError)
 	} else if clienterror.IsNotFoundError(err) {
+		// Check whether the cluster exists
+		_, detailsErr := clientWrapper.GetClusterV5(args.ClusterID, auxParams)
+		if detailsErr == nil {
+			// Cluster exists, node pool does not exist.
+			return false, microerror.Mask(errors.NodePoolNotFoundError)
+		}
+
+		_, detailsErr = clientWrapper.GetClusterV4(args.ClusterID, auxParams)
+		if detailsErr == nil {
+			// Cluster exists, but is v4, so cannot have node pools.
+			// TODO: use errors.ClusterDoesNotSupportNodePoolsError when available
+		}
+
 		return false, microerror.Mask(errors.ClusterNotFoundError)
 	} else if err != nil {
 		return false, microerror.Mask(err)
