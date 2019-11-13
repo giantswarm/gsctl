@@ -64,6 +64,7 @@ type Arguments struct {
 	clusterID         string
 	scheme            string
 	userProvidedToken string
+	verbose           bool
 }
 
 // resultRow represents one nope pool row as returned by fetchNodePools.
@@ -88,6 +89,7 @@ func collectArguments(cmdLineArgs []string) Arguments {
 		clusterID:         cmdLineArgs[0],
 		scheme:            scheme,
 		userProvidedToken: flags.Token,
+		verbose:           flags.Verbose,
 	}
 }
 
