@@ -261,6 +261,18 @@ func TestExecuteWithError(t *testing.T) {
 			`{"code": "UNKNOWN_ERROR", "message": "Here is some error message"}`,
 			errors.IsInternalServerError,
 		},
+		{
+			Arguments{
+				ClusterID:   "v4-clusterid",
+				NodePoolID:  "nodepoolid",
+				AuthToken:   "token",
+				APIEndpoint: "https://mock-url",
+				Force:       true,
+			},
+			404,
+			`{"code": "RESOURCE_NOT_FOUND", "message": "Here is some error message"}`,
+			errors.IsClusterDoesNotSupportNodePools,
+		},
 	}
 
 	fs := afero.NewMemMapFs()
@@ -282,12 +294,18 @@ func TestExecuteWithError(t *testing.T) {
 				} else if r.Method == "DELETE" && r.URL.Path == "/v5/clusters/clusterid/nodepools/bad-nodepool-id/" {
 					w.WriteHeader(tc.deleteResponseStatusCode)
 					w.Write([]byte(tc.deleteResponseBody))
+				} else if r.Method == "GET" && r.URL.Path == "/v4/clusters/v4-clusterid/" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{
+						"id": "v4-clusterid",
+						"owner": "acme"
+					}`))
 				} else if r.Method == "GET" && r.URL.Path == "/v5/clusters/clusterid/" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(`{
-						"id": "clusterid",
-						"owner": "acme"
-					}`))
+							"id": "clusterid",
+							"owner": "acme"
+						}`))
 				} else {
 					t.Logf("Unsupported operation %s %s called in mock server", r.Method, r.URL.Path)
 					w.WriteHeader(http.StatusNotFound)
