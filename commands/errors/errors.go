@@ -128,6 +128,16 @@ func IsClusterNotFoundError(err error) bool {
 	return false
 }
 
+// NodePoolNotFoundError means that a node pool the user wants to interact with does not exist.
+var NodePoolNotFoundError = &microerror.Error{
+	Kind: "NodePoolNotFoundError",
+}
+
+// IsNodePoolNotFound asserts NodePoolNotFoundError.
+func IsNodePoolNotFound(err error) bool {
+	return microerror.Cause(err) == NodePoolNotFoundError
+}
+
 // ReleaseVersionMissingError means the required release version argument is missing
 var ReleaseVersionMissingError = &microerror.Error{
 	Kind: "ReleaseVersionMissingError",
