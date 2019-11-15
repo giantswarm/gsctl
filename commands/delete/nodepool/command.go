@@ -171,6 +171,19 @@ func deleteNodePool(args Arguments) (bool, error) {
 	if clienterror.IsAccessForbiddenError(err) {
 		return false, microerror.Mask(errors.AccessForbiddenError)
 	} else if clienterror.IsNotFoundError(err) {
+		// Check whether the cluster exists
+		_, detailsErr := clientWrapper.GetClusterV5(args.ClusterID, auxParams)
+		if detailsErr == nil {
+			// Cluster exists, node pool does not exist.
+			return false, microerror.Mask(errors.NodePoolNotFoundError)
+		}
+
+		_, detailsErr = clientWrapper.GetClusterV4(args.ClusterID, auxParams)
+		if detailsErr == nil {
+			// Cluster exists, but is v4, so cannot have node pools.
+			return false, microerror.Mask(errors.ClusterDoesNotSupportNodePoolsError)
+		}
+
 		return false, microerror.Mask(errors.ClusterNotFoundError)
 	} else if err != nil {
 		return false, microerror.Mask(err)
@@ -191,7 +204,15 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		subtext := ""
 
 		switch {
-		// If there are specific errors to handle, add them here.
+		case errors.IsClusterNotFoundError(err):
+			headline = "Cluster not found"
+			subtext = fmt.Sprintf("Could not find a cluster with ID %s. Please check the ID.", args.ClusterID)
+		case errors.IsNodePoolNotFound(err):
+			headline = "Node pool not found"
+			subtext = fmt.Sprintf("Could not find a node pool with ID %s in this cluster. ", args.NodePoolID)
+		case errors.IsClusterDoesNotSupportNodePools(err):
+			headline = "Bad cluster ID"
+			subtext = fmt.Sprint("You are trying to delete a node pool from a cluster that does not support node pools. Please check your cluster ID.")
 		default:
 			headline = err.Error()
 		}
