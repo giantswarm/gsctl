@@ -12,7 +12,7 @@ require (
 	github.com/giantswarm/apiextensions v0.0.0-20190724141707-66d1dbb49135
 	github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatible
 	github.com/giantswarm/gscliauth v0.0.0-20190725094024-6a88de70cd85
-	github.com/giantswarm/gsclientgen v2.0.1-0.20191029145335-6948ab5cbaaf+incompatible
+	github.com/giantswarm/gsclientgen v2.0.3+incompatible
 	github.com/giantswarm/kubeconfig v0.0.0-20190403073151-2c7a472873b0
 	github.com/giantswarm/microerror v0.0.0-20191011121515-e0ebc4ecf5a5
 	github.com/giantswarm/micrologger v0.0.0-20190118112544-0926d9b7c541
@@ -24,8 +24,8 @@ require (
 	github.com/go-openapi/runtime v0.19.4-0.20190718232909-7a84b6517062
 	github.com/go-openapi/strfmt v0.19.3
 	github.com/go-openapi/swag v0.19.4 // indirect
+	github.com/gobuffalo/envy v1.7.1 // indirect
 	github.com/gobuffalo/packr v1.30.1 // indirect
-	github.com/gobuffalo/packr/v2 v2.7.1 // indirect
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/google/btree v1.0.0 // indirect
@@ -37,7 +37,6 @@ require (
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/json-iterator/go v1.1.7 // indirect
 	github.com/juju/errgo v0.0.0-20140925100237-08cceb5d0b53
-	github.com/karrick/godirwalk v1.13.0 // indirect
 	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.8 // indirect
