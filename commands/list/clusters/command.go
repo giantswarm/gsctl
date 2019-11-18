@@ -156,40 +156,60 @@ func getClustersOutput(args Arguments) (string, error) {
 		}
 
 		return string(outputBytes), nil
-	} else {
-		if len(response.Payload) == 0 {
-			return color.YellowString("No clusters"), nil
+	}
+
+	if len(response.Payload) == 0 {
+		return color.YellowString("No clusters"), nil
+	}
+	// table headers
+	output := []string{strings.Join([]string{
+		color.CyanString("ID"),
+		color.CyanString("ORGANIZATION"),
+		color.CyanString("NAME"),
+		color.CyanString("RELEASE"),
+		color.CyanString("CREATED"),
+		color.CyanString("DELETED"),
+	}, "|")}
+
+	// sort clusters by ID
+	sort.Slice(response.Payload[:], func(i, j int) bool {
+		return response.Payload[i].ID < response.Payload[j].ID
+	})
+
+	for _, cluster := range response.Payload {
+		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
+		deleted := "n/a"
+
+		if cluster.DeleteDate != nil {
+			deleted = util.ShortDate(util.ParseDate(cluster.DeleteDate.String()))
 		}
-		// table headers
-		output := []string{strings.Join([]string{
-			color.CyanString("ID"),
-			color.CyanString("ORGANIZATION"),
-			color.CyanString("NAME"),
-			color.CyanString("RELEASE"),
-			color.CyanString("CREATED"),
-		}, "|")}
 
-		// sort clusters by ID
-		sort.Slice(response.Payload[:], func(i, j int) bool {
-			return response.Payload[i].ID < response.Payload[j].ID
-		})
+		releaseVersion := cluster.ReleaseVersion
+		if releaseVersion == "" {
+			releaseVersion = "n/a"
+		}
 
-		for _, cluster := range response.Payload {
-			created := util.ShortDate(util.ParseDate(cluster.CreateDate))
-			releaseVersion := cluster.ReleaseVersion
-			if releaseVersion == "" {
-				releaseVersion = "n/a"
-			}
-
+		if cluster.DeleteDate != nil {
+			output = append(output, strings.Join([]string{
+				color.RedString(cluster.ID),
+				color.RedString(cluster.Owner),
+				color.RedString(cluster.Name),
+				color.RedString(releaseVersion),
+				color.RedString(created),
+				color.RedString(deleted),
+			}, "|"))
+		} else {
 			output = append(output, strings.Join([]string{
 				cluster.ID,
 				cluster.Owner,
 				cluster.Name,
 				releaseVersion,
 				created,
+				deleted,
 			}, "|"))
 		}
-
-		return columnize.SimpleFormat(output), nil
 	}
+
+	return columnize.SimpleFormat(output), nil
+
 }
