@@ -27,12 +27,14 @@ var (
 		Use:     "clusters",
 		Aliases: []string{"cluster"},
 		Short:   "List clusters",
-		Long:    `Prints a list of all clusters you have access to`,
+		Long:    `Prints a list of all clusters you have access to.`,
 		PreRun:  printValidation,
 		Run:     printResult,
 	}
 
 	cmdOutput string
+
+	cmdShowDeleted bool
 )
 
 const (
@@ -52,6 +54,7 @@ func init() {
 func initFlags() {
 	Command.ResetFlags()
 	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output. Defaults to human-friendly table output.")
+	Command.Flags().BoolVarP(&cmdShowDeleted, "show-deleted", "", false, "Show clusters which are currently being deleted (only with cluster release > 10.0.0).")
 }
 
 type Arguments struct {
@@ -59,6 +62,7 @@ type Arguments struct {
 	authToken         string
 	outputFormat      string
 	scheme            string
+	showDeleted       bool
 	userProvidedToken string
 }
 
@@ -72,6 +76,7 @@ func collectArguments() Arguments {
 		authToken:         token,
 		outputFormat:      cmdOutput,
 		scheme:            scheme,
+		showDeleted:       cmdShowDeleted,
 		userProvidedToken: flags.Token,
 	}
 }
@@ -96,7 +101,10 @@ func verifyListClusterPreconditions(args Arguments) error {
 		return microerror.Mask(errors.EndpointMissingError)
 	}
 	if args.outputFormat != outputFormatJSON && args.outputFormat != outputFormatTable {
-		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is unknown", args.outputFormat))
+		return microerror.Maskf(errors.OutputFormatInvalidError, "Output format '%s' is unknown", args.outputFormat)
+	}
+	if args.outputFormat == outputFormatJSON && args.showDeleted == true {
+		return microerror.Maskf(errors.ConflictingFlagsError, "The --show-deleted flag cannot be used with JSON output.")
 	}
 
 	return nil
@@ -158,30 +166,49 @@ func getClustersOutput(args Arguments) (string, error) {
 		return string(outputBytes), nil
 	}
 
+	// sort clusters by ID
+	sort.Slice(response.Payload[:], func(i, j int) bool {
+		return response.Payload[i].ID < response.Payload[j].ID
+	})
+
+	// This function's output string.
+	output := ""
+
 	if len(response.Payload) == 0 {
-		return color.YellowString("No clusters"), nil
+		output += color.YellowString("No clusters")
 	}
-	// table headers
-	output := []string{strings.Join([]string{
+
+	headers := []string{
 		color.CyanString("ID"),
 		color.CyanString("ORGANIZATION"),
 		color.CyanString("NAME"),
 		color.CyanString("RELEASE"),
 		color.CyanString("CREATED"),
-		color.CyanString("DELETED"),
-	}, "|")}
+	}
 
-	// sort clusters by ID
-	sort.Slice(response.Payload[:], func(i, j int) bool {
-		return response.Payload[i].ID < response.Payload[j].ID
-	})
+	if args.showDeleted {
+		headers = append(headers, color.CyanString("DELETED"))
+	}
+
+	table := []string{strings.Join(headers, "|")}
+
+	numDeletedClusters := 0
+	numOtherClusters := 0
 
 	for _, cluster := range response.Payload {
 		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
 		deleted := "n/a"
 
 		if cluster.DeleteDate != nil {
+			numDeletedClusters++
+
+			if !args.showDeleted {
+				continue
+			}
+
 			deleted = util.ShortDate(util.ParseDate(cluster.DeleteDate.String()))
+		} else {
+			numOtherClusters++
 		}
 
 		releaseVersion := cluster.ReleaseVersion
@@ -189,27 +216,34 @@ func getClustersOutput(args Arguments) (string, error) {
 			releaseVersion = "n/a"
 		}
 
-		if cluster.DeleteDate != nil {
-			output = append(output, strings.Join([]string{
-				color.RedString(cluster.ID),
-				color.RedString(cluster.Owner),
-				color.RedString(cluster.Name),
-				color.RedString(releaseVersion),
-				color.RedString(created),
-				color.RedString(deleted),
-			}, "|"))
+		fields := []string{
+			cluster.ID,
+			cluster.Owner,
+			cluster.Name,
+			releaseVersion,
+			created,
+		}
+
+		if args.showDeleted {
+			fields = append(fields, deleted)
+		}
+
+		table = append(table, strings.Join(fields, "|"))
+	}
+
+	// Only show table when there is content.
+	if len(table) > 1 {
+		output += columnize.SimpleFormat(table)
+	}
+
+	if !args.showDeleted && numDeletedClusters > 0 {
+		output += "\n\n"
+		if numDeletedClusters == 1 {
+			output += fmt.Sprintf("There is 1 additional cluster currently being deleted. Add the %s flag to see it.", color.CyanString("--show-deleted"))
 		} else {
-			output = append(output, strings.Join([]string{
-				cluster.ID,
-				cluster.Owner,
-				cluster.Name,
-				releaseVersion,
-				created,
-				deleted,
-			}, "|"))
+			output += fmt.Sprintf("There are %d additional clusters currently being deleted. Add the %s flag to see them.", numDeletedClusters, color.CyanString("--show-deleted"))
 		}
 	}
 
-	return columnize.SimpleFormat(output), nil
-
+	return output, nil
 }
