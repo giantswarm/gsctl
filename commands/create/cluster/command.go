@@ -126,12 +126,13 @@ general defaults:
 
 - Release: the latest release is used.
 - Workers
-  - On AWS and when using the latest release, the cluster will be created
-    without any node pools. You may define node pools in your cluster
-    definition YAML or add node pools one by one using 'gsctl create nodepool'.
+  - On AWS and when using the latest release, and when not specifying node pool
+    details via a cluster definition, the cluster will be created with a 
+    default node pool. You may define node pools in your cluster definition
+    YAML or add node pools one by one using 'gsctl create nodepool'.
   - On AWS with releases prior to node pools, and with Azure and KVM, the
     cluster will have three worker nodes by default, using pretty much the
-	minimal spec for a working cluster.
+    minimal spec for a working cluster.
   - Autoscaling will be inactive initially, as the minimum and maximum of the
     scaling range  will be set to 3.
   - All worker nodes will be in the same availability zone.
