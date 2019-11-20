@@ -92,6 +92,16 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 
 	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
+
+	if errors.IsConflictingFlagsError(err) {
+		fmt.Println(color.RedString("Conflicting flags used"))
+		fmt.Println("The --show-deleted flag cannot be used with JSON output.")
+		fmt.Println("JSON output contains all clusters, including deleted, by default.")
+	} else {
+		fmt.Println(color.RedString(err.Error()))
+	}
+
+	os.Exit(1)
 }
 
 func verifyListClusterPreconditions(args Arguments) error {
