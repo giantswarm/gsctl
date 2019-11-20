@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
@@ -199,6 +200,8 @@ func getClustersOutput(args Arguments) (string, error) {
 		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
 		deleted := "n/a"
 
+		var secondsSinceDelete float64
+
 		if cluster.DeleteDate != nil {
 			numDeletedClusters++
 
@@ -207,6 +210,8 @@ func getClustersOutput(args Arguments) (string, error) {
 			}
 
 			deleted = util.ShortDate(util.ParseDate(cluster.DeleteDate.String()))
+			deleteTime := time.Time(*cluster.DeleteDate)
+			secondsSinceDelete = time.Now().Sub(deleteTime).Seconds()
 		} else {
 			numOtherClusters++
 		}
@@ -216,16 +221,30 @@ func getClustersOutput(args Arguments) (string, error) {
 			releaseVersion = "n/a"
 		}
 
-		fields := []string{
-			cluster.ID,
-			cluster.Owner,
-			cluster.Name,
-			releaseVersion,
-			created,
-		}
+		fields := []string{}
 
-		if args.showDeleted {
-			fields = append(fields, deleted)
+		if secondsSinceDelete > 86400 {
+			fields = []string{
+				color.RedString(cluster.ID),
+				color.RedString(cluster.Owner),
+				color.RedString(cluster.Name),
+				color.RedString(releaseVersion),
+				color.RedString(created),
+			}
+			if args.showDeleted {
+				fields = append(fields, color.RedString(deleted))
+			}
+		} else {
+			fields = []string{
+				cluster.ID,
+				cluster.Owner,
+				cluster.Name,
+				releaseVersion,
+				created,
+			}
+			if args.showDeleted {
+				fields = append(fields, deleted)
+			}
 		}
 
 		table = append(table, strings.Join(fields, "|"))
