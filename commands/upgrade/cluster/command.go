@@ -98,8 +98,13 @@ type upgradeClusterResult struct {
 	versionAfter  string
 }
 
-// Here we populate our cobra command
 func init() {
+	initFlags()
+}
+
+func initFlags() {
+	Command.ResetFlags()
+
 	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
 }
 
@@ -200,31 +205,51 @@ func upgradeClusterExecutionOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 // upgradeCluster performs our actual function. It usually creates an API client,
 // configures it, configures an API request and performs it.
-func upgradeCluster(args Arguments) (upgradeClusterResult, error) {
-	result := upgradeClusterResult{}
-	var details *models.V4ClusterDetailsResponse
+func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
+	result := &upgradeClusterResult{
+		clusterID: args.clusterID,
+	}
 
 	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
-		return result, microerror.Mask(err)
+		return nil, microerror.Mask(err)
 	}
 
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = upgradeClusterActivityName
 
-	// fetch current cluster details
+	// Fetch cluster details, detect API version to use.
+	var detailsV4 *models.V4ClusterDetailsResponse
+	var detailsV5 *models.V5ClusterDetailsResponse
 	{
-		response, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
-		if err != nil {
-			return result, microerror.Mask(err)
+		if args.verbose {
+			fmt.Println(color.WhiteString("Attempt to fetch v5 cluster details."))
 		}
 
-		details = response.Payload
+		responseV5, v5err := clientWrapper.GetClusterV5(args.clusterID, auxParams)
+		if errors.IsClusterNotFoundError(v5err) {
+			if args.verbose {
+				fmt.Println(color.WhiteString("Not found via v5 endpoint. Attempt to fetch v4 cluster details."))
+			}
+
+			responseV4, v4err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
+			if v4err != nil {
+				return nil, microerror.Mask(v4err)
+			}
+
+			detailsV4 = responseV4.Payload
+			result.versionBefore = detailsV4.ReleaseVersion
+		} else if v5err != nil {
+			return nil, microerror.Mask(v5err)
+		} else {
+			detailsV5 = responseV5.Payload
+			result.versionBefore = detailsV5.ReleaseVersion
+		}
 	}
 
 	releasesResponse, err := clientWrapper.GetReleases(auxParams)
 	if err != nil {
-		return result, microerror.Mask(err)
+		return nil, microerror.Mask(err)
 	}
 
 	releaseVersions := []string{}
@@ -238,10 +263,16 @@ func upgradeCluster(args Arguments) (upgradeClusterResult, error) {
 	}
 
 	// define the target version to upgrade to
-	targetVersion := successorReleaseVersion(details.ReleaseVersion, releaseVersions)
-	if targetVersion == "" {
-		return result, microerror.Mask(errors.NoUpgradeAvailableError)
+	if args.verbose {
+		fmt.Println(color.WhiteString("Obtaining information on the successor release."))
 	}
+
+	targetVersion := successorReleaseVersion(result.versionBefore, releaseVersions)
+	if targetVersion == "" {
+		return nil, microerror.Mask(errors.NoUpgradeAvailableError)
+	}
+
+	result.versionAfter = targetVersion
 
 	var targetRelease models.V4ReleaseListItem
 	for _, rel := range releasesResponse.Payload {
@@ -254,13 +285,13 @@ func upgradeCluster(args Arguments) (upgradeClusterResult, error) {
 	if !targetRelease.Active {
 		fmt.Printf("Cluster '%s' will be upgraded from version %s to %s, which is not an active release.\n",
 			color.CyanString(args.clusterID),
-			color.CyanString(details.ReleaseVersion),
+			color.CyanString(result.versionBefore),
 			color.CyanString(targetVersion))
 		fmt.Printf("This might fail depending on your permissions.\n")
 	} else {
 		fmt.Printf("Cluster '%s' will be upgraded from version %s to %s.\n",
 			color.CyanString(args.clusterID),
-			color.CyanString(details.ReleaseVersion),
+			color.CyanString(result.versionBefore),
 			color.CyanString(targetVersion))
 	}
 
@@ -285,25 +316,35 @@ func upgradeCluster(args Arguments) (upgradeClusterResult, error) {
 	if !args.force {
 		confirmed := confirm.Ask("Do you want to start the upgrade now?")
 		if !confirmed {
-			return result, microerror.Mask(errors.CommandAbortedError)
+			return nil, microerror.Mask(errors.CommandAbortedError)
 		}
 	}
 
-	result.clusterID = args.clusterID
-	result.versionBefore = details.ReleaseVersion
+	if detailsV5 != nil {
+		if args.verbose {
+			fmt.Println(color.WhiteString("Submitting cluster modification request to v5 endpoint."))
+		}
 
-	// request body
-	reqBody := &models.V4ModifyClusterRequest{
-		ReleaseVersion: targetVersion,
+		reqBody := &models.V5ModifyClusterRequest{
+			ReleaseVersion: targetVersion,
+		}
+
+		_, err = clientWrapper.ModifyClusterV5(args.clusterID, reqBody, auxParams)
+	} else {
+		if args.verbose {
+			fmt.Println(color.WhiteString("Submitting cluster modification request to v4 endpoint."))
+		}
+
+		reqBody := &models.V4ModifyClusterRequest{
+			ReleaseVersion: targetVersion,
+		}
+
+		// perform API call
+		_, err = clientWrapper.ModifyClusterV4(args.clusterID, reqBody, auxParams)
+		if err != nil {
+			return nil, microerror.Maskf(errors.CouldNotUpgradeClusterError, err.Error())
+		}
 	}
-
-	// perform API call
-	_, err = clientWrapper.ModifyCluster(args.clusterID, reqBody, auxParams)
-	if err != nil {
-		return result, microerror.Maskf(errors.CouldNotUpgradeClusterError, err.Error())
-	}
-
-	result.versionAfter = targetVersion
 
 	return result, nil
 }
