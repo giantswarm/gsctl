@@ -343,7 +343,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 	if args.Verbose {
 		fmt.Println(color.WhiteString("Sending API request to modify cluster"))
 	}
-	_, err = clientWrapper.ModifyCluster(args.ClusterID, reqBody, auxParams)
+	_, err = clientWrapper.ModifyClusterV4(args.ClusterID, reqBody, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
