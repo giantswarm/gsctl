@@ -55,7 +55,7 @@ func init() {
 func initFlags() {
 	Command.ResetFlags()
 	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output. Defaults to human-friendly table output.")
-	Command.Flags().BoolVarP(&cmdShowDeleted, "show-deleted", "", false, "Show clusters which are currently being deleted (only with cluster release > 10.0.0).")
+	Command.Flags().BoolVarP(&cmdShowDeleted, "show-deleting", "", false, "Show clusters which are currently being deleted (only with cluster release > 10.0.0).")
 }
 
 type Arguments struct {
@@ -63,7 +63,7 @@ type Arguments struct {
 	authToken         string
 	outputFormat      string
 	scheme            string
-	showDeleted       bool
+	showDeleting      bool
 	userProvidedToken string
 }
 
@@ -77,7 +77,7 @@ func collectArguments() Arguments {
 		authToken:         token,
 		outputFormat:      cmdOutput,
 		scheme:            scheme,
-		showDeleted:       cmdShowDeleted,
+		showDeleting:      cmdShowDeleted,
 		userProvidedToken: flags.Token,
 	}
 }
@@ -95,7 +95,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 
 	if errors.IsConflictingFlagsError(err) {
 		fmt.Println(color.RedString("Conflicting flags used"))
-		fmt.Println("The --show-deleted flag cannot be used with JSON output.")
+		fmt.Println("The --show-deleting flag cannot be used with JSON output.")
 		fmt.Println("JSON output contains all clusters, including deleted, by default.")
 	} else {
 		fmt.Println(color.RedString(err.Error()))
@@ -114,8 +114,8 @@ func verifyListClusterPreconditions(args Arguments) error {
 	if args.outputFormat != outputFormatJSON && args.outputFormat != outputFormatTable {
 		return microerror.Maskf(errors.OutputFormatInvalidError, "Output format '%s' is unknown", args.outputFormat)
 	}
-	if args.outputFormat == outputFormatJSON && args.showDeleted == true {
-		return microerror.Maskf(errors.ConflictingFlagsError, "The --show-deleted flag cannot be used with JSON output.")
+	if args.outputFormat == outputFormatJSON && args.showDeleting == true {
+		return microerror.Maskf(errors.ConflictingFlagsError, "The --show-deleting flag cannot be used with JSON output.")
 	}
 
 	return nil
@@ -197,8 +197,8 @@ func getClustersOutput(args Arguments) (string, error) {
 		color.CyanString("CREATED"),
 	}
 
-	if args.showDeleted {
-		headers = append(headers, color.CyanString("DELETED"))
+	if args.showDeleting {
+		headers = append(headers, color.CyanString("DELETING SINCE"))
 	}
 
 	table := []string{strings.Join(headers, "|")}
@@ -215,7 +215,7 @@ func getClustersOutput(args Arguments) (string, error) {
 		if cluster.DeleteDate != nil {
 			numDeletedClusters++
 
-			if !args.showDeleted {
+			if !args.showDeleting {
 				continue
 			}
 
@@ -238,7 +238,7 @@ func getClustersOutput(args Arguments) (string, error) {
 			releaseVersion,
 			created,
 		}
-		if args.showDeleted {
+		if args.showDeleting {
 			fields = append(fields, color.RedString(deleted))
 		}
 
@@ -257,12 +257,12 @@ func getClustersOutput(args Arguments) (string, error) {
 		output += columnize.SimpleFormat(table)
 	}
 
-	if !args.showDeleted && numDeletedClusters > 0 {
+	if !args.showDeleting && numDeletedClusters > 0 {
 		output += "\n\n"
 		if numDeletedClusters == 1 {
-			output += fmt.Sprintf("There is 1 additional cluster currently being deleted. Add the %s flag to see it.", color.CyanString("--show-deleted"))
+			output += fmt.Sprintf("There is 1 additional cluster currently being deleted. Add the %s flag to see it.", color.CyanString("--show-deleting"))
 		} else {
-			output += fmt.Sprintf("There are %d additional clusters currently being deleted. Add the %s flag to see them.", numDeletedClusters, color.CyanString("--show-deleted"))
+			output += fmt.Sprintf("There are %d additional clusters currently being deleted. Add the %s flag to see them.", numDeletedClusters, color.CyanString("--show-deleting"))
 		}
 	}
 
