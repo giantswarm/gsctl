@@ -86,7 +86,7 @@ func collectArguments(cmdLineArgs []string) Arguments {
 		apiEndpoint:       endpoint,
 		authToken:         token,
 		clusterID:         clusterID,
-		force:             false,
+		force:             flags.Force,
 		userProvidedToken: flags.Token,
 		verbose:           flags.Verbose,
 	}
