@@ -48,9 +48,9 @@ func TestUpgradeCluster(t *testing.T) {
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
 		if r.Method == "GET" && r.RequestURI == "/v4/clusters/cluster-id/" {
 			// cluster details before the patch
+			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{
 				"id": "cluster-id",
 				"name": "This is my cluster name",
@@ -65,9 +65,10 @@ func TestUpgradeCluster(t *testing.T) {
 			}`))
 		} else if r.RequestURI == "/v4/releases/" {
 			// return list of releases
+			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`[
 			  {
-					"timestamp": "2017-10-15T12:00:00Z",
+			    "timestamp": "2017-10-15T12:00:00Z",
 			    "version": "0.1.0",
 			    "active": true,
 			    "changelog": [
@@ -77,8 +78,8 @@ func TestUpgradeCluster(t *testing.T) {
 			      {"name": "kubernetes", "version": "1.8.0"}
 			    ]
 			  },
-				{
-					"timestamp": "2017-10-15T12:00:00Z",
+			  {
+			    "timestamp": "2017-10-15T12:00:00Z",
 			    "version": "1.2.5",
 			    "active": true,
 			    "changelog": [
@@ -108,6 +109,7 @@ func TestUpgradeCluster(t *testing.T) {
 				t.Errorf("Patch request contained version %s, expected 1.2.5", version)
 			}
 
+			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{
 				"id": "cluster-id",
 				"name": "This is my cluster name",
@@ -120,6 +122,10 @@ func TestUpgradeCluster(t *testing.T) {
 					{"memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}}
 				]
 			}`))
+		} else {
+			t.Logf("Mock sevrer requst to %s %s", r.Method, r.RequestURI)
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Not found"}`))
 		}
 	}))
 	defer mockServer.Close()
@@ -138,8 +144,9 @@ func TestUpgradeCluster(t *testing.T) {
 
 	results, upgradeErr := upgradeCluster(testArgs)
 	if upgradeErr != nil {
-		t.Error(upgradeErr)
+		t.Fatal(upgradeErr)
 	}
+
 	if results.versionAfter != "1.2.5" {
 		t.Error("Got version", results.versionAfter, ", expected 1.2.5")
 	}
