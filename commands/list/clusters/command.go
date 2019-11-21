@@ -231,29 +231,21 @@ func getClustersOutput(args Arguments) (string, error) {
 			releaseVersion = "n/a"
 		}
 
-		fields := []string{}
+		fields := []string{
+			cluster.ID,
+			cluster.Owner,
+			cluster.Name,
+			releaseVersion,
+			created,
+		}
+		if args.showDeleted {
+			fields = append(fields, color.RedString(deleted))
+		}
 
+		// Highlight row in red if old.
 		if secondsSinceDelete > 86400 {
-			fields = []string{
-				color.RedString(cluster.ID),
-				color.RedString(cluster.Owner),
-				color.RedString(cluster.Name),
-				color.RedString(releaseVersion),
-				color.RedString(created),
-			}
-			if args.showDeleted {
-				fields = append(fields, color.RedString(deleted))
-			}
-		} else {
-			fields = []string{
-				cluster.ID,
-				cluster.Owner,
-				cluster.Name,
-				releaseVersion,
-				created,
-			}
-			if args.showDeleted {
-				fields = append(fields, deleted)
+			for index := range fields {
+				fields[index] = color.RedString(fields[index])
 			}
 		}
 
