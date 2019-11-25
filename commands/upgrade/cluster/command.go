@@ -65,30 +65,30 @@ Example:
 // Arguments is the struct to pass to our business function and
 // to the validation function.
 type Arguments struct {
-	apiEndpoint       string
-	authToken         string
-	clusterID         string
-	force             bool
-	userProvidedToken string
-	verbose           bool
+	APIEndpoint       string
+	AuthToken         string
+	ClusterID         string
+	Force             bool
+	UserProvidedToken string
+	Verbose           bool
 }
 
 // function to create arguments based on command line flags and config
-func collectArguments(cmdLineArgs []string) Arguments {
+func collectArguments(positionalArgs []string) Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
 	clusterID := ""
-	if len(cmdLineArgs) > 0 {
-		clusterID = cmdLineArgs[0]
+	if len(positionalArgs) > 0 {
+		clusterID = positionalArgs[0]
 	}
 
 	return Arguments{
-		apiEndpoint:       endpoint,
-		authToken:         token,
-		clusterID:         clusterID,
-		force:             flags.Force,
-		userProvidedToken: flags.Token,
-		verbose:           flags.Verbose,
+		APIEndpoint:       endpoint,
+		AuthToken:         token,
+		ClusterID:         clusterID,
+		Force:             flags.Force,
+		UserProvidedToken: flags.Token,
+		Verbose:           flags.Verbose,
 	}
 }
 
@@ -147,12 +147,12 @@ func upgradeClusterValidationOutput(cmd *cobra.Command, cmdLineArgs []string) {
 // our business function.
 func validateUpgradeClusterPreconditions(args Arguments, cmdLineArgs []string) error {
 	// authentication
-	if config.Config.Token == "" && args.authToken == "" {
+	if config.Config.Token == "" && args.AuthToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 
 	// cluster ID is present
-	if args.clusterID == "" {
+	if args.ClusterID == "" {
 		return microerror.Mask(errors.ClusterIDMissingError)
 	}
 
@@ -183,7 +183,7 @@ func upgradeClusterExecutionOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			subtext = "Please check the available releases using 'gsctl list releases'."
 		case errors.IsClusterNotFoundError(err):
 			headline = "The cluster does not exist."
-			subtext = fmt.Sprintf("We couldn't find a cluster with the ID '%s' via API endpoint %s.", args.clusterID, args.apiEndpoint)
+			subtext = fmt.Sprintf("We couldn't find a cluster with the ID '%s' via API endpoint %s.", args.ClusterID, args.APIEndpoint)
 		case errors.IsCommandAbortedError(err):
 			headline = "Not upgrading."
 		default:
@@ -207,10 +207,10 @@ func upgradeClusterExecutionOutput(cmd *cobra.Command, cmdLineArgs []string) {
 // configures it, configures an API request and performs it.
 func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 	result := &upgradeClusterResult{
-		clusterID: args.clusterID,
+		clusterID: args.ClusterID,
 	}
 
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
+	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -222,17 +222,17 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 	var detailsV4 *models.V4ClusterDetailsResponse
 	var detailsV5 *models.V5ClusterDetailsResponse
 	{
-		if args.verbose {
+		if args.Verbose {
 			fmt.Println(color.WhiteString("Attempt to fetch v5 cluster details."))
 		}
 
-		responseV5, v5err := clientWrapper.GetClusterV5(args.clusterID, auxParams)
+		responseV5, v5err := clientWrapper.GetClusterV5(args.ClusterID, auxParams)
 		if errors.IsClusterNotFoundError(v5err) {
-			if args.verbose {
+			if args.Verbose {
 				fmt.Println(color.WhiteString("Not found via v5 endpoint. Attempt to fetch v4 cluster details."))
 			}
 
-			responseV4, v4err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
+			responseV4, v4err := clientWrapper.GetClusterV4(args.ClusterID, auxParams)
 			if v4err != nil {
 				return nil, microerror.Mask(v4err)
 			}
@@ -263,7 +263,7 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 	}
 
 	// define the target version to upgrade to
-	if args.verbose {
+	if args.Verbose {
 		fmt.Println(color.WhiteString("Obtaining information on the successor release."))
 	}
 
@@ -284,13 +284,13 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 	// Show some details independent of confirmation
 	if !targetRelease.Active {
 		fmt.Printf("Cluster '%s' will be upgraded from version %s to %s, which is not an active release.\n",
-			color.CyanString(args.clusterID),
+			color.CyanString(args.ClusterID),
 			color.CyanString(result.versionBefore),
 			color.CyanString(targetVersion))
 		fmt.Printf("This might fail depending on your permissions.\n")
 	} else {
 		fmt.Printf("Cluster '%s' will be upgraded from version %s to %s.\n",
-			color.CyanString(args.clusterID),
+			color.CyanString(args.ClusterID),
 			color.CyanString(result.versionBefore),
 			color.CyanString(targetVersion))
 	}
@@ -313,7 +313,7 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 	fmt.Println("")
 
 	// Confirmation
-	if !args.force {
+	if !args.Force {
 		confirmed := confirm.Ask("Do you want to start the upgrade now?")
 		if !confirmed {
 			return nil, microerror.Mask(errors.CommandAbortedError)
@@ -321,7 +321,7 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 	}
 
 	if detailsV5 != nil {
-		if args.verbose {
+		if args.Verbose {
 			fmt.Println(color.WhiteString("Submitting cluster modification request to v5 endpoint."))
 		}
 
@@ -329,9 +329,9 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 			ReleaseVersion: targetVersion,
 		}
 
-		_, err = clientWrapper.ModifyClusterV5(args.clusterID, reqBody, auxParams)
+		_, err = clientWrapper.ModifyClusterV5(args.ClusterID, reqBody, auxParams)
 	} else {
-		if args.verbose {
+		if args.Verbose {
 			fmt.Println(color.WhiteString("Submitting cluster modification request to v4 endpoint."))
 		}
 
@@ -340,7 +340,7 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 		}
 
 		// perform API call
-		_, err = clientWrapper.ModifyClusterV4(args.clusterID, reqBody, auxParams)
+		_, err = clientWrapper.ModifyClusterV4(args.ClusterID, reqBody, auxParams)
 		if err != nil {
 			return nil, microerror.Maskf(errors.CouldNotUpgradeClusterError, err.Error())
 		}

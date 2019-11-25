@@ -8,9 +8,10 @@ import (
 
 	"github.com/Jeffail/gabs"
 	"github.com/giantswarm/gscliauth/config"
-	"github.com/spf13/afero"
-
+	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/testutils"
+	"github.com/google/go-cmp/cmp"
+	"github.com/spf13/afero"
 )
 
 func Test_successorReleaseVersion(t *testing.T) {
@@ -131,13 +132,13 @@ func TestUpgradeCluster(t *testing.T) {
 	defer mockServer.Close()
 
 	testArgs := Arguments{
-		apiEndpoint: mockServer.URL,
-		authToken:   "my-token",
-		clusterID:   "cluster-id",
-		force:       true,
+		APIEndpoint: mockServer.URL,
+		AuthToken:   "my-token",
+		ClusterID:   "cluster-id",
+		Force:       true,
 	}
 
-	err := validateUpgradeClusterPreconditions(testArgs, []string{testArgs.clusterID})
+	err := validateUpgradeClusterPreconditions(testArgs, []string{testArgs.ClusterID})
 	if err != nil {
 		t.Error(err)
 	}
@@ -149,5 +150,97 @@ func TestUpgradeCluster(t *testing.T) {
 
 	if results.versionAfter != "1.2.5" {
 		t.Error("Got version", results.versionAfter, ", expected 1.2.5")
+	}
+}
+
+func Test_collectArguments(t *testing.T) {
+	tests := []struct {
+		name                string
+		positionalArguments []string
+		commandExecution    func()
+		resultingArgs       Arguments
+	}{
+		{
+			name:                "Test 1: minimal arguments",
+			positionalArguments: []string{"clusterid"},
+			commandExecution: func() {
+				initFlags()
+				Command.ParseFlags([]string{
+					"clusterid",
+					"--force",
+				})
+			},
+			resultingArgs: Arguments{
+				ClusterID: "clusterid",
+				Force:     true,
+			},
+		},
+	}
+
+	for index, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// temp config
+			fs := afero.NewMemMapFs()
+			configDir := testutils.TempDir(fs)
+			config.Initialize(fs, configDir)
+
+			initFlags()
+			tt.commandExecution()
+
+			got := collectArguments(tt.positionalArguments)
+
+			if diff := cmp.Diff(tt.resultingArgs, got, nil); diff != "" {
+				t.Errorf("Test %d - Resulting args unequal. (-expected +got):\n%s", (index + 1), diff)
+			}
+		})
+	}
+}
+
+func Test_validateUpgradeClusterPreconditions(t *testing.T) {
+	type args struct {
+		args        Arguments
+		cmdLineArgs []string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr func(error) bool
+	}{
+		{
+			name: "Auth token missing",
+			args: args{
+				Arguments{
+					ClusterID: "clusterid",
+				},
+				[]string{},
+			},
+			wantErr: errors.IsNotLoggedInError,
+		},
+		{
+			name: "Cluster ID missing",
+			args: args{
+				Arguments{
+					AuthToken: "token",
+					ClusterID: "",
+				},
+				[]string{},
+			},
+			wantErr: errors.IsClusterIDMissingError,
+		},
+	}
+	for index, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateUpgradeClusterPreconditions(tt.args.args, tt.args.cmdLineArgs)
+
+			if err == nil {
+				if tt.wantErr != nil {
+					t.Errorf("Test case %d: Expected error, got nil", index)
+				}
+			} else {
+				if !tt.wantErr(err) {
+					t.Errorf("Test case %d: Didn't get the expected error type, got %s", index, err.Error())
+				}
+			}
+		})
 	}
 }
