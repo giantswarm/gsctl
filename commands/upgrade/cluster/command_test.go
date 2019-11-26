@@ -8,10 +8,11 @@ import (
 
 	"github.com/Jeffail/gabs"
 	"github.com/giantswarm/gscliauth/config"
-	"github.com/giantswarm/gsctl/commands/errors"
-	"github.com/giantswarm/gsctl/testutils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
+
+	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
 func Test_successorReleaseVersion(t *testing.T) {
