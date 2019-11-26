@@ -182,13 +182,6 @@ func getClustersOutput(args Arguments) (string, error) {
 		return response.Payload[i].ID < response.Payload[j].ID
 	})
 
-	// This function's output string.
-	output := ""
-
-	if len(response.Payload) == 0 {
-		output += color.YellowString("No clusters")
-	}
-
 	headers := []string{
 		color.CyanString("ID"),
 		color.CyanString("ORGANIZATION"),
@@ -252,9 +245,14 @@ func getClustersOutput(args Arguments) (string, error) {
 		table = append(table, strings.Join(fields, "|"))
 	}
 
+	// This function's output string.
+	output := ""
+
 	// Only show table when there is content.
 	if len(table) > 1 {
 		output += columnize.SimpleFormat(table)
+	} else {
+		output += color.YellowString("No clusters")
 	}
 
 	if !args.showDeleting && numDeletedClusters > 0 {
