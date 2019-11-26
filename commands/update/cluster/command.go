@@ -174,7 +174,7 @@ func updateCluster(args Arguments) (*result, error) {
 		if args.Verbose {
 			fmt.Println(color.WhiteString("Sending cluster modification request to v4 endpoint."))
 		}
-		response, err := clientWrapper.ModifyCluster(args.ClusterID, requestBody, auxParams)
+		response, err := clientWrapper.ModifyClusterV4(args.ClusterID, requestBody, auxParams)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
