@@ -659,7 +659,7 @@ var ClusterDoesNotSupportNodePoolsError = &microerror.Error{
 	Kind: "ClusterDoesNotSupportNodePoolsError",
 }
 
-// IsClusterDoesNotSupportNodePools asserts OutputFormatInvalidError.
+// IsClusterDoesNotSupportNodePools asserts ClusterDoesNotSupportNodePoolsError.
 func IsClusterDoesNotSupportNodePools(err error) bool {
 	return microerror.Cause(err) == ClusterDoesNotSupportNodePoolsError
 }
@@ -674,4 +674,15 @@ var NoOpError = &microerror.Error{
 // IsNoOpError asserts NoOpError.
 func IsNoOpError(err error) bool {
 	return microerror.Cause(err) == NoOpError
+}
+
+// InvalidNodePoolIDArgumentError should be raised when the user gives a "clusterID/nodepoolID"
+// argument that is syntactically incorrect.
+var InvalidNodePoolIDArgumentError = &microerror.Error{
+	Kind: "InvalidNodePoolIDArgumentError",
+}
+
+// IsInvalidNodePoolIDArgument asserts InvalidNodePoolIDArgumentError.
+func IsInvalidNodePoolIDArgument(err error) bool {
+	return microerror.Cause(err) == InvalidNodePoolIDArgumentError
 }

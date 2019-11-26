@@ -80,7 +80,7 @@ selected_endpoint: ` + mockServer.URL
 				t.Error(err)
 			}
 
-			args := Arguments{
+			args := &Arguments{
 				apiEndpoint: mockServer.URL,
 				authToken:   "some-token",
 				clusterID:   "cluster-id",
