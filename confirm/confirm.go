@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/giantswarm/microerror"
+
 	"github.com/fatih/color"
 )
 
@@ -22,7 +24,7 @@ func Ask(s string) bool {
 
 		response, err := reader.ReadString('\n')
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(microerror.Mask(err))
 		}
 
 		switch strings.ToLower(strings.TrimSpace(response)) {
@@ -44,7 +46,7 @@ func AskStrict(s string, c string) bool {
 	for {
 		response, err := reader.ReadString('\n')
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(microerror.Mask(err))
 		}
 
 		switch strings.ToLower(strings.TrimSpace(response)) {
@@ -54,7 +56,7 @@ func AskStrict(s string, c string) bool {
 			return false
 		default:
 			fmt.Printf(color.YellowString("The input entered does not match."))
-			fmt.Printf(color.YellowString("Try again or abort the deletion typing 'no': "))
+			fmt.Printf(color.YellowString("Try again or abort the deletion typing 'n[o]': "))
 		}
 	}
 }
