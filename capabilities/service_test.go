@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/giantswarm/gsctl/client"
+
 	"github.com/google/go-cmp/cmp"
 )
 

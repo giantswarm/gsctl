@@ -350,8 +350,8 @@ func (w *Wrapper) CreateClusterV5(addClusterRequest *models.V5AddClusterRequest,
 	return response, nil
 }
 
-// ModifyCluster modifies a cluster using the gsclientgen client.
-func (w *Wrapper) ModifyCluster(clusterID string, body *models.V4ModifyClusterRequest, p *AuxiliaryParams) (*clusters.ModifyClusterOK, error) {
+// ModifyClusterV4 modifies a cluster using the gsclientgen client.
+func (w *Wrapper) ModifyClusterV4(clusterID string, body *models.V4ModifyClusterRequest, p *AuxiliaryParams) (*clusters.ModifyClusterOK, error) {
 	params := clusters.NewModifyClusterParams().WithClusterID(clusterID).WithBody(body)
 	setParams(p, w, params)
 

@@ -30,31 +30,43 @@ func Test_ListClusters(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		// return clusters for the organization
 		w.Write([]byte(`[
-      {
-        "create_date": "2017-05-16T09:30:31.192170835Z",
-        "id": "` + randomClusterID() + `",
-        "name": "My dearest production cluster",
-        "owner": "acme"
-      },
-      {
-        "create_date": "2017-04-16T09:30:31.192170835Z",
-        "id": "` + randomClusterID() + `",
-        "name": "Abandoned cluster from the early days",
-        "owner": "some_org"
-      },
-      {
-        "create_date": "2017-10-06T02:24:55.192170835Z",
-        "id": "` + randomClusterID() + `",
-        "name": "A fairly recent test cluster",
-        "owner": "acme"
-      },
-      {
-        "create_date": "2017-10-10T07:24:55.192170835Z",
-        "id": "` + randomClusterID() + `",
-        "name": "That brand new development cluster",
-        "owner": "acme_dev"
-      }
-    ]`))
+			{
+				"create_date": "2017-05-16T09:30:31.192170835Z",
+				"id": "fow72",
+				"name": "My dearest production cluster",
+				"owner": "acme",
+				"path": "/v4/clusters/fow72/"
+			},
+			{
+				"create_date": "2017-04-16T09:30:31.192170835Z",
+				"id": "2sg4i",
+				"name": "Abandoned cluster from the early days",
+				"owner": "some_org",
+				"path": "/v4/clusters/2sg4i/"
+			},
+			{
+				"create_date": "2017-10-06T02:24:55.192170835Z",
+				"id": "7ste0",
+				"name": "A fairly recent test cluster",
+				"owner": "acme",
+				"path": "/v4/clusters/7ste0/"
+			},
+			{
+				"create_date": "2017-10-10T07:24:55.192170835Z",
+				"id": "d740d",
+				"name": "That brand new development cluster",
+				"owner": "acme_dev",
+				"path": "/v4/clusters/d740d/"
+			},
+			{
+				"create_date": "2017-10-10T07:24:55.192170835Z",
+				"delete_date": "2019-10-10T07:24:55.192170835Z",
+				"id": "del01",
+				"name": "A deleted cluster",
+				"owner": "acme",
+				"path": "/v5/clusters/del01/"
+			}
+		]`))
 	}))
 	defer mockServer.Close()
 

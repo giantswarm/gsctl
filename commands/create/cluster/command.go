@@ -94,6 +94,8 @@ type creationResult struct {
 
 const (
 	createClusterActivityName = "create-cluster"
+
+	standardInputSpecialPath = "-"
 )
 
 var (
@@ -124,12 +126,13 @@ general defaults:
 
 - Release: the latest release is used.
 - Workers
-  - On AWS and when using the latest release, the cluster will be created
-    without any node pools. You may define node pools in your cluster
-    definition YAML or add node pools one by one using 'gsctl create nodepool'.
+  - On AWS and when using the latest release, and when not specifying node pool
+    details via a cluster definition, the cluster will be created with a 
+    default node pool. You may define node pools in your cluster definition
+    YAML or add node pools one by one using 'gsctl create nodepool'.
   - On AWS with releases prior to node pools, and with Azure and KVM, the
     cluster will have three worker nodes by default, using pretty much the
-	minimal spec for a working cluster.
+    minimal spec for a working cluster.
   - Autoscaling will be inactive initially, as the minimum and maximum of the
     scaling range  will be set to 3.
   - All worker nodes will be in the same availability zone.
@@ -155,7 +158,7 @@ need for a file:
 gsctl create cluster -f - <<EOF
 owner: acme
 name: Test cluster using two AZs
-release: 8.2.0
+release_version: 8.2.0
 availability_zones: 2
 EOF
 
@@ -245,14 +248,21 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 			}
 		case errors.IsYAMLNotParseable(err):
 			headline = "Could not parse YAML"
-			if args.InputYAMLFile == "-" {
+			if args.InputYAMLFile == standardInputSpecialPath {
 				subtext = "The YAML data given via STDIN could not be parsed into a cluster definition."
 			} else {
 				subtext = fmt.Sprintf("The YAML data read from file '%s' could not be parsed into a cluster definition.", args.InputYAMLFile)
 			}
 		case errors.IsYAMLFileNotReadable(err):
-			headline = "Could not read YAML file"
-			subtext = fmt.Sprintf("The file '%s' could not be read. Please make sure that it is readable and contains valid YAML.", args.InputYAMLFile)
+			if args.InputYAMLFile == standardInputSpecialPath {
+				headline = "Could not read YAML from STDIN"
+				subtext = "The YAML definition given via standard input could not be parsed.\n"
+				subtext += fmt.Sprintf("Details: %s", err.Error())
+			} else {
+				headline = "Could not read YAML file"
+				subtext = fmt.Sprintf("The file '%s' could not be read. Please make sure that it is readable and contains valid YAML.\n", args.InputYAMLFile)
+				subtext += fmt.Sprintf("Details: %s", err.Error())
+			}
 		case errors.IsIncompatibleSettings(err):
 			headline = "Incompatible settings"
 			subtext = "The provided cluster details/definition are not compatible with the capabilities of the installation and/or release.\n"
@@ -401,7 +411,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 
 	// Process YAML definition (if given), so we can take a 'release_version' key into consideration.
 	var definitionInterface interface{}
-	if args.InputYAMLFile == "-" {
+	if args.InputYAMLFile == standardInputSpecialPath {
 		definitionInterface, err = readDefinitionFromSTDIN()
 
 		if err != nil {

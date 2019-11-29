@@ -196,10 +196,10 @@ func TestSuccess(t *testing.T) {
 // TestExecuteWithError tests the error handling.
 func TestExecuteWithError(t *testing.T) {
 	var testCases = []struct {
-		args               Arguments
-		responseStatusCode int
-		responseBody       string
-		errorMatcher       func(error) bool
+		args                     Arguments
+		deleteResponseStatusCode int
+		deleteResponseBody       string
+		errorMatcher             func(error) bool
 	}{
 		{
 			Arguments{
@@ -227,7 +227,7 @@ func TestExecuteWithError(t *testing.T) {
 		},
 		{
 			Arguments{
-				ClusterID:   "clusterid",
+				ClusterID:   "bad-cluster-id",
 				NodePoolID:  "nodepoolid",
 				AuthToken:   "token",
 				APIEndpoint: "https://mock-url",
@@ -240,6 +240,18 @@ func TestExecuteWithError(t *testing.T) {
 		{
 			Arguments{
 				ClusterID:   "clusterid",
+				NodePoolID:  "bad-nodepool-id",
+				AuthToken:   "token",
+				APIEndpoint: "https://mock-url",
+				Force:       true,
+			},
+			404,
+			`{"code": "RESOURCE_NOT_FOUND", "message": "Here is some error message"}`,
+			errors.IsNodePoolNotFound,
+		},
+		{
+			Arguments{
+				ClusterID:   "clusterid",
 				NodePoolID:  "nodepoolid",
 				AuthToken:   "token",
 				APIEndpoint: "https://mock-url",
@@ -248,6 +260,18 @@ func TestExecuteWithError(t *testing.T) {
 			500,
 			`{"code": "UNKNOWN_ERROR", "message": "Here is some error message"}`,
 			errors.IsInternalServerError,
+		},
+		{
+			Arguments{
+				ClusterID:   "v4-clusterid",
+				NodePoolID:  "nodepoolid",
+				AuthToken:   "token",
+				APIEndpoint: "https://mock-url",
+				Force:       true,
+			},
+			404,
+			`{"code": "RESOURCE_NOT_FOUND", "message": "Here is some error message"}`,
+			errors.IsClusterDoesNotSupportNodePools,
 		},
 	}
 
@@ -262,10 +286,28 @@ func TestExecuteWithError(t *testing.T) {
 			mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				if r.Method == "DELETE" && r.URL.Path == "/v5/clusters/clusterid/nodepools/nodepoolid/" {
-					w.WriteHeader(tc.responseStatusCode)
-					w.Write([]byte(tc.responseBody))
+					w.WriteHeader(tc.deleteResponseStatusCode)
+					w.Write([]byte(tc.deleteResponseBody))
+				} else if r.Method == "DELETE" && r.URL.Path == "/v5/clusters/bad-cluster-id/nodepools/nodepoolid/" {
+					w.WriteHeader(tc.deleteResponseStatusCode)
+					w.Write([]byte(tc.deleteResponseBody))
+				} else if r.Method == "DELETE" && r.URL.Path == "/v5/clusters/clusterid/nodepools/bad-nodepool-id/" {
+					w.WriteHeader(tc.deleteResponseStatusCode)
+					w.Write([]byte(tc.deleteResponseBody))
+				} else if r.Method == "GET" && r.URL.Path == "/v4/clusters/v4-clusterid/" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{
+						"id": "v4-clusterid",
+						"owner": "acme"
+					}`))
+				} else if r.Method == "GET" && r.URL.Path == "/v5/clusters/clusterid/" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{
+							"id": "clusterid",
+							"owner": "acme"
+						}`))
 				} else {
-					t.Errorf("Unsupported operation %s %s called in mock server", r.Method, r.URL.Path)
+					t.Logf("Unsupported operation %s %s called in mock server", r.Method, r.URL.Path)
 					w.WriteHeader(http.StatusNotFound)
 					w.Write([]byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Status for this cluster is not yet available."}`))
 				}
