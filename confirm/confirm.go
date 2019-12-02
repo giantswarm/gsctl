@@ -56,7 +56,7 @@ func AskStrict(s string, c string) bool {
 			return false
 		default:
 			fmt.Printf(color.YellowString("The input entered does not match."))
-			fmt.Printf(color.YellowString("Try again or abort the deletion typing 'n[o]': "))
+			fmt.Printf(color.YellowString("Try again or abort by typing 'n' or 'no': "))
 		}
 	}
 }
