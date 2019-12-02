@@ -196,7 +196,7 @@ func deleteCluster(args Arguments) (bool, error) {
 
 	// confirmation
 	if !args.force {
-		confirmed := confirm.Ask("Do you really want to delete cluster '" + clusterID + "'?")
+		confirmed := confirm.AskStrict("Do you really want to delete cluster '"+clusterID+"'? Please type the cluster ID to confirm", clusterID)
 		if !confirmed {
 			return false, nil
 		}
