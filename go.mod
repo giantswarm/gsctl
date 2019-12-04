@@ -25,7 +25,6 @@ require (
 	github.com/go-openapi/strfmt v0.19.3
 	github.com/go-openapi/swag v0.19.4 // indirect
 	github.com/gobuffalo/envy v1.8.1 // indirect
-	github.com/gobuffalo/logger v1.0.3 // indirect
 	github.com/gobuffalo/packr v1.30.1 // indirect
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/golang/protobuf v1.3.2 // indirect
