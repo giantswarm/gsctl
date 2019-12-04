@@ -159,7 +159,7 @@ func verifyPreconditions(args Arguments) error {
 
 	// Check if the cluster is v5, so we can provide helpful details.
 	{
-		clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.AuthToken)
+		clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -169,6 +169,7 @@ func verifyPreconditions(args Arguments) error {
 		if args.Verbose {
 			fmt.Println(color.WhiteString("Checking whether this is a v5 cluster"))
 		}
+
 		_, err = clientWrapper.GetClusterV5(args.ClusterID, auxParams)
 		if errors.IsClusterNotFoundError(err) {
 			// The cluster is not a v5 cluster. So do nothing.
@@ -276,7 +277,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 
 // scaleCluster is the actual function submitting the API call and handling the response.
 func scaleCluster(args Arguments) (*Result, error) {
-	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.AuthToken)
+	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
