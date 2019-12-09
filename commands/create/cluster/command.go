@@ -188,6 +188,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 
 	err := verifyPreconditions(aca)
 	if err != nil {
+		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
 
 		switch {
@@ -235,8 +236,8 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 
 	result, err := addCluster(args)
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		var headline string
 		var subtext string

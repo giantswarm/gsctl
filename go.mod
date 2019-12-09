@@ -12,7 +12,7 @@ require (
 	github.com/giantswarm/apiextensions v0.0.0-20190724141707-66d1dbb49135
 	github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatible
 	github.com/giantswarm/gscliauth v0.0.0-20190725094024-6a88de70cd85
-	github.com/giantswarm/gsclientgen v2.0.1-0.20191029094646-c110dc909ccf+incompatible
+	github.com/giantswarm/gsclientgen v2.0.3+incompatible
 	github.com/giantswarm/kubeconfig v0.0.0-20190403073151-2c7a472873b0
 	github.com/giantswarm/microerror v0.0.0-20191011121515-e0ebc4ecf5a5
 	github.com/giantswarm/micrologger v0.0.0-20190118112544-0926d9b7c541
@@ -24,8 +24,8 @@ require (
 	github.com/go-openapi/runtime v0.19.4-0.20190718232909-7a84b6517062
 	github.com/go-openapi/strfmt v0.19.3
 	github.com/go-openapi/swag v0.19.4 // indirect
+	github.com/gobuffalo/envy v1.8.1 // indirect
 	github.com/gobuffalo/packr v1.30.1 // indirect
-	github.com/gobuffalo/packr/v2 v2.7.1 // indirect
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/google/btree v1.0.0 // indirect
@@ -37,7 +37,6 @@ require (
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/json-iterator/go v1.1.7 // indirect
 	github.com/juju/errgo v0.0.0-20140925100237-08cceb5d0b53
-	github.com/karrick/godirwalk v1.12.0 // indirect
 	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.8 // indirect
@@ -49,10 +48,10 @@ require (
 	github.com/spf13/cobra v0.0.6-0.20190724161051-1c9c46d5c1cc
 	github.com/spf13/pflag v1.0.5 // indirect
 	go.mongodb.org/mongo-driver v1.0.4 // indirect
-	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
+	golang.org/x/crypto v0.0.0-20191128160524-b544559bb6d1 // indirect
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80 // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
-	golang.org/x/sys v0.0.0-20191020212454-3e7259c5e7c2 // indirect
+	golang.org/x/sys v0.0.0-20191128015809-6d18c012aee9 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect

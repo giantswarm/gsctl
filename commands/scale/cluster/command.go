@@ -159,7 +159,7 @@ func verifyPreconditions(args Arguments) error {
 
 	// Check if the cluster is v5, so we can provide helpful details.
 	{
-		clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.AuthToken)
+		clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -169,6 +169,7 @@ func verifyPreconditions(args Arguments) error {
 		if args.Verbose {
 			fmt.Println(color.WhiteString("Checking whether this is a v5 cluster"))
 		}
+
 		_, err = clientWrapper.GetClusterV5(args.ClusterID, auxParams)
 		if errors.IsClusterNotFoundError(err) {
 			// The cluster is not a v5 cluster. So do nothing.
@@ -240,6 +241,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		return
 	}
 
+	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 
 	var headline string
@@ -260,6 +262,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	case errors.IsCannotScaleCluster(err):
 		headline = "This cluster cannot be scaled as a whole."
 		subtext = microerror.Desc(err)
+
 	default:
 		headline = err.Error()
 	}
@@ -274,7 +277,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 
 // scaleCluster is the actual function submitting the API call and handling the response.
 func scaleCluster(args Arguments) (*Result, error) {
-	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.AuthToken)
+	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -341,7 +344,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 	if args.Verbose {
 		fmt.Println(color.WhiteString("Sending API request to modify cluster"))
 	}
-	_, err = clientWrapper.ModifyCluster(args.ClusterID, reqBody, auxParams)
+	_, err = clientWrapper.ModifyClusterV4(args.ClusterID, reqBody, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -356,8 +359,8 @@ func scaleCluster(args Arguments) (*Result, error) {
 func printResult(cmd *cobra.Command, commandLineArgs []string) {
 	args, err := collectArguments(cmd, commandLineArgs)
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
@@ -366,8 +369,8 @@ func printResult(cmd *cobra.Command, commandLineArgs []string) {
 	// Actually make the scaling request to the API.
 	result, err := scaleCluster(args)
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		var headline string
 		var subtext string

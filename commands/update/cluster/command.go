@@ -103,8 +103,8 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		return
 	}
 
-	errors.HandleCommonErrors(err)
 	client.HandleErrors(err)
+	errors.HandleCommonErrors(err)
 
 	headline := ""
 	subtext := ""
@@ -174,7 +174,7 @@ func updateCluster(args Arguments) (*result, error) {
 		if args.Verbose {
 			fmt.Println(color.WhiteString("Sending cluster modification request to v4 endpoint."))
 		}
-		response, err := clientWrapper.ModifyCluster(args.ClusterID, requestBody, auxParams)
+		response, err := clientWrapper.ModifyClusterV4(args.ClusterID, requestBody, auxParams)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -195,8 +195,8 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 
 	_, err := updateCluster(args)
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		headline := ""
 		subtext := ""

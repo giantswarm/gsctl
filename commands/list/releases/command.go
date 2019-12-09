@@ -94,6 +94,7 @@ func printValidation(cmd *cobra.Command, extraArgs []string) {
 		return
 	}
 
+	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 
 	fmt.Println(color.RedString(err.Error()))
@@ -120,8 +121,8 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 	releases, err := listReleases(args)
 
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		if clientErr, ok := err.(*clienterror.APIError); ok {
 			fmt.Println(color.RedString(clientErr.ErrorMessage))

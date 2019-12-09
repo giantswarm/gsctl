@@ -190,8 +190,8 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 	result, err := login(loginArgs)
 
 	if err != nil {
-		errors.HandleCommonErrors(err)
 		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
 
 		var headline = ""
 		var subtext = ""

@@ -3,6 +3,7 @@ package nodepool
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/fatih/color"
@@ -66,23 +67,30 @@ type result struct {
 	sumMemory           float64
 }
 
-func collectArguments(positionalArgs []string) Arguments {
+func collectArguments(positionalArgs []string) (*Arguments, error) {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
 
+	if !strings.Contains(positionalArgs[0], "/") {
+		return nil, microerror.Mask(errors.InvalidNodePoolIDArgumentError)
+	}
 	parts := strings.Split(positionalArgs[0], "/")
 
-	return Arguments{
+	return &Arguments{
 		apiEndpoint:       endpoint,
 		authToken:         token,
 		clusterID:         parts[0],
 		nodePoolID:        parts[1],
 		userProvidedToken: flags.Token,
-	}
+	}, nil
 }
 
-func verifyPreconditions(args Arguments, positionalArgs []string) error {
-	parsedArgs := collectArguments(positionalArgs)
+func verifyPreconditions(args *Arguments, positionalArgs []string) error {
+	parsedArgs, err := collectArguments(positionalArgs)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
 	if config.Config.Token == "" && parsedArgs.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
@@ -98,18 +106,38 @@ func verifyPreconditions(args Arguments, positionalArgs []string) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	args := collectArguments(positionalArgs)
-	err := verifyPreconditions(args, positionalArgs)
+	args, err := collectArguments(positionalArgs)
+	if err != nil {
+		err = verifyPreconditions(args, positionalArgs)
+	}
+
 	if err == nil {
 		return
 	}
 
+	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
+
+	headline := ""
+	subtext := ""
+
+	if errors.IsInvalidNodePoolIDArgument(err) {
+		headline = "Bad cluster/nodepool ID"
+		subtext = "Please give the cluster ID, followed by /, followed by the node pool ID."
+	} else {
+		headline = err.Error()
+	}
+
+	fmt.Println(color.RedString(headline))
+	if subtext != "" {
+		fmt.Println(subtext)
+	}
+	os.Exit(1)
 }
 
 // fetchNodePool collects all information we would want to display
 // on a node pools of a cluster.
-func fetchNodePool(args Arguments) (*result, error) {
+func fetchNodePool(args *Arguments) (*result, error) {
 	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -147,10 +175,18 @@ func fetchNodePool(args Arguments) (*result, error) {
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
-	args := collectArguments(positionalArgs)
-	data, err := fetchNodePool(args)
+	var data *result
+	args, err := collectArguments(positionalArgs)
+	if err == nil {
+		data, err = fetchNodePool(args)
+	}
+
 	if err != nil {
+		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
+
+		fmt.Println(color.RedString(err.Error()))
+		os.Exit(1)
 	}
 
 	table := []string{}

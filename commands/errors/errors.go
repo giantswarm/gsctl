@@ -128,6 +128,16 @@ func IsClusterNotFoundError(err error) bool {
 	return false
 }
 
+// NodePoolNotFoundError means that a node pool the user wants to interact with does not exist.
+var NodePoolNotFoundError = &microerror.Error{
+	Kind: "NodePoolNotFoundError",
+}
+
+// IsNodePoolNotFound asserts NodePoolNotFoundError.
+func IsNodePoolNotFound(err error) bool {
+	return microerror.Cause(err) == NodePoolNotFoundError
+}
+
 // ReleaseVersionMissingError means the required release version argument is missing
 var ReleaseVersionMissingError = &microerror.Error{
 	Kind: "ReleaseVersionMissingError",
@@ -687,6 +697,17 @@ func IsOutputFormatInvalid(err error) bool {
 	return microerror.Cause(err) == OutputFormatInvalidError
 }
 
+// ClusterDoesNotSupportNodePoolsError is raised when the user tries to do something with node pools
+// on a cluster that does not support node pools.
+var ClusterDoesNotSupportNodePoolsError = &microerror.Error{
+	Kind: "ClusterDoesNotSupportNodePoolsError",
+}
+
+// IsClusterDoesNotSupportNodePools asserts ClusterDoesNotSupportNodePoolsError.
+func IsClusterDoesNotSupportNodePools(err error) bool {
+	return microerror.Cause(err) == ClusterDoesNotSupportNodePoolsError
+}
+
 // NoOpError is raised when the user calls a command without any meaningful
 // parameters, resulting in no change/nothing done.
 var NoOpError = &microerror.Error{
@@ -697,4 +718,15 @@ var NoOpError = &microerror.Error{
 // IsNoOpError asserts NoOpError.
 func IsNoOpError(err error) bool {
 	return microerror.Cause(err) == NoOpError
+}
+
+// InvalidNodePoolIDArgumentError should be raised when the user gives a "clusterID/nodepoolID"
+// argument that is syntactically incorrect.
+var InvalidNodePoolIDArgumentError = &microerror.Error{
+	Kind: "InvalidNodePoolIDArgumentError",
+}
+
+// IsInvalidNodePoolIDArgument asserts InvalidNodePoolIDArgumentError.
+func IsInvalidNodePoolIDArgument(err error) bool {
+	return microerror.Cause(err) == InvalidNodePoolIDArgumentError
 }
