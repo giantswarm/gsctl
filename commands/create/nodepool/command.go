@@ -2,6 +2,7 @@
 package nodepool
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -146,16 +147,10 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 
 	zones := cmdAvailabilityZones
 	if zones != nil && len(zones) > 0 {
-		zones, err = expandZones(zones, endpoint, flags.Token)
+		zones, err = expandZones(zones, endpoint, flags.Token, flags.Verbose)
 		if err != nil {
 			return Arguments{}, microerror.Mask(err)
 		}
-	}
-
-	if flags.WorkersMin > 0 && flags.WorkersMax == 0 {
-		flags.WorkersMax = flags.WorkersMin
-	} else if flags.WorkersMax > 0 && flags.WorkersMin == 0 {
-		flags.WorkersMin = flags.WorkersMax
 	}
 
 	return Arguments{
@@ -179,10 +174,14 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 //
 // ["a", "b"] -> ["eu-central-1a", "eu-central-1b"]
 //
-func expandZones(zones []string, endpoint, userProvidedToken string) ([]string, error) {
+func expandZones(zones []string, endpoint, userProvidedToken string, verbose bool) ([]string, error) {
 	clientWrapper, err := client.NewWithConfig(endpoint, userProvidedToken)
 	if err != nil {
 		return []string{}, microerror.Mask(err)
+	}
+
+	if verbose {
+		fmt.Println(color.WhiteString("Fetching installation info to validate availability zones"))
 	}
 
 	info, err := clientWrapper.GetInfo(nil)
@@ -283,9 +282,12 @@ func createNodePool(args Arguments) (*result, error) {
 		}
 	}
 	if args.ScalingMin != 0 || args.ScalingMax != 0 {
-		requestBody.Scaling = &models.V5AddNodePoolRequestScaling{
-			Min: args.ScalingMin,
-			Max: args.ScalingMax,
+		requestBody.Scaling = &models.V5AddNodePoolRequestScaling{}
+		if args.ScalingMin != 0 {
+			requestBody.Scaling.Min = args.ScalingMin
+		}
+		if args.ScalingMax != 0 {
+			requestBody.Scaling.Max = args.ScalingMax
 		}
 	}
 
@@ -296,6 +298,12 @@ func createNodePool(args Arguments) (*result, error) {
 
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
+
+	if args.Verbose {
+		fmt.Println(color.WhiteString("Submitting node pool creation request"))
+		bodyJSON, _ := json.Marshal(requestBody)
+		fmt.Println(color.WhiteString("Request body: ") + string(bodyJSON))
+	}
 
 	response, err := clientWrapper.CreateNodePool(args.ClusterID, requestBody, auxParams)
 
