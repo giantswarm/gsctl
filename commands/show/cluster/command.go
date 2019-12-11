@@ -493,7 +493,7 @@ func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 			fmt.Println(columnize.SimpleFormat(clusterTable))
 
 			fmt.Println()
-			fmt.Printf("This cluster has node pools. For information on worker nodes, use\n\n")
+			fmt.Printf("This cluster has node pools. For details, use\n\n")
 			fmt.Printf("    %s\n\n", color.YellowString("gsctl list nodepools %s", details.ID))
 			fmt.Printf("For details on a specific node pool, use\n\n")
 			fmt.Printf("    %s\n\n", color.YellowString("gsctl show nodepool %s/<nodepool-id>", details.ID))
