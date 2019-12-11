@@ -153,12 +153,6 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		}
 	}
 
-	if flags.WorkersMin > 0 && flags.WorkersMax == 0 {
-		flags.WorkersMax = flags.WorkersMin
-	} else if flags.WorkersMax > 0 && flags.WorkersMin == 0 {
-		flags.WorkersMin = flags.WorkersMax
-	}
-
 	return Arguments{
 		APIEndpoint:           endpoint,
 		AuthToken:             token,
@@ -288,9 +282,12 @@ func createNodePool(args Arguments) (*result, error) {
 		}
 	}
 	if args.ScalingMin != 0 || args.ScalingMax != 0 {
-		requestBody.Scaling = &models.V5AddNodePoolRequestScaling{
-			Min: args.ScalingMin,
-			Max: args.ScalingMax,
+		requestBody.Scaling = &models.V5AddNodePoolRequestScaling{}
+		if args.ScalingMin != 0 {
+			requestBody.Scaling.Min = args.ScalingMin
+		}
+		if args.ScalingMax != 0 {
+			requestBody.Scaling.Max = args.ScalingMax
 		}
 	}
 
