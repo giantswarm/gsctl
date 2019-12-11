@@ -486,11 +486,25 @@ func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 	// once KVM is supported in V5.
 
 	// Aggregate of node pools.
-	if nodePools != nil && len(*nodePools) > 0 {
-		clusterTable = append(clusterTable, formatNodePoolDetails(nodePools)...)
-	}
+	if nodePools != nil {
+		if len(*nodePools) > 0 {
+			clusterTable = append(clusterTable, formatNodePoolDetails(nodePools)...)
 
-	fmt.Println(columnize.SimpleFormat(clusterTable))
+			fmt.Println(columnize.SimpleFormat(clusterTable))
+
+			fmt.Println()
+			fmt.Printf("This cluster has node pools. For information on worker nodes, use\n\n")
+			fmt.Printf("    %s\n\n", color.YellowString("gsctl list nodepools %s", details.ID))
+			fmt.Printf("For details on a specific node pool, use\n\n")
+			fmt.Printf("    %s\n\n", color.YellowString("gsctl show nodepool %s/<nodepool-id>", details.ID))
+		} else {
+			fmt.Println(columnize.SimpleFormat(clusterTable))
+
+			fmt.Println()
+			fmt.Print("This cluster has no node pools. Find out how to add a node pool using\n\n")
+			fmt.Printf("    %s\n\n", color.YellowString("gsctl create nodepool --help"))
+		}
+	}
 }
 
 // formatDate takes a date/time string from the API and returns a formated version.
