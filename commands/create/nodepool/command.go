@@ -2,6 +2,7 @@
 package nodepool
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -296,6 +297,11 @@ func createNodePool(args Arguments) (*result, error) {
 
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
+
+	if args.Verbose {
+		bodyJSON, _ := json.Marshal(requestBody)
+		fmt.Println(color.WhiteString("Request body: ") + string(bodyJSON))
+	}
 
 	response, err := clientWrapper.CreateNodePool(args.ClusterID, requestBody, auxParams)
 
