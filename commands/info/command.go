@@ -192,8 +192,15 @@ func printInfo(cmd *cobra.Command, args []string) {
 
 	if err != nil {
 		fmt.Println()
+
+		// if this is a common error, handle it in the standard way and exit.
+		client.HandleErrors(err)
+		errors.HandleCommonErrors(err)
+
+		// handle non-standard errors.
 		fmt.Println(color.RedString("Some error occurred:"))
 		fmt.Println(err.Error())
+		os.Exit(1)
 	}
 }
 
