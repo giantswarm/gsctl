@@ -503,7 +503,7 @@ func TestMalformedResponse(t *testing.T) {
 	}
 
 	_, err = gsClient.GetClusterV4("cluster-id", nil)
-	if !clienterror.IsMalformedResponseError(err) {
+	if !clienterror.IsMalformedResponse(err) {
 		t.Errorf("Expected 'Malformed response' error, got %s", err.Error())
 	}
 }
