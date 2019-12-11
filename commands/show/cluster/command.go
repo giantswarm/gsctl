@@ -243,7 +243,7 @@ func getClusterDetails(args Arguments) (
 		// If this is a "Malformed response" error, we assume the API is not capable of
 		// handling V5 yet. TODO: This can be phased out once the API is up-to-date.
 		// In both these case we continue below, otherwise we return the error.
-		if !errors.IsClusterNotFoundError(v5Err) && !clienterror.IsMalformedResponseError(v5Err) && !clienterror.IsBadRequestError(v5Err) {
+		if !errors.IsClusterNotFoundError(v5Err) && !clienterror.IsMalformedResponse(v5Err) && !clienterror.IsBadRequestError(v5Err) {
 			return nil, nil, nil, nil, nil, microerror.Mask(v5Err)
 		}
 

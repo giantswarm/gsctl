@@ -76,6 +76,11 @@ func HandleErrors(err error) {
 		httpStatusCode = convertedErr.HTTPStatusCode
 		message = convertedErr.ErrorMessage
 		details = convertedErr.ErrorDetails
+
+		if clienterror.IsMalformedResponse(err) {
+			message = "Malformed response - No API access?"
+			subtext = convertedErr.ErrorDetails
+		}
 	} else if convertedErr, ok := err.(*clienterror.APIError); ok {
 		httpStatusCode = convertedErr.HTTPStatusCode
 		message = convertedErr.ErrorMessage

@@ -7,9 +7,9 @@ import (
 	"github.com/giantswarm/microerror"
 )
 
-// IsMalformedResponseError checks whether the error is
+// IsMalformedResponse checks whether the error is
 // "Malformed response", which can mean several things.
-func IsMalformedResponseError(err error) bool {
+func IsMalformedResponse(err error) bool {
 	return err.Error() == "Malformed response"
 }
 
