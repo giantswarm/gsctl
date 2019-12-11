@@ -147,7 +147,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 
 	zones := cmdAvailabilityZones
 	if zones != nil && len(zones) > 0 {
-		zones, err = expandZones(zones, endpoint, flags.Token)
+		zones, err = expandZones(zones, endpoint, flags.Token, flags.Verbose)
 		if err != nil {
 			return Arguments{}, microerror.Mask(err)
 		}
@@ -180,10 +180,14 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 //
 // ["a", "b"] -> ["eu-central-1a", "eu-central-1b"]
 //
-func expandZones(zones []string, endpoint, userProvidedToken string) ([]string, error) {
+func expandZones(zones []string, endpoint, userProvidedToken string, verbose bool) ([]string, error) {
 	clientWrapper, err := client.NewWithConfig(endpoint, userProvidedToken)
 	if err != nil {
 		return []string{}, microerror.Mask(err)
+	}
+
+	if verbose {
+		fmt.Println(color.WhiteString("Fetching installation info to validate availability zones"))
 	}
 
 	info, err := clientWrapper.GetInfo(nil)
@@ -299,6 +303,7 @@ func createNodePool(args Arguments) (*result, error) {
 	auxParams.ActivityName = activityName
 
 	if args.Verbose {
+		fmt.Println(color.WhiteString("Submitting node pool creation request"))
 		bodyJSON, _ := json.Marshal(requestBody)
 		fmt.Println(color.WhiteString("Request body: ") + string(bodyJSON))
 	}
