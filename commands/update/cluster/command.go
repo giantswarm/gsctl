@@ -51,7 +51,7 @@ func init() {
 // initFlags initializes flags in a re-usable way, so we can call it from multiple tests.
 func initFlags() {
 	Command.ResetFlags()
-	Command.Flags().StringVarP(&flags.Name, "name", "n", "", "name or purpose description of the node pool")
+	Command.Flags().StringVarP(&flags.Name, "name", "n", "", "new cluster name")
 }
 
 // Arguments represents all the ways the user can influence the command.
