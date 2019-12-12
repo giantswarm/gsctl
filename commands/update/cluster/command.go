@@ -1,4 +1,4 @@
-// Package cluster implements the "update nodepool" command.
+// Package cluster implements the "update cluster" command.
 package cluster
 
 import (
@@ -18,13 +18,13 @@ import (
 )
 
 var (
-	// Command is the cobra command for 'gsctl show nodepool'
+	// Command is the cobra command for 'gsctl update cluster'
 	Command = &cobra.Command{
 		Use: "cluster <cluster-id>",
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
 		Args:  cobra.ExactArgs(1),
 		Short: "Modify cluster details",
-		Long: `Change the name oif a cluster
+		Long: `Change the name of a cluster
 
 Examples:
 
