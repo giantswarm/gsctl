@@ -74,7 +74,7 @@ const (
 	createKubeconfigActivityName = "create-kubeconfig"
 
 	// url to intallation instructions
-	kubectlInstallURL = "http://kubernetes.io/docs/user-guide/prereqs/"
+	kubectlInstallURL = "https://kubernetes.io/docs/tasks/tools/install-kubectl/"
 
 	// windows download page
 	kubectlWindowsInstallURL = "https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md"
