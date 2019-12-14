@@ -24,7 +24,7 @@ TESTBIN := build/bin/${BIN}-${GOOS}-${GOARCH}
 all: build
 
 prebuild:
-	go get -u github.com/gobuffalo/packr/packr
+	go install github.com/gobuffalo/packr/packr
 	packr
 
 # build binary for current platform
