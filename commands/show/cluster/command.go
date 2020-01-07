@@ -21,6 +21,7 @@ import (
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/nodespec"
 	"github.com/giantswarm/gsctl/util"
+	"github.com/giantswarm/gsctl/webui"
 )
 
 var (
@@ -398,10 +399,13 @@ func printV4Result(args Arguments, clusterDetails *models.V4ClusterDetailsRespon
 		}
 	}
 
+	webUIURL, _ := webui.ClusterDetailsURL(args.apiEndpoint, clusterDetails.ID, clusterDetails.Owner)
+
 	// print table
 	output := []string{}
 
 	output = append(output, color.YellowString("ID:")+"|"+clusterDetails.ID)
+
 	output = append(output, color.YellowString("Name:")+"|"+stringOrPlaceholder(clusterDetails.Name))
 	output = append(output, color.YellowString("Created:")+"|"+formatDate(clusterDetails.CreateDate))
 	output = append(output, color.YellowString("Organization:")+"|"+clusterDetails.Owner)
@@ -458,6 +462,10 @@ func printV4Result(args Arguments, clusterDetails *models.V4ClusterDetailsRespon
 		}
 	}
 
+	if webUIURL != "" {
+		output = append(output, color.YellowString("Web UI:")+"|"+webUIURL)
+	}
+
 	fmt.Println(columnize.SimpleFormat(output))
 }
 
@@ -465,6 +473,8 @@ func printV4Result(args Arguments, clusterDetails *models.V4ClusterDetailsRespon
 func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 	credentialDetails *models.V4GetCredentialResponse,
 	nodePools *models.V5GetNodePoolsResponse) {
+
+	webUIURL, _ := webui.ClusterDetailsURL(args.apiEndpoint, details.ID, details.Owner)
 
 	// clusterTable is the table for cluster information.
 	clusterTable := []string{}
@@ -480,6 +490,10 @@ func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 	// BYOC credentials.
 	if credentialDetails != nil && credentialDetails.ID != "" {
 		clusterTable = append(clusterTable, formatCredentialDetails(credentialDetails)...)
+	}
+
+	if webUIURL != "" {
+		clusterTable = append(clusterTable, color.YellowString("Web UI:")+"|"+webUIURL)
 	}
 
 	// TODO: Add KVM ingress port mappings here
