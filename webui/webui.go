@@ -30,7 +30,7 @@ func BaseURL(apiEndpoint string) (string, error) {
 	}
 
 	if hostNameParts[0] != apiStandardHostName {
-		return "", microerror.Maskf(unsupportedHostNameError, "host name must start with 'api'")
+		return "", microerror.Maskf(unsupportedHostNameError, fmt.Sprintf("host name must start with '%s'", apiStandardHostName))
 	}
 
 	hostNameParts[0] = webUIStandardHostName
