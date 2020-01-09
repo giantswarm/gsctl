@@ -23,9 +23,15 @@ TESTBIN := build/bin/${BIN}-${GOOS}-${GOARCH}
 
 all: build
 
+# install and execute packr in a way that works both locally and in CI
 prebuild:
-	go install github.com/gobuffalo/packr/packr
-	packr
+	docker run --rm \
+		-v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		-v $(shell pwd)/go-build-cache:/.cache \
+		-e GOPATH=/go -e GOOS=linux -e GOARCH=amd64 \
+		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
+		--user ${USERID}:${GROUPID} \
+		golang:$(GOVERSION)-alpine /bin/sh -c "go install github.com/gobuffalo/packr/packr && packr"
 
 # build binary for current platform
 build: prebuild build/bin/$(BIN)-$(GOOS)-$(GOARCH)
