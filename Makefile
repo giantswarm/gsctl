@@ -25,6 +25,8 @@ all: build
 
 # install and execute packr in a way that works both locally and in CI
 prebuild:
+	mkdir -p $(shell pwd)/go-build-cache
+	chown -R ${USERID}:${GROUPID} $(shell pwd)/go-build-cache
 	docker run --rm \
 		-v $(shell pwd):/go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		-v $(shell pwd)/go-build-cache:/.cache \
