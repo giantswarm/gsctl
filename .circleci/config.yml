@@ -61,24 +61,6 @@ jobs:
           name: Update scoop bucket
           command: ./.circleci/update-scoop.sh $CIRCLE_TAG
 
-
-  # TODO: remove when this is working.
-  fixdist:
-    machine: true
-    steps:
-      - checkout
-      - run:
-          name: Create VERSION file
-          command: echo "100.0.0" > ./VERSION
-      - run:
-          name: Store code signing certificate
-          command: |
-            mkdir -p certs
-            echo $CODE_SIGNING_CERT_BUNDLE_BASE64 | base64 -d > certs/code-signing.p12
-      - run:
-          name: Create binary distribution for all platforms
-          command: make bin-dist
-
 workflows:
   version: 2
   build:
@@ -92,8 +74,3 @@ workflows:
               only: /^[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)*$/
             branches:
               ignore: /.*/
-      # TODO: remove when this is working.
-      - fixdist:
-          filters:
-            branches:
-              only: fix-make-prebuild
