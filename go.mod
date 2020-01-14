@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/Jeffail/gabs v1.4.0
-	github.com/Masterminds/semver v1.4.2
+	github.com/Masterminds/semver v1.5.0
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
 	github.com/fatih/color v1.7.0
