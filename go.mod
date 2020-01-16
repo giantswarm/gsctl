@@ -32,8 +32,6 @@ require (
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/juju/errgo v0.0.0-20140925100237-08cceb5d0b53
 	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e // indirect
-	github.com/mattn/go-colorable v0.0.9 // indirect
-	github.com/mattn/go-isatty v0.0.8 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/rogpeppe/go-internal v1.5.0 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20190402232053-79abb63cd66e // indirect
