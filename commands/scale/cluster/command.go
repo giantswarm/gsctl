@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/confirm"
 	"github.com/giantswarm/gsctl/flags"
@@ -171,7 +172,7 @@ func verifyPreconditions(args Arguments) error {
 		}
 
 		_, err = clientWrapper.GetClusterV5(args.ClusterID, auxParams)
-		if errors.IsClusterNotFoundError(err) || errors.IsBadRequestError(err) {
+		if errors.IsClusterNotFoundError(err) || clienterror.IsBadRequestError(err) {
 			// The cluster is not a v5 cluster. So do nothing.
 		} else if err != nil {
 			return microerror.Mask(err)
