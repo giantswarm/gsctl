@@ -27,7 +27,7 @@ require (
 	github.com/gobuffalo/packr v1.30.1
 	github.com/google/go-cmp v0.4.0
 	github.com/googleapis/gnostic v0.3.1 // indirect
-	github.com/hashicorp/go-rootcerts v1.0.1
+	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/howeyc/gopass v0.0.0-20170109162249-bf9dde6d0d2c
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/juju/errgo v0.0.0-20140925100237-08cceb5d0b53
