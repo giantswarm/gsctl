@@ -171,7 +171,7 @@ func verifyPreconditions(args Arguments) error {
 		}
 
 		_, err = clientWrapper.GetClusterV5(args.ClusterID, auxParams)
-		if errors.IsClusterNotFoundError(err) {
+		if errors.IsClusterNotFoundError(err) || errors.IsProviderNotSupportedError(err) {
 			// The cluster is not a v5 cluster. So do nothing.
 		} else if err != nil {
 			return microerror.Mask(err)
