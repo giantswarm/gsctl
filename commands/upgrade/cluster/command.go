@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/confirm"
 	"github.com/giantswarm/gsctl/flags"
@@ -227,7 +228,7 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 		}
 
 		responseV5, v5err := clientWrapper.GetClusterV5(args.ClusterID, auxParams)
-		if errors.IsClusterNotFoundError(v5err) {
+		if errors.IsClusterNotFoundError(v5err) || clienterror.IsBadRequestError(v5err) {
 			if args.Verbose {
 				fmt.Println(color.WhiteString("Not found via v5 endpoint. Attempt to fetch v4 cluster details."))
 			}
