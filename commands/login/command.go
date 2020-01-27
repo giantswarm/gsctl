@@ -47,6 +47,8 @@ The -e or --endpoint argument can be omitted if an endpoint is already selected.
 		PreRun:  loginPreRunOutput,
 		Run:     loginRunOutput,
 	}
+
+	arguments Arguments
 )
 
 func init() {
@@ -133,7 +135,7 @@ func loginPreRunOutput(cmd *cobra.Command, positionalArgs []string) {
 
 // verifyLoginPreconditions does the pre-checks and returns an error in case something's wrong.
 func verifyLoginPreconditions(positionalArgs []string) error {
-	args := collectArguments()
+	arguments = collectArguments()
 
 	// using auth token flag? The 'login' command is the only exception
 	// where we can't accept this argument.
@@ -155,7 +157,7 @@ func verifyLoginPreconditions(positionalArgs []string) error {
 
 		// interactive password prompt
 		if cmdPassword == "" {
-			fmt.Printf("Password for %s on %s: ", color.CyanString(cmdEmail), color.CyanString(args.apiEndpoint))
+			fmt.Printf("Password for %s on %s: ", color.CyanString(cmdEmail), color.CyanString(arguments.apiEndpoint))
 			password, err := gopass.GetPasswd()
 			if err != nil {
 				return err
@@ -185,9 +187,7 @@ func login(loginArgs Arguments) (loginResult, error) {
 // loginRunOutput executes the login logic and
 // prints output and sets the exit code.
 func loginRunOutput(cmd *cobra.Command, args []string) {
-	loginArgs := collectArguments()
-
-	result, err := login(loginArgs)
+	result, err := login(arguments)
 
 	if err != nil {
 		client.HandleErrors(err)
@@ -202,7 +202,7 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 			subtext += " Please make sure to provide a string with more than white space characters."
 		case errors.IsInvalidCredentialsError(err):
 			headline = "Bad password or email address"
-			subtext = fmt.Sprintf("Could not log you in to %s.", color.CyanString(loginArgs.apiEndpoint))
+			subtext = fmt.Sprintf("Could not log you in to %s.", color.CyanString(arguments.apiEndpoint))
 			subtext += " The email or the password provided (or both) was incorrect."
 		case errors.IsUserAccountInactiveError(err):
 			headline = "User account has expired or is deactivated"
@@ -230,7 +230,7 @@ func loginRunOutput(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	if result.loggedOutBefore && loginArgs.verbose {
+	if result.loggedOutBefore && arguments.verbose {
 		fmt.Println("You have been logged out from your previous session.")
 	}
 

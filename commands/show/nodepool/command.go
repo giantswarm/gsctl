@@ -42,6 +42,8 @@ Examples:
 		// Run calls the business function and prints results and errors.
 		Run: printResult,
 	}
+
+	arguments *Arguments
 )
 
 const (
@@ -105,9 +107,11 @@ func verifyPreconditions(args *Arguments, positionalArgs []string) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	args, err := collectArguments(positionalArgs)
+	var err error
+	arguments, err = collectArguments(positionalArgs)
+
 	if err != nil {
-		err = verifyPreconditions(args, positionalArgs)
+		err = verifyPreconditions(arguments, positionalArgs)
 	}
 
 	if err == nil {
@@ -174,11 +178,7 @@ func fetchNodePool(args *Arguments) (*result, error) {
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
-	var data *result
-	args, err := collectArguments(positionalArgs)
-	if err == nil {
-		data, err = fetchNodePool(args)
-	}
+	data, err := fetchNodePool(arguments)
 
 	if err != nil {
 		client.HandleErrors(err)

@@ -61,6 +61,8 @@ Example:
 		// Run is the function that actually executes what we want to do.
 		Run: upgradeClusterExecutionOutput,
 	}
+
+	arguments Arguments
 )
 
 // Arguments is the struct to pass to our business function and
@@ -111,12 +113,12 @@ func initFlags() {
 
 // Prints results of our pre-validation
 func upgradeClusterValidationOutput(cmd *cobra.Command, cmdLineArgs []string) {
-	args := collectArguments(cmdLineArgs)
+	arguments = collectArguments(cmdLineArgs)
 
 	headline := ""
 	subtext := ""
 
-	err := validateUpgradeClusterPreconditions(args, cmdLineArgs)
+	err := validateUpgradeClusterPreconditions(arguments, cmdLineArgs)
 
 	if err != nil {
 		client.HandleErrors(err)
@@ -163,8 +165,7 @@ func validateUpgradeClusterPreconditions(args Arguments, cmdLineArgs []string) e
 // upgradeClusterExecutionOutput executes our business function and displays the result,
 // both in case of success or error
 func upgradeClusterExecutionOutput(cmd *cobra.Command, cmdLineArgs []string) {
-	args := collectArguments(cmdLineArgs)
-	result, err := upgradeCluster(args)
+	result, err := upgradeCluster(arguments)
 
 	if err != nil {
 		client.HandleErrors(err)
@@ -184,7 +185,7 @@ func upgradeClusterExecutionOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			subtext = "Please check the available releases using 'gsctl list releases'."
 		case errors.IsClusterNotFoundError(err):
 			headline = "The cluster does not exist."
-			subtext = fmt.Sprintf("We couldn't find a cluster with the ID '%s' via API endpoint %s.", args.ClusterID, args.APIEndpoint)
+			subtext = fmt.Sprintf("We couldn't find a cluster with the ID '%s' via API endpoint %s.", arguments.ClusterID, arguments.APIEndpoint)
 		case errors.IsCommandAbortedError(err):
 			headline = "Not upgrading."
 		default:

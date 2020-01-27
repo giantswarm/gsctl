@@ -46,6 +46,8 @@ Examples:
 
 	// Time after which a new cluster should be up, roughly.
 	clusterCreationExpectedDuration = 20 * time.Minute
+
+	arguments Arguments
 )
 
 const (
@@ -79,8 +81,8 @@ func collectArguments() Arguments {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	args := collectArguments()
-	err := verifyPreconditions(args, cmdLineArgs)
+	arguments = collectArguments()
+	err := verifyPreconditions(arguments, cmdLineArgs)
 
 	if err == nil {
 		return
@@ -340,14 +342,13 @@ func sumWorkerMemory(numWorkers int, workerDetails []*models.V4ClusterDetailsRes
 // printResult fetches cluster info from the API, which involves
 // several API calls, and prints the output.
 func printResult(cmd *cobra.Command, cmdLineArgs []string) {
-	args := collectArguments()
-	args.clusterID = cmdLineArgs[0]
+	arguments.clusterID = cmdLineArgs[0]
 
-	if args.verbose {
-		fmt.Println(color.WhiteString("Fetching details for cluster %s.", args.clusterID))
+	if arguments.verbose {
+		fmt.Println(color.WhiteString("Fetching details for cluster %s.", arguments.clusterID))
 	}
 
-	clusterDetailsV4, clusterDetailsV5, nodePools, clusterStatus, credentialDetails, err := getClusterDetails(args)
+	clusterDetailsV4, clusterDetailsV5, nodePools, clusterStatus, credentialDetails, err := getClusterDetails(arguments)
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -358,7 +359,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 		switch {
 		case errors.IsClusterNotFoundError(err):
 			headline = "Cluster not found"
-			subtext = fmt.Sprintf("Either there is no cluster with ID '%s', or you have no access to it.\n", args.clusterID)
+			subtext = fmt.Sprintf("Either there is no cluster with ID '%s', or you have no access to it.\n", arguments.clusterID)
 			subtext += "Please check whether the cluster is listed when executing 'gsctl list clusters'."
 		default:
 			headline = "Unknown error"
@@ -373,9 +374,9 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	if clusterDetailsV4 != nil {
-		printV4Result(args, clusterDetailsV4, clusterStatus, credentialDetails)
+		printV4Result(arguments, clusterDetailsV4, clusterStatus, credentialDetails)
 	} else if clusterDetailsV5 != nil {
-		printV5Result(args, clusterDetailsV5, credentialDetails, nodePools)
+		printV5Result(arguments, clusterDetailsV5, credentialDetails, nodePools)
 	}
 }
 

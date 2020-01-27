@@ -38,6 +38,8 @@ Examples:
 		// Run calls the business function and prints results and errors.
 		Run: printResult,
 	}
+
+	arguments Arguments
 )
 
 const (
@@ -96,8 +98,8 @@ func verifyPreconditions(args Arguments) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	args := collectArguments(positionalArgs)
-	err := verifyPreconditions(args)
+	arguments = collectArguments(positionalArgs)
+	err := verifyPreconditions(arguments)
 
 	if err == nil {
 		return
@@ -191,9 +193,7 @@ func updateCluster(args Arguments) (*result, error) {
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
-	args := collectArguments(positionalArgs)
-
-	_, err := updateCluster(args)
+	_, err := updateCluster(arguments)
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -215,5 +215,5 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		os.Exit(1)
 	}
 
-	fmt.Println(color.GreenString("Cluster '%s' has been modified.", args.ClusterID))
+	fmt.Println(color.GreenString("Cluster '%s' has been modified.", arguments.ClusterID))
 }

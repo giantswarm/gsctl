@@ -36,6 +36,8 @@ var (
 	cmdOutput string
 
 	cmdShowDeleted bool
+
+	arguments Arguments
 )
 
 const (
@@ -83,8 +85,8 @@ func collectArguments() Arguments {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	args := collectArguments()
-	err := verifyListClusterPreconditions(args)
+	arguments = collectArguments()
+	err := verifyListClusterPreconditions(arguments)
 
 	if err == nil {
 		return
@@ -123,9 +125,7 @@ func verifyListClusterPreconditions(args Arguments) error {
 
 // printResult prints a table with all clusters the user has access to
 func printResult(cmd *cobra.Command, cmdLineArgs []string) {
-	args := collectArguments()
-
-	output, err := getClustersOutput(args)
+	output, err := getClustersOutput(arguments)
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)

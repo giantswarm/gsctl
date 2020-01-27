@@ -36,6 +36,8 @@ Examples:
 		// Run calls the business function and prints results and errors.
 		Run: printResult,
 	}
+
+	arguments Arguments
 )
 
 const (
@@ -67,8 +69,8 @@ func collectArguments() Arguments {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	args := collectArguments()
-	err := verifyShowReleasePreconditions(args, cmdLineArgs)
+	arguments = collectArguments()
+	err := verifyShowReleasePreconditions(arguments, cmdLineArgs)
 
 	if err == nil {
 		return
@@ -127,9 +129,8 @@ func getReleaseDetails(args Arguments) (*models.V4ReleaseListItem, error) {
 
 // printResult prints the release information on stdout
 func printResult(cmd *cobra.Command, cmdLineArgs []string) {
-	args := collectArguments()
-	args.releaseVersion = cmdLineArgs[0]
-	release, err := getReleaseDetails(args)
+	arguments.releaseVersion = cmdLineArgs[0]
+	release, err := getReleaseDetails(arguments)
 
 	// error output
 	if err != nil {

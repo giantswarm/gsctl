@@ -46,6 +46,8 @@ var (
 	}
 
 	cmdOutput string
+
+	arguments Arguments
 )
 
 // Arguments are the actual arguments used to call the
@@ -100,8 +102,8 @@ func initFlags() {
 // printValidation does our pre-checks and shows errors, in case
 // something is missing.
 func printValidation(cmd *cobra.Command, extraArgs []string) {
-	args := collectArguments()
-	err := listKeypairsValidate(&args)
+	arguments = collectArguments()
+	err := listKeypairsValidate(&arguments)
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -145,8 +147,7 @@ func listKeypairsValidate(args *Arguments) error {
 // printResult is the function called to list keypairs and display
 // errors in case they happen
 func printResult(cmd *cobra.Command, extraArgs []string) {
-	args := collectArguments()
-	result, err := listKeypairs(args)
+	result, err := listKeypairs(arguments)
 
 	// error output
 	if err != nil {
@@ -159,7 +160,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 		switch {
 		case errors.IsClusterNotFoundError(err):
 			headline = "The cluster does not exist."
-			subtext = fmt.Sprintf("We couldn't find a cluster with the ID '%s' via API endpoint %s.", args.clusterID, args.apiEndpoint)
+			subtext = fmt.Sprintf("We couldn't find a cluster with the ID '%s' via API endpoint %s.", arguments.clusterID, arguments.apiEndpoint)
 		default:
 			headline = err.Error()
 		}
@@ -171,7 +172,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 		os.Exit(1)
 	}
 
-	if args.outputFormat == "json" {
+	if arguments.outputFormat == "json" {
 		outputBytes, err := json.MarshalIndent(result.keypairs, outputJSONPrefix, outputJSONIndent)
 		if err != nil {
 			fmt.Println(color.RedString("Error while encoding JSON"))
@@ -212,9 +213,9 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 				row := []string{
 					util.ShortDate(createdTime),
 					expires,
-					util.Truncate(formatting.CleanKeypairID(keypair.ID), 10, !args.full),
+					util.Truncate(formatting.CleanKeypairID(keypair.ID), 10, !arguments.full),
 					keypair.Description,
-					util.Truncate(keypair.CommonName, 24, !args.full),
+					util.Truncate(keypair.CommonName, 24, !arguments.full),
 					keypair.CertificateOrganizations,
 				}
 				output = append(output, strings.Join(row, "|"))

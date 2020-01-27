@@ -53,6 +53,8 @@ Examples:
 	cmdWorkersMaxName = "workers-max"
 	cmdWorkersMinName = "workers-min"
 	cmdWorkersNumName = "num-workers"
+
+	arguments Arguments
 )
 
 const (
@@ -230,13 +232,15 @@ func verifyPreconditions(args Arguments) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	args, err := collectArguments(cmd, positionalArgs)
+	var err error
+	arguments, err = collectArguments(cmd, positionalArgs)
+
 	if err != nil {
 		fmt.Println(color.RedString(err.Error()))
 		os.Exit(1)
 	}
 
-	err = verifyPreconditions(args)
+	err = verifyPreconditions(arguments)
 
 	if err == nil {
 		return
@@ -358,7 +362,8 @@ func scaleCluster(args Arguments) (*Result, error) {
 
 // printResult invokes the actual cluster scaling and prints the result and/or errors.
 func printResult(cmd *cobra.Command, commandLineArgs []string) {
-	args, err := collectArguments(cmd, commandLineArgs)
+	var err error
+	arguments, err = collectArguments(cmd, commandLineArgs)
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -368,7 +373,7 @@ func printResult(cmd *cobra.Command, commandLineArgs []string) {
 	}
 
 	// Actually make the scaling request to the API.
-	result, err := scaleCluster(args)
+	result, err := scaleCluster(arguments)
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)

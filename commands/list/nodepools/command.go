@@ -52,6 +52,8 @@ To list all clusters you have access to, use 'gsctl list clusters'.`,
 		PreRun: printValidation,
 		Run:    printResult,
 	}
+
+	arguments Arguments
 )
 
 const activityName = "list-nodepools"
@@ -100,8 +102,8 @@ func verifyPreconditions(args Arguments, positionalArgs []string) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	args := collectArguments(positionalArgs)
-	err := verifyPreconditions(args, positionalArgs)
+	arguments = collectArguments(positionalArgs)
+	err := verifyPreconditions(arguments, positionalArgs)
 	if err == nil {
 		return
 	}
@@ -168,8 +170,7 @@ func fetchNodePools(args Arguments) ([]*resultRow, error) {
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
-	args := collectArguments(positionalArgs)
-	nodePools, err := fetchNodePools(args)
+	nodePools, err := fetchNodePools(arguments)
 
 	if err != nil {
 		client.HandleErrors(err)
