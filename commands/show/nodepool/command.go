@@ -42,8 +42,6 @@ Examples:
 		// Run calls the business function and prints results and errors.
 		Run: printResult,
 	}
-
-	arguments *Arguments
 )
 
 const (
@@ -86,20 +84,15 @@ func collectArguments(positionalArgs []string) (*Arguments, error) {
 	}, nil
 }
 
-func verifyPreconditions(args *Arguments, positionalArgs []string) error {
-	parsedArgs, err := collectArguments(positionalArgs)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	if config.Config.Token == "" && parsedArgs.authToken == "" {
+func verifyPreconditions(args *Arguments) error {
+	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 
-	if parsedArgs.clusterID == "" {
+	if args.clusterID == "" {
 		return microerror.Mask(errors.ClusterIDMissingError)
 	}
-	if parsedArgs.nodePoolID == "" {
+	if args.nodePoolID == "" {
 		return microerror.Mask(errors.NodePoolIDMissingError)
 	}
 
@@ -107,11 +100,10 @@ func verifyPreconditions(args *Arguments, positionalArgs []string) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	var err error
-	arguments, err = collectArguments(positionalArgs)
+	args, err := collectArguments(positionalArgs)
 
 	if err != nil {
-		err = verifyPreconditions(arguments, positionalArgs)
+		err = verifyPreconditions(args)
 	}
 
 	if err == nil {
@@ -178,7 +170,11 @@ func fetchNodePool(args *Arguments) (*result, error) {
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
-	data, err := fetchNodePool(arguments)
+	var data *result
+	args, err := collectArguments(positionalArgs)
+	if err == nil {
+		data, err = fetchNodePool(args)
+	}
 
 	if err != nil {
 		client.HandleErrors(err)

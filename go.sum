@@ -82,8 +82,14 @@ github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatibl
 github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatible/go.mod h1:V/9Aa/R3o321yAbarEACmGhTg0SiPge6nFDtIH7CTvE=
 github.com/giantswarm/gscliauth v0.0.0-20190725094024-6a88de70cd85 h1:LYeRTofeQacoK7jz0esmnbCXsVAIXUUAogzJK9ZlDEo=
 github.com/giantswarm/gscliauth v0.0.0-20190725094024-6a88de70cd85/go.mod h1:qYjj5CylbM318aJhK1qc912yMTp9fUk0na2IaIQU7xc=
+github.com/giantswarm/gscliauth v0.1.0 h1:V+s59/HX1UJE8vR5OPaPAZH6wJBD3jqhmj/uc40Rvtk=
+github.com/giantswarm/gscliauth v0.1.0/go.mod h1:qYjj5CylbM318aJhK1qc912yMTp9fUk0na2IaIQU7xc=
 github.com/giantswarm/gscliauth v0.1.1-0.20200124085802-323f30fd0b85 h1:596odZen97G2OEs0wiIEy/qLD1IqyRCB49PKgoc195o=
 github.com/giantswarm/gscliauth v0.1.1-0.20200124085802-323f30fd0b85/go.mod h1:qYjj5CylbM318aJhK1qc912yMTp9fUk0na2IaIQU7xc=
+github.com/giantswarm/gscliauth v0.1.1-0.20200127123810-4f9c6a31c55d h1:1Hi2qQqtUMHi+erHqOY/4jA7aAlZebHLTTWYlL8rx9A=
+github.com/giantswarm/gscliauth v0.1.1-0.20200127123810-4f9c6a31c55d/go.mod h1:qYjj5CylbM318aJhK1qc912yMTp9fUk0na2IaIQU7xc=
+github.com/giantswarm/gscliauth v0.1.1-0.20200127124937-8aab44f9a708 h1:3dZF4A8hFiZxex2eSAlww+OSOF8S0VplqhjfaE1tbDE=
+github.com/giantswarm/gscliauth v0.1.1-0.20200127124937-8aab44f9a708/go.mod h1:qYjj5CylbM318aJhK1qc912yMTp9fUk0na2IaIQU7xc=
 github.com/giantswarm/gsclientgen v2.0.3+incompatible h1:9s1LCJ1wHEqPkdeYxY3otmsXYIK0+OnL7AtQZxDMPA4=
 github.com/giantswarm/gsclientgen v2.0.3+incompatible/go.mod h1:w3fPQmyNcZPB0I/eULLADOfkk0VTSn8Pijvj7JacnNQ=
 github.com/giantswarm/k8sclient v0.0.0-20191213144452-f75fead2ae06 h1:ARogDNpItRylPLIYWQqHLne7Cv1PnHahcGxx8/Zm+l4=
@@ -442,6 +448,7 @@ golang.org/x/tools v0.0.0-20190614205625-5aca471b1d59/go.mod h1:/rFqwRUd4F7ZHNgw
 golang.org/x/tools v0.0.0-20190617190820-da514acc4774/go.mod h1:/rFqwRUd4F7ZHNgwSSTFct+R/Kf4OFW1sUzUTQQTgfc=
 golang.org/x/tools v0.0.0-20190621195816-6e04913cbbac/go.mod h1:/rFqwRUd4F7ZHNgwSSTFct+R/Kf4OFW1sUzUTQQTgfc=
 golang.org/x/tools v0.0.0-20190624180213-70d37148ca0c/go.mod h1:/rFqwRUd4F7ZHNgwSSTFct+R/Kf4OFW1sUzUTQQTgfc=
+golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 h1:E7g+9GITq07hpfrRu66IVDexMakfv52eLZ2CXBWiKr4=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 gonum.org/v1/gonum v0.0.0-20190331200053-3d26580ed485/go.mod h1:2ltnJ7xHfj0zHS40VVPYEAAMTa3ZGguvHGBSJeRWqE0=
 gonum.org/v1/netlib v0.0.0-20190313105609-8cb42192e0e0/go.mod h1:wa6Ws7BG/ESfp6dHfk7C6KdzKA7wR7u/rKwOGE66zvw=
