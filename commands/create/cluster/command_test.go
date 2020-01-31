@@ -157,7 +157,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			},
 		},
 		{
-			description: "Definition from v4 YAML file, release version via args",
+			description: "Definition from minimal v4 YAML file, release version via args",
 			inputArgs: &Arguments{
 				ClusterName:    "Cluster Name from Args",
 				FileSystem:     afero.NewOsFs(), // needed for YAML file access
@@ -174,6 +174,46 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					Name:           "Cluster Name from Args",
 					Owner:          "acme",
 					ReleaseVersion: "1.0.0",
+				},
+			},
+		},
+		{
+			description: "Definition from complex v4 YAML file",
+			inputArgs: &Arguments{
+				FileSystem:    afero.NewOsFs(), // needed for YAML file access
+				InputYAMLFile: "testdata/v4_complete.yaml",
+				Owner:         "acme",
+				AuthToken:     "fake token",
+				Verbose:       true,
+			},
+			expectedResult: &creationResult{
+				ID:       "f6e8r",
+				Location: "/v4/clusters/f6e8r/",
+				DefinitionV4: &types.ClusterDefinitionV4{
+					Name:              "Complete cluster spec",
+					Owner:             "acme",
+					ReleaseVersion:    "1.2.3",
+					AvailabilityZones: 1,
+					Workers: []types.NodeDefinition{
+						types.NodeDefinition{
+							Memory:  types.MemoryDefinition{SizeGB: 2},
+							CPU:     types.CPUDefinition{Cores: 2},
+							Storage: types.StorageDefinition{SizeGB: 20},
+							Labels:  map[string]string{"nodetype": "standard"},
+						},
+						types.NodeDefinition{
+							Memory:  types.MemoryDefinition{SizeGB: 8},
+							CPU:     types.CPUDefinition{Cores: 2},
+							Storage: types.StorageDefinition{SizeGB: 20},
+							Labels:  map[string]string{"nodetype": "hiram"},
+						},
+						types.NodeDefinition{
+							Memory:  types.MemoryDefinition{SizeGB: 2},
+							CPU:     types.CPUDefinition{Cores: 6},
+							Storage: types.StorageDefinition{SizeGB: 20},
+							Labels:  map[string]string{"nodetype": "hicpu"},
+						},
+					},
 				},
 			},
 		},
