@@ -95,6 +95,31 @@ func TestDeleteEndpointFailures(t *testing.T) {
 	}
 }
 
+func TestPreconditionValidation(t *testing.T) {
+	var testCases = []failTestCase{
+		{
+			arguments: Arguments{
+				apiEndpoint: "",
+				force:       true,
+			},
+			expectedError: errors.EndpointMissingError,
+		},
+	}
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, configYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, ftc := range testCases {
+		err = validatePreconditions(ftc.arguments)
+		if err == nil {
+			t.Errorf("Didn't get an error where we expected '%s' in testCase %v", ftc.expectedError, i)
+		}
+	}
+}
+
 func TestCommandExecutionHelp(t *testing.T) {
 	testutils.CaptureOutput(func() {
 		Command.SetArgs([]string{"--help"})
