@@ -2,6 +2,7 @@ package endpoint
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/giantswarm/gsctl/commands/errors"
@@ -29,15 +30,11 @@ func TestCollectArgs(t *testing.T) {
 	var testCases = []struct {
 		// The positional arguments we pass.
 		positionalArguments []string
-		// How we execute the command.
-		commandExecution func()
 		// What we expect as arguments.
 		resultingArgs Arguments
 	}{
 		{
 			[]string{"https://foo"},
-			func() {
-			},
 			Arguments{
 				APIEndpoint: "https://foo",
 				Force:       false,
@@ -46,8 +43,6 @@ func TestCollectArgs(t *testing.T) {
 		},
 		{
 			[]string{"foo"},
-			func() {
-			},
 			Arguments{
 				APIEndpoint: "foo",
 				Force:       false,
@@ -64,7 +59,6 @@ func TestCollectArgs(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			// tc.commandExecution()
 			args := collectArguments(tc.positionalArguments)
 			if err != nil {
 				t.Errorf("Case %d - Unexpected error '%s'", i, err)
@@ -99,9 +93,9 @@ func TestDeleteEndpointSuccess(t *testing.T) {
 
 		args := testCase
 
-		validateErr := validatePreconditions(args)
-		if validateErr != nil {
-			t.Errorf("Validation error in testCase %v: %s", i, validateErr.Error())
+		err = validatePreconditions(args)
+		if err != nil {
+			t.Errorf("Validation error in testCase %v: %s", i, err.Error())
 		} else {
 			_, execErr := deleteEndpoint(args)
 			if execErr != nil {
@@ -149,15 +143,18 @@ func TestDeleteEndpointFailures(t *testing.T) {
 	}
 }
 
-func TestPreconditionValidation(t *testing.T) {
-	var testCases = []failTestCase{
+func TestPrintResult(t *testing.T) {
+	var testCases = []struct {
+		apiEndpoint   string
+		outputMessage string
+	}{
 		{
-			arguments: Arguments{
-				APIEndpoint: "",
-				Force:       true,
-				Verbose:     false,
-			},
-			expectedError: errors.EndpointMissingError,
+			apiEndpoint:   "baz",
+			outputMessage: "API Endpoint not found\nThe API endpoint you are trying to delete does not exist. Check 'gsctl list endpoints' to make sure",
+		},
+		{
+			apiEndpoint:   "https://bar",
+			outputMessage: "The API endpoint 'https://bar' deleted successfully.",
 		},
 	}
 
@@ -167,10 +164,15 @@ func TestPreconditionValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for i, ftc := range testCases {
-		err = validatePreconditions(ftc.arguments)
-		if err == nil {
-			t.Errorf("Didn't get an error where we expected '%s' in testCase %v", ftc.expectedError, i)
+	for i, testCase := range testCases {
+		output := testutils.CaptureOutput(func() {
+			initFlags()
+			Command.ParseFlags([]string{"--force"})
+			printResult(Command, []string{testCase.apiEndpoint})
+		})
+
+		if !strings.Contains(output, testCase.outputMessage) {
+			t.Errorf("Case %d: Missing '%s' from output", i, testCase.outputMessage)
 		}
 	}
 }
@@ -184,7 +186,7 @@ func TestCommandExecutionHelp(t *testing.T) {
 
 func TestCommandExecution(t *testing.T) {
 	testutils.CaptureOutput(func() {
-		Command.SetArgs([]string{"--Force"})
+		Command.SetArgs([]string{"--force"})
 		Command.Execute()
 	})
 }

@@ -55,11 +55,14 @@ Example:
 		PreRun: printValidation,
 		Run:    printResult,
 	}
-
-	arguments Arguments
 )
 
 func init() {
+	initFlags()
+}
+
+func initFlags() {
+	Command.ResetFlags()
 	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
 }
 
@@ -67,7 +70,7 @@ func init() {
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
 func printValidation(cmd *cobra.Command, args []string) {
-	arguments = collectArguments(args)
+	arguments := collectArguments(args)
 
 	err := validatePreconditions(arguments)
 	if err != nil {
@@ -108,8 +111,10 @@ func validatePreconditions(args Arguments) error {
 	return nil
 }
 
-// interprets arguments/flags, eventually submits delete request
+// interprets arguments/flags, deletes endpoint
 func printResult(cmd *cobra.Command, args []string) {
+	arguments := collectArguments(args)
+
 	deleted, err := deleteEndpoint(arguments)
 	if err != nil {
 		client.HandleErrors(err)
@@ -130,8 +135,6 @@ func printResult(cmd *cobra.Command, args []string) {
 		if subtext != "" {
 			fmt.Println(subtext)
 		}
-
-		os.Exit(1)
 	}
 
 	// Non-error output
