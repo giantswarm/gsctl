@@ -68,8 +68,16 @@ func TestDeleteEndpointFailures(t *testing.T) {
 		{
 			arguments: Arguments{
 				apiEndpoint: "",
+				force:       true,
 			},
 			expectedError: errors.EndpointMissingError,
+		},
+		{
+			arguments: Arguments{
+				apiEndpoint: "baz",
+				force:       true,
+			},
+			expectedError: errors.EndpointNotFoundError,
 		},
 	}
 
@@ -80,8 +88,8 @@ func TestDeleteEndpointFailures(t *testing.T) {
 	}
 
 	for i, ftc := range failTestCases {
-		validateErr := validatePreconditions(ftc.arguments)
-		if validateErr == nil {
+		_, err = deleteEndpoint(ftc.arguments)
+		if err == nil {
 			t.Errorf("Didn't get an error where we expected '%s' in testCase %v", ftc.expectedError, i)
 		}
 	}
