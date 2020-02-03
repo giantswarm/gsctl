@@ -1,10 +1,12 @@
 package endpoint
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/testutils"
+	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
 )
 
@@ -22,16 +24,68 @@ selected_endpoint: https://foo
 updated: 2017-09-29T11:23:15+02:00
 `
 
+// TestCollectArgs tests whether collectArguments produces the expected results
+func TestCollectArgs(t *testing.T) {
+	var testCases = []struct {
+		// The positional arguments we pass.
+		positionalArguments []string
+		// How we execute the command.
+		commandExecution func()
+		// What we expect as arguments.
+		resultingArgs Arguments
+	}{
+		{
+			[]string{"https://foo"},
+			func() {
+			},
+			Arguments{
+				APIEndpoint: "https://foo",
+				Force:       false,
+				Verbose:     false,
+			},
+		},
+		{
+			[]string{"foo"},
+			func() {
+			},
+			Arguments{
+				APIEndpoint: "foo",
+				Force:       false,
+				Verbose:     false,
+			},
+		},
+	}
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, configYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			// tc.commandExecution()
+			args := collectArguments(tc.positionalArguments)
+			if err != nil {
+				t.Errorf("Case %d - Unexpected error '%s'", i, err)
+			}
+			if diff := cmp.Diff(tc.resultingArgs, args); diff != "" {
+				t.Errorf("Case %d - Resulting args unequal. (-expected +got):\n%s", i, diff)
+			}
+		})
+	}
+}
+
 // TestDeleteEndpointSuccess runs test case that are supposed to succeed
 func TestDeleteEndpointSuccess(t *testing.T) {
 	var testCases = []Arguments{
 		{
-			apiEndpoint: "foo",
-			force:       true,
+			APIEndpoint: "foo",
+			Force:       true,
 		},
 		{
-			apiEndpoint: "https://bar",
-			force:       true,
+			APIEndpoint: "https://bar",
+			Force:       true,
 		},
 	}
 
@@ -67,15 +121,15 @@ func TestDeleteEndpointFailures(t *testing.T) {
 	var failTestCases = []failTestCase{
 		{
 			arguments: Arguments{
-				apiEndpoint: "",
-				force:       true,
+				APIEndpoint: "",
+				Force:       true,
 			},
 			expectedError: errors.EndpointMissingError,
 		},
 		{
 			arguments: Arguments{
-				apiEndpoint: "baz",
-				force:       true,
+				APIEndpoint: "baz",
+				Force:       true,
 			},
 			expectedError: errors.EndpointNotFoundError,
 		},
@@ -99,8 +153,9 @@ func TestPreconditionValidation(t *testing.T) {
 	var testCases = []failTestCase{
 		{
 			arguments: Arguments{
-				apiEndpoint: "",
-				force:       true,
+				APIEndpoint: "",
+				Force:       true,
+				Verbose:     false,
 			},
 			expectedError: errors.EndpointMissingError,
 		},
@@ -129,7 +184,7 @@ func TestCommandExecutionHelp(t *testing.T) {
 
 func TestCommandExecution(t *testing.T) {
 	testutils.CaptureOutput(func() {
-		Command.SetArgs([]string{"--force"})
+		Command.SetArgs([]string{"--Force"})
 		Command.Execute()
 	})
 }

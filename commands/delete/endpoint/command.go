@@ -20,11 +20,11 @@ import (
 // business function.
 type Arguments struct {
 	// API endpoint to delete
-	apiEndpoint string
+	APIEndpoint string
 	// Don't prompt
-	force bool
+	Force bool
 	// Verbosity
-	verbose bool
+	Verbose bool
 }
 
 func collectArguments(positionalArgs []string) Arguments {
@@ -34,9 +34,9 @@ func collectArguments(positionalArgs []string) Arguments {
 	}
 
 	return Arguments{
-		apiEndpoint: endpointToDelete,
-		force:       flags.Force,
-		verbose:     flags.Verbose,
+		APIEndpoint: endpointToDelete,
+		Force:       flags.Force,
+		Verbose:     flags.Verbose,
 	}
 }
 
@@ -101,7 +101,7 @@ func printValidation(cmd *cobra.Command, args []string) {
 // validatePreconditions checks preconditions and returns
 // an error in case they are invalid
 func validatePreconditions(args Arguments) error {
-	if args.apiEndpoint == "" {
+	if args.APIEndpoint == "" {
 		return microerror.Mask(errors.EndpointMissingError)
 	}
 
@@ -136,9 +136,9 @@ func printResult(cmd *cobra.Command, args []string) {
 
 	// Non-error output
 	if deleted {
-		fmt.Println(color.GreenString("The API endpoint '%s' deleted successfully.", arguments.apiEndpoint))
+		fmt.Println(color.GreenString("The API endpoint '%s' deleted successfully.", arguments.APIEndpoint))
 	} else {
-		if arguments.verbose {
+		if arguments.Verbose {
 			fmt.Println(color.GreenString("Aborted."))
 		}
 	}
@@ -151,15 +151,15 @@ func printResult(cmd *cobra.Command, args []string) {
 // - error: The error that has occurred (or nil)
 func deleteEndpoint(args Arguments) (bool, error) {
 	// Confirmation
-	if !args.force {
-		confirmed := confirm.AskStrict("Do you really want to delete API endpoint '"+args.apiEndpoint+"'? Please type the endpoint name to confirm", args.apiEndpoint)
+	if !args.Force {
+		confirmed := confirm.AskStrict("Do you really want to delete API endpoint '"+args.APIEndpoint+"'? Please type the endpoint name to confirm", args.APIEndpoint)
 		if !confirmed {
 			return false, nil
 		}
 	}
 
 	// Delete Endpoint
-	err := config.Config.DeleteEndpoint(args.apiEndpoint)
+	err := config.Config.DeleteEndpoint(args.APIEndpoint)
 	if err != nil {
 		if config.IsEndpointNotDefinedError(err) {
 			return false, microerror.Mask(errors.EndpointNotFoundError)
