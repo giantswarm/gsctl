@@ -71,6 +71,8 @@ For details on how to prepare the account/subscription, consult the documentatio
 
 	// Here we briefly store the info which provider we are dealing with
 	provider string
+
+	arguments Arguments
 )
 
 type Arguments struct {
@@ -124,8 +126,8 @@ func collectArguments() Arguments {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	args := collectArguments()
-	err := verifyPreconditions(args)
+	arguments = collectArguments()
+	err := verifyPreconditions(arguments)
 
 	if err == nil {
 		return
@@ -152,7 +154,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 		headline = "Conflicting flags"
 		subtext = "Please use only AWS or Azure related flags with this installation. See --help for details."
 	case errors.IsOrganizationNotFoundError(err):
-		headline = fmt.Sprintf("Organization '%s' not found", args.organizationID)
+		headline = fmt.Sprintf("Organization '%s' not found", arguments.organizationID)
 		subtext = "The specified organization does not exist, or you are not a member. Please check the exact upper/lower case spelling."
 		subtext += "\nUse 'gsctl list organizations' to list all organizations."
 	default:
@@ -276,8 +278,7 @@ func verifyPreconditions(args Arguments) error {
 // printResult calls the busniness function and produces
 // meanigful terminal output.
 func printResult(cmd *cobra.Command, cmdLineArgs []string) {
-	args := collectArguments()
-	result, err := setOrgCredentials(args)
+	result, err := setOrgCredentials(arguments)
 
 	if err != nil {
 		client.HandleErrors(err)
@@ -290,7 +291,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 		switch {
 		case errors.IsCredentialsAlreadySetError(err):
 			headline = "Credentials already set"
-			subtext = fmt.Sprintf("Organization '%s' has credentials already. These cannot be overwritten.", args.organizationID)
+			subtext = fmt.Sprintf("Organization '%s' has credentials already. These cannot be overwritten.", arguments.organizationID)
 		default:
 			headline = err.Error()
 		}

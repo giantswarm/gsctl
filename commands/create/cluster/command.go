@@ -127,7 +127,7 @@ general defaults:
 - Release: the latest release is used.
 - Workers
   - On AWS and when using the latest release, and when not specifying node pool
-    details via a cluster definition, the cluster will be created with a 
+    details via a cluster definition, the cluster will be created with a
     default node pool. You may define node pools in your cluster definition
     YAML or add node pools one by one using 'gsctl create nodepool'.
   - On AWS with releases prior to node pools, and with Azure and KVM, the
@@ -152,7 +152,7 @@ Examples:
   cat my-cluster.yaml | gsctl create cluster -f -
 
 With Bash and other compatible shells, the syntax shown below can be used to
-create a YAML defininition and pass it to the command in one go, without the 
+create a YAML defininition and pass it to the command in one go, without the
 need for a file:
 
 gsctl create cluster -f - <<EOF
@@ -178,6 +178,8 @@ flag --create-default-nodepool to false. Example:
 
 	// the client wrapper we will use in this command.
 	clientWrapper *client.Wrapper
+
+	arguments Arguments
 )
 
 func init() {
@@ -198,12 +200,12 @@ func initFlags() {
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	args := collectArguments()
+	arguments = collectArguments()
 
 	headline := ""
 	subtext := ""
 
-	err := verifyPreconditions(args)
+	err := verifyPreconditions(arguments)
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -227,10 +229,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 
 // printResult calls addCluster() and creates user-friendly output of the result
 func printResult(cmd *cobra.Command, positionalArgs []string) {
-	// use arguments as passed from command line via cobra
-	args := collectArguments()
-
-	result, err := addCluster(args)
+	result, err := addCluster(arguments)
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -243,24 +242,24 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		case errors.IsClusterOwnerMissingError(err):
 			headline = "No owner organization set"
 			subtext = "Please specify an owner organization for the cluster via the --owner flag."
-			if args.InputYAMLFile != "" {
+			if arguments.InputYAMLFile != "" {
 				subtext = "Please specify an owner organization for the cluster in your definition file or set one via the --owner flag."
 			}
 		case errors.IsYAMLNotParseable(err):
 			headline = "Could not parse YAML"
-			if args.InputYAMLFile == standardInputSpecialPath {
+			if arguments.InputYAMLFile == standardInputSpecialPath {
 				subtext = "The YAML data given via STDIN could not be parsed into a cluster definition."
 			} else {
-				subtext = fmt.Sprintf("The YAML data read from file '%s' could not be parsed into a cluster definition.", args.InputYAMLFile)
+				subtext = fmt.Sprintf("The YAML data read from file '%s' could not be parsed into a cluster definition.", arguments.InputYAMLFile)
 			}
 		case errors.IsYAMLFileNotReadable(err):
-			if args.InputYAMLFile == standardInputSpecialPath {
+			if arguments.InputYAMLFile == standardInputSpecialPath {
 				headline = "Could not read YAML from STDIN"
 				subtext = "The YAML definition given via standard input could not be parsed.\n"
 				subtext += fmt.Sprintf("Details: %s", err.Error())
 			} else {
 				headline = "Could not read YAML file"
-				subtext = fmt.Sprintf("The file '%s' could not be read. Please make sure that it is readable and contains valid YAML.\n", args.InputYAMLFile)
+				subtext = fmt.Sprintf("The file '%s' could not be read. Please make sure that it is readable and contains valid YAML.\n", arguments.InputYAMLFile)
 				subtext += fmt.Sprintf("Details: %s", err.Error())
 			}
 		case errors.IsIncompatibleSettings(err):

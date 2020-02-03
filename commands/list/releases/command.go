@@ -46,6 +46,8 @@ A release is a software bundle that constitutes a cluster. It is identified by i
 	}
 
 	cmdOutput string
+
+	arguments Arguments
 )
 
 func init() {
@@ -87,8 +89,8 @@ func collectArguments() Arguments {
 // printValidation does our pre-checks and shows errors, in case
 // something is missing.
 func printValidation(cmd *cobra.Command, extraArgs []string) {
-	args := collectArguments()
-	err := listReleasesPreconditions(&args)
+	arguments = collectArguments()
+	err := listReleasesPreconditions(&arguments)
 
 	if err == nil {
 		return
@@ -117,8 +119,7 @@ func listReleasesPreconditions(args *Arguments) error {
 // printResult is the function called to list releases and display
 // errors in case they happen
 func printResult(cmd *cobra.Command, extraArgs []string) {
-	args := collectArguments()
-	releases, err := listReleases(args)
+	releases, err := listReleases(arguments)
 
 	if err != nil {
 		client.HandleErrors(err)
@@ -135,7 +136,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 		os.Exit(1)
 	}
 
-	if args.outputFormat == "json" {
+	if arguments.outputFormat == "json" {
 		outputBytes, err := json.MarshalIndent(releases, outputJSONPrefix, outputJSONIndent)
 		if err != nil {
 			fmt.Println(color.RedString("Error while encoding JSON"))

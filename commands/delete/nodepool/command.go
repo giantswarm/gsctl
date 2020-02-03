@@ -61,6 +61,8 @@ Examples:
 		// Run calls the business function and prints results and errors.
 		Run: printResult,
 	}
+
+	arguments Arguments
 )
 
 const (
@@ -123,9 +125,9 @@ func verifyPreconditions(args Arguments) error {
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	var err error
-	args := collectArguments(positionalArgs)
+	arguments = collectArguments(positionalArgs)
 	if err == nil {
-		err = verifyPreconditions(args)
+		err = verifyPreconditions(arguments)
 	}
 
 	if err == nil {
@@ -192,9 +194,7 @@ func deleteNodePool(args Arguments) (bool, error) {
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
-	args := collectArguments(positionalArgs)
-
-	deleted, err := deleteNodePool(args)
+	deleted, err := deleteNodePool(arguments)
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -205,10 +205,10 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		switch {
 		case errors.IsClusterNotFoundError(err):
 			headline = "Cluster not found"
-			subtext = fmt.Sprintf("Could not find a cluster with ID %s. Please check the ID.", args.ClusterID)
+			subtext = fmt.Sprintf("Could not find a cluster with ID %s. Please check the ID.", arguments.ClusterID)
 		case errors.IsNodePoolNotFound(err):
 			headline = "Node pool not found"
-			subtext = fmt.Sprintf("Could not find a node pool with ID %s in this cluster. ", args.NodePoolID)
+			subtext = fmt.Sprintf("Could not find a node pool with ID %s in this cluster. ", arguments.NodePoolID)
 		case errors.IsClusterDoesNotSupportNodePools(err):
 			headline = "Bad cluster ID"
 			subtext = fmt.Sprint("You are trying to delete a node pool from a cluster that does not support node pools. Please check your cluster ID.")
@@ -225,8 +225,8 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 
 	if deleted {
-		fmt.Println(color.GreenString("Node pool '%s' in cluster '%s' will be deleted as soon as all workloads are terminated.", args.NodePoolID, args.ClusterID))
-	} else if args.Verbose {
+		fmt.Println(color.GreenString("Node pool '%s' in cluster '%s' will be deleted as soon as all workloads are terminated.", arguments.NodePoolID, arguments.ClusterID))
+	} else if arguments.Verbose {
 		fmt.Println(color.WhiteString("Aborted."))
 	}
 }

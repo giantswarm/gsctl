@@ -84,20 +84,15 @@ func collectArguments(positionalArgs []string) (*Arguments, error) {
 	}, nil
 }
 
-func verifyPreconditions(args *Arguments, positionalArgs []string) error {
-	parsedArgs, err := collectArguments(positionalArgs)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	if config.Config.Token == "" && parsedArgs.authToken == "" {
+func verifyPreconditions(args *Arguments) error {
+	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 
-	if parsedArgs.clusterID == "" {
+	if args.clusterID == "" {
 		return microerror.Mask(errors.ClusterIDMissingError)
 	}
-	if parsedArgs.nodePoolID == "" {
+	if args.nodePoolID == "" {
 		return microerror.Mask(errors.NodePoolIDMissingError)
 	}
 
@@ -106,8 +101,9 @@ func verifyPreconditions(args *Arguments, positionalArgs []string) error {
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	args, err := collectArguments(positionalArgs)
+
 	if err != nil {
-		err = verifyPreconditions(args, positionalArgs)
+		err = verifyPreconditions(args)
 	}
 
 	if err == nil {

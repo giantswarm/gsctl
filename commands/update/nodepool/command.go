@@ -41,6 +41,8 @@ Examples:
 		// Run calls the business function and prints results and errors.
 		Run: printResult,
 	}
+
+	arguments Arguments
 )
 
 const (
@@ -115,9 +117,11 @@ func verifyPreconditions(args Arguments) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	args, err := collectArguments(positionalArgs)
+	var err error
+	arguments, err = collectArguments(positionalArgs)
+
 	if err == nil {
-		err = verifyPreconditions(args)
+		err = verifyPreconditions(arguments)
 	}
 
 	if err == nil {
@@ -179,9 +183,7 @@ func updateNodePool(args Arguments) (*result, error) {
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
-	args, _ := collectArguments(positionalArgs)
-
-	r, err := updateNodePool(args)
+	r, err := updateNodePool(arguments)
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -203,5 +205,5 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		os.Exit(1)
 	}
 
-	fmt.Println(color.GreenString("Node pool '%s' (ID '%s') in cluster '%s' has been modified.", r.NodePool.Name, r.NodePool.ID, args.ClusterID))
+	fmt.Println(color.GreenString("Node pool '%s' (ID '%s') in cluster '%s' has been modified.", r.NodePool.Name, r.NodePool.ID, arguments.ClusterID))
 }

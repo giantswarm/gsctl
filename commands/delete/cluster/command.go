@@ -79,6 +79,8 @@ Example:
 		PreRun: printValidation,
 		Run:    printResult,
 	}
+
+	arguments Arguments
 )
 
 func init() {
@@ -92,9 +94,9 @@ func init() {
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
 func printValidation(cmd *cobra.Command, args []string) {
-	dca := collectArguments(args)
+	arguments = collectArguments(args)
 
-	err := validatePreconditions(dca)
+	err := validatePreconditions(arguments)
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -143,8 +145,7 @@ func validatePreconditions(args Arguments) error {
 
 // interprets arguments/flags, eventually submits delete request
 func printResult(cmd *cobra.Command, args []string) {
-	dca := collectArguments(args)
-	deleted, err := deleteCluster(dca)
+	deleted, err := deleteCluster(arguments)
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -169,13 +170,13 @@ func printResult(cmd *cobra.Command, args []string) {
 
 	// non-error output
 	if deleted {
-		clusterID := dca.legacyClusterID
-		if dca.clusterID != "" {
-			clusterID = dca.clusterID
+		clusterID := arguments.legacyClusterID
+		if arguments.clusterID != "" {
+			clusterID = arguments.clusterID
 		}
 		fmt.Println(color.GreenString("The cluster with ID '%s' will be deleted as soon as all workloads are terminated.", clusterID))
 	} else {
-		if dca.verbose {
+		if arguments.verbose {
 			fmt.Println(color.GreenString("Aborted."))
 		}
 	}

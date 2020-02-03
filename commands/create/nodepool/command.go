@@ -93,6 +93,8 @@ Examples:
 	cmdAwsEc2InstanceType   string
 	cmdAvailabilityZonesNum int
 	cmdAvailabilityZones    []string
+
+	arguments Arguments
 )
 
 const (
@@ -226,9 +228,10 @@ func verifyPreconditions(args Arguments) error {
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	var err error
-	args, err := collectArguments(positionalArgs)
+
+	arguments, err = collectArguments(positionalArgs)
 	if err == nil {
-		err = verifyPreconditions(args)
+		err = verifyPreconditions(arguments)
 	}
 
 	if err == nil {
@@ -333,12 +336,7 @@ func createNodePool(args Arguments) (*result, error) {
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
-	var r *result
-
-	args, err := collectArguments(positionalArgs)
-	if err == nil {
-		r, err = createNodePool(args)
-	}
+	r, err := createNodePool(arguments)
 
 	if err != nil {
 		client.HandleErrors(err)
@@ -370,7 +368,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		os.Exit(1)
 	}
 
-	fmt.Println(color.GreenString("New node pool '%s' (ID '%s') in cluster '%s' is launching.", r.nodePoolName, r.nodePoolID, args.ClusterID))
+	fmt.Println(color.GreenString("New node pool '%s' (ID '%s') in cluster '%s' is launching.", r.nodePoolName, r.nodePoolID, arguments.ClusterID))
 	fmt.Printf("Use this command to inspect details for the new node pool:\n\n")
-	fmt.Println(color.YellowString("    gsctl show nodepool %s/%s", args.ClusterID, r.nodePoolID))
+	fmt.Println(color.YellowString("    gsctl show nodepool %s/%s", arguments.ClusterID, r.nodePoolID))
 }

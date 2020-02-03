@@ -31,6 +31,8 @@ var (
 		PreRun: printValidation,
 		Run:    printInfo,
 	}
+
+	arguments Arguments
 )
 
 // Arguments represents the arguments we can make use of in this command
@@ -81,8 +83,8 @@ func validatePreconditions(args Arguments) error {
 
 // printValidation prints if there is anything missing from user input or config.
 func printValidation(cmd *cobra.Command, extraArgs []string) {
-	args := collectArguments()
-	err := validatePreconditions(args)
+	arguments = collectArguments()
+	err := validatePreconditions(arguments)
 
 	if err != nil {
 		client.HandleErrors(err)
@@ -92,8 +94,7 @@ func printValidation(cmd *cobra.Command, extraArgs []string) {
 
 // printInfo prints some information on the current user and configuration.
 func printInfo(cmd *cobra.Command, args []string) {
-	infoArgs := collectArguments()
-	result, err := info(infoArgs)
+	result, err := info(arguments)
 
 	output := []string{}
 
@@ -142,7 +143,7 @@ func printInfo(cmd *cobra.Command, args []string) {
 		output = append(output, color.YellowString("Logged in:")+"|"+color.CyanString("yes"))
 	}
 
-	if infoArgs.verbose {
+	if arguments.verbose {
 		if result.token != "" {
 			output = append(output, color.YellowString("Auth token:")+"|"+color.CyanString(result.token))
 		} else {

@@ -27,6 +27,8 @@ var (
 		PreRun:  printValidation,
 		Run:     printResult,
 	}
+
+	arguments Arguments
 )
 
 const (
@@ -55,8 +57,8 @@ func collectArguments() Arguments {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	args := collectArguments()
-	err := verifyListOrgsPreconditions(args)
+	arguments = collectArguments()
+	err := verifyListOrgsPreconditions(arguments)
 	if err == nil {
 		return
 	}
@@ -78,8 +80,7 @@ func verifyListOrgsPreconditions(args Arguments) error {
 // TODO: Refactor so that this function calls the client, receives structured
 // data which can be tested, and creates user-friendly output.
 func printResult(cmd *cobra.Command, extraArgs []string) {
-	args := collectArguments()
-	output, err := orgsTable(args)
+	output, err := orgsTable(arguments)
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)

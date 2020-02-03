@@ -30,6 +30,8 @@ var (
 		PreRun: printValidation,
 		Run:    printResult,
 	}
+
+	arguments Arguments
 )
 
 const (
@@ -114,7 +116,9 @@ func init() {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	args, argsErr := collectArguments()
+	var argsErr error
+
+	arguments, argsErr = collectArguments()
 	if argsErr != nil {
 		if errors.IsInvalidDurationError(argsErr) {
 			fmt.Println(color.RedString("The value passed with --ttl is invalid."))
@@ -128,7 +132,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 		os.Exit(1)
 	}
 
-	err := verifyPreconditions(args)
+	err := verifyPreconditions(arguments)
 
 	if err == nil {
 		return
@@ -182,9 +186,7 @@ func verifyPreconditions(args Arguments) error {
 }
 
 func printResult(cmd *cobra.Command, cmdLineArgs []string) {
-	args, _ := collectArguments()
-
-	result, err := createKeypair(args)
+	result, err := createKeypair(arguments)
 
 	if err != nil {
 		client.HandleErrors(err)

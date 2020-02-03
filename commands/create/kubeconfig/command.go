@@ -68,6 +68,8 @@ Examples:
 
 	// flag for setting a kubectl context name to use
 	cmdKubeconfigContextName = ""
+
+	arguments Arguments
 )
 
 const (
@@ -185,7 +187,9 @@ func init() {
 
 // createKubeconfigPreRunOutput shows our pre-check results
 func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
-	args, argsErr := collectArguments()
+	var argsErr error
+
+	arguments, argsErr = collectArguments()
 	if argsErr != nil {
 		if errors.IsInvalidDurationError(argsErr) {
 			fmt.Println(color.RedString("The value passed with --ttl is invalid."))
@@ -199,7 +203,7 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		os.Exit(1)
 	}
 
-	err := verifyCreateKubeconfigPreconditions(args, cmdLineArgs)
+	err := verifyCreateKubeconfigPreconditions(arguments, cmdLineArgs)
 	if err == nil {
 		return
 	}
@@ -282,8 +286,7 @@ func verifyCreateKubeconfigPreconditions(args Arguments, cmdLineArgs []string) e
 func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	ctx := context.Background()
 
-	args, _ := collectArguments()
-	result, err := createKubeconfig(ctx, args)
+	result, err := createKubeconfig(ctx, arguments)
 
 	if err != nil {
 		client.HandleErrors(err)
@@ -305,9 +308,9 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			headline = "Error: " + err.Error()
 		case util.IsCouldNotUseKubectlContextError(err):
 			headline = "Error: " + err.Error()
-			subtext = "Context name to select is: giantswarm-" + args.clusterID
+			subtext = "Context name to select is: giantswarm-" + arguments.clusterID
 		case errors.IsClusterNotFoundError(err):
-			headline = fmt.Sprintf("Error: Cluster '%s' does not exist.", args.clusterID)
+			headline = fmt.Sprintf("Error: Cluster '%s' does not exist.", arguments.clusterID)
 			subtext = "Please check the ID spelling or list clusters using 'gsctl list clusters'."
 		case errors.IsCouldNotWriteFileError(err):
 			headline = "Error: File could not be written"
@@ -343,7 +346,7 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println(color.YellowString("    kubectl cluster-info\n"))
 
 	} else {
-		if args.verbose {
+		if arguments.verbose {
 			fmt.Println(color.WhiteString("Certificate and key files written to:"))
 			fmt.Println(color.WhiteString(result.caCertPath))
 			fmt.Println(color.WhiteString(result.clientCertPath))
