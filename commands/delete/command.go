@@ -13,7 +13,7 @@ var (
 	Command = &cobra.Command{
 		Use:   "delete",
 		Short: "Delete things",
-		Long:  `Lets you delete a cluster, a node pool or an API endpoint`,
+		Long:  `Lets you delete a cluster, a node pool, or an API endpoint`,
 	}
 )
 
