@@ -24,15 +24,29 @@ import (
 	"github.com/giantswarm/gsctl/flags"
 )
 
+const (
+	bash_completion_func = `function __gsctl_get_endpoints {
+	local gsctl_out
+	if gsctl_out=$(gsctl list endpoints | awk 'FNR > 1 {print $1}'); then
+					COMPREPLY=( $( compgen -W "${gsctl_out}" -- "${cur}" ) )
+	fi
+
+	COMPREPLY=("hi")
+}`
+)
+
 // RootCommand is the main command of the CLI
 var RootCommand = &cobra.Command{
 	Use: config.ProgramName,
 	// this is inherited by all child commands
-	PersistentPreRunE: initConfig,
+	PersistentPreRunE:      initConfig,
+	BashCompletionFunction: bash_completion_func,
 }
 
 func init() {
 	RootCommand.PersistentFlags().StringVarP(&flags.APIEndpoint, "endpoint", "e", "", "The API endpoint to use")
+	RootCommand.MarkFlagCustom("endpoint", "__gsctl_get_endpoints")
+
 	RootCommand.PersistentFlags().StringVarP(&flags.Token, "auth-token", "", "", "Authorization token to use")
 	RootCommand.PersistentFlags().StringVarP(&flags.ConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
 	RootCommand.PersistentFlags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Print more information")
