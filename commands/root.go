@@ -25,13 +25,11 @@ import (
 )
 
 const (
-	bash_completion_func = `function __gsctl_get_endpoints {
+	bash_completion_func = `__gsctl_get_endpoints() {
 	local gsctl_out
 	if gsctl_out=$(gsctl list endpoints | awk 'FNR > 1 {print $1}'); then
 					COMPREPLY=( $( compgen -W "${gsctl_out}" -- "${cur}" ) )
 	fi
-
-	COMPREPLY=("hi")
 }`
 )
 
@@ -45,7 +43,7 @@ var RootCommand = &cobra.Command{
 
 func init() {
 	RootCommand.PersistentFlags().StringVarP(&flags.APIEndpoint, "endpoint", "e", "", "The API endpoint to use")
-	RootCommand.MarkFlagCustom("endpoint", "__gsctl_get_endpoints")
+	RootCommand.PersistentFlags().SetAnnotation("endpoint", cobra.BashCompCustom, []string{"__gsctl_get_endpoints"})
 
 	RootCommand.PersistentFlags().StringVarP(&flags.Token, "auth-token", "", "", "Authorization token to use")
 	RootCommand.PersistentFlags().StringVarP(&flags.ConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
