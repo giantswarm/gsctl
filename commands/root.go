@@ -76,7 +76,7 @@ func init() {
 		FnName:   "__gsctl_get_endpoints",
 		FnBody:   getEndpointsFunc,
 	})
-	util.RegisterBashCompletionFn(RootCommand, "__gsctl_custom_func", util.GetCustomCommandCompletionFn())
+	util.RegisterBashCompletionFn(RootCommand, "__gsctl_custom_func", util.GetCustomCommandCompletionFnBody())
 }
 
 // initConfig calls the config.Initialize() function
