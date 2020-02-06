@@ -10,7 +10,14 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/util"
 )
+
+const selectEndpointsCompletionFn = `
+if [[ ${last_command} -eq "gsctl_select_endpoint" ]]; then
+	__gsctl_get_endpoints;
+fi
+`
 
 var (
 	// Command performs the "select endpoint" function
@@ -30,6 +37,12 @@ command.
 		Run:    selectEndpointRunOutput,
 	}
 )
+
+func init() {
+	util.SetCommandBashCompletion(&util.BashCompletionFunc{
+		FnBody: selectEndpointsCompletionFn,
+	})
+}
 
 // selectEndpointPreRunOutput does some pre-checks and, if necessary,
 // shows output and exits.

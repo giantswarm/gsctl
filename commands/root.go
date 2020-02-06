@@ -26,17 +26,15 @@ import (
 )
 
 const (
-	default_bash_completion_func = `
-		if [[ ${last_command} -eq "gsctl_select_endpoint" ]]; then
-			__gsctl_get_endpoints;
-		fi
-	`
-
-	get_endpoints_func = `
+	getEndpointsFunc = `
 	local gsctl_out
-	if gsctl_out=$(gsctl list endpoints | awk 'FNR > 1 {print $1}'); then
-					COMPREPLY=( $( compgen -W "${gsctl_out}" -- "${cur}" ) )
-	fi
+    if gsctl_out=$(gsctl list endpoints); then
+        if [[ $(echo "${gsctl_out}") != *"No endpoints configured"* ]]; then
+            gsctl_out=$(echo "${gsctl_out}" | awk 'FNR > 1 {print $1}')
+
+            COMPREPLY=( $( compgen -W "${gsctl_out}" -- "${cur}" ) )
+        fi
+    fi
 	`
 )
 
@@ -49,13 +47,6 @@ var RootCommand = &cobra.Command{
 
 func init() {
 	RootCommand.PersistentFlags().StringVarP(&flags.APIEndpoint, "endpoint", "e", "", "The API endpoint to use")
-	util.SetBashCompletionFunction(util.BashCompletionFunc{
-		Command:  RootCommand,
-		Flags:    RootCommand.PersistentFlags(),
-		FlagName: "endpoint",
-		FnName:   "__gsctl_get_endpoints",
-		FnBody:   get_endpoints_func,
-	})
 
 	RootCommand.PersistentFlags().StringVarP(&flags.Token, "auth-token", "", "", "Authorization token to use")
 	RootCommand.PersistentFlags().StringVarP(&flags.ConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
@@ -77,7 +68,15 @@ func init() {
 	RootCommand.AddCommand(upgrade.Command)
 	RootCommand.AddCommand(version.Command)
 
-	util.RegisterBashCompletionFunction(RootCommand, "__gsctl_custom_func", default_bash_completion_func)
+	// Custom auto-completion
+	util.SetFlagBashCompletionFn(&util.BashCompletionFunc{
+		Command:  RootCommand,
+		Flags:    RootCommand.PersistentFlags(),
+		FlagName: "endpoint",
+		FnName:   "__gsctl_get_endpoints",
+		FnBody:   getEndpointsFunc,
+	})
+	util.RegisterBashCompletionFn(RootCommand, "__gsctl_custom_func", util.GetCustomCommandCompletionFn())
 }
 
 // initConfig calls the config.Initialize() function
