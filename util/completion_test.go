@@ -16,9 +16,9 @@ var getCompletionFnTests = []struct {
 	output string
 }{
 	{
-		"test",
-		"ls",
-		`
+		fName: "test",
+		fBody: "ls",
+		output: `
 test() {
 	ls
 }`,
@@ -41,17 +41,17 @@ var setFlagCompletionFnTests = []struct {
 	output string
 }{
 	{
-		"test",
-		"ls",
-		`
+		fName: "test",
+		fBody: "ls",
+		output: `
 test() {
 	ls
 }`,
 	},
 	{
-		"test2",
-		"ls",
-		`
+		fName: "test2",
+		fBody: "ls",
+		output: `
 test() {
 	ls
 }
@@ -60,9 +60,9 @@ test2() {
 }`,
 	},
 	{
-		"test",
-		"ls",
-		`
+		fName: "test",
+		fBody: "ls",
+		output: `
 test() {
 	ls
 }
@@ -96,13 +96,13 @@ var customCommandCompletionTests = []struct {
 	output string
 }{
 	{
-		"ls",
-		`ls
+		fBody: "ls",
+		output: `ls
 `,
 	},
 	{
-		"pwd",
-		`ls
+		fBody: "pwd",
+		output: `ls
 pwd
 `,
 	},
