@@ -154,7 +154,7 @@ func printResult(cmd *cobra.Command, args []string) {
 func deleteEndpoint(args Arguments) (bool, error) {
 	// Confirmation
 	if !args.Force {
-		confirmed := confirm.AskStrict("Do you really want to delete API endpoint '"+args.APIEndpoint+"'? Please type the endpoint name to confirm", args.APIEndpoint)
+		confirmed := confirm.Ask(fmt.Sprintf("Do you really want to delete API endpoint '%s'?", args.APIEndpoint))
 		if !confirmed {
 			return false, nil
 		}

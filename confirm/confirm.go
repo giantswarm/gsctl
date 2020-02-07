@@ -20,7 +20,7 @@ func Ask(s string) bool {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Printf("%s [y/n]: ", color.YellowString(s))
+		fmt.Printf("%s [y/N]: ", color.YellowString(s))
 
 		response, err := reader.ReadString('\n')
 		if err != nil {
@@ -28,9 +28,11 @@ func Ask(s string) bool {
 		}
 
 		switch strings.ToLower(strings.TrimSpace(response)) {
-		case "y", "yes":
+		case "y", "yes", "Y", "YES", "Yes":
 			return true
-		case "n", "no":
+		case "n", "no", "N", "NO", "No":
+			return false
+		default:
 			return false
 		}
 	}
