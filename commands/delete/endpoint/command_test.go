@@ -154,7 +154,11 @@ func TestPrintResult(t *testing.T) {
 		},
 		{
 			apiEndpoint:   "https://bar",
-			outputMessage: "The API endpoint 'https://bar' deleted successfully.",
+			outputMessage: "The API endpoint 'https://bar' has been deleted.",
+		},
+		{
+			apiEndpoint:   "https://foo",
+			outputMessage: "The API endpoint 'https://foo' has been deleted.\n\nNote: You have no API endpoint selected now. Use 'gsctl select endpoint' to select one.",
 		},
 	}
 
@@ -172,7 +176,7 @@ func TestPrintResult(t *testing.T) {
 		})
 
 		if !strings.Contains(output, testCase.outputMessage) {
-			t.Errorf("Case %d: Missing '%s' from output", i, testCase.outputMessage)
+			t.Errorf("Case %d: Missing '%s' from output: %s", i, testCase.outputMessage, output)
 		}
 	}
 }

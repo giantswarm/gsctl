@@ -138,7 +138,13 @@ func printResult(cmd *cobra.Command, args []string) {
 
 	// Non-error output
 	if deleted {
-		fmt.Println(color.GreenString("The API endpoint '%s' deleted successfully.", arguments.APIEndpoint))
+		selectedEndpoint := config.Config.SelectedEndpoint
+
+		fmt.Println(color.GreenString("The API endpoint '%s' has been deleted.", arguments.APIEndpoint))
+
+		if selectedEndpoint == "" {
+			fmt.Println("\nNote: You have no API endpoint selected now. Use 'gsctl select endpoint' to select one.")
+		}
 	} else {
 		if arguments.Verbose {
 			fmt.Println(color.GreenString("Aborted."))
