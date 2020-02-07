@@ -28,9 +28,9 @@ func Ask(s string) bool {
 		}
 
 		switch strings.ToLower(strings.TrimSpace(response)) {
-		case "y", "yes", "Y", "YES", "Yes":
+		case "y", "yes":
 			return true
-		case "n", "no", "N", "NO", "No":
+		case "n", "no":
 			return false
 		default:
 			return false
