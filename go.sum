@@ -9,6 +9,7 @@ github.com/Azure/go-autorest/autorest/mocks v0.1.0/go.mod h1:OTyCOPRA2IgIlWxVYxB
 github.com/Azure/go-autorest/autorest/mocks v0.2.0/go.mod h1:OTyCOPRA2IgIlWxVYxBee2F5Gr4kF2zd2J5cFRaIDN0=
 github.com/Azure/go-autorest/logger v0.1.0/go.mod h1:oExouG+K6PryycPJfVSxi/koC6LSNgds39diKLz7Vrc=
 github.com/Azure/go-autorest/tracing v0.5.0/go.mod h1:r/s2XiOKccPW3HrqB+W0TQzfbtp2fGCgRFtBroKn4Dk=
+github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/Jeffail/gabs v1.4.0 h1://5fYRRTq1edjfIrQGvdkcd22pkYUrHZ5YC/H2GJVAo=
@@ -94,6 +95,10 @@ github.com/giantswarm/gscliauth v0.1.1-0.20200128141803-c44ec4034980 h1:ncQ0mOwT
 github.com/giantswarm/gscliauth v0.1.1-0.20200128141803-c44ec4034980/go.mod h1:qYjj5CylbM318aJhK1qc912yMTp9fUk0na2IaIQU7xc=
 github.com/giantswarm/gscliauth v0.1.1-0.20200128162619-1f4b69a0a218 h1:EpRd7D+1GNxsoPdxWkOHNN+pMdIGaZPxwBYjtiB5i7I=
 github.com/giantswarm/gscliauth v0.1.1-0.20200128162619-1f4b69a0a218/go.mod h1:qYjj5CylbM318aJhK1qc912yMTp9fUk0na2IaIQU7xc=
+github.com/giantswarm/gscliauth v0.1.1-0.20200203134927-8d0772bfbc0c h1:sP3O250FL7P/8E4f6rFBgGhRXp7heBphIHFMFhe92vo=
+github.com/giantswarm/gscliauth v0.1.1-0.20200203134927-8d0772bfbc0c/go.mod h1:qYjj5CylbM318aJhK1qc912yMTp9fUk0na2IaIQU7xc=
+github.com/giantswarm/gscliauth v0.1.1-0.20200207091127-822ebfd95297 h1:O0UN70TP1uQI7U0fdHpakejI4Mz0wXq8CD7Lxekg/Mc=
+github.com/giantswarm/gscliauth v0.1.1-0.20200207091127-822ebfd95297/go.mod h1:qYjj5CylbM318aJhK1qc912yMTp9fUk0na2IaIQU7xc=
 github.com/giantswarm/gsclientgen v2.0.3+incompatible h1:9s1LCJ1wHEqPkdeYxY3otmsXYIK0+OnL7AtQZxDMPA4=
 github.com/giantswarm/gsclientgen v2.0.3+incompatible/go.mod h1:w3fPQmyNcZPB0I/eULLADOfkk0VTSn8Pijvj7JacnNQ=
 github.com/giantswarm/k8sclient v0.0.0-20191213144452-f75fead2ae06 h1:ARogDNpItRylPLIYWQqHLne7Cv1PnHahcGxx8/Zm+l4=
@@ -499,6 +504,7 @@ gopkg.in/yaml.v2 v2.2.8/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gotest.tools v2.2.0+incompatible/go.mod h1:DsYFclhRJ6vuDpmuTbkuFWG+y2sxOXAzmJt81HFBacw=
 honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190106161140-3f1c8253044a/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
+honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc h1:/hemPrYIhOhy8zYrNj+069zDB68us2sMGsfkFJO0iZs=
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 k8s.io/api v0.16.4 h1:O06Ed/hgLiCrzW1SHp6HAhqcTnYHtK80bP5rXoHakpM=
 k8s.io/api v0.16.4/go.mod h1:AtzMnsR45tccQss5q8RnF+W8L81DH6XwXwo/joEx9u0=

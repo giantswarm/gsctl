@@ -686,3 +686,27 @@ var InvalidNodePoolIDArgumentError = &microerror.Error{
 func IsInvalidNodePoolIDArgument(err error) bool {
 	return microerror.Cause(err) == InvalidNodePoolIDArgumentError
 }
+
+// Endpoint deletion errors
+
+// CouldNotDeleteEndpointError should be used when the
+// "API endpoint" could not be deleted
+var CouldNotDeleteEndpointError = &microerror.Error{
+	Kind: "CouldNotDeleteEndpointError",
+}
+
+// IsCouldNotDeleteEndpointError asserts CouldNotDeleteEndpointError.
+func IsCouldNotDeleteEndpointError(err error) bool {
+	return microerror.Cause(err) == CouldNotDeleteEndpointError
+}
+
+// EndpointNotFoundError should be used when the user
+// tries to delete an "API endpoint" that does not exist
+var EndpointNotFoundError = &microerror.Error{
+	Kind: "EndpointNotFoundError",
+}
+
+// IsEndpointNotFoundError asserts EndpointNotFoundError.
+func IsEndpointNotFoundError(err error) bool {
+	return microerror.Cause(err) == EndpointNotFoundError
+}
