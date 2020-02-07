@@ -74,7 +74,6 @@ func printValidation(cmd *cobra.Command, args []string) {
 
 	err := validatePreconditions(arguments)
 	if err != nil {
-		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
 
 		var headline = ""
@@ -84,10 +83,6 @@ func printValidation(cmd *cobra.Command, args []string) {
 		case errors.IsEndpointMissingError(err):
 			headline = "No API endpoint specified"
 			subtext = "See --help for usage details."
-		case errors.IsCouldNotDeleteEndpointError(err):
-			headline = "The API endpoint could not be deleted."
-			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
-			subtext += "Sorry for the inconvenience!"
 		default:
 			headline = err.Error()
 		}
@@ -127,6 +122,10 @@ func printResult(cmd *cobra.Command, args []string) {
 		case errors.IsEndpointNotFoundError(err):
 			headline = "API Endpoint not found"
 			subtext = "The API endpoint you are trying to delete does not exist. Check 'gsctl list endpoints' to make sure"
+		case errors.IsCouldNotDeleteEndpointError(err):
+			headline = "The API endpoint could not be deleted."
+			subtext = "You might try again in a few moments. If that doesn't work, please contact the Giant Swarm support team."
+			subtext += "Sorry for the inconvenience!"
 		default:
 			headline = err.Error()
 		}
