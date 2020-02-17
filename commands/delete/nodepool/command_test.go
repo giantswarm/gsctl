@@ -30,7 +30,9 @@ func TestCollectArgs(t *testing.T) {
 		// How we execute the command.
 		commandExecution func()
 		// What we expect as arguments.
-		resultingArgs Arguments
+		resultingArgs *Arguments
+		// nil or an error matcher we want to use
+		errorMatcher func(error) bool
 	}{
 		{
 			[]string{"clusterid/nodepoolid"},
@@ -38,12 +40,13 @@ func TestCollectArgs(t *testing.T) {
 				initFlags()
 				Command.ParseFlags([]string{"clusterid/nodepoolid"})
 			},
-			Arguments{
+			&Arguments{
 				APIEndpoint: "https://foo",
 				AuthToken:   "some-token",
 				ClusterID:   "clusterid",
 				NodePoolID:  "nodepoolid",
 			},
+			nil,
 		},
 		{
 			[]string{"clusterid/nodepoolid", "--force"},
@@ -51,13 +54,23 @@ func TestCollectArgs(t *testing.T) {
 				initFlags()
 				Command.ParseFlags([]string{"clusterid/nodepoolid", "--force"})
 			},
-			Arguments{
+			&Arguments{
 				APIEndpoint: "https://foo",
 				AuthToken:   "some-token",
 				ClusterID:   "clusterid",
 				NodePoolID:  "nodepoolid",
 				Force:       true,
 			},
+			nil,
+		},
+		{
+			[]string{"string-without-slash", "--force"},
+			func() {
+				initFlags()
+				Command.ParseFlags([]string{"string-without-slash", "--force"})
+			},
+			nil,
+			errors.IsInvalidNodePoolIDArgument,
 		},
 	}
 
@@ -70,9 +83,17 @@ func TestCollectArgs(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			tc.commandExecution()
-			args := collectArguments(tc.positionalArguments)
+			args, err := collectArguments(tc.positionalArguments)
 			if err != nil {
-				t.Errorf("Case %d - Unexpected error '%s'", i, err)
+				if tc.errorMatcher == nil {
+					t.Errorf("Case %d - Unexpected error '%s'", i, err)
+				} else if !tc.errorMatcher(err) {
+					t.Errorf("Case %d - Error of unexpected type: '%s'", i, err)
+				}
+			} else {
+				if tc.errorMatcher != nil {
+					t.Errorf("Case %d - Expected error but got nil", i)
+				}
 			}
 			if diff := cmp.Diff(tc.resultingArgs, args); diff != "" {
 				t.Errorf("Case %d - Resulting args unequal. (-expected +got):\n%s", i, diff)
@@ -84,12 +105,12 @@ func TestCollectArgs(t *testing.T) {
 // Test_verifyPreconditions tests cases where validating preconditions fails.
 func Test_verifyPreconditions(t *testing.T) {
 	var testCases = []struct {
-		args         Arguments
+		args         *Arguments
 		errorMatcher func(error) bool
 	}{
 		// Cluster ID is missing.
 		{
-			Arguments{
+			&Arguments{
 				AuthToken:   "token",
 				APIEndpoint: "https://mock-url",
 				NodePoolID:  "abc",
@@ -98,7 +119,7 @@ func Test_verifyPreconditions(t *testing.T) {
 		},
 		// Node pool ID is missing.
 		{
-			Arguments{
+			&Arguments{
 				AuthToken:   "token",
 				APIEndpoint: "https://mock-url",
 				ClusterID:   "abc",
@@ -107,7 +128,7 @@ func Test_verifyPreconditions(t *testing.T) {
 		},
 		// No token provided.
 		{
-			Arguments{
+			&Arguments{
 				APIEndpoint: "https://mock-url",
 				ClusterID:   "cluster-id",
 			},
@@ -136,12 +157,12 @@ func Test_verifyPreconditions(t *testing.T) {
 // TestSuccess tests node pool creation with cases that are expected to succeed.
 func TestSuccess(t *testing.T) {
 	var testCases = []struct {
-		args         Arguments
+		args         *Arguments
 		responseBody string
 	}{
 		// Minimal node pool deletion.
 		{
-			Arguments{
+			&Arguments{
 				ClusterID:  "clusterid",
 				NodePoolID: "nodepoolid",
 				AuthToken:  "token",
@@ -196,13 +217,13 @@ func TestSuccess(t *testing.T) {
 // TestExecuteWithError tests the error handling.
 func TestExecuteWithError(t *testing.T) {
 	var testCases = []struct {
-		args                     Arguments
+		args                     *Arguments
 		deleteResponseStatusCode int
 		deleteResponseBody       string
 		errorMatcher             func(error) bool
 	}{
 		{
-			Arguments{
+			&Arguments{
 				ClusterID:   "clusterid",
 				NodePoolID:  "nodepoolid",
 				AuthToken:   "token",
@@ -214,7 +235,7 @@ func TestExecuteWithError(t *testing.T) {
 			errors.IsNotAuthorizedError,
 		},
 		{
-			Arguments{
+			&Arguments{
 				ClusterID:   "clusterid",
 				NodePoolID:  "nodepoolid",
 				AuthToken:   "token",
@@ -226,7 +247,7 @@ func TestExecuteWithError(t *testing.T) {
 			errors.IsAccessForbiddenError,
 		},
 		{
-			Arguments{
+			&Arguments{
 				ClusterID:   "bad-cluster-id",
 				NodePoolID:  "nodepoolid",
 				AuthToken:   "token",
@@ -238,7 +259,7 @@ func TestExecuteWithError(t *testing.T) {
 			errors.IsClusterNotFoundError,
 		},
 		{
-			Arguments{
+			&Arguments{
 				ClusterID:   "clusterid",
 				NodePoolID:  "bad-nodepool-id",
 				AuthToken:   "token",
@@ -250,7 +271,7 @@ func TestExecuteWithError(t *testing.T) {
 			errors.IsNodePoolNotFound,
 		},
 		{
-			Arguments{
+			&Arguments{
 				ClusterID:   "clusterid",
 				NodePoolID:  "nodepoolid",
 				AuthToken:   "token",
@@ -262,7 +283,7 @@ func TestExecuteWithError(t *testing.T) {
 			errors.IsInternalServerError,
 		},
 		{
-			Arguments{
+			&Arguments{
 				ClusterID:   "v4-clusterid",
 				NodePoolID:  "nodepoolid",
 				AuthToken:   "token",
