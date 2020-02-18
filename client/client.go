@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
+	"github.com/giantswarm/backoff"
 	"github.com/giantswarm/gscliauth/config"
 	gsclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/gsclientgen/client/apps"
@@ -33,8 +35,8 @@ import (
 )
 
 var (
-	// DefaultTimeout is the standard request timeout applied if not specified.
-	DefaultTimeout = 10 * time.Second
+	Timeout    = 10 * time.Second
+	MaxTimeout = 60 * time.Second
 
 	randomStringCharset = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
@@ -140,7 +142,7 @@ func NewWithConfig(endpointString, token string) (*Wrapper, error) {
 	ClientConfig := &Configuration{
 		AuthHeaderGetter: config.Config.AuthHeaderGetter(endpoint, token),
 		Endpoint:         endpoint,
-		Timeout:          20 * time.Second,
+		Timeout:          Timeout,
 		UserAgent:        config.UserAgent(),
 	}
 
@@ -414,9 +416,24 @@ func (w *Wrapper) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, erro
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Clusters.GetClusters(params, authWriter)
+	var response *clusters.GetClustersOK
+
+	o := func() error {
+		var err error
+
+		response, err = w.gsclient.Clusters.GetClusters(params, authWriter)
+		if err != nil {
+			fmt.Printf("Retrying due to '%v'\n", err)
+			return clienterror.New(err)
+		}
+
+		return nil
+	}
+	b := backoff.NewConstant(MaxTimeout, Timeout)
+
+	err = backoff.Retry(o, b)
 	if err != nil {
-		return nil, clienterror.New(err)
+		return nil, microerror.Mask(err)
 	}
 
 	return response, nil
@@ -432,9 +449,24 @@ func (w *Wrapper) GetClusterV4(clusterID string, p *AuxiliaryParams) (*clusters.
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Clusters.GetCluster(params, authWriter)
+	var response *clusters.GetClusterOK
+
+	o := func() error {
+		var err error
+
+		response, err = w.gsclient.Clusters.GetCluster(params, authWriter)
+		if err != nil {
+			fmt.Printf("Retrying due to '%v'\n", err)
+			return clienterror.New(err)
+		}
+
+		return nil
+	}
+	b := backoff.NewConstant(MaxTimeout, Timeout)
+
+	err = backoff.Retry(o, b)
 	if err != nil {
-		return nil, clienterror.New(err)
+		return nil, microerror.Mask(err)
 	}
 
 	return response, nil
@@ -450,9 +482,24 @@ func (w *Wrapper) GetClusterV5(clusterID string, p *AuxiliaryParams) (*clusters.
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Clusters.GetClusterV5(params, authWriter)
+	var response *clusters.GetClusterV5OK
+
+	o := func() error {
+		var err error
+
+		response, err = w.gsclient.Clusters.GetClusterV5(params, authWriter)
+		if err != nil {
+			fmt.Printf("Retrying due to '%v'\n", err)
+			return clienterror.New(err)
+		}
+
+		return nil
+	}
+	b := backoff.NewConstant(MaxTimeout, Timeout)
+
+	err = backoff.Retry(o, b)
 	if err != nil {
-		return nil, clienterror.New(err)
+		return nil, microerror.Mask(err)
 	}
 
 	return response, nil

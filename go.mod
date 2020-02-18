@@ -9,6 +9,7 @@ require (
 	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
 	github.com/fatih/color v1.9.0
 	github.com/giantswarm/apiextensions v0.0.0-20191213075442-71155aa0f5b7
+	github.com/giantswarm/backoff v0.0.0-20200209120535-b7cb1852522d
 	github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatible
 	github.com/giantswarm/gscliauth v0.1.1-0.20200207091127-822ebfd95297
 	github.com/giantswarm/gsclientgen v2.0.3+incompatible
