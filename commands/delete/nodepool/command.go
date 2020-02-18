@@ -92,13 +92,17 @@ type Arguments struct {
 
 // collectArguments populates an arguments struct with values both from command flags,
 // from config, and potentially from built-in defaults.
-func collectArguments(positionalArgs []string) Arguments {
+func collectArguments(positionalArgs []string) (*Arguments, error) {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
 
 	parts := strings.Split(positionalArgs[0], "/")
 
-	return Arguments{
+	if len(parts) < 2 {
+		return nil, microerror.Maskf(errors.InvalidNodePoolIDArgumentError, "Please specify the node pool as <cluster_id>/<nodepool_id>. Use --help for details.")
+	}
+
+	return &Arguments{
 		APIEndpoint:       endpoint,
 		AuthToken:         token,
 		ClusterID:         parts[0],
@@ -106,10 +110,10 @@ func collectArguments(positionalArgs []string) Arguments {
 		NodePoolID:        parts[1],
 		UserProvidedToken: flags.Token,
 		Verbose:           flags.Verbose,
-	}
+	}, nil
 }
 
-func verifyPreconditions(args Arguments) error {
+func verifyPreconditions(args *Arguments) error {
 	if args.AuthToken == "" && args.UserProvidedToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
@@ -124,8 +128,7 @@ func verifyPreconditions(args Arguments) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	var err error
-	arguments = collectArguments(positionalArgs)
+	arguments, err := collectArguments(positionalArgs)
 	if err == nil {
 		err = verifyPreconditions(arguments)
 	}
@@ -140,6 +143,14 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	headline := ""
 	subtext := ""
 
+	if errors.IsInvalidNodePoolIDArgument(err) {
+		headline = "Invalid argument syntax"
+		subtext = "Please specify the node pool as <cluster_id>/<nodepool_id>. Use --help for details."
+	} else {
+		headline = "Unknown error"
+		subtext = fmt.Sprintf("Details: %#v", err)
+	}
+
 	// print output
 	fmt.Println(color.RedString(headline))
 	if subtext != "" {
@@ -150,7 +161,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 
 // deleteNodePool is the business function sending our deletion request to the API
 // and returning true for success or an error.
-func deleteNodePool(args Arguments) (bool, error) {
+func deleteNodePool(args *Arguments) (bool, error) {
 	// confirmation
 	if !args.Force {
 		question := fmt.Sprintf("Do you really want to delete node pool '%s' from cluster '%s'?", args.NodePoolID, args.ClusterID)
@@ -194,6 +205,7 @@ func deleteNodePool(args Arguments) (bool, error) {
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
+	arguments, _ := collectArguments(positionalArgs)
 	deleted, err := deleteNodePool(arguments)
 	if err != nil {
 		client.HandleErrors(err)
