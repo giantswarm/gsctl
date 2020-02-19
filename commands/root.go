@@ -22,6 +22,20 @@ import (
 	"github.com/giantswarm/gsctl/commands/upgrade"
 	"github.com/giantswarm/gsctl/commands/version"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/util"
+)
+
+const (
+	getEndpointsFunc = `
+	local gsctl_out
+    if gsctl_out=$(gsctl list endpoints); then
+        if [[ $(echo "${gsctl_out}") != *"No endpoints configured"* ]]; then
+            gsctl_out=$(echo "${gsctl_out}" | awk 'FNR > 1 {print $1}')
+
+            COMPREPLY=( $( compgen -W "${gsctl_out}" -- "${cur}" ) )
+        fi
+    fi
+	`
 )
 
 // RootCommand is the main command of the CLI
@@ -33,6 +47,7 @@ var RootCommand = &cobra.Command{
 
 func init() {
 	RootCommand.PersistentFlags().StringVarP(&flags.APIEndpoint, "endpoint", "e", "", "The API endpoint to use")
+
 	RootCommand.PersistentFlags().StringVarP(&flags.Token, "auth-token", "", "", "Authorization token to use")
 	RootCommand.PersistentFlags().StringVarP(&flags.ConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
 	RootCommand.PersistentFlags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Print more information")
@@ -52,6 +67,16 @@ func init() {
 	RootCommand.AddCommand(update.Command)
 	RootCommand.AddCommand(upgrade.Command)
 	RootCommand.AddCommand(version.Command)
+
+	// Custom auto-completion
+	util.SetFlagBashCompletionFn(&util.BashCompletionFunc{
+		Command:  RootCommand,
+		Flags:    RootCommand.PersistentFlags(),
+		FlagName: "endpoint",
+		FnName:   "__gsctl_get_endpoints",
+		FnBody:   getEndpointsFunc,
+	})
+	util.RegisterBashCompletionFn(RootCommand, "__gsctl_custom_func", util.GetCustomCommandCompletionFnBody())
 }
 
 // initConfig calls the config.Initialize() function
