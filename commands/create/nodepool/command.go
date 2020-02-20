@@ -371,4 +371,5 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	fmt.Println(color.GreenString("New node pool '%s' (ID '%s') in cluster '%s' is launching.", r.nodePoolName, r.nodePoolID, arguments.ClusterID))
 	fmt.Printf("Use this command to inspect details for the new node pool:\n\n")
 	fmt.Println(color.YellowString("    gsctl show nodepool %s/%s", arguments.ClusterID, r.nodePoolID))
+	fmt.Printf("\n")
 }
