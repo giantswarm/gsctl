@@ -67,8 +67,12 @@ type Arguments struct {
 	verbose     bool
 }
 
-func collectArguments() Arguments {
+func collectArguments(positionalArgs []string) Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+
+	if len(positionalArgs) > 0 {
+		cmdEmail = positionalArgs[0]
+	}
 
 	return Arguments{
 		apiEndpoint: endpoint,
@@ -135,7 +139,7 @@ func loginPreRunOutput(cmd *cobra.Command, positionalArgs []string) {
 
 // verifyLoginPreconditions does the pre-checks and returns an error in case something's wrong.
 func verifyLoginPreconditions(positionalArgs []string) error {
-	arguments = collectArguments()
+	arguments = collectArguments(positionalArgs)
 
 	// using auth token flag? The 'login' command is the only exception
 	// where we can't accept this argument.
@@ -148,16 +152,13 @@ func verifyLoginPreconditions(positionalArgs []string) error {
 			return microerror.Mask(errors.PasswordArgumentNotApplicableError)
 		}
 	} else {
-		if len(positionalArgs) >= 1 {
-			// set cmdEmail for later use, as cobra doesn't do that for us
-			cmdEmail = positionalArgs[0]
-		} else {
+		if arguments.email == "" {
 			return microerror.Mask(errors.NoEmailArgumentGivenError)
 		}
 
 		// interactive password prompt
 		if cmdPassword == "" {
-			fmt.Printf("Password for %s on %s: ", color.CyanString(cmdEmail), color.CyanString(arguments.apiEndpoint))
+			fmt.Printf("Password for %s on %s: ", color.CyanString(arguments.email), color.CyanString(arguments.apiEndpoint))
 			password, err := gopass.GetPasswd()
 			if err != nil {
 				return err
@@ -186,7 +187,8 @@ func login(loginArgs Arguments) (loginResult, error) {
 
 // loginRunOutput executes the login logic and
 // prints output and sets the exit code.
-func loginRunOutput(cmd *cobra.Command, args []string) {
+func loginRunOutput(cmd *cobra.Command, positionalArgs []string) {
+	arguments := collectArguments(positionalArgs)
 	result, err := login(arguments)
 
 	if err != nil {
