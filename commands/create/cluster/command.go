@@ -338,6 +338,9 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 
 // verifyPreconditions checks preconditions and returns an error in case.
 func verifyPreconditions(args Arguments) error {
+	if args.APIEndpoint == "" {
+		return microerror.Mask(errors.EndpointMissingError)
+	}
 	// logged in?
 	if args.AuthToken == "" && args.UserProvidedToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)

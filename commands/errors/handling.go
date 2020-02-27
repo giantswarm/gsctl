@@ -76,6 +76,9 @@ func HandleCommonErrors(err error) {
 			headline = "An error occurred."
 			subtext = "Please notify the Giant Swarm support team, or try the command again in a few moments.\n"
 			subtext += fmt.Sprintf("Details: %s", err.Error())
+		case IsEndpointMissingError(err):
+			headline = "There is no endpoint selected."
+			subtext = "Please use the '-e|--endpoint' flag or select an endpoint using 'gsctl select endpoint'."
 		}
 
 	}

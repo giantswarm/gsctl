@@ -68,6 +68,9 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 }
 
 func verifyListOrgsPreconditions(args Arguments) error {
+	if args.apiEndpoint == "" {
+		return microerror.Mask(errors.EndpointMissingError)
+	}
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}

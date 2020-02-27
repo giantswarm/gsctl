@@ -101,6 +101,9 @@ type result struct {
 }
 
 func verifyPreconditions(args Arguments) error {
+	if args.APIEndpoint == "" {
+		return microerror.Mask(errors.EndpointMissingError)
+	}
 	if args.AuthToken == "" && args.UserProvidedToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	} else if args.ClusterID == "" {

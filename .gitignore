@@ -7,6 +7,10 @@
 _obj
 _test
 
+# Code Editor specific folders
+.idea
+.vscode
+
 # Architecture specific extensions/prefixes
 *.[568vq]
 [568vq].out

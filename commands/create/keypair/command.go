@@ -164,11 +164,11 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 }
 
 func verifyPreconditions(args Arguments) error {
-	if config.Config.Token == "" && args.authToken == "" {
-		return microerror.Mask(errors.NotLoggedInError)
-	}
 	if args.apiEndpoint == "" {
 		return microerror.Mask(errors.EndpointMissingError)
+	}
+	if config.Config.Token == "" && args.authToken == "" {
+		return microerror.Mask(errors.NotLoggedInError)
 	}
 	if args.clusterID == "" {
 		return microerror.Mask(errors.ClusterIDMissingError)

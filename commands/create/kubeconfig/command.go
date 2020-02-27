@@ -246,11 +246,11 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 // verifyCreateKubeconfigPreconditions checks if all preconditions are met and
 // returns nil if yes, error if not
 func verifyCreateKubeconfigPreconditions(args Arguments, cmdLineArgs []string) error {
-	if config.Config.Token == "" && args.authToken == "" {
-		return microerror.Mask(errors.NotLoggedInError)
-	}
 	if args.apiEndpoint == "" {
 		return microerror.Mask(errors.EndpointMissingError)
+	}
+	if config.Config.Token == "" && args.authToken == "" {
+		return microerror.Mask(errors.NotLoggedInError)
 	}
 	if args.clusterID == "" {
 		return microerror.Mask(errors.ClusterIDMissingError)
