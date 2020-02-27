@@ -119,6 +119,9 @@ func printValidation(cmd *cobra.Command, extraArgs []string) {
 // the Arguments given as argument will be modified to contain
 // the clusterID field.
 func listKeypairsValidate(args *Arguments) error {
+	if args.apiEndpoint == "" {
+		return microerror.Mask(errors.EndpointMissingError)
+	}
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}

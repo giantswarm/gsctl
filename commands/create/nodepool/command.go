@@ -203,6 +203,9 @@ func expandZones(zones []string, endpoint, userProvidedToken string, verbose boo
 }
 
 func verifyPreconditions(args Arguments) error {
+	if args.APIEndpoint == "" {
+		return microerror.Mask(errors.EndpointMissingError)
+	}
 	if config.Config.Token == "" && args.AuthToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}

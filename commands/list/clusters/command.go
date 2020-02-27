@@ -107,11 +107,11 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 }
 
 func verifyListClusterPreconditions(args Arguments) error {
-	if config.Config.Token == "" && args.authToken == "" {
-		return microerror.Mask(errors.NotLoggedInError)
-	}
 	if args.apiEndpoint == "" {
 		return microerror.Mask(errors.EndpointMissingError)
+	}
+	if config.Config.Token == "" && args.authToken == "" {
+		return microerror.Mask(errors.NotLoggedInError)
 	}
 	if args.outputFormat != outputFormatJSON && args.outputFormat != outputFormatTable {
 		return microerror.Maskf(errors.OutputFormatInvalidError, "Output format '%s' is unknown", args.outputFormat)

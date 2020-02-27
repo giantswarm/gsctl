@@ -106,6 +106,9 @@ func printValidation(cmd *cobra.Command, extraArgs []string) {
 // listReleasesPreconditions validates our pre-conditions and returns an error in
 // case something is missing.
 func listReleasesPreconditions(args *Arguments) error {
+	if args.apiEndpoint == "" {
+		return microerror.Mask(errors.EndpointMissingError)
+	}
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}

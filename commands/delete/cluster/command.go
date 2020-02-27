@@ -131,6 +131,9 @@ func printValidation(cmd *cobra.Command, args []string) {
 
 // validatePreconditions checks preconditions and returns an error in case
 func validatePreconditions(args Arguments) error {
+	if args.apiEndpoint == "" {
+		return microerror.Mask(errors.EndpointMissingError)
+	}
 	if args.clusterID == "" && args.legacyClusterID == "" {
 		return microerror.Mask(errors.ClusterIDMissingError)
 	}

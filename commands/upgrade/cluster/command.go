@@ -149,6 +149,9 @@ func upgradeClusterValidationOutput(cmd *cobra.Command, cmdLineArgs []string) {
 // Checks if all preconditions are met, before actually executing
 // our business function.
 func validateUpgradeClusterPreconditions(args Arguments, cmdLineArgs []string) error {
+	if args.APIEndpoint == "" {
+		return microerror.Mask(errors.EndpointMissingError)
+	}
 	// authentication
 	if config.Config.Token == "" && args.AuthToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)

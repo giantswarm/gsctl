@@ -170,6 +170,9 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 }
 
 func verifyPreconditions(args Arguments) error {
+	if args.apiEndpoint == "" {
+		return microerror.Mask(errors.EndpointMissingError)
+	}
 	if args.organizationID == "" {
 		return microerror.Mask(errors.OrganizationNotSpecifiedError)
 	}

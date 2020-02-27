@@ -94,6 +94,9 @@ func collectArguments(cmdLineArgs []string) Arguments {
 }
 
 func verifyPreconditions(args Arguments, positionalArgs []string) error {
+	if args.apiEndpoint == "" {
+		return microerror.Mask(errors.EndpointMissingError)
+	}
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}

@@ -153,6 +153,9 @@ func collectArguments(cmd *cobra.Command, positionalArgs []string) (Arguments, e
 }
 
 func verifyPreconditions(args Arguments) error {
+	if args.APIEndpoint == "" {
+		return microerror.Mask(errors.EndpointMissingError)
+	}
 	if args.AuthToken == "" && args.UserProvidedToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
