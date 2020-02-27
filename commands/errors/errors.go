@@ -80,14 +80,14 @@ func IsDesiredEqualsCurrentStateError(err error) bool {
 	return microerror.Cause(err) == DesiredEqualsCurrentStateError
 }
 
-// ClusterIDMissingError means a required cluster ID has not been given as input
-var ClusterIDMissingError = &microerror.Error{
-	Kind: "ClusterIDMissingError",
+// ClusterNameOrIDMissingError means a required cluster ID has not been given as input
+var ClusterNameOrIDMissingError = &microerror.Error{
+	Kind: "ClusterNameOrIDMissingError",
 }
 
-// IsClusterIDMissingError asserts ClusterIDMissingError.
-func IsClusterIDMissingError(err error) bool {
-	return microerror.Cause(err) == ClusterIDMissingError
+// IsClusterNameOrIDMissingError asserts ClusterNameOrIDMissingError.
+func IsClusterNameOrIDMissingError(err error) bool {
+	return microerror.Cause(err) == ClusterNameOrIDMissingError
 }
 
 // NodePoolIDMissingError means a required node pool ID has not been given as input

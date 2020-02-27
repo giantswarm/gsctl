@@ -97,7 +97,7 @@ func Test_verifyPreconditions(t *testing.T) {
 				APIEndpoint: "https://mock-url",
 				NodePoolID:  "abc",
 			},
-			errors.IsClusterIDMissingError,
+			errors.IsClusterNameOrIDMissingError,
 		},
 		// Node pool ID is missing.
 		{

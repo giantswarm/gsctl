@@ -15,17 +15,38 @@ func TestDeleteClusterSuccess(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Log("mockServer request: ", r.Method, r.URL)
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusAccepted)
-		w.Write([]byte(`{"code": "RESOURCE_DELETION_STARTED", "message": "We'll soon nuke this cluster"}`))
+
+		if r.Method == "GET" && r.URL.String() == "/v4/clusters/" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[
+			{
+				"create_date": "2017-05-16T09:30:31.192170835Z",
+				"id": "as123asd",
+				"name": "somecluster",
+				"owner": "acme",
+				"path": "/v4/clusters/as123asd/"
+			},
+			{
+				"create_date": "2017-05-16T09:30:31.192170835Z",
+				"id": "somecluster",
+				"name": "My dearest production cluster",
+				"owner": "acme",
+				"path": "/v4/clusters/somecluster/"
+			}
+		]`))
+		} else {
+			w.WriteHeader(http.StatusAccepted)
+			w.Write([]byte(`{"code": "RESOURCE_DELETION_STARTED", "message": "We'll soon nuke this cluster"}`))
+		}
 	}))
 	defer mockServer.Close()
 
 	var testCases = []Arguments{
 		{
-			apiEndpoint: mockServer.URL,
-			clusterID:   "somecluster",
-			token:       "fake-token",
-			force:       true,
+			apiEndpoint:     mockServer.URL,
+			clusterNameOrID: "somecluster",
+			token:           "fake-token",
+			force:           true,
 		},
 	}
 
@@ -55,17 +76,17 @@ func TestDeleteClusterFailures(t *testing.T) {
 	var failTestCases = []failTestCase{
 		{
 			arguments: Arguments{
-				clusterID: "somecluster",
-				token:     "",
+				clusterNameOrID: "somecluster",
+				token:           "",
 			},
 			expectedError: errors.NotLoggedInError,
 		},
 		{
 			arguments: Arguments{
-				clusterID: "",
-				token:     "some token",
+				clusterNameOrID: "",
+				token:           "some token",
 			},
-			expectedError: errors.ClusterIDMissingError,
+			expectedError: errors.ClusterNameOrIDMissingError,
 		},
 	}
 

@@ -23,7 +23,7 @@ type Arguments struct {
 	// API endpoint
 	apiEndpoint string
 	// cluster ID to delete
-	clusterID string
+	clusterNameOrID string
 	// cluster ID passed via -c/--cluster argument
 	legacyClusterID string
 	// don't prompt
@@ -42,14 +42,14 @@ func collectArguments(positionalArgs []string) Arguments {
 	token := config.Config.ChooseToken(endpoint, flags.Token)
 	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
-	clusterID := ""
+	clusterNameOrID := ""
 	if len(positionalArgs) > 0 {
-		clusterID = positionalArgs[0]
+		clusterNameOrID = positionalArgs[0]
 	}
 
 	return Arguments{
 		apiEndpoint:       endpoint,
-		clusterID:         clusterID,
+		clusterNameOrID:   clusterNameOrID,
 		force:             flags.Force,
 		legacyClusterID:   flags.ClusterID,
 		scheme:            scheme,
@@ -60,6 +60,7 @@ func collectArguments(positionalArgs []string) Arguments {
 }
 
 const (
+	listClustersActivityName  = "list-clusters"
 	deleteClusterActivityName = "delete-cluster"
 )
 
@@ -84,7 +85,7 @@ Example:
 )
 
 func init() {
-	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "ID of the cluster to delete")
+	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "Name or ID of the cluster to delete")
 	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
 
 	Command.Flags().MarkDeprecated("cluster", "You no longer need to pass the cluster ID with -c/--cluster. Use --help for details.")
@@ -109,8 +110,8 @@ func printValidation(cmd *cobra.Command, args []string) {
 			headline = "Conflicting flags/arguments"
 			subtext = "Please specify the cluster to be used as a positional argument, avoid -c/--cluster."
 			subtext += "See --help for details."
-		case errors.IsClusterIDMissingError(err):
-			headline = "No cluster ID specified"
+		case errors.IsClusterNameOrIDMissingError(err):
+			headline = "No cluster ID or Name specified"
 			subtext = "See --help for usage details."
 		case errors.IsCouldNotDeleteClusterError(err):
 			headline = "The cluster could not be deleted."
@@ -134,10 +135,10 @@ func validatePreconditions(args Arguments) error {
 	if args.apiEndpoint == "" {
 		return microerror.Mask(errors.EndpointMissingError)
 	}
-	if args.clusterID == "" && args.legacyClusterID == "" {
-		return microerror.Mask(errors.ClusterIDMissingError)
+	if args.clusterNameOrID == "" && args.legacyClusterID == "" {
+		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
-	if args.clusterID != "" && args.legacyClusterID != "" {
+	if args.clusterNameOrID != "" && args.legacyClusterID != "" {
 		return microerror.Mask(errors.ConflictingFlagsError)
 	}
 	if config.Config.Token == "" && args.token == "" {
@@ -174,8 +175,8 @@ func printResult(cmd *cobra.Command, args []string) {
 	// non-error output
 	if deleted {
 		clusterID := arguments.legacyClusterID
-		if arguments.clusterID != "" {
-			clusterID = arguments.clusterID
+		if arguments.clusterNameOrID != "" {
+			clusterID = arguments.clusterNameOrID
 		}
 		fmt.Println(color.GreenString("The cluster with ID '%s' will be deleted as soon as all workloads are terminated.", clusterID))
 	} else {
@@ -185,17 +186,50 @@ func printResult(cmd *cobra.Command, args []string) {
 	}
 }
 
+func getClusterID(clusterNameOrID string, clientWrapper *client.Wrapper) (string, error) {
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
+	auxParams.ActivityName = listClustersActivityName
+
+	response, err := clientWrapper.GetClusters(auxParams)
+	if err != nil {
+		if clienterror.IsUnauthorizedError(err) {
+			return "", microerror.Mask(errors.NotAuthorizedError)
+		}
+		if clienterror.IsAccessForbiddenError(err) {
+			return "", microerror.Mask(errors.AccessForbiddenError)
+		}
+
+		return "", microerror.Mask(err)
+	}
+
+	for _, cluster := range response.Payload {
+		if cluster.ID == clusterNameOrID || cluster.Name == clusterNameOrID {
+			return cluster.ID, nil
+		}
+	}
+
+	return "", microerror.Mask(errors.ClusterNotFoundError)
+}
+
 // deleteCluster performs the cluster deletion API call
 //
 // The returned tuple contains:
-// - bool: true if cluster will reall ybe deleted, false otherwise
+// - bool: true if cluster will really be deleted, false otherwise
 // - error: The error that has occurred (or nil)
 //
 func deleteCluster(args Arguments) (bool, error) {
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
+	if err != nil {
+		return false, microerror.Mask(err)
+	}
+
 	// Accept legacy cluster ID for a while, but real one takes precedence.
 	clusterID := args.legacyClusterID
-	if args.clusterID != "" {
-		clusterID = args.clusterID
+	if args.clusterNameOrID != "" {
+		clusterID, err = getClusterID(args.clusterNameOrID, clientWrapper)
+		if err != nil {
+			return false, microerror.Mask(err)
+		}
 	}
 
 	// confirmation
@@ -206,16 +240,11 @@ func deleteCluster(args Arguments) (bool, error) {
 		}
 	}
 
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
-	if err != nil {
-		return false, microerror.Mask(err)
-	}
-
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = deleteClusterActivityName
 
 	// perform API call
-	_, err = clientWrapper.DeleteCluster(clusterID, auxParams)
+	// _, err = clientWrapper.DeleteCluster(clusterID, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clienterror.IsAccessForbiddenError(err) {

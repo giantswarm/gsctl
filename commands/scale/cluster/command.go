@@ -121,7 +121,7 @@ func getConfirmation(args Arguments, maxBefore int, minBefore int, currentWorker
 
 func collectArguments(cmd *cobra.Command, positionalArgs []string) (Arguments, error) {
 	if len(positionalArgs) == 0 {
-		return Arguments{}, microerror.Mask(errors.ClusterIDMissingError)
+		return Arguments{}, microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
 
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
@@ -160,7 +160,7 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 	if args.ClusterID == "" {
-		return microerror.Mask(errors.ClusterIDMissingError)
+		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
 
 	// Check if the cluster is v5, so we can provide helpful details.

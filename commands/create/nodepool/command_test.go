@@ -306,7 +306,7 @@ func TestVerifyPreconditions(t *testing.T) {
 				APIEndpoint: "https://mock-url",
 				ClusterID:   "",
 			},
-			errors.IsClusterIDMissingError,
+			errors.IsClusterNameOrIDMissingError,
 		},
 		// Availability zones flags are conflicting.
 		{

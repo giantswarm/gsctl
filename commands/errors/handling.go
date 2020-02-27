@@ -52,7 +52,7 @@ func HandleCommonErrors(err error) {
 			headline = "Empty password submitted"
 			subtext = "The API server complains about the password provided."
 			subtext += " Please make sure to provide a string with more than white space characters."
-		case IsClusterIDMissingError(err):
+		case IsClusterNameOrIDMissingError(err):
 			headline = "No cluster ID specified."
 			subtext = "Please specify a cluster ID. Use --help for details."
 		case IsNodePoolIDMissingError(err):

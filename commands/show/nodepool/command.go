@@ -93,7 +93,7 @@ func verifyPreconditions(args *Arguments) error {
 	}
 
 	if args.clusterID == "" {
-		return microerror.Mask(errors.ClusterIDMissingError)
+		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
 	if args.nodePoolID == "" {
 		return microerror.Mask(errors.NodePoolIDMissingError)

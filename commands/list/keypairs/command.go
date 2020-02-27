@@ -140,7 +140,7 @@ func listKeypairsValidate(args *Arguments) error {
 		if clusterID != "" {
 			flags.ClusterID = clusterID
 		} else {
-			return microerror.Mask(errors.ClusterIDMissingError)
+			return microerror.Mask(errors.ClusterNameOrIDMissingError)
 		}
 	}
 

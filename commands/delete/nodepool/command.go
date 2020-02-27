@@ -118,7 +118,7 @@ func verifyPreconditions(args *Arguments) error {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 	if args.ClusterID == "" {
-		return microerror.Mask(errors.ClusterIDMissingError)
+		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
 	if args.NodePoolID == "" {
 		return microerror.Mask(errors.NodePoolIDMissingError)
