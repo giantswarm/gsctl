@@ -208,9 +208,20 @@ func Test_validateUpgradeClusterPreconditions(t *testing.T) {
 		wantErr func(error) bool
 	}{
 		{
+			name: "Endpoint missing",
+			args: args{
+				Arguments{
+					ClusterID: "clusterid",
+				},
+				[]string{},
+			},
+			wantErr: errors.IsEndpointMissingError,
+		},
+		{
 			name: "Auth token missing",
 			args: args{
 				Arguments{
+					APIEndpoint: "https://some-endpoint.com",
 					ClusterID: "clusterid",
 				},
 				[]string{},
@@ -221,6 +232,7 @@ func Test_validateUpgradeClusterPreconditions(t *testing.T) {
 			name: "Cluster ID missing",
 			args: args{
 				Arguments{
+					APIEndpoint: "https://some-endpoint.com",
 					AuthToken: "token",
 					ClusterID: "",
 				},
