@@ -111,7 +111,7 @@ func printValidation(cmd *cobra.Command, args []string) {
 			subtext = "Please specify the cluster to be used as a positional argument, avoid -c/--cluster."
 			subtext += "See --help for details."
 		case errors.IsClusterNameOrIDMissingError(err):
-			headline = "No cluster ID or Name specified"
+			headline = "No cluster ID or name specified"
 			subtext = "See --help for usage details."
 		case errors.IsCouldNotDeleteClusterError(err):
 			headline = "The cluster could not be deleted."
@@ -234,7 +234,10 @@ func deleteCluster(args Arguments) (bool, error) {
 
 	// confirmation
 	if !args.force {
-		confirmed := confirm.AskStrict("Do you really want to delete cluster '"+clusterID+"'? Please type the cluster ID to confirm", clusterID)
+		confirmed := confirm.AskStrict(
+			fmt.Sprintf("Do you really want to delete cluster '%s'? Please type '%s' to confirm", args.clusterNameOrID, args.clusterNameOrID),
+			args.clusterNameOrID,
+		)
 		if !confirmed {
 			return false, nil
 		}
@@ -244,7 +247,7 @@ func deleteCluster(args Arguments) (bool, error) {
 	auxParams.ActivityName = deleteClusterActivityName
 
 	// perform API call
-	// _, err = clientWrapper.DeleteCluster(clusterID, auxParams)
+	_, err = clientWrapper.DeleteCluster(clusterID, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clienterror.IsAccessForbiddenError(err) {
