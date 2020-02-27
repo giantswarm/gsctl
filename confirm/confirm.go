@@ -47,17 +47,18 @@ func AskStrict(s string, c string) bool {
 
 	for {
 		response, err := reader.ReadString('\n')
+		response = strings.TrimSuffix(response, "\n")
 		if err != nil {
 			log.Fatal(microerror.Mask(err))
 		}
 
 		switch strings.ToLower(strings.TrimSpace(response)) {
-		case c:
+		case strings.ToLower(c):
 			return true
 		case "n", "no":
 			return false
 		default:
-			fmt.Printf(color.YellowString("The input entered does not match."))
+			fmt.Printf(color.YellowString("The input entered does not match. "))
 			fmt.Printf(color.YellowString("Try again or abort by typing 'n' or 'no': "))
 		}
 	}
