@@ -63,3 +63,34 @@ func AskStrict(s string, c string) bool {
 		}
 	}
 }
+
+// AskStrictOneOf asks the user for confirmation. A user must type one of
+// the expected confirmation values and then press enter.
+func AskStrictOneOf(s string, c []string) (bool, string) {
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Printf("%s: ", color.YellowString(s))
+
+	for {
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatal(microerror.Mask(err))
+		}
+		response = strings.TrimSuffix(response, "\n")
+		response = strings.ToLower(strings.TrimSpace(response))
+
+		for _, v := range c {
+			if strings.ToLower(v) == response {
+				return true, response
+			}
+		}
+
+		switch response {
+		case "n", "no":
+			return false, ""
+		default:
+			fmt.Printf(color.YellowString("The input entered does not match. "))
+			fmt.Printf(color.YellowString("Try again or abort by typing 'n' or 'no': "))
+		}
+	}
+}

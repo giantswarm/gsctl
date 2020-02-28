@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
@@ -111,7 +112,7 @@ func printValidation(cmd *cobra.Command, args []string) {
 			subtext = "Please specify the cluster to be used as a positional argument, avoid -c/--cluster."
 			subtext += "See --help for details."
 		case errors.IsClusterNameOrIDMissingError(err):
-			headline = "No cluster ID or name specified"
+			headline = "No cluster name or ID specified"
 			subtext = "See --help for usage details."
 		case errors.IsCouldNotDeleteClusterError(err):
 			headline = "The cluster could not be deleted."
@@ -178,7 +179,7 @@ func printResult(cmd *cobra.Command, args []string) {
 		if arguments.clusterNameOrID != "" {
 			clusterID = arguments.clusterNameOrID
 		}
-		fmt.Println(color.GreenString("The cluster with ID '%s' will be deleted as soon as all workloads are terminated.", clusterID))
+		fmt.Println(color.GreenString("The cluster '%s' will be deleted as soon as all workloads are terminated.", clusterID))
 	} else {
 		if arguments.verbose {
 			fmt.Println(color.GreenString("Aborted."))
@@ -192,23 +193,56 @@ func getClusterID(clusterNameOrID string, clientWrapper *client.Wrapper) (string
 
 	response, err := clientWrapper.GetClusters(auxParams)
 	if err != nil {
-		if clienterror.IsUnauthorizedError(err) {
+		switch {
+		case clienterror.IsUnauthorizedError(err):
 			return "", microerror.Mask(errors.NotAuthorizedError)
-		}
-		if clienterror.IsAccessForbiddenError(err) {
+
+		case clienterror.IsAccessForbiddenError(err):
 			return "", microerror.Mask(errors.AccessForbiddenError)
-		}
 
-		return "", microerror.Mask(err)
+		default:
+			return "", microerror.Mask(err)
+		}
 	}
 
+	outputLines := []string{color.CyanString("ID | ORGANIZATION | NAME")}
+
+	var clusterIDs []string
 	for _, cluster := range response.Payload {
-		if cluster.ID == clusterNameOrID || cluster.Name == clusterNameOrID {
-			return cluster.ID, nil
+		if cluster.DeleteDate == nil && (cluster.ID == clusterNameOrID || cluster.Name == clusterNameOrID) {
+			clusterIDs = append(clusterIDs, cluster.ID)
+
+			outputLines = append(outputLines, fmt.Sprintf("%5s | %5s | %5s\n", cluster.ID, cluster.Owner, cluster.Name))
 		}
 	}
 
-	return "", microerror.Mask(errors.ClusterNotFoundError)
+	switch {
+	case clusterIDs == nil:
+		return "", microerror.Mask(errors.ClusterNotFoundError)
+
+	case len(clusterIDs) > 1:
+		fmt.Println("Multiple clusters found")
+		fmt.Printf("\n")
+		fmt.Println(columnize.SimpleFormat(outputLines))
+		fmt.Printf("\n")
+
+		confirmed, id := confirm.AskStrictOneOf(
+			fmt.Sprintf(
+				"Found more than one cluster called '%s', please type the ID of the cluster that you would like to delete",
+				clusterNameOrID,
+			),
+			clusterIDs,
+		)
+		if !confirmed {
+			return "", nil
+		}
+
+		return id, nil
+
+	default:
+		return clusterIDs[0], nil
+	}
+
 }
 
 // deleteCluster performs the cluster deletion API call
@@ -229,6 +263,9 @@ func deleteCluster(args Arguments) (bool, error) {
 		clusterID, err = getClusterID(args.clusterNameOrID, clientWrapper)
 		if err != nil {
 			return false, microerror.Mask(err)
+		}
+		if clusterID == "" {
+			return false, nil
 		}
 	}
 
