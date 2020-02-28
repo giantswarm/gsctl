@@ -89,7 +89,7 @@ func AskStrictOneOf(s string, c []string) (bool, string) {
 		case "n", "no":
 			return false, ""
 		default:
-			fmt.Printf(color.YellowString("The input entered does not match. "))
+			fmt.Printf(color.YellowString("The input entered does not match any of the provided options. "))
 			fmt.Printf(color.YellowString("Try again or abort by typing 'n' or 'no': "))
 		}
 	}

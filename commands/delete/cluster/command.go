@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
+	"github.com/giantswarm/gsctl/util"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -60,10 +60,7 @@ func collectArguments(positionalArgs []string) Arguments {
 	}
 }
 
-const (
-	listClustersActivityName  = "list-clusters"
-	deleteClusterActivityName = "delete-cluster"
-)
+const deleteClusterActivityName = "delete-cluster"
 
 var (
 	// Command performs the "delete cluster" function
@@ -187,64 +184,6 @@ func printResult(cmd *cobra.Command, args []string) {
 	}
 }
 
-func getClusterID(clusterNameOrID string, clientWrapper *client.Wrapper) (string, error) {
-	auxParams := clientWrapper.DefaultAuxiliaryParams()
-	auxParams.ActivityName = listClustersActivityName
-
-	response, err := clientWrapper.GetClusters(auxParams)
-	if err != nil {
-		switch {
-		case clienterror.IsUnauthorizedError(err):
-			return "", microerror.Mask(errors.NotAuthorizedError)
-
-		case clienterror.IsAccessForbiddenError(err):
-			return "", microerror.Mask(errors.AccessForbiddenError)
-
-		default:
-			return "", microerror.Mask(err)
-		}
-	}
-
-	outputLines := []string{color.CyanString("ID | ORGANIZATION | NAME")}
-
-	var clusterIDs []string
-	for _, cluster := range response.Payload {
-		if cluster.DeleteDate == nil && (cluster.ID == clusterNameOrID || cluster.Name == clusterNameOrID) {
-			clusterIDs = append(clusterIDs, cluster.ID)
-
-			outputLines = append(outputLines, fmt.Sprintf("%5s | %5s | %5s\n", cluster.ID, cluster.Owner, cluster.Name))
-		}
-	}
-
-	switch {
-	case clusterIDs == nil:
-		return "", microerror.Mask(errors.ClusterNotFoundError)
-
-	case len(clusterIDs) > 1:
-		fmt.Println("Multiple clusters found")
-		fmt.Printf("\n")
-		fmt.Println(columnize.SimpleFormat(outputLines))
-		fmt.Printf("\n")
-
-		confirmed, id := confirm.AskStrictOneOf(
-			fmt.Sprintf(
-				"Found more than one cluster called '%s', please type the ID of the cluster that you would like to delete",
-				clusterNameOrID,
-			),
-			clusterIDs,
-		)
-		if !confirmed {
-			return "", nil
-		}
-
-		return id, nil
-
-	default:
-		return clusterIDs[0], nil
-	}
-
-}
-
 // deleteCluster performs the cluster deletion API call
 //
 // The returned tuple contains:
@@ -260,7 +199,7 @@ func deleteCluster(args Arguments) (bool, error) {
 	// Accept legacy cluster ID for a while, but real one takes precedence.
 	clusterID := args.legacyClusterID
 	if args.clusterNameOrID != "" {
-		clusterID, err = getClusterID(args.clusterNameOrID, clientWrapper)
+		clusterID, err = util.GetClusterID(args.clusterNameOrID, clientWrapper)
 		if err != nil {
 			return false, microerror.Mask(err)
 		}
