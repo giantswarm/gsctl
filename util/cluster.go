@@ -75,11 +75,7 @@ func handleNameCollision(nameOrID string, clusters []*models.V4ClusterListItem) 
 		}
 	}
 
-	// Print output
-	fmt.Println("Multiple clusters found")
-	fmt.Printf("\n")
-	fmt.Println(columnize.SimpleFormat(table))
-	fmt.Printf("\n")
+	printNameCollisionTable(table)
 
 	confirmed, id := confirm.AskStrictOneOf(
 		fmt.Sprintf(
@@ -92,4 +88,12 @@ func handleNameCollision(nameOrID string, clusters []*models.V4ClusterListItem) 
 		return false, ""
 	}
 	return true, id
+}
+
+func printNameCollisionTable(table []string) {
+	// Print output
+	fmt.Println("Multiple clusters found")
+	fmt.Printf("\n")
+	fmt.Println(columnize.SimpleFormat(table))
+	fmt.Printf("\n")
 }
