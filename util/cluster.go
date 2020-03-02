@@ -116,6 +116,9 @@ func printNameCollisionTable(table []string) {
 	fmt.Printf("\n")
 }
 
+// CacheClusterIDs adds cluster IDs to a persistent cache,
+// which can be used for decreasing timeout in getting
+// cluster IDs, for commands that take both cluster names and IDs
 func CacheClusterIDs(c ...string) {
 	existingC := make(chan []string)
 	go func() {
@@ -142,13 +145,13 @@ func CacheClusterIDs(c ...string) {
 	_ = <-writeC
 }
 
+// IsInClusterCache checks if a cluster ID is present in the
+// persistent cluster cache
 func IsInClusterCache(ID string) bool {
 	existing, _ := readClusterCache()
 
 	for _, name := range existing {
 		if name == ID {
-			fmt.Printf("%s found in cache\n", ID)
-
 			return true
 		}
 	}
