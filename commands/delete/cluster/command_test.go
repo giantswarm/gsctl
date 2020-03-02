@@ -28,7 +28,7 @@ func TestDeleteClusterSuccess(t *testing.T) {
 			},
 			{
 				"create_date": "2017-05-16T09:30:31.192170835Z",
-				"id": "somecluster",
+				"id": "someothercluster",
 				"name": "My dearest production cluster",
 				"owner": "acme",
 				"path": "/v4/clusters/somecluster/"
