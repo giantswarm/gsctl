@@ -198,6 +198,7 @@ func getClustersOutput(args Arguments) (string, error) {
 
 	numDeletedClusters := 0
 	numOtherClusters := 0
+	clusterIDs := make([]string, 0, len(response.Payload))
 
 	for _, cluster := range response.Payload {
 		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
@@ -216,6 +217,8 @@ func getClustersOutput(args Arguments) (string, error) {
 			deleteTime := time.Time(*cluster.DeleteDate)
 			secondsSinceDelete = time.Now().Sub(deleteTime).Seconds()
 		} else {
+			clusterIDs = append(clusterIDs, cluster.ID)
+
 			numOtherClusters++
 		}
 
@@ -244,6 +247,8 @@ func getClustersOutput(args Arguments) (string, error) {
 
 		table = append(table, strings.Join(fields, "|"))
 	}
+
+	util.CacheClusterIDs(clusterIDs...)
 
 	// This function's output string.
 	output := ""

@@ -2,20 +2,34 @@ package util
 
 import (
 	"fmt"
+	"path"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
+	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/confirm"
 	"github.com/giantswarm/microerror"
+	"github.com/spf13/afero"
 )
 
-const listClustersActivityName = "list-clusters"
+const (
+	listClustersActivityName = "list-clusters"
+	clusterCacheFileName     = "clustercache"
+)
 
+// GetClusterID gets the cluster ID for a provided name/ID
+// by checking in both the user cache and on the API
 func GetClusterID(clusterNameOrID string, clientWrapper *client.Wrapper) (string, error) {
+	isID := IsInClusterCache(clusterNameOrID)
+	if isID {
+		return clusterNameOrID, nil
+	}
+
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = listClustersActivityName
 
@@ -45,6 +59,8 @@ func GetClusterID(clusterNameOrID string, clientWrapper *client.Wrapper) (string
 		return "", microerror.Mask(errors.ClusterNotFoundError)
 
 	case len(clusterIDs) > 1:
+		CacheClusterIDs(clusterIDs...)
+
 		confirmed, id := handleNameCollision(clusterNameOrID, response.Payload)
 		if !confirmed {
 			return "", nil
@@ -53,6 +69,8 @@ func GetClusterID(clusterNameOrID string, clientWrapper *client.Wrapper) (string
 		return id, nil
 
 	default:
+		CacheClusterIDs(clusterIDs[0])
+
 		return clusterIDs[0], nil
 	}
 }
@@ -96,4 +114,80 @@ func printNameCollisionTable(table []string) {
 	fmt.Printf("\n")
 	fmt.Println(columnize.SimpleFormat(table))
 	fmt.Printf("\n")
+}
+
+func CacheClusterIDs(c ...string) {
+	existingC := make(chan []string)
+	go func() {
+		e, _ := readClusterCache()
+		existingC <- e
+	}()
+	existing := <-existingC
+
+	var (
+		totalLen    = len(c) + len(existing)
+		allClusters = make([]string, 0, totalLen)
+	)
+
+	allClusters = append(allClusters, existing...)
+	allClusters = append(allClusters, c...)
+	allClusters = removeDuplicates(allClusters)
+
+	writeC := make(chan error)
+	go func() {
+		err := writeClusterCache(allClusters...)
+		writeC <- err
+	}()
+	// Ignore error output
+	_ = <-writeC
+}
+
+func IsInClusterCache(ID string) bool {
+	existing, _ := readClusterCache()
+
+	for _, name := range existing {
+		if name == ID {
+			fmt.Printf("%s found in cache\n", ID)
+
+			return true
+		}
+	}
+
+	return false
+}
+
+func readClusterCache() ([]string, error) {
+	filePath := path.Join(config.ConfigDirPath, clusterCacheFileName)
+	output, err := afero.ReadFile(config.FileSystem, filePath)
+	if err != nil {
+		return []string{}, err
+	}
+
+	c := strings.Split(string(output), ",")
+
+	return c, nil
+}
+
+func writeClusterCache(c ...string) error {
+	filePath := path.Join(config.ConfigDirPath, clusterCacheFileName)
+	output := []byte(strings.Join(c, ","))
+
+	err := afero.WriteFile(config.FileSystem, filePath, output, config.ConfigFilePermission)
+
+	return err
+}
+
+func removeDuplicates(c []string) []string {
+	uniqueVals := make(map[string]bool)
+
+	for _, cluster := range c {
+		uniqueVals[cluster] = true
+	}
+
+	final := make([]string, 0, len(uniqueVals))
+	for ID := range uniqueVals {
+		final = append(final, ID)
+	}
+
+	return final
 }

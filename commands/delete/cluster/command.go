@@ -223,7 +223,7 @@ func deleteCluster(args Arguments) (bool, error) {
 	auxParams.ActivityName = deleteClusterActivityName
 
 	// perform API call
-	_, err = clientWrapper.DeleteCluster(clusterID, auxParams)
+	// _, err = clientWrapper.DeleteCluster(clusterID, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clienterror.IsAccessForbiddenError(err) {
