@@ -48,11 +48,19 @@ func GetClusterID(clusterNameOrID string, clientWrapper *client.Wrapper) (string
 		}
 	}
 
-	var clusterIDs []string
+	var (
+		clusterIDs    []string
+		allClusterIDs []string = make([]string, 0, len(response.Payload))
+	)
 	for _, cluster := range response.Payload {
+		allClusterIDs = append(allClusterIDs, cluster.ID)
 		if matchesValidation(clusterNameOrID, cluster) {
 			clusterIDs = append(clusterIDs, cluster.ID)
 		}
+	}
+
+	if allClusterIDs != nil {
+		CacheClusterIDs(allClusterIDs...)
 	}
 
 	switch {
@@ -60,8 +68,6 @@ func GetClusterID(clusterNameOrID string, clientWrapper *client.Wrapper) (string
 		return "", microerror.Mask(errors.ClusterNotFoundError)
 
 	case len(clusterIDs) > 1:
-		CacheClusterIDs(clusterIDs...)
-
 		confirmed, id := handleNameCollision(clusterNameOrID, response.Payload)
 		if !confirmed {
 			return "", nil
@@ -70,8 +76,6 @@ func GetClusterID(clusterNameOrID string, clientWrapper *client.Wrapper) (string
 		return id, nil
 
 	default:
-		CacheClusterIDs(clusterIDs[0])
-
 		return clusterIDs[0], nil
 	}
 }
