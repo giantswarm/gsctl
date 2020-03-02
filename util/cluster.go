@@ -120,9 +120,11 @@ func printNameCollisionTable(table []string) {
 // which can be used for decreasing timeout in getting
 // cluster IDs, for commands that take both cluster names and IDs
 func CacheClusterIDs(c ...string) {
+	fs := config.FileSystem
+
 	existingC := make(chan []string)
 	go func() {
-		e, _ := readClusterCache()
+		e, _ := readClusterCache(fs)
 		existingC <- e
 	}()
 	existing := <-existingC
@@ -138,7 +140,7 @@ func CacheClusterIDs(c ...string) {
 
 	writeC := make(chan error)
 	go func() {
-		err := writeClusterCache(allClusters...)
+		err := writeClusterCache(fs, allClusters...)
 		writeC <- err
 	}()
 	// Ignore error output
@@ -148,7 +150,7 @@ func CacheClusterIDs(c ...string) {
 // IsInClusterCache checks if a cluster ID is present in the
 // persistent cluster cache
 func IsInClusterCache(ID string) bool {
-	existing, _ := readClusterCache()
+	existing, _ := readClusterCache(config.FileSystem)
 
 	for _, name := range existing {
 		if name == ID {
@@ -159,9 +161,9 @@ func IsInClusterCache(ID string) bool {
 	return false
 }
 
-func readClusterCache() ([]string, error) {
+func readClusterCache(fs afero.Fs) ([]string, error) {
 	filePath := path.Join(config.ConfigDirPath, clusterCacheFileName)
-	output, err := afero.ReadFile(config.FileSystem, filePath)
+	output, err := afero.ReadFile(fs, filePath)
 	if err != nil {
 		return []string{}, err
 	}
@@ -171,11 +173,11 @@ func readClusterCache() ([]string, error) {
 	return c, nil
 }
 
-func writeClusterCache(c ...string) error {
+func writeClusterCache(fs afero.Fs, c ...string) error {
 	filePath := path.Join(config.ConfigDirPath, clusterCacheFileName)
 	output := []byte(strings.Join(c, ","))
 
-	err := afero.WriteFile(config.FileSystem, filePath, output, config.ConfigFilePermission)
+	err := afero.WriteFile(fs, filePath, output, config.ConfigFilePermission)
 
 	return err
 }

@@ -109,12 +109,17 @@ func TestGetClusterID(t *testing.T) {
 			// output
 			id, err := GetClusterID(tc.clusterNameOrID, clientWrapper)
 
-			if id != tc.expectedID {
+			switch {
+
+			case id != tc.expectedID:
 				t.Errorf("Case %d - Result did not match ", i)
-			} else if err == nil && tc.errorMatcher != nil {
+
+			case err == nil && tc.errorMatcher != nil:
 				t.Errorf("Case %d - Expected an error but didn't get one. Should I be happy or not? ", i)
-			} else if tc.errorMatcher != nil && !tc.errorMatcher(err) {
+
+			case tc.errorMatcher != nil && !tc.errorMatcher(err):
 				t.Errorf("Case %d - Error did not match expected type. Got '%s'", i, err)
+
 			}
 		})
 	}

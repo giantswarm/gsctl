@@ -7,6 +7,7 @@ import (
 
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/testutils"
+	"github.com/spf13/afero"
 )
 
 // TestDeleteClusterSuccess runs test case that are supposed to succeed
@@ -50,6 +51,12 @@ func TestDeleteClusterSuccess(t *testing.T) {
 		},
 	}
 
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
+	if err != nil {
+		t.Error(err)
+	}
+
 	for i, testCase := range testCases {
 
 		args := testCase
@@ -88,6 +95,12 @@ func TestDeleteClusterFailures(t *testing.T) {
 			},
 			expectedError: errors.ClusterNameOrIDMissingError,
 		},
+	}
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
+	if err != nil {
+		t.Error(err)
 	}
 
 	for i, ftc := range failTestCases {

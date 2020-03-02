@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/testutils"
+	"github.com/spf13/afero"
 )
 
 func init() {
@@ -70,13 +72,19 @@ func Test_ListClusters(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
+	if err != nil {
+		t.Error(err)
+	}
+
 	args := Arguments{
 		apiEndpoint:  mockServer.URL,
 		authToken:    "testtoken",
 		outputFormat: "table",
 	}
 
-	err := verifyListClusterPreconditions(args)
+	err = verifyListClusterPreconditions(args)
 	if err != nil {
 		t.Error(err)
 	}
@@ -98,13 +106,19 @@ func Test_ListClustersEmpty(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
+	if err != nil {
+		t.Error(err)
+	}
+
 	args := Arguments{
 		apiEndpoint:  mockServer.URL,
 		authToken:    "testtoken",
 		outputFormat: "table",
 	}
 
-	err := verifyListClusterPreconditions(args)
+	err = verifyListClusterPreconditions(args)
 	if err != nil {
 		t.Error(err)
 	}
@@ -128,13 +142,19 @@ func Test_ListClustersUnauthorized(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
+	if err != nil {
+		t.Error(err)
+	}
+
 	args := Arguments{
 		apiEndpoint:  mockServer.URL,
 		authToken:    "testtoken",
 		outputFormat: "table",
 	}
 
-	err := verifyListClusterPreconditions(args)
+	err = verifyListClusterPreconditions(args)
 	if err != nil {
 		t.Error(err)
 	}
