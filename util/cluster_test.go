@@ -3,17 +3,21 @@ package util
 import (
 	"net/http"
 	"net/http/httptest"
+	"path"
 	"strconv"
 	"testing"
 
+	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/testutils"
+	"github.com/go-openapi/strfmt"
+	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
 )
 
 func TestGetClusterID(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		clusterNameOrID string
 		expectedID      string
 		errorMatcher    func(error) bool
@@ -121,6 +125,183 @@ func TestGetClusterID(t *testing.T) {
 				t.Errorf("Case %d - Error did not match expected type. Got '%s'", i, err)
 
 			}
+		})
+	}
+}
+
+func TestmatchesValidation(t *testing.T) {
+	dd := strfmt.NewDateTime()
+	deleteDate := &dd
+
+	testCases := []struct {
+		clusterNameOrID string
+		expectedResult  bool
+		cluster         *models.V4ClusterListItem
+	}{
+		{
+			clusterNameOrID: "My dearest production cluster",
+			expectedResult:  true,
+			cluster: &models.V4ClusterListItem{
+				DeleteDate: nil,
+				ID:         "123sd",
+				Name:       "My dearest production cluster",
+			},
+		}, {
+			clusterNameOrID: "2sg4i",
+			expectedResult:  true,
+			cluster: &models.V4ClusterListItem{
+				DeleteDate: nil,
+				ID:         "2sg4i",
+				Name:       "Cluster name",
+			},
+		}, {
+			clusterNameOrID: "A deleted cluster",
+			expectedResult:  false,
+			cluster: &models.V4ClusterListItem{
+				DeleteDate: deleteDate,
+				ID:         "",
+				Name:       "",
+			},
+		}, {
+			clusterNameOrID: "Some other cluster",
+			expectedResult:  false,
+			cluster: &models.V4ClusterListItem{
+				DeleteDate: nil,
+				ID:         "123ad12",
+				Name:       "Not this cluster",
+			},
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			// output
+			isValid := matchesValidation(tc.clusterNameOrID, tc.cluster)
+
+			if isValid != tc.expectedResult {
+				t.Errorf("Case %d - Result did not match ", i)
+			}
+		})
+	}
+}
+
+func TestprintNameCollisionTable(t *testing.T) {
+	testCases := []struct {
+		tableLines     []string
+		expectedResult string
+	}{
+		{
+			tableLines: []string{
+				"ID | ORGANIZATION | NAME",
+				"1asd1 | giantswarm | Cluster name",
+				"asd1sd | giantswarm | Other cluster name",
+			},
+			expectedResult: `Multiple clusters found
+
+ID      ORGANIZATION  NAME
+1asd1   giantswarm    Cluster name
+asd1sd  giantswarm    Other cluster name
+
+`,
+		},
+	}
+
+	for i, tc := range testCases {
+		output := testutils.CaptureOutput(func() {
+			// output
+			printNameCollisionTable(tc.tableLines)
+		})
+
+		if diff := cmp.Diff(tc.expectedResult, output); diff != "" {
+			t.Errorf("Case %d - Result did not match.\nOutput: %s", i, diff)
+		}
+	}
+}
+
+func TestIsInClusterCache(t *testing.T) {
+	testCases := []struct {
+		clusterNameOrID string
+		cacheContents   string
+		expectedResult  bool
+	}{
+		{
+			clusterNameOrID: "My dearest production cluster",
+			cacheContents:   "",
+			expectedResult:  false,
+		}, {
+			clusterNameOrID: "2sg4i",
+			cacheContents:   "2sg4i,123asd,1239d1,99sad0",
+			expectedResult:  true,
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			fs := afero.NewMemMapFs()
+			_, err := testutils.TempConfig(fs, "")
+			_, err = testutils.TempClusterCache(fs, tc.cacheContents)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// output
+			isInCache := IsInClusterCache(tc.clusterNameOrID)
+
+			if isInCache != tc.expectedResult {
+				t.Errorf("Case %d - Result did not match ", i)
+			}
+		})
+	}
+}
+
+func TestCacheClusterIDs(t *testing.T) {
+	testCases := []struct {
+		clusterIDs    []string
+		cacheContents string
+		initialCache  string
+	}{
+		{
+			clusterIDs:    []string{"2sg4i", "123asd", "1239d1", "99sad0"},
+			initialCache:  "",
+			cacheContents: "1239d1,123asd,2sg4i,99sad0",
+		}, {
+			clusterIDs:    []string{"2sg4i"},
+			initialCache:  "",
+			cacheContents: "2sg4i",
+		}, {
+			clusterIDs:    []string{""},
+			initialCache:  "",
+			cacheContents: "",
+		}, {
+			clusterIDs:    []string{"123asd", "1239d1", "99sad0"},
+			initialCache:  "123asd,1239d1,99sad0",
+			cacheContents: "1239d1,123asd,99sad0",
+		}, {
+			clusterIDs:    []string{"asd1s", "243as", "5666asd"},
+			initialCache:  "123asd,1239d1,99sad0",
+			cacheContents: "1239d1,123asd,243as,5666asd,99sad0,asd1s",
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			fs := afero.NewMemMapFs()
+			_, err := testutils.TempConfig(fs, "")
+			clusterCacheFileDir, err := testutils.TempClusterCache(fs, tc.initialCache)
+			if err != nil {
+				t.Fatal(err)
+			}
+			clusterCacheFilePath := path.Join(clusterCacheFileDir, clusterCacheFileName)
+			defer fs.Remove(clusterCacheFilePath)
+
+			// output
+			CacheClusterIDs(tc.clusterIDs...)
+			cacheContent, _ := afero.ReadFile(fs, clusterCacheFilePath)
+
+			if string(cacheContent) != tc.cacheContents {
+				t.Errorf("Case %d - Result did not match\nExpected: %s\nGot: %s", i, tc.cacheContents, cacheContent)
+			}
+
 		})
 	}
 }

@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/fatih/color"
@@ -193,6 +194,8 @@ func removeDuplicates(c []string) []string {
 	for ID := range uniqueVals {
 		final = append(final, ID)
 	}
+
+	sort.Strings(final)
 
 	return final
 }
