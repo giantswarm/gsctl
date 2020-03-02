@@ -3,6 +3,7 @@ package testutils
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 
@@ -32,6 +33,21 @@ func CaptureOutput(f func()) (printed string) {
 	out := <-outC
 
 	return out
+}
+
+// CaptureOutputSync runs a function synchronously and captures returns STDOUT output as a string.
+func CaptureOutputSync(f func()) (printed string) {
+	orig := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	f()
+
+	w.Close()
+	out, _ := ioutil.ReadAll(r)
+	os.Stdout = orig
+
+	return string(out)
 }
 
 // TempDir creates a temporary directory for a temporary config file in tests.
