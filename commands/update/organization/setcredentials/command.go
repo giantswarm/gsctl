@@ -338,7 +338,7 @@ func setOrgCredentials(args Arguments) (*setOrgCredentialsResult, error) {
 		fmt.Println(color.WhiteString("Sending API request to set credentials"))
 	}
 
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
