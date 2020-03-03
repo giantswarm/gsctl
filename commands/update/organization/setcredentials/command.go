@@ -338,7 +338,7 @@ func setOrgCredentials(args Arguments) (*setOrgCredentialsResult, error) {
 		fmt.Println(color.WhiteString("Sending API request to set credentials"))
 	}
 
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.authToken)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -347,8 +347,6 @@ func setOrgCredentials(args Arguments) (*setOrgCredentialsResult, error) {
 	auxParams.ActivityName = activityName
 
 	response, err := clientWrapper.SetCredentials(args.organizationID, requestBody, auxParams)
-	fmt.Printf("response: %#v\n", response)
-	fmt.Printf("err: %#v\n", err)
 	if err != nil {
 		if clienterror.IsConflictError(err) {
 			return nil, microerror.Mask(errors.CredentialsAlreadySetError)
