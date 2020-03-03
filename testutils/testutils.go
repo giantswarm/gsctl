@@ -116,7 +116,7 @@ func TempClusterCache(fs afero.Fs, cacheYAML string) (string, error) {
 	dir := TempDir(fs)
 	config.ConfigDirPath = dir
 	config.FileSystem = fs
-	filePath := path.Join(config.ConfigDirPath, "clustercache")
+	filePath := path.Join(config.ConfigDirPath, "clustercache.yaml")
 
 	if cacheYAML != "" {
 		err := afero.WriteFile(fs, filePath, []byte(cacheYAML), 0600)

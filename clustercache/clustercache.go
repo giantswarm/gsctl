@@ -20,7 +20,7 @@ import (
 
 const (
 	listClustersActivityName = "list-clusters"
-	clusterCacheFileName     = "clustercache"
+	clusterCacheFileName     = "clustercache.yaml"
 
 	// cacheDuration = time.Hour * 24 * 7 // 7 days
 	cacheDuration = time.Second * 30
