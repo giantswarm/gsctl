@@ -347,8 +347,6 @@ func setOrgCredentials(args Arguments) (*setOrgCredentialsResult, error) {
 	auxParams.ActivityName = activityName
 
 	response, err := clientWrapper.SetCredentials(args.organizationID, requestBody, auxParams)
-	fmt.Printf("response: %#v\n", response)
-	fmt.Printf("err: %#v\n", err)
 	if err != nil {
 		if clienterror.IsConflictError(err) {
 			return nil, microerror.Mask(errors.CredentialsAlreadySetError)
