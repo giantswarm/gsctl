@@ -106,7 +106,10 @@ func IsInCache(endpoint string, ID string) bool {
 
 		now = time.Now()
 	)
-	existing, _ := read(config.FileSystem)
+	existing, err := read(config.FileSystem)
+	if err != nil {
+		return false
+	}
 
 	c := existing.Endpoints[endpoint]
 	for _, cID := range c.IDs {
@@ -126,6 +129,10 @@ func IsInCache(endpoint string, ID string) bool {
 // which can be used for decreasing timeout in getting
 // cluster IDs, for commands that take both cluster names and IDs
 func CacheIDs(endpoint string, c []string) {
+	if len(c) == 0 {
+		return
+	}
+
 	fs := config.FileSystem
 
 	var cache *Cache = New()
@@ -136,12 +143,9 @@ func CacheIDs(endpoint string, c []string) {
 		}
 	}
 
-	allIDs := make([]string, 0, len(c))
-	allIDs = append(allIDs, c...)
-
 	cache.Endpoints[endpoint] = EndpointCache{
 		Expiry: time.Now().Add(cacheDuration).Format(timeLayout),
-		IDs:    allIDs,
+		IDs:    c,
 	}
 
 	_ = write(fs, cache)

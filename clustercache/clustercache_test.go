@@ -1,11 +1,13 @@
 package clustercache
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/gsctl/client"
@@ -111,7 +113,7 @@ func Test_GetClusterID(t *testing.T) {
 			}
 
 			// output
-			id, err := GetID("mockEndpoint", tc.clusterNameOrID, clientWrapper)
+			id, err := GetID(mockServer.URL, tc.clusterNameOrID, clientWrapper)
 
 			switch {
 
@@ -219,19 +221,49 @@ asd1sd  giantswarm    Other cluster name
 }
 
 func Test_IsInClusterCache(t *testing.T) {
+	nonExpiredDate := time.Now().Add(time.Hour * 24).Format(timeLayout)
+
 	testCases := []struct {
 		clusterNameOrID string
-		cacheContents   string
+		cacheYAML       string
+		endpoint        string
 		expectedResult  bool
 	}{
 		{
 			clusterNameOrID: "My dearest production cluster",
-			cacheContents:   "",
+			endpoint:        "mock-endpoint",
+			cacheYAML:       "",
 			expectedResult:  false,
 		}, {
 			clusterNameOrID: "2sg4i",
-			cacheContents:   "2sg4i,123asd,1239d1,99sad0",
-			expectedResult:  true,
+			endpoint:        "mock-endpoint",
+			cacheYAML: fmt.Sprintf(`endpoints:
+  other-endpoint:
+    expiry: "%s"
+    ids:
+    - 2sg4i`, nonExpiredDate),
+			expectedResult: false,
+		}, {
+			clusterNameOrID: "2sg4i",
+			endpoint:        "mock-endpoint",
+			cacheYAML: `endpoints:
+  mock-endpoint:
+    expiry: "2010-03-03T13:17:16+01:00"
+    ids:
+    - 2sg4i`,
+			expectedResult: false,
+		}, {
+			clusterNameOrID: "2sg4i",
+			endpoint:        "mock-endpoint",
+			cacheYAML: fmt.Sprintf(`endpoints:
+  mock-endpoint:
+    expiry: "%s"
+    ids:
+    - 2sg4i
+    - 123asd
+    - 1239d1
+    - 99sad0`, nonExpiredDate),
+			expectedResult: true,
 		},
 	}
 
@@ -239,13 +271,13 @@ func Test_IsInClusterCache(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			fs := afero.NewMemMapFs()
 			_, err := testutils.TempConfig(fs, "")
-			_, err = testutils.TempClusterCache(fs, tc.cacheContents)
+			_, err = testutils.TempClusterCache(fs, tc.cacheYAML)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			// output
-			isInCache := IsInCache(tc.clusterNameOrID)
+			isInCache := IsInCache(tc.endpoint, tc.clusterNameOrID)
 
 			if isInCache != tc.expectedResult {
 				t.Errorf("Case %d - Result did not match ", i)
@@ -255,31 +287,69 @@ func Test_IsInClusterCache(t *testing.T) {
 }
 
 func Test_CacheClusterIDs(t *testing.T) {
+	nonExpiredDate := time.Now().Add(cacheDuration).Format(timeLayout)
+
 	testCases := []struct {
-		clusterIDs    []string
-		cacheContents string
-		initialCache  string
+		clusterIDs       []string
+		initialCacheYAML string
+		cacheYAML        string
+		endpoint         string
 	}{
 		{
-			clusterIDs:    []string{"2sg4i", "123asd", "1239d1", "99sad0"},
-			initialCache:  "",
-			cacheContents: "1239d1,123asd,2sg4i,99sad0",
+			clusterIDs: []string{"1239d1", "99sad0"},
+			endpoint:   "other-endpoint",
+			initialCacheYAML: `endpoints:
+  mock-endpoint:
+    expiry: "2010-03-03T13:17:16+01:00"
+    ids:
+    - 2sg4i
+    - 123asd`,
+			cacheYAML: fmt.Sprintf(`endpoints:
+  mock-endpoint:
+    expiry: "2010-03-03T13:17:16+01:00"
+    ids:
+    - 2sg4i
+    - 123asd
+  other-endpoint:
+    expiry: "%s"
+    ids:
+    - 1239d1
+    - 99sad0
+`, nonExpiredDate),
 		}, {
-			clusterIDs:    []string{"2sg4i"},
-			initialCache:  "",
-			cacheContents: "2sg4i",
+			clusterIDs:       []string{"1239d1", "99sad0"},
+			endpoint:         "mock-endpoint",
+			initialCacheYAML: "",
+			cacheYAML: fmt.Sprintf(`endpoints:
+  mock-endpoint:
+    expiry: "%s"
+    ids:
+    - 1239d1
+    - 99sad0
+`, nonExpiredDate),
 		}, {
-			clusterIDs:    []string{""},
-			initialCache:  "",
-			cacheContents: "",
+			clusterIDs: []string{"1239d1", "99sad0", "asd10h"},
+			endpoint:   "mock-endpoint",
+			initialCacheYAML: `endpoints:
+  mock-endpoint:
+    expiry: "2010-03-03T13:17:16+01:00"
+    ids:
+    - 1239d1
+    - 99sad0
+`,
+			cacheYAML: fmt.Sprintf(`endpoints:
+  mock-endpoint:
+    expiry: "%s"
+    ids:
+    - 1239d1
+    - 99sad0
+    - asd10h
+`, nonExpiredDate),
 		}, {
-			clusterIDs:    []string{"123asd", "1239d1", "99sad0"},
-			initialCache:  "123asd,1239d1,99sad0",
-			cacheContents: "1239d1,123asd,99sad0",
-		}, {
-			clusterIDs:    []string{"asd1s", "243as", "5666asd"},
-			initialCache:  "123asd,1239d1,99sad0",
-			cacheContents: "1239d1,123asd,243as,5666asd,99sad0,asd1s",
+			clusterIDs:       []string{},
+			endpoint:         "mock-endpoint",
+			initialCacheYAML: "",
+			cacheYAML:        "",
 		},
 	}
 
@@ -287,7 +357,7 @@ func Test_CacheClusterIDs(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			fs := afero.NewMemMapFs()
 			_, err := testutils.TempConfig(fs, "")
-			clusterCacheFileDir, err := testutils.TempClusterCache(fs, tc.initialCache)
+			clusterCacheFileDir, err := testutils.TempClusterCache(fs, tc.initialCacheYAML)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -295,11 +365,11 @@ func Test_CacheClusterIDs(t *testing.T) {
 			defer fs.Remove(clusterCacheFilePath)
 
 			// output
-			CacheIDs(tc.clusterIDs...)
+			CacheIDs(tc.endpoint, tc.clusterIDs)
 			cacheContent, _ := afero.ReadFile(fs, clusterCacheFilePath)
 
-			if string(cacheContent) != tc.cacheContents {
-				t.Errorf("Case %d - Result did not match\nExpected: %s\nGot: %s", i, tc.cacheContents, cacheContent)
+			if diff := cmp.Diff(string(cacheContent), tc.cacheYAML); diff != "" {
+				t.Errorf("Case %d - Result did not match.\nOutput: %s", i, diff)
 			}
 
 		})

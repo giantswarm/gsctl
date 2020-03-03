@@ -112,14 +112,14 @@ contexts:
 // TempClusterCache creates a temporary config directory with
 // clustercache file containing the given cache content
 // The directory path is returned.
-func TempClusterCache(fs afero.Fs, cacheContent string) (string, error) {
+func TempClusterCache(fs afero.Fs, cacheYAML string) (string, error) {
 	dir := TempDir(fs)
 	config.ConfigDirPath = dir
 	config.FileSystem = fs
 	filePath := path.Join(config.ConfigDirPath, "clustercache")
 
-	if cacheContent != "" {
-		err := afero.WriteFile(fs, filePath, []byte(cacheContent), 0600)
+	if cacheYAML != "" {
+		err := afero.WriteFile(fs, filePath, []byte(cacheYAML), 0600)
 		if err != nil {
 			return "", err
 		}
