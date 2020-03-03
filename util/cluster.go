@@ -26,8 +26,8 @@ const (
 // GetClusterID gets the cluster ID for a provided name/ID
 // by checking in both the user cache and on the API
 func GetClusterID(clusterNameOrID string, clientWrapper *client.Wrapper) (string, error) {
-	isID := IsInClusterCache(clusterNameOrID)
-	if isID {
+	isInCache := IsInClusterCache(clusterNameOrID)
+	if isInCache {
 		return clusterNameOrID, nil
 	}
 
@@ -49,13 +49,13 @@ func GetClusterID(clusterNameOrID string, clientWrapper *client.Wrapper) (string
 	}
 
 	var (
-		clusterIDs    []string
+		matchingIDs   []string
 		allClusterIDs []string = make([]string, 0, len(response.Payload))
 	)
 	for _, cluster := range response.Payload {
 		allClusterIDs = append(allClusterIDs, cluster.ID)
 		if matchesValidation(clusterNameOrID, cluster) {
-			clusterIDs = append(clusterIDs, cluster.ID)
+			matchingIDs = append(matchingIDs, cluster.ID)
 		}
 	}
 
@@ -63,21 +63,15 @@ func GetClusterID(clusterNameOrID string, clientWrapper *client.Wrapper) (string
 		CacheClusterIDs(allClusterIDs...)
 	}
 
-	switch {
-	case clusterIDs == nil:
+	if matchingIDs == nil {
 		return "", microerror.Mask(errors.ClusterNotFoundError)
-
-	case len(clusterIDs) > 1:
-		confirmed, id := handleNameCollision(clusterNameOrID, response.Payload)
-		if !confirmed {
-			return "", nil
-		}
+	} else if len(matchingIDs) > 1 {
+		_, id := handleNameCollision(clusterNameOrID, response.Payload)
 
 		return id, nil
-
-	default:
-		return clusterIDs[0], nil
 	}
+
+	return matchingIDs[0], nil
 }
 
 func matchesValidation(nameOrID string, cluster *models.V4ClusterListItem) bool {
