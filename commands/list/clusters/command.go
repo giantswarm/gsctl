@@ -12,6 +12,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -248,7 +249,7 @@ func getClustersOutput(args Arguments) (string, error) {
 		table = append(table, strings.Join(fields, "|"))
 	}
 
-	util.CacheClusterIDs(clusterIDs...)
+	clustercache.CacheIDs(clusterIDs...)
 
 	// This function's output string.
 	output := ""

@@ -7,7 +7,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
-	"github.com/giantswarm/gsctl/util"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -199,7 +199,7 @@ func deleteCluster(args Arguments) (bool, error) {
 	// Accept legacy cluster ID for a while, but real one takes precedence.
 	clusterID := args.legacyClusterID
 	if args.clusterNameOrID != "" {
-		clusterID, err = util.GetClusterID(args.clusterNameOrID, clientWrapper)
+		clusterID, err = clustercache.GetID(args.clusterNameOrID, clientWrapper)
 		if err != nil {
 			return false, microerror.Mask(err)
 		}

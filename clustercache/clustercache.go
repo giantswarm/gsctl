@@ -1,4 +1,4 @@
-package util
+package clustercache
 
 import (
 	"fmt"
@@ -23,10 +23,10 @@ const (
 	clusterCacheFileName     = "clustercache"
 )
 
-// GetClusterID gets the cluster ID for a provided name/ID
+// GetID gets the cluster ID for a provided name/ID
 // by checking in both the user cache and on the API
-func GetClusterID(clusterNameOrID string, clientWrapper *client.Wrapper) (string, error) {
-	isInCache := IsInClusterCache(clusterNameOrID)
+func GetID(clusterNameOrID string, clientWrapper *client.Wrapper) (string, error) {
+	isInCache := IsInCache(clusterNameOrID)
 	if isInCache {
 		return clusterNameOrID, nil
 	}
@@ -60,7 +60,7 @@ func GetClusterID(clusterNameOrID string, clientWrapper *client.Wrapper) (string
 	}
 
 	if allClusterIDs != nil {
-		CacheClusterIDs(allClusterIDs...)
+		CacheIDs(allClusterIDs...)
 	}
 
 	if matchingIDs == nil {
@@ -115,15 +115,15 @@ func printNameCollisionTable(table []string) {
 	fmt.Printf("\n")
 }
 
-// CacheClusterIDs adds cluster IDs to a persistent cache,
+// CacheIDs adds cluster IDs to a persistent cache,
 // which can be used for decreasing timeout in getting
 // cluster IDs, for commands that take both cluster names and IDs
-func CacheClusterIDs(c ...string) {
+func CacheIDs(c ...string) {
 	fs := config.FileSystem
 
 	existingC := make(chan []string)
 	go func() {
-		e, _ := readClusterCache(fs)
+		e, _ := read(fs)
 		existingC <- e
 	}()
 	existing := <-existingC
@@ -139,17 +139,17 @@ func CacheClusterIDs(c ...string) {
 
 	writeC := make(chan error)
 	go func() {
-		err := writeClusterCache(fs, allClusters...)
+		err := write(fs, allClusters...)
 		writeC <- err
 	}()
 	// Ignore error output
 	_ = <-writeC
 }
 
-// IsInClusterCache checks if a cluster ID is present in the
+// IsInCache checks if a cluster ID is present in the
 // persistent cluster cache
-func IsInClusterCache(ID string) bool {
-	existing, _ := readClusterCache(config.FileSystem)
+func IsInCache(ID string) bool {
+	existing, _ := read(config.FileSystem)
 
 	for _, name := range existing {
 		if name == ID {
@@ -160,7 +160,7 @@ func IsInClusterCache(ID string) bool {
 	return false
 }
 
-func readClusterCache(fs afero.Fs) ([]string, error) {
+func read(fs afero.Fs) ([]string, error) {
 	filePath := path.Join(config.ConfigDirPath, clusterCacheFileName)
 	output, err := afero.ReadFile(fs, filePath)
 	if err != nil {
@@ -172,7 +172,7 @@ func readClusterCache(fs afero.Fs) ([]string, error) {
 	return c, nil
 }
 
-func writeClusterCache(fs afero.Fs, c ...string) error {
+func write(fs afero.Fs, c ...string) error {
 	filePath := path.Join(config.ConfigDirPath, clusterCacheFileName)
 	output := []byte(strings.Join(c, ","))
 

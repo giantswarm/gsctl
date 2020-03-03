@@ -1,4 +1,4 @@
-package util
+package clustercache
 
 import (
 	"net/http"
@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/afero"
 )
 
-func TestGetClusterID(t *testing.T) {
+func Test_GetClusterID(t *testing.T) {
 	testCases := []struct {
 		clusterNameOrID string
 		expectedID      string
@@ -111,7 +111,7 @@ func TestGetClusterID(t *testing.T) {
 			}
 
 			// output
-			id, err := GetClusterID(tc.clusterNameOrID, clientWrapper)
+			id, err := GetID(tc.clusterNameOrID, clientWrapper)
 
 			switch {
 
@@ -129,7 +129,7 @@ func TestGetClusterID(t *testing.T) {
 	}
 }
 
-func TestmatchesValidation(t *testing.T) {
+func Test_matchesValidation(t *testing.T) {
 	dd := strfmt.NewDateTime()
 	deleteDate := &dd
 
@@ -185,7 +185,7 @@ func TestmatchesValidation(t *testing.T) {
 	}
 }
 
-func TestprintNameCollisionTable(t *testing.T) {
+func Test_printNameCollisionTable(t *testing.T) {
 	testCases := []struct {
 		tableLines     []string
 		expectedResult string
@@ -218,7 +218,7 @@ asd1sd  giantswarm    Other cluster name
 	}
 }
 
-func TestIsInClusterCache(t *testing.T) {
+func Test_IsInClusterCache(t *testing.T) {
 	testCases := []struct {
 		clusterNameOrID string
 		cacheContents   string
@@ -245,7 +245,7 @@ func TestIsInClusterCache(t *testing.T) {
 			}
 
 			// output
-			isInCache := IsInClusterCache(tc.clusterNameOrID)
+			isInCache := IsInCache(tc.clusterNameOrID)
 
 			if isInCache != tc.expectedResult {
 				t.Errorf("Case %d - Result did not match ", i)
@@ -254,7 +254,7 @@ func TestIsInClusterCache(t *testing.T) {
 	}
 }
 
-func TestCacheClusterIDs(t *testing.T) {
+func Test_CacheClusterIDs(t *testing.T) {
 	testCases := []struct {
 		clusterIDs    []string
 		cacheContents string
@@ -295,7 +295,7 @@ func TestCacheClusterIDs(t *testing.T) {
 			defer fs.Remove(clusterCacheFilePath)
 
 			// output
-			CacheClusterIDs(tc.clusterIDs...)
+			CacheIDs(tc.clusterIDs...)
 			cacheContent, _ := afero.ReadFile(fs, clusterCacheFilePath)
 
 			if string(cacheContent) != tc.cacheContents {
