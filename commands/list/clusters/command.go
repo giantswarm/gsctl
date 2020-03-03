@@ -249,7 +249,7 @@ func getClustersOutput(args Arguments) (string, error) {
 		table = append(table, strings.Join(fields, "|"))
 	}
 
-	clustercache.CacheIDs(clusterIDs...)
+	clustercache.CacheIDs(args.apiEndpoint, clusterIDs)
 
 	// This function's output string.
 	output := ""

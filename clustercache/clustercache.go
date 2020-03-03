@@ -3,8 +3,7 @@ package clustercache
 import (
 	"fmt"
 	"path"
-	"sort"
-	"strings"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
@@ -16,17 +15,33 @@ import (
 	"github.com/giantswarm/gsctl/confirm"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/afero"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
 	listClustersActivityName = "list-clusters"
 	clusterCacheFileName     = "clustercache"
+
+	// cacheDuration = time.Hour * 24 * 7 // 7 days
+	cacheDuration = time.Second * 30
+	timeLayout    = time.RFC3339
 )
+
+type EndpointCache struct {
+	Expiry string   `yaml:"expiry"`
+	IDs    []string `yaml:"ids"`
+}
+
+type Endpoints map[string]EndpointCache
+
+type Cache struct {
+	Endpoints Endpoints `yaml:"endpoints"`
+}
 
 // GetID gets the cluster ID for a provided name/ID
 // by checking in both the user cache and on the API
-func GetID(clusterNameOrID string, clientWrapper *client.Wrapper) (string, error) {
-	isInCache := IsInCache(clusterNameOrID)
+func GetID(endpoint string, clusterNameOrID string, clientWrapper *client.Wrapper) (string, error) {
+	isInCache := IsInCache(endpoint, clusterNameOrID)
 	if isInCache {
 		return clusterNameOrID, nil
 	}
@@ -60,7 +75,7 @@ func GetID(clusterNameOrID string, clientWrapper *client.Wrapper) (string, error
 	}
 
 	if allClusterIDs != nil {
-		CacheIDs(allClusterIDs...)
+		CacheIDs(endpoint, allClusterIDs)
 	}
 
 	if matchingIDs == nil {
@@ -72,6 +87,64 @@ func GetID(clusterNameOrID string, clientWrapper *client.Wrapper) (string, error
 	}
 
 	return matchingIDs[0], nil
+}
+
+// New creates a new Cache object
+func New() *Cache {
+	c := &Cache{}
+	c.Endpoints = Endpoints{}
+
+	return c
+}
+
+// IsInCache checks if a cluster ID is present in the
+// persistent cluster cache
+func IsInCache(endpoint string, ID string) bool {
+	var (
+		err                error
+		endpointExpiration time.Time
+
+		now = time.Now()
+	)
+	existing, _ := read(config.FileSystem)
+
+	c := existing.Endpoints[endpoint]
+	for _, cID := range c.IDs {
+		endpointExpiration, err = time.Parse(timeLayout, c.Expiry)
+		if err != nil || now.After(endpointExpiration) {
+			return false
+		}
+		if cID == ID {
+			return true
+		}
+	}
+
+	return false
+}
+
+// CacheIDs adds cluster IDs to a persistent cache,
+// which can be used for decreasing timeout in getting
+// cluster IDs, for commands that take both cluster names and IDs
+func CacheIDs(endpoint string, c []string) {
+	fs := config.FileSystem
+
+	var cache *Cache = New()
+	{
+		cache, _ = read(fs)
+		if cache == nil {
+			cache = New()
+		}
+	}
+
+	allIDs := make([]string, 0, len(c))
+	allIDs = append(allIDs, c...)
+
+	cache.Endpoints[endpoint] = EndpointCache{
+		Expiry: time.Now().Add(cacheDuration).Format(timeLayout),
+		IDs:    allIDs,
+	}
+
+	_ = write(fs, cache)
 }
 
 func matchesValidation(nameOrID string, cluster *models.V4ClusterListItem) bool {
@@ -115,85 +188,31 @@ func printNameCollisionTable(table []string) {
 	fmt.Printf("\n")
 }
 
-// CacheIDs adds cluster IDs to a persistent cache,
-// which can be used for decreasing timeout in getting
-// cluster IDs, for commands that take both cluster names and IDs
-func CacheIDs(c ...string) {
-	fs := config.FileSystem
+func read(fs afero.Fs) (*Cache, error) {
+	cache := New()
 
-	existingC := make(chan []string)
-	go func() {
-		e, _ := read(fs)
-		existingC <- e
-	}()
-	existing := <-existingC
-
-	var (
-		totalLen    = len(c) + len(existing)
-		allClusters = make([]string, 0, totalLen)
-	)
-
-	allClusters = append(allClusters, existing...)
-	allClusters = append(allClusters, c...)
-	allClusters = removeDuplicates(allClusters)
-
-	writeC := make(chan error)
-	go func() {
-		err := write(fs, allClusters...)
-		writeC <- err
-	}()
-	// Ignore error output
-	_ = <-writeC
-}
-
-// IsInCache checks if a cluster ID is present in the
-// persistent cluster cache
-func IsInCache(ID string) bool {
-	existing, _ := read(config.FileSystem)
-
-	for _, name := range existing {
-		if name == ID {
-			return true
-		}
-	}
-
-	return false
-}
-
-func read(fs afero.Fs) ([]string, error) {
 	filePath := path.Join(config.ConfigDirPath, clusterCacheFileName)
-	output, err := afero.ReadFile(fs, filePath)
+	yamlBytes, err := afero.ReadFile(fs, filePath)
 	if err != nil {
-		return []string{}, err
+		return nil, err
 	}
 
-	c := strings.Split(string(output), ",")
+	err = yaml.Unmarshal(yamlBytes, cache)
+	if err != nil {
+		return nil, err
+	}
 
-	return c, nil
+	return cache, nil
 }
 
-func write(fs afero.Fs, c ...string) error {
+func write(fs afero.Fs, c *Cache) error {
 	filePath := path.Join(config.ConfigDirPath, clusterCacheFileName)
-	output := []byte(strings.Join(c, ","))
+	output, err := yaml.Marshal(c)
+	if err != nil {
+		return err
+	}
 
-	err := afero.WriteFile(fs, filePath, output, config.ConfigFilePermission)
+	err = afero.WriteFile(fs, filePath, output, config.ConfigFilePermission)
 
 	return err
-}
-
-func removeDuplicates(c []string) []string {
-	uniqueVals := make(map[string]bool)
-
-	for _, cluster := range c {
-		uniqueVals[cluster] = true
-	}
-
-	final := make([]string, 0, len(uniqueVals))
-	for ID := range uniqueVals {
-		final = append(final, ID)
-	}
-
-	sort.Strings(final)
-
-	return final
 }

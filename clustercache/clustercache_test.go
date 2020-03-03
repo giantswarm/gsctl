@@ -111,7 +111,7 @@ func Test_GetClusterID(t *testing.T) {
 			}
 
 			// output
-			id, err := GetID(tc.clusterNameOrID, clientWrapper)
+			id, err := GetID("mockEndpoint", tc.clusterNameOrID, clientWrapper)
 
 			switch {
 

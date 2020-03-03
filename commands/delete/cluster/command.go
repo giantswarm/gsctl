@@ -199,7 +199,7 @@ func deleteCluster(args Arguments) (bool, error) {
 	// Accept legacy cluster ID for a while, but real one takes precedence.
 	clusterID := args.legacyClusterID
 	if args.clusterNameOrID != "" {
-		clusterID, err = clustercache.GetID(args.clusterNameOrID, clientWrapper)
+		clusterID, err = clustercache.GetID(args.apiEndpoint, args.clusterNameOrID, clientWrapper)
 		if err != nil {
 			return false, microerror.Mask(err)
 		}
