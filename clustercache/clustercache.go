@@ -22,18 +22,22 @@ const (
 	listClustersActivityName = "list-clusters"
 	clusterCacheFileName     = "clustercache.yaml"
 
-	// cacheDuration = time.Hour * 24 * 7 // 7 days
-	cacheDuration = time.Second * 30
+	cacheDuration = time.Hour * 24 * 7 // 7 days
 	timeLayout    = time.RFC3339
 )
 
+// EndpointCache stores the IDs stored in an
+// endpoint-specific cache, and also its expiry date
 type EndpointCache struct {
 	Expiry string   `yaml:"expiry"`
 	IDs    []string `yaml:"ids"`
 }
 
+// Endpoints stores a map with the keys being API endpoints,
+// and the values being caches
 type Endpoints map[string]EndpointCache
 
+// Cache is the file structure of the cluster cache file
 type Cache struct {
 	Endpoints Endpoints `yaml:"endpoints"`
 }
@@ -41,6 +45,8 @@ type Cache struct {
 // GetID gets the cluster ID for a provided name/ID
 // by checking in both the user cache and on the API
 func GetID(endpoint string, clusterNameOrID string, clientWrapper *client.Wrapper) (string, error) {
+	// Check if the cluster ID is already in the cache,
+	// and skip the API request if it is
 	isInCache := IsInCache(endpoint, clusterNameOrID)
 	if isInCache {
 		return clusterNameOrID, nil
@@ -49,6 +55,7 @@ func GetID(endpoint string, clusterNameOrID string, clientWrapper *client.Wrappe
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = listClustersActivityName
 
+	// Get a list of all clusters
 	response, err := clientWrapper.GetClusters(auxParams)
 	if err != nil {
 		switch {
@@ -64,23 +71,27 @@ func GetID(endpoint string, clusterNameOrID string, clientWrapper *client.Wrappe
 	}
 
 	var (
-		matchingIDs   []string
-		allClusterIDs []string = make([]string, 0, len(response.Payload))
+		// IDs that correspond to the same cluster name
+		matchingIDs []string
+		// All IDs returned from the response
+		allClusterIDs = make([]string, 0, len(response.Payload))
 	)
 	for _, cluster := range response.Payload {
 		allClusterIDs = append(allClusterIDs, cluster.ID)
+		// Check if this is the cluster we're looking for
 		if matchesValidation(clusterNameOrID, cluster) {
 			matchingIDs = append(matchingIDs, cluster.ID)
 		}
 	}
 
-	if allClusterIDs != nil {
-		CacheIDs(endpoint, allClusterIDs)
-	}
+	CacheIDs(endpoint, allClusterIDs)
 
 	if matchingIDs == nil {
+		// There are no IDs that correspond to that cluster name
 		return "", microerror.Mask(errors.ClusterNotFoundError)
 	} else if len(matchingIDs) > 1 {
+		// There are multiple IDs that correspond to that cluster name
+		// Help the user decide which cluster to pick
 		_, id := handleNameCollision(clusterNameOrID, response.Payload)
 
 		return id, nil
@@ -106,6 +117,7 @@ func IsInCache(endpoint string, ID string) bool {
 
 		now = time.Now()
 	)
+	// Read the existing cache file
 	existing, err := read(config.FileSystem)
 	if err != nil {
 		return false
@@ -113,10 +125,12 @@ func IsInCache(endpoint string, ID string) bool {
 
 	c := existing.Endpoints[endpoint]
 	for _, cID := range c.IDs {
+		// Check if the cache is expired
 		endpointExpiration, err = time.Parse(timeLayout, c.Expiry)
 		if err != nil || now.After(endpointExpiration) {
 			return false
 		}
+		// This is the one we're looking for
 		if cID == ID {
 			return true
 		}
@@ -129,25 +143,29 @@ func IsInCache(endpoint string, ID string) bool {
 // which can be used for decreasing timeout in getting
 // cluster IDs, for commands that take both cluster names and IDs
 func CacheIDs(endpoint string, c []string) {
+	// Let's not store an empty list
 	if len(c) == 0 {
 		return
 	}
 
 	fs := config.FileSystem
 
-	var cache *Cache = New()
+	var cache *Cache
 	{
+		// Create a new Cache object if there is no file there yet
 		cache, _ = read(fs)
 		if cache == nil {
 			cache = New()
 		}
 	}
 
+	// Add the cache to a certain endpoint
 	cache.Endpoints[endpoint] = EndpointCache{
 		Expiry: time.Now().Add(cacheDuration).Format(timeLayout),
 		IDs:    c,
 	}
 
+	// Write the cache file
 	_ = write(fs, cache)
 }
 
