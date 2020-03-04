@@ -166,7 +166,7 @@ func CacheIDs(endpoint string, c []string) {
 	}
 
 	// Write the cache file.
-	err = write(fs, cache)
+	err := write(fs, cache)
 	if err != nil {
 		return
 	}
