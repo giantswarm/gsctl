@@ -92,7 +92,7 @@ func GetID(endpoint string, clusterNameOrID string, clientWrapper *client.Wrappe
 	} else if len(matchingIDs) > 1 {
 		// There are multiple IDs that correspond to that cluster name.
 		// Help the user decide which one to pick.
-		_, id := handleNameCollision(clusterNameOrID, response.Payload)
+		id := handleNameCollision(clusterNameOrID, response.Payload)
 
 		return id, nil
 	}
@@ -173,7 +173,7 @@ func matchesValidation(nameOrID string, cluster *models.V4ClusterListItem) bool 
 	return cluster.DeleteDate == nil && (cluster.ID == nameOrID || cluster.Name == nameOrID)
 }
 
-func handleNameCollision(nameOrID string, clusters []*models.V4ClusterListItem) (bool, string) {
+func handleNameCollision(nameOrID string, clusters []*models.V4ClusterListItem) string {
 	var (
 		clusterIDs []string
 
@@ -197,9 +197,9 @@ func handleNameCollision(nameOrID string, clusters []*models.V4ClusterListItem) 
 		clusterIDs,
 	)
 	if !confirmed {
-		return false, ""
+		return ""
 	}
-	return true, id
+	return id
 }
 
 func printNameCollisionTable(table []string) {
