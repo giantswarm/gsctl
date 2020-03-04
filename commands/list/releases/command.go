@@ -169,10 +169,12 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 		color.CyanString("CALICO"),
 	}, "|")}
 
-	var major int64
-	var status string
-	major = 0
-	status = "deprecated"
+	var (
+		major  int64
+		status = "deprecated"
+
+		nextVersion *semver.Version
+	)
 
 	for i, release := range releases {
 		created := util.ShortDate(util.ParseDate(*release.Timestamp))
@@ -204,7 +206,19 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 			if release.Active {
 				status = "active"
 			} else if status == "active" {
-				status = "wip"
+				if i < len(releases)-1 {
+					// If the previous version is active, the next
+					// version is a major upgrade, and this one
+					// is inactive, then it is probably a wip.
+					nextVersion, err = semver.NewVersion(*releases[i+1].Version)
+					if err != nil && nextVersion.Major() > major {
+						status = "wip"
+					} else {
+						status = "deprecated"
+					}
+				} else {
+					status = "wip"
+				}
 			}
 		} else {
 			// release version couldn't be parsed
