@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/confirm"
+	"github.com/giantswarm/gsctl/util"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/afero"
 	yaml "gopkg.in/yaml.v2"
@@ -178,15 +179,23 @@ func matchesValidation(nameOrID string, cluster *models.V4ClusterListItem) bool 
 
 func handleNameCollision(nameOrID string, clusters []*models.V4ClusterListItem) string {
 	var (
-		clusterIDs []string
+		clusterIDs     []string
+		createdDate    string
+		releaseVersion string
 
-		table = []string{color.CyanString("ID | ORGANIZATION | NAME")}
+		table = []string{color.CyanString("ID | ORGANIZATION | RELEASE | CREATED")}
 	)
 
 	for _, cluster := range clusters {
 		if matchesValidation(nameOrID, cluster) {
 			clusterIDs = append(clusterIDs, cluster.ID)
-			table = append(table, fmt.Sprintf("%5s | %5s | %5s\n", cluster.ID, cluster.Owner, cluster.Name))
+			createdDate = util.ShortDate(util.ParseDate(cluster.CreateDate))
+			releaseVersion = cluster.ReleaseVersion
+			if releaseVersion == "" {
+				releaseVersion = "n/a"
+			}
+			
+			table = append(table, fmt.Sprintf("%5s | %5s | %5s | %5s\n", cluster.ID, cluster.Owner, releaseVersion, createdDate))
 		}
 	}
 
