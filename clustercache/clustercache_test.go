@@ -189,20 +189,22 @@ func Test_matchesValidation(t *testing.T) {
 
 func Test_printNameCollisionTable(t *testing.T) {
 	testCases := []struct {
+		nameOrID       string
 		tableLines     []string
 		expectedResult string
 	}{
 		{
+			nameOrID: "Cluster name",
 			tableLines: []string{
-				"ID | ORGANIZATION | NAME",
-				"1asd1 | giantswarm | Cluster name",
-				"asd1sd | giantswarm | Other cluster name",
+				"ID | ORGANIZATION | RELEASE | CREATED",
+				"1asd1 | giantswarm | 11.0.1 | 2020 Mar 04, 09:11 UTC",
+				"asd1sd | giantswarm | 11.0.1 | 2020 Mar 04, 09:11 UTC",
 			},
-			expectedResult: `Multiple clusters found
+			expectedResult: `Multiple clusters found with the name 'Cluster name'.
 
-ID      ORGANIZATION  NAME
-1asd1   giantswarm    Cluster name
-asd1sd  giantswarm    Other cluster name
+ID      ORGANIZATION  RELEASE  CREATED
+1asd1   giantswarm    11.0.1   2020 Mar 04, 09:11 UTC
+asd1sd  giantswarm    11.0.1   2020 Mar 04, 09:11 UTC
 
 `,
 		},
@@ -211,7 +213,7 @@ asd1sd  giantswarm    Other cluster name
 	for i, tc := range testCases {
 		output := testutils.CaptureOutput(func() {
 			// output
-			printNameCollisionTable(tc.tableLines)
+			printNameCollisionTable(tc.nameOrID, tc.tableLines)
 		})
 
 		if diff := cmp.Diff(tc.expectedResult, output); diff != "" {

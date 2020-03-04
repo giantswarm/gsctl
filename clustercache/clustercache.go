@@ -194,18 +194,15 @@ func handleNameCollision(nameOrID string, clusters []*models.V4ClusterListItem) 
 			if releaseVersion == "" {
 				releaseVersion = "n/a"
 			}
-			
+
 			table = append(table, fmt.Sprintf("%5s | %5s | %5s | %5s\n", cluster.ID, cluster.Owner, releaseVersion, createdDate))
 		}
 	}
 
-	printNameCollisionTable(table)
+	printNameCollisionTable(nameOrID, table)
 
 	confirmed, id := confirm.AskStrictOneOf(
-		fmt.Sprintf(
-			"Found more than one cluster called '%s', please type the ID of the cluster that you would like to delete",
-			nameOrID,
-		),
+		"Please type the ID of the cluster that you would like to delete",
 		clusterIDs,
 	)
 	if !confirmed {
@@ -214,9 +211,9 @@ func handleNameCollision(nameOrID string, clusters []*models.V4ClusterListItem) 
 	return id
 }
 
-func printNameCollisionTable(table []string) {
+func printNameCollisionTable(name string, table []string) {
 	// Print output
-	fmt.Println("Multiple clusters found")
+	fmt.Println(fmt.Sprintf("Multiple clusters found with the name '%s'.", name))
 	fmt.Printf("\n")
 	fmt.Println(columnize.SimpleFormat(table))
 	fmt.Printf("\n")
