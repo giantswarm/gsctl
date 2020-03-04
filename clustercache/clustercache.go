@@ -166,7 +166,10 @@ func CacheIDs(endpoint string, c []string) {
 	}
 
 	// Write the cache file.
-	_ = write(fs, cache)
+	err = write(fs, cache)
+	if err != nil {
+		return
+	}
 }
 
 func matchesValidation(nameOrID string, cluster *models.V4ClusterListItem) bool {
