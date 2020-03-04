@@ -358,7 +358,7 @@ func TestShowClusterMissingID(t *testing.T) {
 	}
 
 	err := verifyPreconditions(testArgs, []string{})
-	if !errors.IsClusterIDMissingError(err) {
+	if !errors.IsClusterNameOrIDMissingError(err) {
 		t.Errorf("Expected clusterIdMissingError, got '%s'", err.Error())
 	}
 

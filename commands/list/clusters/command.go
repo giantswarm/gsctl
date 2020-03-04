@@ -12,6 +12,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -198,6 +199,7 @@ func getClustersOutput(args Arguments) (string, error) {
 
 	numDeletedClusters := 0
 	numOtherClusters := 0
+	clusterIDs := make([]string, 0, len(response.Payload))
 
 	for _, cluster := range response.Payload {
 		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
@@ -216,6 +218,8 @@ func getClustersOutput(args Arguments) (string, error) {
 			deleteTime := time.Time(*cluster.DeleteDate)
 			secondsSinceDelete = time.Now().Sub(deleteTime).Seconds()
 		} else {
+			clusterIDs = append(clusterIDs, cluster.ID)
+
 			numOtherClusters++
 		}
 
@@ -244,6 +248,8 @@ func getClustersOutput(args Arguments) (string, error) {
 
 		table = append(table, strings.Join(fields, "|"))
 	}
+
+	clustercache.CacheIDs(args.apiEndpoint, clusterIDs)
 
 	// This function's output string.
 	output := ""

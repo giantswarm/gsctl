@@ -211,7 +211,7 @@ func verifyPreconditions(args Arguments) error {
 	}
 
 	if args.ClusterID == "" {
-		return microerror.Mask(errors.ClusterIDMissingError)
+		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
 
 	// AZ flags plausibility

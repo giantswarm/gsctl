@@ -130,7 +130,7 @@ func upgradeClusterValidationOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		case errors.IsNotLoggedInError(err):
 			headline = "You are not logged in."
 			subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
-		case errors.IsClusterIDMissingError(err):
+		case errors.IsClusterNameOrIDMissingError(err):
 			headline = "No cluster ID specified."
 			subtext = "Please specify which cluster to upgrade by using the cluster ID as an argument."
 		default:
@@ -159,7 +159,7 @@ func validateUpgradeClusterPreconditions(args Arguments, cmdLineArgs []string) e
 
 	// cluster ID is present
 	if args.ClusterID == "" {
-		return microerror.Mask(errors.ClusterIDMissingError)
+		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
 
 	return nil

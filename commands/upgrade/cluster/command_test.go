@@ -238,7 +238,7 @@ func Test_validateUpgradeClusterPreconditions(t *testing.T) {
 				},
 				[]string{},
 			},
-			wantErr: errors.IsClusterIDMissingError,
+			wantErr: errors.IsClusterNameOrIDMissingError,
 		},
 	}
 	for index, tt := range tests {

@@ -89,7 +89,7 @@ func Test_verifyPreconditions(t *testing.T) {
 				AuthToken:   "token",
 				APIEndpoint: "https://mock-url",
 			},
-			errors.IsClusterIDMissingError,
+			errors.IsClusterNameOrIDMissingError,
 		},
 		// No token provided.
 		{

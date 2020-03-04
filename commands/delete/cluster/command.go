@@ -7,6 +7,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -23,7 +24,7 @@ type Arguments struct {
 	// API endpoint
 	apiEndpoint string
 	// cluster ID to delete
-	clusterID string
+	clusterNameOrID string
 	// cluster ID passed via -c/--cluster argument
 	legacyClusterID string
 	// don't prompt
@@ -42,14 +43,14 @@ func collectArguments(positionalArgs []string) Arguments {
 	token := config.Config.ChooseToken(endpoint, flags.Token)
 	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
-	clusterID := ""
+	clusterNameOrID := ""
 	if len(positionalArgs) > 0 {
-		clusterID = positionalArgs[0]
+		clusterNameOrID = positionalArgs[0]
 	}
 
 	return Arguments{
 		apiEndpoint:       endpoint,
-		clusterID:         clusterID,
+		clusterNameOrID:   clusterNameOrID,
 		force:             flags.Force,
 		legacyClusterID:   flags.ClusterID,
 		scheme:            scheme,
@@ -59,9 +60,7 @@ func collectArguments(positionalArgs []string) Arguments {
 	}
 }
 
-const (
-	deleteClusterActivityName = "delete-cluster"
-)
+const deleteClusterActivityName = "delete-cluster"
 
 var (
 	// Command performs the "delete cluster" function
@@ -84,7 +83,7 @@ Example:
 )
 
 func init() {
-	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "ID of the cluster to delete")
+	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "Name or ID of the cluster to delete")
 	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
 
 	Command.Flags().MarkDeprecated("cluster", "You no longer need to pass the cluster ID with -c/--cluster. Use --help for details.")
@@ -109,8 +108,8 @@ func printValidation(cmd *cobra.Command, args []string) {
 			headline = "Conflicting flags/arguments"
 			subtext = "Please specify the cluster to be used as a positional argument, avoid -c/--cluster."
 			subtext += "See --help for details."
-		case errors.IsClusterIDMissingError(err):
-			headline = "No cluster ID specified"
+		case errors.IsClusterNameOrIDMissingError(err):
+			headline = "No cluster name or ID specified"
 			subtext = "See --help for usage details."
 		case errors.IsCouldNotDeleteClusterError(err):
 			headline = "The cluster could not be deleted."
@@ -134,10 +133,10 @@ func validatePreconditions(args Arguments) error {
 	if args.apiEndpoint == "" {
 		return microerror.Mask(errors.EndpointMissingError)
 	}
-	if args.clusterID == "" && args.legacyClusterID == "" {
-		return microerror.Mask(errors.ClusterIDMissingError)
+	if args.clusterNameOrID == "" && args.legacyClusterID == "" {
+		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
-	if args.clusterID != "" && args.legacyClusterID != "" {
+	if args.clusterNameOrID != "" && args.legacyClusterID != "" {
 		return microerror.Mask(errors.ConflictingFlagsError)
 	}
 	if config.Config.Token == "" && args.token == "" {
@@ -174,10 +173,10 @@ func printResult(cmd *cobra.Command, args []string) {
 	// non-error output
 	if deleted {
 		clusterID := arguments.legacyClusterID
-		if arguments.clusterID != "" {
-			clusterID = arguments.clusterID
+		if arguments.clusterNameOrID != "" {
+			clusterID = arguments.clusterNameOrID
 		}
-		fmt.Println(color.GreenString("The cluster with ID '%s' will be deleted as soon as all workloads are terminated.", clusterID))
+		fmt.Println(color.GreenString("The cluster '%s' will be deleted as soon as all workloads are terminated.", clusterID))
 	} else {
 		if arguments.verbose {
 			fmt.Println(color.GreenString("Aborted."))
@@ -188,27 +187,36 @@ func printResult(cmd *cobra.Command, args []string) {
 // deleteCluster performs the cluster deletion API call
 //
 // The returned tuple contains:
-// - bool: true if cluster will reall ybe deleted, false otherwise
+// - bool: true if cluster will really be deleted, false otherwise
 // - error: The error that has occurred (or nil)
 //
 func deleteCluster(args Arguments) (bool, error) {
-	// Accept legacy cluster ID for a while, but real one takes precedence.
-	clusterID := args.legacyClusterID
-	if args.clusterID != "" {
-		clusterID = args.clusterID
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
+	if err != nil {
+		return false, microerror.Mask(err)
 	}
 
-	// confirmation
-	if !args.force {
-		confirmed := confirm.AskStrict("Do you really want to delete cluster '"+clusterID+"'? Please type the cluster ID to confirm", clusterID)
-		if !confirmed {
+	// Accept legacy cluster ID for a while, but real one takes precedence.
+	clusterID := args.legacyClusterID
+	if args.clusterNameOrID != "" {
+		clusterID, err = clustercache.GetID(args.apiEndpoint, args.clusterNameOrID, clientWrapper)
+		if err != nil {
+			return false, microerror.Mask(err)
+		}
+		if clusterID == "" {
 			return false, nil
 		}
 	}
 
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
-	if err != nil {
-		return false, microerror.Mask(err)
+	// confirmation
+	if !args.force {
+		confirmed := confirm.AskStrict(
+			fmt.Sprintf("Do you really want to delete cluster '%s'? Please type '%s' to confirm", args.clusterNameOrID, args.clusterNameOrID),
+			args.clusterNameOrID,
+		)
+		if !confirmed {
+			return false, nil
+		}
 	}
 
 	auxParams := clientWrapper.DefaultAuxiliaryParams()

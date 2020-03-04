@@ -107,7 +107,7 @@ func verifyPreconditions(args Arguments) error {
 	if args.AuthToken == "" && args.UserProvidedToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	} else if args.ClusterID == "" {
-		return microerror.Mask(errors.ClusterIDMissingError)
+		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	} else if args.NodePoolID == "" {
 		return microerror.Mask(errors.NodePoolIDMissingError)
 	} else if args.ScalingMin == 0 && args.ScalingMax == 0 && args.Name == "" {

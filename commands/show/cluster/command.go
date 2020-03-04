@@ -104,7 +104,7 @@ func verifyPreconditions(args Arguments, cmdLineArgs []string) error {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 	if len(cmdLineArgs) == 0 {
-		return microerror.Mask(errors.ClusterIDMissingError)
+		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
 	return nil
 }
