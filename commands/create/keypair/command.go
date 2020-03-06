@@ -9,6 +9,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -44,7 +45,7 @@ type Arguments struct {
 	apiEndpoint              string
 	authToken                string
 	certificateOrganizations string
-	clusterID                string
+	clusterNameOrID          string
 	commonNamePrefix         string
 	description              string
 	fileSystem               afero.Fs
@@ -79,7 +80,7 @@ func collectArguments() (Arguments, error) {
 		apiEndpoint:              endpoint,
 		authToken:                token,
 		certificateOrganizations: flags.CertificateOrganizations,
-		clusterID:                flags.ClusterID,
+		clusterNameOrID:          flags.ClusterID,
 		commonNamePrefix:         flags.CNPrefix,
 		description:              description,
 		fileSystem:               config.FileSystem,
@@ -106,7 +107,7 @@ type createKeypairResult struct {
 }
 
 func init() {
-	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "ID of the cluster to create a key pair for")
+	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "Name or ID of the cluster to create a key pair for")
 	Command.Flags().StringVarP(&flags.Description, "description", "d", "", "Description for the key pair")
 	Command.Flags().StringVarP(&flags.CNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
 	Command.Flags().StringVarP(&flags.CertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
@@ -170,7 +171,7 @@ func verifyPreconditions(args Arguments) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
-	if args.clusterID == "" {
+	if args.clusterNameOrID == "" {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
 
@@ -243,10 +244,18 @@ func createKeypair(args Arguments) (createKeypairResult, error) {
 		return result, microerror.Mask(err)
 	}
 
+	clusterID, err := clustercache.GetID(args.apiEndpoint, args.clusterNameOrID, clientWrapper)
+	if err != nil {
+		return result, microerror.Mask(err)
+	}
+	if clusterID == "" {
+		return result, microerror.Mask(errors.ClusterNotFoundError)
+	}
+
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientWrapper.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
+	response, err := clientWrapper.CreateKeyPair(clusterID, addKeyPairBody, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clienterror.IsAccessForbiddenError(err) {
@@ -268,11 +277,11 @@ func createKeypair(args Arguments) (createKeypairResult, error) {
 
 	// store credentials to file
 	result.caCertPath = util.StoreCaCertificate(args.fileSystem, config.CertsDirPath,
-		args.clusterID, response.Payload.CertificateAuthorityData)
+		clusterID, response.Payload.CertificateAuthorityData)
 	result.clientCertPath = util.StoreClientCertificate(args.fileSystem, config.CertsDirPath,
-		args.clusterID, response.Payload.ID, response.Payload.ClientCertificateData)
+		clusterID, response.Payload.ID, response.Payload.ClientCertificateData)
 	result.clientKeyPath = util.StoreClientKey(args.fileSystem, config.CertsDirPath,
-		args.clusterID, response.Payload.ID, response.Payload.ClientKeyData)
+		clusterID, response.Payload.ID, response.Payload.ClientKeyData)
 
 	return result, nil
 }

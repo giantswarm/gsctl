@@ -26,7 +26,20 @@ func Test_CreateKeypair(t *testing.T) {
 		fmt.Printf("mockServer request: %s %s\n", r.Method, r.URL)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(keypairResponse))
+
+		if r.Method == "GET" && r.URL.String() == "/v4/clusters/" {
+			w.Write([]byte(`[
+			{
+				"create_date": "2017-05-16T09:30:31.192170835Z",
+				"id": "test-cluster-id",
+				"name": "somecluster",
+				"owner": "acme",
+				"path": "/v4/clusters/test-id/"
+			}
+		]`))
+		} else {
+			w.Write([]byte(keypairResponse))
+		}
 	}))
 	defer mockServer.Close()
 
@@ -37,10 +50,10 @@ func Test_CreateKeypair(t *testing.T) {
 	}
 
 	args := Arguments{
-		apiEndpoint: mockServer.URL,
-		authToken:   "test-token",
-		clusterID:   "test-cluster-id",
-		fileSystem:  fs,
+		apiEndpoint:     mockServer.URL,
+		authToken:       "test-token",
+		clusterNameOrID: "test-cluster-id",
+		fileSystem:      fs,
 	}
 
 	err = verifyPreconditions(args)
@@ -74,7 +87,20 @@ func TestCommandExecution(t *testing.T) {
 		fmt.Printf("mockServer request: %s %s\n", r.Method, r.URL)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(keypairResponse))
+
+		if r.Method == "GET" && r.URL.String() == "/v4/clusters/" {
+			w.Write([]byte(`[
+			{
+				"create_date": "2017-05-16T09:30:31.192170835Z",
+				"id": "test-id",
+				"name": "somecluster",
+				"owner": "acme",
+				"path": "/v4/clusters/test-id/"
+			}
+		]`))
+		} else {
+			w.Write([]byte(keypairResponse))
+		}
 	}))
 	defer mockServer.Close()
 

@@ -204,7 +204,7 @@ func deleteCluster(args Arguments) (bool, error) {
 			return false, microerror.Mask(err)
 		}
 		if clusterID == "" {
-			return false, nil
+			return false, microerror.Mask(errors.ClusterNotFoundError)
 		}
 	}
 
