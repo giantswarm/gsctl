@@ -248,9 +248,6 @@ func createKeypair(args Arguments) (createKeypairResult, error) {
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
-	if clusterID == "" {
-		return result, microerror.Mask(errors.ClusterNotFoundError)
-	}
 
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
