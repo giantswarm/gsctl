@@ -202,7 +202,7 @@ func handleNameCollision(nameOrID string, clusters []*models.V4ClusterListItem) 
 	printNameCollisionTable(nameOrID, table)
 
 	confirmed, id := confirm.AskStrictOneOf(
-		"Please type the ID of the cluster that you would like to delete",
+		"Please type the ID of the cluster that you want to use",
 		clusterIDs,
 	)
 	if !confirmed {
