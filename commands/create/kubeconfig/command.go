@@ -121,9 +121,6 @@ func collectArguments() (Arguments, error) {
 	}
 
 	contextName := cmdKubeconfigContextName
-	if cmdKubeconfigContextName == "" {
-		contextName = "giantswarm-" + flags.ClusterID
-	}
 
 	ttl, err := util.ParseDuration(flags.TTL)
 	if errors.IsInvalidDurationError(err) {
@@ -461,6 +458,9 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 		result.clientKeyPath = util.StoreClientKey(args.fileSystem, config.CertsDirPath,
 			clusterID, response.Payload.ID, response.Payload.ClientKeyData)
 		result.contextName = args.contextName
+		if result.contextName == "" {
+			result.contextName = "giantswarm-" + clusterID
+		}
 
 		// edit kubectl config
 		if err := util.KubectlSetCluster(clusterID, result.apiEndpoint, result.caCertPath); err != nil {
@@ -469,10 +469,10 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 		if err := util.KubectlSetCredentials(clusterID, result.clientKeyPath, result.clientCertPath); err != nil {
 			return result, microerror.Mask(util.CouldNotSetKubectlCredentialsError)
 		}
-		if err := util.KubectlSetContext(args.contextName, clusterID); err != nil {
+		if err := util.KubectlSetContext(result.contextName, clusterID); err != nil {
 			return result, microerror.Mask(util.CouldNotSetKubectlContextError)
 		}
-		if err := util.KubectlUseContext(args.contextName); err != nil {
+		if err := util.KubectlUseContext(result.contextName); err != nil {
 			return result, microerror.Mask(util.CouldNotUseKubectlContextError)
 		}
 	} else {
