@@ -94,7 +94,7 @@ func Test_CreateKubeconfig(t *testing.T) {
 	args := Arguments{
 		authToken:       "auth-token",
 		apiEndpoint:     mockServer.URL,
-		clusterNameOrID: "test-cluster-id",
+		clusterNameOrID: "Name of the cluster",
 		contextName:     "giantswarm-test-cluster-id",
 		fileSystem:      fs,
 	}
@@ -162,7 +162,7 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 	args := Arguments{
 		apiEndpoint:       mockServer.URL,
 		authToken:         "auth-token",
-		clusterNameOrID:   "test-cluster-id",
+		clusterNameOrID:   "Name of the cluster",
 		contextName:       "giantswarm-test-cluster-id",
 		fileSystem:        fs,
 		selfContainedPath: path.Join(tmpdir, "kubeconfig"),
@@ -243,7 +243,7 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 	args := Arguments{
 		apiEndpoint:     mockServer.URL,
 		authToken:       "auth-token",
-		clusterNameOrID: "test-cluster-id",
+		clusterNameOrID: "Name of the cluster",
 		contextName:     "test-context",
 		fileSystem:      fs,
 	}
