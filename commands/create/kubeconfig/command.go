@@ -170,7 +170,7 @@ type createKubeconfigResult struct {
 }
 
 func init() {
-	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "ID of the cluster")
+	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "Name or ID of the cluster")
 	Command.Flags().StringVarP(&flags.Description, "description", "d", "", "Description for the key pair")
 	Command.Flags().StringVarP(&flags.CNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
 	Command.Flags().StringVarP(&cmdKubeconfigSelfContained, "self-contained", "", "", "Create a self-contained kubectl config with embedded credentials and write it to this path.")
