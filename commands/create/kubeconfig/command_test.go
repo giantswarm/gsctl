@@ -58,9 +58,9 @@ func makeMockServer() *httptest.Server {
 			{
 				"create_date": "2017-05-16T09:30:31.192170835Z",
 				"id": "test-cluster-id",
-				"name": "somecluster",
+				"name": "Name of the cluster",
 				"owner": "acme",
-				"path": "/v4/clusters/test-id/"
+				"path": "/v4/clusters/test-cluster-id/"
 			}
 		]`))
 		}
@@ -129,7 +129,7 @@ func Test_CreateKubeconfig(t *testing.T) {
 		t.Error(err)
 	}
 
-	if !strings.Contains(string(content), "current-context: giantswarm-"+args.clusterNameOrID) {
+	if !strings.Contains(string(content), "current-context: giantswarm-test-cluster-id") {
 		t.Error("Kubeconfig doesn't contain the expected current-context value")
 	}
 	if !strings.Contains(string(content), "client-certificate: "+configDir) {
@@ -201,7 +201,7 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 		t.Error(err)
 	}
 
-	if !strings.Contains(string(content), "current-context: giantswarm-"+args.clusterNameOrID) {
+	if !strings.Contains(string(content), "current-context: giantswarm-test-cluster-id") {
 		t.Error("Kubeconfig doesn't contain the expected current-context value")
 	}
 	if !strings.Contains(string(content), "client-certificate-data:") {
