@@ -21,7 +21,7 @@ require (
 	github.com/go-openapi/analysis v0.19.4 // indirect
 	github.com/go-openapi/errors v0.19.3-0.20190617201723-9b273e805998 // indirect
 	github.com/go-openapi/runtime v0.19.4-0.20190718232909-7a84b6517062
-	github.com/go-openapi/strfmt v0.19.4
+	github.com/go-openapi/strfmt v0.19.5
 	github.com/go-openapi/swag v0.19.4 // indirect
 	github.com/gobuffalo/envy v1.8.1 // indirect
 	github.com/gobuffalo/packr v1.30.1
