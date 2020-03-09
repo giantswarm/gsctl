@@ -41,10 +41,10 @@ func TestCollectArgs(t *testing.T) {
 				Command.ParseFlags([]string{"clusterid/nodepoolid"})
 			},
 			&Arguments{
-				APIEndpoint: "https://foo",
-				AuthToken:   "some-token",
-				ClusterID:   "clusterid",
-				NodePoolID:  "nodepoolid",
+				APIEndpoint:     "https://foo",
+				AuthToken:       "some-token",
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
 			},
 			nil,
 		},
@@ -55,11 +55,11 @@ func TestCollectArgs(t *testing.T) {
 				Command.ParseFlags([]string{"clusterid/nodepoolid", "--force"})
 			},
 			&Arguments{
-				APIEndpoint: "https://foo",
-				AuthToken:   "some-token",
-				ClusterID:   "clusterid",
-				NodePoolID:  "nodepoolid",
-				Force:       true,
+				APIEndpoint:     "https://foo",
+				AuthToken:       "some-token",
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
+				Force:           true,
 			},
 			nil,
 		},
@@ -120,17 +120,17 @@ func Test_verifyPreconditions(t *testing.T) {
 		// Node pool ID is missing.
 		{
 			&Arguments{
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				ClusterID:   "abc",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "abc",
 			},
 			errors.IsNodePoolIDMissingError,
 		},
 		// No token provided.
 		{
 			&Arguments{
-				APIEndpoint: "https://mock-url",
-				ClusterID:   "cluster-id",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
 			},
 			errors.IsNotLoggedInError,
 		},
@@ -163,10 +163,10 @@ func TestSuccess(t *testing.T) {
 		// Minimal node pool deletion.
 		{
 			&Arguments{
-				ClusterID:  "clusterid",
-				NodePoolID: "nodepoolid",
-				AuthToken:  "token",
-				Force:      true,
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
+				AuthToken:       "token",
+				Force:           true,
 			},
 			`{
 				"code": "RESOURCE_DELETION_STARTED",
@@ -189,6 +189,17 @@ func TestSuccess(t *testing.T) {
 				if r.Method == "DELETE" && r.URL.Path == "/v5/clusters/clusterid/nodepools/nodepoolid/" {
 					w.WriteHeader(http.StatusAccepted)
 					w.Write([]byte(tc.responseBody))
+				} else if r.Method == "GET" && r.URL.Path == "/v4/clusters/" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`[
+					{
+						"create_date": "2017-05-16T09:30:31.192170835Z",
+						"id": "clusterid",
+						"name": "Name of the cluster",
+						"owner": "acme",
+						"path": "/v4/clusters/clusterid/"
+					}
+				]`))
 				} else {
 					t.Errorf("Case %d - Unsupported operation %s %s called in mock server", i, r.Method, r.URL.Path)
 				}
@@ -224,11 +235,11 @@ func TestExecuteWithError(t *testing.T) {
 	}{
 		{
 			&Arguments{
-				ClusterID:   "clusterid",
-				NodePoolID:  "nodepoolid",
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				Force:       true,
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Force:           true,
 			},
 			401,
 			`{"code": "FORBIDDEN", "message": "Here is some error message"}`,
@@ -236,11 +247,11 @@ func TestExecuteWithError(t *testing.T) {
 		},
 		{
 			&Arguments{
-				ClusterID:   "clusterid",
-				NodePoolID:  "nodepoolid",
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				Force:       true,
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Force:           true,
 			},
 			403,
 			`{"code": "FORBIDDEN", "message": "Here is some error message"}`,
@@ -248,11 +259,11 @@ func TestExecuteWithError(t *testing.T) {
 		},
 		{
 			&Arguments{
-				ClusterID:   "bad-cluster-id",
-				NodePoolID:  "nodepoolid",
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				Force:       true,
+				ClusterNameOrID: "bad-cluster-id",
+				NodePoolID:      "nodepoolid",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Force:           true,
 			},
 			404,
 			`{"code": "RESOURCE_NOT_FOUND", "message": "Here is some error message"}`,
@@ -260,11 +271,11 @@ func TestExecuteWithError(t *testing.T) {
 		},
 		{
 			&Arguments{
-				ClusterID:   "clusterid",
-				NodePoolID:  "bad-nodepool-id",
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				Force:       true,
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "bad-nodepool-id",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Force:           true,
 			},
 			404,
 			`{"code": "RESOURCE_NOT_FOUND", "message": "Here is some error message"}`,
@@ -272,11 +283,11 @@ func TestExecuteWithError(t *testing.T) {
 		},
 		{
 			&Arguments{
-				ClusterID:   "clusterid",
-				NodePoolID:  "nodepoolid",
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				Force:       true,
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Force:           true,
 			},
 			500,
 			`{"code": "UNKNOWN_ERROR", "message": "Here is some error message"}`,
@@ -284,11 +295,11 @@ func TestExecuteWithError(t *testing.T) {
 		},
 		{
 			&Arguments{
-				ClusterID:   "v4-clusterid",
-				NodePoolID:  "nodepoolid",
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				Force:       true,
+				ClusterNameOrID: "v4-clusterid",
+				NodePoolID:      "nodepoolid",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Force:           true,
 			},
 			404,
 			`{"code": "RESOURCE_NOT_FOUND", "message": "Here is some error message"}`,
@@ -324,9 +335,23 @@ func TestExecuteWithError(t *testing.T) {
 				} else if r.Method == "GET" && r.URL.Path == "/v5/clusters/clusterid/" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(`{
-							"id": "clusterid",
-							"owner": "acme"
-						}`))
+						"id": "clusterid",
+						"owner": "acme"
+					}`))
+				} else if r.Method == "GET" && r.URL.Path == "/v4/clusters/" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`[
+					{
+						"id": "clusterid",
+						"name": "Some v5 cluster",
+						"owner": "acme"
+					},
+					{
+						"id": "v4-clusterid",
+						"name": "Name of the cluster",
+						"owner": "acme"
+					}
+				]`))
 				} else {
 					t.Logf("Unsupported operation %s %s called in mock server", r.Method, r.URL.Path)
 					w.WriteHeader(http.StatusNotFound)
