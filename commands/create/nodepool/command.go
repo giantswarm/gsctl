@@ -10,6 +10,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -22,7 +23,7 @@ import (
 var (
 	// Command is the cobra command for 'gsctl create nodepool'
 	Command = &cobra.Command{
-		Use:     "nodepool <cluster-id>",
+		Use:     "nodepool <cluster-name/cluster-id>",
 		Aliases: []string{"np"},
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
 		Args:  cobra.ExactArgs(1),
@@ -66,7 +67,7 @@ Examples:
   ways. If you only want to ensure that several zones are used, specify
   a number liker like this:
 
-    gsctl create nodepool f01r4 --num-availability-zones 2
+    gsctl create nodepool "Cluster name" --num-availability-zones 2
 
   To set one or several specific zones to use, give a list of zone names
   or letters.
@@ -75,7 +76,7 @@ Examples:
 
   Here is how you specify the instance type to use:
 
-    gsctl create nodepool f01r4 --aws-instance-type m4.2xlarge
+    gsctl create nodepool "Cluster name" --aws-instance-type m4.2xlarge
 
   The initial node pool size is set by adjusting the lower and upper
   size limit like this:
@@ -122,7 +123,7 @@ type Arguments struct {
 	AuthToken             string
 	AvailabilityZonesList []string
 	AvailabilityZonesNum  int
-	ClusterID             string
+	ClusterNameOrID       string
 	InstanceType          string
 	Name                  string
 	ScalingMax            int64
@@ -160,7 +161,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		AuthToken:             token,
 		AvailabilityZonesList: zones,
 		AvailabilityZonesNum:  cmdAvailabilityZonesNum,
-		ClusterID:             positionalArgs[0],
+		ClusterNameOrID:       positionalArgs[0],
 		InstanceType:          flags.WorkerAwsEc2InstanceType,
 		Name:                  flags.Name,
 		ScalingMax:            flags.WorkersMax,
@@ -210,7 +211,7 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 
-	if args.ClusterID == "" {
+	if args.ClusterNameOrID == "" {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
 
@@ -265,7 +266,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 
 // createNodePool is the business function sending our creation request to the API
 // and returning either a proper result or an error.
-func createNodePool(args Arguments) (*result, error) {
+func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrapper) (*result, error) {
 	r := &result{}
 
 	requestBody := &models.V5AddNodePoolRequest{
@@ -297,11 +298,6 @@ func createNodePool(args Arguments) (*result, error) {
 		}
 	}
 
-	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
-	if err != nil {
-		return r, microerror.Mask(err)
-	}
-
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
@@ -311,7 +307,7 @@ func createNodePool(args Arguments) (*result, error) {
 		fmt.Println(color.WhiteString("Request body: ") + string(bodyJSON))
 	}
 
-	response, err := clientWrapper.CreateNodePool(args.ClusterID, requestBody, auxParams)
+	response, err := clientWrapper.CreateNodePool(clusterID, requestBody, auxParams)
 
 	if err != nil {
 		// return specific error types for the cases we care about most.
@@ -339,7 +335,16 @@ func createNodePool(args Arguments) (*result, error) {
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
-	r, err := createNodePool(arguments)
+	clientWrapper, err := client.NewWithConfig(arguments.APIEndpoint, arguments.UserProvidedToken)
+	if err != nil {
+		err = microerror.Mask(err)
+	}
+	clusterID, err := clustercache.GetID(arguments.APIEndpoint, arguments.ClusterNameOrID, clientWrapper)
+	if err != nil {
+		err = microerror.Mask(err)
+	}
+
+	r, err := createNodePool(arguments, clusterID, clientWrapper)
 
 	if err != nil {
 		client.HandleErrors(err)
@@ -365,14 +370,14 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	if r == nil {
 		// This is unlikely, but hey.
 		fmt.Println(color.RedString("No response returned"))
-		fmt.Println("The API call to create a node pooll apparently has been successful, however")
+		fmt.Println("The API call to create a node pool apparently has been successful, however")
 		fmt.Println("no useful response has been returned. Please report this problem to the")
 		fmt.Println("Giant Swarm support team. Thank you!")
 		os.Exit(1)
 	}
 
-	fmt.Println(color.GreenString("New node pool '%s' (ID '%s') in cluster '%s' is launching.", r.nodePoolName, r.nodePoolID, arguments.ClusterID))
+	fmt.Println(color.GreenString("New node pool '%s' (ID '%s') in cluster '%s' is launching.", r.nodePoolName, r.nodePoolID, clusterID))
 	fmt.Printf("Use this command to inspect details for the new node pool:\n\n")
-	fmt.Println(color.YellowString("    gsctl show nodepool %s/%s", arguments.ClusterID, r.nodePoolID))
+	fmt.Println(color.YellowString("    gsctl show nodepool %s/%s", clusterID, r.nodePoolID))
 	fmt.Printf("\n")
 }
