@@ -23,6 +23,17 @@ func Test_ListNodePools(t *testing.T) {
 					{"id": "6feel", "name": "Application servers", "availability_zones": ["eu-west-1a", "eu-west-1b", "eu-west-1c"], "scaling": {"min": 3, "max": 15}, "node_spec": {"aws": {"instance_type": "p3.2xlarge"}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}}, "status": {"nodes": 10, "nodes_ready": 9}},
 					{"id": "a6bf4", "name": "New node pool", "availability_zones": ["eu-west-1c"], "scaling": {"min": 3, "max": 3}, "node_spec": {"aws": {"instance_type": "m5.2xlarge"}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}}
 				]`))
+
+			case "/v4/clusters/":
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`[
+					{
+						"id": "cluster-id",
+						"name": "Name of the cluster",
+						"owner": "acme"
+					}
+				]`))
+
 			default:
 				t.Errorf("Unsupported route %s called in mock server", r.URL.Path)
 				w.WriteHeader(http.StatusNotFound)
@@ -38,12 +49,12 @@ func Test_ListNodePools(t *testing.T) {
 	config.Initialize(fs, configDir)
 
 	args := Arguments{
-		clusterID:   "cluster-id",
-		apiEndpoint: mockServer.URL,
-		authToken:   "my-token",
+		clusterNameOrID: "cluster-id",
+		apiEndpoint:     mockServer.URL,
+		authToken:       "my-token",
 	}
 
-	err := verifyPreconditions(args, []string{args.clusterID})
+	err := verifyPreconditions(args, []string{args.clusterNameOrID})
 	if err != nil {
 		t.Error(err)
 	}

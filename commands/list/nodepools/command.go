@@ -12,6 +12,7 @@ import (
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -25,7 +26,7 @@ import (
 var (
 	// Command performs the "list nodepools" function
 	Command = &cobra.Command{
-		Use:     "nodepools <cluster-id>",
+		Use:     "nodepools <cluster-name/cluster-id>",
 		Aliases: []string{"nps", "np"},
 
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
@@ -61,7 +62,7 @@ const activityName = "list-nodepools"
 type Arguments struct {
 	apiEndpoint       string
 	authToken         string
-	clusterID         string
+	clusterNameOrID   string
 	scheme            string
 	userProvidedToken string
 	verbose           bool
@@ -86,7 +87,7 @@ func collectArguments(cmdLineArgs []string) Arguments {
 	return Arguments{
 		apiEndpoint:       endpoint,
 		authToken:         token,
-		clusterID:         cmdLineArgs[0],
+		clusterNameOrID:   cmdLineArgs[0],
 		scheme:            scheme,
 		userProvidedToken: flags.Token,
 		verbose:           flags.Verbose,
@@ -123,18 +124,23 @@ func fetchNodePools(args Arguments) ([]*resultRow, error) {
 		return nil, microerror.Mask(err)
 	}
 
+	clusterID, err := clustercache.GetID(args.apiEndpoint, args.clusterNameOrID, clientWrapper)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientWrapper.GetNodePools(args.clusterID, auxParams)
+	response, err := clientWrapper.GetNodePools(clusterID, auxParams)
 	if err != nil {
 		if errors.IsClusterNotFoundError(err) {
-			// Check if there is a v4 cluster of this ID, to provide a specific error for this case.
+			// Check if there is a v4 cluster of this name/ID, to provide a specific error for this case.
 			if args.verbose {
-				fmt.Println(color.WhiteString("Couldn't find a node pools (v5) cluster with ID %s. Checking v4.", args.clusterID))
+				fmt.Println(color.WhiteString("Couldn't find a node pools (v5) cluster with name/ID %s. Checking v4.", args.clusterNameOrID))
 			}
 
-			_, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
+			_, err := clientWrapper.GetClusterV4(clusterID, auxParams)
 			if err == nil {
 				return nil, microerror.Mask(errors.ClusterDoesNotSupportNodePoolsError)
 			}
