@@ -20,6 +20,16 @@ func TestShowAWSClusterV4(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method == "GET" {
 			switch uri := r.URL.Path; uri {
+			case "/v4/clusters/":
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`[
+					{
+						"id": "cluster-id",
+						"name": "Name of the cluster",
+						"owner": "acme"
+					}
+				]`))
+
 			case "/v4/clusters/cluster-id/":
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(`{
@@ -37,11 +47,13 @@ func TestShowAWSClusterV4(t *testing.T) {
 						{"aws": {"instance_type": "m3.large"}, "memory": {"size_gb": 5}, "storage": {"size_gb": 50}, "cpu": {"cores": 2}, "labels": {"foo": "bar"}}
 					]
 				}`))
+
 			case "/v4/clusters/cluster-id/status/":
 				// simulating the case where cluster status is not yet available,
 				// to keep it simple here
 				w.WriteHeader(http.StatusNotFound)
 				w.Write([]byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Status for this cluster is not yet available."}`))
+
 			case "/v5/clusters/cluster-id/":
 				w.WriteHeader(http.StatusNotFound)
 				w.Write([]byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Cluster does not exist or is not accessible."}`))
@@ -56,14 +68,14 @@ func TestShowAWSClusterV4(t *testing.T) {
 	config.Initialize(fs, configDir)
 
 	testArgs := Arguments{
-		apiEndpoint: mockServer.URL,
-		clusterID:   "cluster-id",
-		scheme:      "giantswarm",
-		authToken:   "my-token",
-		verbose:     true,
+		apiEndpoint:     mockServer.URL,
+		clusterNameOrID: "cluster-id",
+		scheme:          "giantswarm",
+		authToken:       "my-token",
+		verbose:         true,
 	}
 
-	err := verifyPreconditions(testArgs, []string{testArgs.clusterID})
+	err := verifyPreconditions(testArgs, []string{testArgs.clusterNameOrID})
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
@@ -89,8 +101,8 @@ func TestShowAWSClusterV4(t *testing.T) {
 		t.Fatal("Expected V4 cluster details, got nil")
 	}
 
-	if detailsV4.ID != testArgs.clusterID {
-		t.Errorf("Expected cluster ID '%s', got '%s'", testArgs.clusterID, detailsV4.ID)
+	if detailsV4.ID != testArgs.clusterNameOrID {
+		t.Errorf("Expected cluster ID '%s', got '%s'", testArgs.clusterNameOrID, detailsV4.ID)
 	}
 
 }
@@ -102,6 +114,16 @@ func TestShowAWSClusterV5(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method == "GET" {
 			switch uri := r.URL.Path; uri {
+			case "/v4/clusters/":
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`[
+					{
+						"id": "cluster-id",
+						"name": "Name of the cluster",
+						"owner": "acme"
+					}
+				]`))
+
 			case "/v5/clusters/cluster-id/":
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(`{
@@ -116,6 +138,7 @@ func TestShowAWSClusterV5(t *testing.T) {
 						"availability_zone": "eu-west-1d"
 					}
 				}`))
+
 			case "/v5/clusters/cluster-id/nodepools/":
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(`[
@@ -144,9 +167,11 @@ func TestShowAWSClusterV5(t *testing.T) {
 						}
 					}
 				]`))
+
 			case "/v4/clusters/cluster-id/":
 				w.WriteHeader(http.StatusNotFound)
 				w.Write([]byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Cluster does not exist or is not accessible."}`))
+
 			default:
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte(`{"code": "INTERNAL_ERROR", "message": "We do this to notice any unexpected endpoint being called."}`))
@@ -161,14 +186,14 @@ func TestShowAWSClusterV5(t *testing.T) {
 	config.Initialize(fs, configDir)
 
 	testArgs := Arguments{
-		apiEndpoint: mockServer.URL,
-		clusterID:   "cluster-id",
-		scheme:      "giantswarm",
-		authToken:   "my-token",
-		verbose:     true,
+		apiEndpoint:     mockServer.URL,
+		clusterNameOrID: "cluster-id",
+		scheme:          "giantswarm",
+		authToken:       "my-token",
+		verbose:         true,
 	}
 
-	err := verifyPreconditions(testArgs, []string{testArgs.clusterID})
+	err := verifyPreconditions(testArgs, []string{testArgs.clusterNameOrID})
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
@@ -194,8 +219,8 @@ func TestShowAWSClusterV5(t *testing.T) {
 		t.Fatal("Expected V5 cluster details, got nil")
 	}
 
-	if detailsV5.ID != testArgs.clusterID {
-		t.Errorf("Expected cluster ID '%s', got '%s'", testArgs.clusterID, detailsV5.ID)
+	if detailsV5.ID != testArgs.clusterNameOrID {
+		t.Errorf("Expected cluster ID '%s', got '%s'", testArgs.clusterNameOrID, detailsV5.ID)
 	}
 
 }
@@ -220,13 +245,13 @@ func TestShowClusterNotAuthorized(t *testing.T) {
 	config.Initialize(fs, configDir)
 
 	testArgs := Arguments{
-		apiEndpoint: mockServer.URL,
-		clusterID:   "cluster-id",
-		scheme:      "giantswarm",
-		authToken:   "my-wrong-token",
+		apiEndpoint:     mockServer.URL,
+		clusterNameOrID: "cluster-id",
+		scheme:          "giantswarm",
+		authToken:       "my-wrong-token",
 	}
 
-	err := verifyPreconditions(testArgs, []string{testArgs.clusterID})
+	err := verifyPreconditions(testArgs, []string{testArgs.clusterNameOrID})
 	if err != nil {
 		t.Error(err)
 	}
@@ -262,13 +287,13 @@ func TestShowClusterNotFound(t *testing.T) {
 	config.Initialize(fs, configDir)
 
 	testArgs := Arguments{
-		apiEndpoint: mockServer.URL,
-		clusterID:   "non-existing-cluster-id",
-		scheme:      "giantswarm",
-		authToken:   "my-token",
+		apiEndpoint:     mockServer.URL,
+		clusterNameOrID: "non-existing-cluster-id",
+		scheme:          "giantswarm",
+		authToken:       "my-token",
 	}
 
-	err := verifyPreconditions(testArgs, []string{testArgs.clusterID})
+	err := verifyPreconditions(testArgs, []string{testArgs.clusterNameOrID})
 	if err != nil {
 		t.Error(err)
 	}
@@ -303,13 +328,13 @@ func TestShowClusterInternalServerError(t *testing.T) {
 	config.Initialize(fs, configDir)
 
 	testArgs := Arguments{
-		apiEndpoint: mockServer.URL,
-		clusterID:   "non-existing-cluster-id",
-		scheme:      "giantswarm",
-		authToken:   "my-token",
+		apiEndpoint:     mockServer.URL,
+		clusterNameOrID: "non-existing-cluster-id",
+		scheme:          "giantswarm",
+		authToken:       "my-token",
 	}
 
-	err := verifyPreconditions(testArgs, []string{testArgs.clusterID})
+	err := verifyPreconditions(testArgs, []string{testArgs.clusterNameOrID})
 	if err != nil {
 		t.Error(err)
 	}
@@ -332,12 +357,12 @@ func TestShowClusterNotLoggedIn(t *testing.T) {
 	config.Initialize(fs, configDir)
 
 	testArgs := Arguments{
-		apiEndpoint: "foo.bar",
-		clusterID:   "cluster-id",
-		authToken:   "",
+		apiEndpoint:     "foo.bar",
+		clusterNameOrID: "cluster-id",
+		authToken:       "",
 	}
 
-	err := verifyPreconditions(testArgs, []string{testArgs.clusterID})
+	err := verifyPreconditions(testArgs, []string{testArgs.clusterNameOrID})
 	if !errors.IsNotLoggedInError(err) {
 		t.Errorf("Expected NotLoggedInError, got '%s'", err.Error())
 	}
@@ -352,9 +377,9 @@ func TestShowClusterMissingID(t *testing.T) {
 	config.Initialize(fs, configDir)
 
 	testArgs := Arguments{
-		apiEndpoint: "foo.bar",
-		clusterID:   "",
-		authToken:   "auth-token",
+		apiEndpoint:     "foo.bar",
+		clusterNameOrID: "",
+		authToken:       "auth-token",
 	}
 
 	err := verifyPreconditions(testArgs, []string{})
@@ -372,6 +397,16 @@ func TestShowAWSBYOCClusterV4(t *testing.T) {
 
 		if r.Method == "GET" {
 			switch r.URL.Path {
+			case "/v4/clusters/":
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`[
+					{
+						"id": "cluster-id",
+						"name": "Name of the cluster",
+						"owner": "acme"
+					}
+				]`))
+
 			case "/v4/clusters/cluster-id/":
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(`{
@@ -414,6 +449,7 @@ func TestShowAWSBYOCClusterV4(t *testing.T) {
 						}
 					]
 				}`))
+				
 			case "/v4/organizations/acmeorg/credentials/credential-id/":
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(`{
@@ -439,13 +475,13 @@ func TestShowAWSBYOCClusterV4(t *testing.T) {
 	config.Initialize(fs, configDir)
 
 	testArgs := Arguments{
-		apiEndpoint: mockServer.URL,
-		clusterID:   "cluster-id",
-		scheme:      "giantswarm",
-		authToken:   "my-token",
+		apiEndpoint:     mockServer.URL,
+		clusterNameOrID: "cluster-id",
+		scheme:          "giantswarm",
+		authToken:       "my-token",
 	}
 
-	err := verifyPreconditions(testArgs, []string{testArgs.clusterID})
+	err := verifyPreconditions(testArgs, []string{testArgs.clusterNameOrID})
 	if err != nil {
 		t.Error(err)
 	}
@@ -455,8 +491,8 @@ func TestShowAWSBYOCClusterV4(t *testing.T) {
 		t.Error(showErr)
 	}
 
-	if detailsV4.ID != testArgs.clusterID {
-		t.Errorf("Expected cluster ID '%s', got '%s'", testArgs.clusterID, detailsV4.ID)
+	if detailsV4.ID != testArgs.clusterNameOrID {
+		t.Errorf("Expected cluster ID '%s', got '%s'", testArgs.clusterNameOrID, detailsV4.ID)
 	}
 
 	if credentialDetails != nil && credentialDetails.Aws != nil && credentialDetails.Aws.Roles != nil && credentialDetails.Aws.Roles.Awsoperator == "" {

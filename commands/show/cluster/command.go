@@ -12,6 +12,7 @@ import (
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -35,6 +36,7 @@ var (
 Examples:
 
   gsctl show cluster c7t2o
+  gsctl show cluster "Cluster name"
 `,
 
 		// PreRun checks a few general things, like authentication.
@@ -59,7 +61,7 @@ type Arguments struct {
 	apiEndpoint       string
 	authToken         string
 	scheme            string
-	clusterID         string
+	clusterNameOrID   string
 	userProvidedToken string
 	verbose           bool
 }
@@ -74,7 +76,7 @@ func collectArguments() Arguments {
 		apiEndpoint:       endpoint,
 		authToken:         token,
 		scheme:            scheme,
-		clusterID:         "",
+		clusterNameOrID:   "",
 		userProvidedToken: flags.Token,
 		verbose:           flags.Verbose,
 	}
@@ -120,7 +122,7 @@ func getClusterDetailsV4(args Arguments) (*models.V4ClusterDetailsResponse, erro
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientWrapper.GetClusterV4(args.clusterID, auxParams)
+	response, err := clientWrapper.GetClusterV4(args.clusterNameOrID, auxParams)
 	if err != nil {
 		if clienterror.IsAccessForbiddenError(err) {
 			return nil, microerror.Mask(errors.AccessForbiddenError)
@@ -152,7 +154,7 @@ func getClusterDetailsV5(args Arguments) (*models.V5ClusterDetailsResponse, erro
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientWrapper.GetClusterV5(args.clusterID, auxParams)
+	response, err := clientWrapper.GetClusterV5(args.clusterNameOrID, auxParams)
 	if err != nil {
 		if clienterror.IsAccessForbiddenError(err) {
 			return nil, microerror.Mask(errors.AccessForbiddenError)
@@ -222,6 +224,16 @@ func getClusterDetails(args Arguments) (
 	var clusterStatus *client.ClusterStatus
 	var nodePools *models.V5GetNodePoolsResponse
 
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
+	if err != nil {
+		return nil, nil, nil, nil, nil, microerror.Mask(err)
+	}
+
+	args.clusterNameOrID, err = clustercache.GetID(args.apiEndpoint, args.clusterNameOrID, clientWrapper)
+	if err != nil {
+		return nil, nil, nil, nil, nil, microerror.Mask(err)
+	}
+
 	// first try v5
 	if args.verbose {
 		fmt.Println(color.WhiteString("Fetching details for cluster via v5 API endpoint."))
@@ -229,15 +241,10 @@ func getClusterDetails(args Arguments) (
 	clusterDetailsV5, v5Err := getClusterDetailsV5(args)
 	if v5Err == nil {
 		// fetch node pools
-		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
-		if err != nil {
-			return nil, nil, nil, nil, nil, microerror.Mask(err)
-		}
-
 		// perform API call
 		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = activityName
-		response, err := clientWrapper.GetNodePools(args.clusterID, auxParams)
+		response, err := clientWrapper.GetNodePools(args.clusterNameOrID, auxParams)
 		if err != nil {
 			return nil, nil, nil, nil, nil, microerror.Mask(err)
 		}
@@ -266,18 +273,13 @@ func getClusterDetails(args Arguments) (
 			return nil, nil, nil, nil, nil, microerror.Mask(clusterDetailsV4Err)
 		}
 
-		clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
-		if err != nil {
-			return nil, nil, nil, nil, nil, microerror.Mask(err)
-		}
-
 		if args.verbose {
 			fmt.Println(color.WhiteString("Fetching status for v4 cluster."))
 		}
 		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = activityName
 		var clusterStatusErr error
-		clusterStatus, clusterStatusErr = clientWrapper.GetClusterStatus(args.clusterID, auxParams)
+		clusterStatus, clusterStatusErr = clientWrapper.GetClusterStatus(args.clusterNameOrID, auxParams)
 		if clusterStatusErr != nil {
 			// Return an error if it is something else than 404 Not Found,
 			// as 404s are expected during cluster creation.
@@ -345,10 +347,10 @@ func sumWorkerMemory(numWorkers int, workerDetails []*models.V4ClusterDetailsRes
 // printResult fetches cluster info from the API, which involves
 // several API calls, and prints the output.
 func printResult(cmd *cobra.Command, cmdLineArgs []string) {
-	arguments.clusterID = cmdLineArgs[0]
+	arguments.clusterNameOrID = cmdLineArgs[0]
 
 	if arguments.verbose {
-		fmt.Println(color.WhiteString("Fetching details for cluster %s.", arguments.clusterID))
+		fmt.Println(color.WhiteString("Fetching details for cluster %s.", arguments.clusterNameOrID))
 	}
 
 	clusterDetailsV4, clusterDetailsV5, nodePools, clusterStatus, credentialDetails, err := getClusterDetails(arguments)
@@ -362,7 +364,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 		switch {
 		case errors.IsClusterNotFoundError(err):
 			headline = "Cluster not found"
-			subtext = fmt.Sprintf("Either there is no cluster with ID '%s', or you have no access to it.\n", arguments.clusterID)
+			subtext = fmt.Sprintf("Either there is no cluster with ID '%s', or you have no access to it.\n", arguments.clusterNameOrID)
 			subtext += "Please check whether the cluster is listed when executing 'gsctl list clusters'."
 		default:
 			headline = "Unknown error"
