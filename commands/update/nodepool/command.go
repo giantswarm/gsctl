@@ -9,6 +9,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -20,7 +21,7 @@ import (
 var (
 	// Command is the cobra command for 'gsctl update nodepool'
 	Command = &cobra.Command{
-		Use:     "nodepool <cluster-id>/<nodepool-id>",
+		Use:     "nodepool <cluster-id/nodepool-id>/<nodepool-id>",
 		Aliases: []string{"np"},
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
 		Args:  cobra.ExactArgs(1),
@@ -32,6 +33,8 @@ Examples:
   gsctl update nodepool f01r4/75rh1 --name "General purpose M5"
 
   gsctl update nodepool f01r4/75rh1 --nodes-min 10 --nodes-max 20
+
+  gsctl update nodepool "Cluster name"/75rh1 --nodes-min 10 --nodes-max 20
 
 `,
 
@@ -65,7 +68,7 @@ func initFlags() {
 type Arguments struct {
 	APIEndpoint       string
 	AuthToken         string
-	ClusterID         string
+	ClusterNameOrID   string
 	Name              string
 	NodePoolID        string
 	ScalingMax        int64
@@ -85,7 +88,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 	return Arguments{
 		APIEndpoint:       endpoint,
 		AuthToken:         token,
-		ClusterID:         strings.TrimSpace(parts[0]),
+		ClusterNameOrID:   strings.TrimSpace(parts[0]),
 		Name:              flags.Name,
 		NodePoolID:        strings.TrimSpace(parts[1]),
 		ScalingMax:        flags.WorkersMax,
@@ -106,7 +109,7 @@ func verifyPreconditions(args Arguments) error {
 	}
 	if args.AuthToken == "" && args.UserProvidedToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
-	} else if args.ClusterID == "" {
+	} else if args.ClusterNameOrID == "" {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	} else if args.NodePoolID == "" {
 		return microerror.Mask(errors.NodePoolIDMissingError)
@@ -138,8 +141,8 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	subtext := ""
 
 	if errors.IsNodePoolIDMalformedError(err) {
-		headline = "Bad format for Cluster ID/Node Pool ID argument"
-		subtext = "Please provide cluster ID and node pool ID separated by a slash. See --help for examples."
+		headline = "Bad format for Cluster name/ID or Node Pool ID argument"
+		subtext = "Please provide cluster name/ID and node pool ID separated by a slash. See --help for examples."
 	}
 
 	// print output
@@ -170,10 +173,15 @@ func updateNodePool(args Arguments) (*result, error) {
 		requestBody.Scaling.Max = args.ScalingMax
 	}
 
+	clusterID, err := clustercache.GetID(args.APIEndpoint, args.ClusterNameOrID, clientWrapper)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	response, err := clientWrapper.ModifyNodePool(args.ClusterID, args.NodePoolID, requestBody, auxParams)
+	response, err := clientWrapper.ModifyNodePool(clusterID, args.NodePoolID, requestBody, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -208,5 +216,5 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		os.Exit(1)
 	}
 
-	fmt.Println(color.GreenString("Node pool '%s' (ID '%s') in cluster '%s' has been modified.", r.NodePool.Name, r.NodePool.ID, arguments.ClusterID))
+	fmt.Println(color.GreenString("Node pool '%s' (ID '%s') in cluster '%s' has been modified.", r.NodePool.Name, r.NodePool.ID, arguments.ClusterNameOrID))
 }
