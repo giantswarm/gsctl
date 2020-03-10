@@ -9,6 +9,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -20,7 +21,7 @@ import (
 var (
 	// Command is the cobra command for 'gsctl update cluster'
 	Command = &cobra.Command{
-		Use: "cluster <cluster-id>",
+		Use: "cluster <cluster-name/cluster-id>",
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
 		Args:  cobra.ExactArgs(1),
 		Short: "Modify cluster details",
@@ -29,6 +30,7 @@ var (
 Examples:
 
   gsctl update cluster f01r4 --name "Precious Production Cluster"
+  gsctl update cluster "Cluster name" --name "Precious Production Cluster"
 
 `,
 
@@ -60,7 +62,7 @@ func initFlags() {
 type Arguments struct {
 	APIEndpoint       string
 	AuthToken         string
-	ClusterID         string
+	ClusterNameOrID   string
 	Name              string
 	UserProvidedToken string
 	Verbose           bool
@@ -73,7 +75,7 @@ func collectArguments(positionalArgs []string) Arguments {
 	return Arguments{
 		APIEndpoint:       endpoint,
 		AuthToken:         token,
-		ClusterID:         strings.TrimSpace(positionalArgs[0]),
+		ClusterNameOrID:   strings.TrimSpace(positionalArgs[0]),
 		Name:              flags.Name,
 		UserProvidedToken: flags.Token,
 		Verbose:           flags.Verbose,
@@ -91,7 +93,7 @@ func verifyPreconditions(args Arguments) error {
 	}
 	if args.AuthToken == "" && args.UserProvidedToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
-	} else if args.ClusterID == "" {
+	} else if args.ClusterNameOrID == "" {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	} else if args.Name == "" {
 		return microerror.Mask(errors.NoOpError)
@@ -136,6 +138,11 @@ func updateCluster(args Arguments) (*result, error) {
 		return nil, microerror.Mask(err)
 	}
 
+	clusterID, err := clustercache.GetID(args.APIEndpoint, args.ClusterNameOrID, clientWrapper)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
@@ -143,7 +150,7 @@ func updateCluster(args Arguments) (*result, error) {
 	if args.Verbose {
 		fmt.Println(color.WhiteString("Fetching details for cluster via v5 API endpoint."))
 	}
-	_, errV5 := clientWrapper.GetClusterV5(args.ClusterID, auxParams)
+	_, errV5 := clientWrapper.GetClusterV5(clusterID, auxParams)
 	if errV5 == nil {
 		requestBody := &models.V5ModifyClusterRequest{}
 		if args.Name != "" {
@@ -153,7 +160,7 @@ func updateCluster(args Arguments) (*result, error) {
 		if args.Verbose {
 			fmt.Println(color.WhiteString("Sending cluster modification request to v5 endpoint."))
 		}
-		response, err := clientWrapper.ModifyClusterV5(args.ClusterID, requestBody, auxParams)
+		response, err := clientWrapper.ModifyClusterV5(clusterID, requestBody, auxParams)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -169,7 +176,7 @@ func updateCluster(args Arguments) (*result, error) {
 	if args.Verbose {
 		fmt.Println(color.WhiteString("No usable v5 response. Fetching details for cluster via v4 API endpoint."))
 	}
-	_, errV4 := clientWrapper.GetClusterV4(args.ClusterID, auxParams)
+	_, errV4 := clientWrapper.GetClusterV4(clusterID, auxParams)
 	if errV4 == nil {
 		requestBody := &models.V4ModifyClusterRequest{}
 		if args.Name != "" {
@@ -179,7 +186,7 @@ func updateCluster(args Arguments) (*result, error) {
 		if args.Verbose {
 			fmt.Println(color.WhiteString("Sending cluster modification request to v4 endpoint."))
 		}
-		response, err := clientWrapper.ModifyClusterV4(args.ClusterID, requestBody, auxParams)
+		response, err := clientWrapper.ModifyClusterV4(clusterID, requestBody, auxParams)
 		if err != nil {
 			return nil, microerror.Mask(err)
 		}
@@ -218,5 +225,5 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		os.Exit(1)
 	}
 
-	fmt.Println(color.GreenString("Cluster '%s' has been modified.", arguments.ClusterID))
+	fmt.Println(color.GreenString("Cluster '%s' has been modified.", arguments.ClusterNameOrID))
 }

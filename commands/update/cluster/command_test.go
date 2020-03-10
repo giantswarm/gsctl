@@ -39,9 +39,9 @@ func TestCollectArgs(t *testing.T) {
 				Command.ParseFlags([]string{"clusterid"})
 			},
 			Arguments{
-				APIEndpoint: "https://foo",
-				AuthToken:   "some-token",
-				ClusterID:   "clusterid",
+				APIEndpoint:     "https://foo",
+				AuthToken:       "some-token",
+				ClusterNameOrID: "clusterid",
 			},
 		},
 		{
@@ -51,10 +51,10 @@ func TestCollectArgs(t *testing.T) {
 				Command.ParseFlags([]string{"clusterid", "--name=NewName"})
 			},
 			Arguments{
-				APIEndpoint: "https://foo",
-				AuthToken:   "some-token",
-				ClusterID:   "clusterid",
-				Name:        "NewName",
+				APIEndpoint:     "https://foo",
+				AuthToken:       "some-token",
+				ClusterNameOrID: "clusterid",
+				Name:            "NewName",
 			},
 		},
 	}
@@ -94,17 +94,17 @@ func Test_verifyPreconditions(t *testing.T) {
 		// No token provided.
 		{
 			Arguments{
-				APIEndpoint: "https://mock-url",
-				ClusterID:   "cluster-id",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
 			},
 			errors.IsNotLoggedInError,
 		},
 		// Nothing to change.
 		{
 			Arguments{
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				ClusterID:   "cluster-id",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
 			},
 			errors.IsNoOpError,
 		},
@@ -138,9 +138,9 @@ func TestSuccess(t *testing.T) {
 		// Name change.
 		{
 			args: Arguments{
-				ClusterID: "clusterid",
-				AuthToken: "token",
-				Name:      "New name",
+				ClusterNameOrID: "clusterid",
+				AuthToken:       "token",
+				Name:            "New name",
 			},
 			responseBody: `{
 				"id": "clusterid",
@@ -170,6 +170,15 @@ func TestSuccess(t *testing.T) {
 				} else if r.Method == "GET" && r.URL.Path == "/v5/clusters/clusterid/" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(`{"id": "clusterid", "name": "old cluster name"}`))
+				} else if r.Method == "GET" && r.URL.Path == "/v4/clusters/" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`[
+						{
+							"id": "clusterid",
+							"name": "Name of the cluster",
+							"owner": "acme"
+						}
+					]`))
 				} else {
 					t.Errorf("Case %d - Unsupported operation %s %s called in mock server", i, r.Method, r.URL.Path)
 				}
@@ -205,10 +214,10 @@ func TestExecuteWithError(t *testing.T) {
 	}{
 		{
 			Arguments{
-				ClusterID:   "clusterid",
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				Name:        "weird-name",
+				ClusterNameOrID: "clusterid",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Name:            "weird-name",
 			},
 			401,
 			`{"code": "FORBIDDEN", "message": "Here is some error message"}`,
@@ -216,10 +225,10 @@ func TestExecuteWithError(t *testing.T) {
 		},
 		{
 			Arguments{
-				ClusterID:   "clusterid",
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				Name:        "weird-name",
+				ClusterNameOrID: "clusterid",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Name:            "weird-name",
 			},
 			403,
 			`{"code": "FORBIDDEN", "message": "Here is some error message"}`,
@@ -227,10 +236,10 @@ func TestExecuteWithError(t *testing.T) {
 		},
 		{
 			Arguments{
-				ClusterID:   "clusterid",
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				Name:        "weird-name",
+				ClusterNameOrID: "clusterid",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Name:            "weird-name",
 			},
 			404,
 			`{"code": "RESOURCE_NOT_FOUND", "message": "Here is some error message"}`,
@@ -238,10 +247,10 @@ func TestExecuteWithError(t *testing.T) {
 		},
 		{
 			Arguments{
-				ClusterID:   "clusterid",
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				Name:        "weird-name",
+				ClusterNameOrID: "clusterid",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Name:            "weird-name",
 			},
 			500,
 			`{"code": "UNKNOWN_ERROR", "message": "Here is some error message"}`,
@@ -265,6 +274,15 @@ func TestExecuteWithError(t *testing.T) {
 				} else if r.Method == "GET" && r.URL.Path == "/v5/clusters/clusterid/" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(`{"id": "clusterid", "name": "old cluster name"}`))
+				} else if r.Method == "GET" && r.URL.Path == "/v4/clusters/" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`[
+						{
+							"id": "clusterid",
+							"name": "Name of the cluster",
+							"owner": "acme"
+						}
+					]`))
 				} else {
 					t.Errorf("Unsupported operation %s %s called in mock server", r.Method, r.URL.Path)
 					w.WriteHeader(http.StatusNotFound)
