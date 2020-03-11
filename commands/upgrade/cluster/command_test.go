@@ -92,6 +92,15 @@ func TestUpgradeCluster(t *testing.T) {
 			    ]
 			  }
 			]`))
+		} else if r.Method == "GET" && r.URL.Path == "/v4/clusters/" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[
+				{
+					"id": "cluster-id",
+					"name": "Name of the cluster",
+					"owner": "acme"
+				}
+			]`))
 		} else if r.Method == "PATCH" {
 			// inspect PATCH request body
 			patchBytes, readErr := ioutil.ReadAll(r.Body)
@@ -133,13 +142,13 @@ func TestUpgradeCluster(t *testing.T) {
 	defer mockServer.Close()
 
 	testArgs := Arguments{
-		APIEndpoint: mockServer.URL,
-		AuthToken:   "my-token",
-		ClusterID:   "cluster-id",
-		Force:       true,
+		APIEndpoint:     mockServer.URL,
+		AuthToken:       "my-token",
+		ClusterNameOrID: "cluster-id",
+		Force:           true,
 	}
 
-	err := validateUpgradeClusterPreconditions(testArgs, []string{testArgs.ClusterID})
+	err := validateUpgradeClusterPreconditions(testArgs, []string{testArgs.ClusterNameOrID})
 	if err != nil {
 		t.Error(err)
 	}
@@ -172,8 +181,8 @@ func Test_collectArguments(t *testing.T) {
 				})
 			},
 			resultingArgs: Arguments{
-				ClusterID: "clusterid",
-				Force:     true,
+				ClusterNameOrID: "clusterid",
+				Force:           true,
 			},
 		},
 	}
@@ -211,7 +220,7 @@ func Test_validateUpgradeClusterPreconditions(t *testing.T) {
 			name: "Endpoint missing",
 			args: args{
 				Arguments{
-					ClusterID: "clusterid",
+					ClusterNameOrID: "clusterid",
 				},
 				[]string{},
 			},
@@ -221,8 +230,8 @@ func Test_validateUpgradeClusterPreconditions(t *testing.T) {
 			name: "Auth token missing",
 			args: args{
 				Arguments{
-					APIEndpoint: "https://some-endpoint.com",
-					ClusterID: "clusterid",
+					APIEndpoint:     "https://some-endpoint.com",
+					ClusterNameOrID: "clusterid",
 				},
 				[]string{},
 			},
@@ -232,9 +241,9 @@ func Test_validateUpgradeClusterPreconditions(t *testing.T) {
 			name: "Cluster ID missing",
 			args: args{
 				Arguments{
-					APIEndpoint: "https://some-endpoint.com",
-					AuthToken: "token",
-					ClusterID: "",
+					APIEndpoint:     "https://some-endpoint.com",
+					AuthToken:       "token",
+					ClusterNameOrID: "",
 				},
 				[]string{},
 			},

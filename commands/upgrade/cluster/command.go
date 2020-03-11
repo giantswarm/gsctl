@@ -8,6 +8,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -41,7 +42,7 @@ building blocks of a cluster with newer versions. See details at
 A cluster will always be upgraded to the subsequent release. To find out what
 release version is used currently, use
 
-    gsctl show cluster <cluster-id>
+    gsctl show cluster <cluster-name/cluster-id>
 
 To find out what is the subsequent version, list all available versions using
 
@@ -51,6 +52,7 @@ When in doubt, please contact the Giant Swarm support team before upgrading.
 
 Example:
   gsctl upgrade cluster 6iec4
+  gsctl upgrade cluster "Cluster name"
 `),
 
 		// We use PreRun for general input validation, authentication etc.
@@ -70,7 +72,7 @@ Example:
 type Arguments struct {
 	APIEndpoint       string
 	AuthToken         string
-	ClusterID         string
+	ClusterNameOrID   string
 	Force             bool
 	UserProvidedToken string
 	Verbose           bool
@@ -88,7 +90,7 @@ func collectArguments(positionalArgs []string) Arguments {
 	return Arguments{
 		APIEndpoint:       endpoint,
 		AuthToken:         token,
-		ClusterID:         clusterID,
+		ClusterNameOrID:   clusterID,
 		Force:             flags.Force,
 		UserProvidedToken: flags.Token,
 		Verbose:           flags.Verbose,
@@ -131,8 +133,8 @@ func upgradeClusterValidationOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			headline = "You are not logged in."
 			subtext = fmt.Sprintf("Use '%s login' to login or '--auth-token' to pass a valid auth token.", config.ProgramName)
 		case errors.IsClusterNameOrIDMissingError(err):
-			headline = "No cluster ID specified."
-			subtext = "Please specify which cluster to upgrade by using the cluster ID as an argument."
+			headline = "No cluster name or ID specified."
+			subtext = "Please specify which cluster to upgrade by using the cluster name or ID as an argument."
 		default:
 			headline = err.Error()
 		}
@@ -158,7 +160,7 @@ func validateUpgradeClusterPreconditions(args Arguments, cmdLineArgs []string) e
 	}
 
 	// cluster ID is present
-	if args.ClusterID == "" {
+	if args.ClusterNameOrID == "" {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
 
@@ -188,7 +190,7 @@ func upgradeClusterExecutionOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			subtext = "Please check the available releases using 'gsctl list releases'."
 		case errors.IsClusterNotFoundError(err):
 			headline = "The cluster does not exist."
-			subtext = fmt.Sprintf("We couldn't find a cluster with the ID '%s' via API endpoint %s.", arguments.ClusterID, arguments.APIEndpoint)
+			subtext = fmt.Sprintf("We couldn't find a cluster '%s' via API endpoint %s.", arguments.ClusterNameOrID, arguments.APIEndpoint)
 		case errors.IsCommandAbortedError(err):
 			headline = "Not upgrading."
 		default:
@@ -211,11 +213,14 @@ func upgradeClusterExecutionOutput(cmd *cobra.Command, cmdLineArgs []string) {
 // upgradeCluster performs our actual function. It usually creates an API client,
 // configures it, configures an API request and performs it.
 func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
-	result := &upgradeClusterResult{
-		clusterID: args.ClusterID,
-	}
+	result := &upgradeClusterResult{}
 
 	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	result.clusterID, err = clustercache.GetID(args.APIEndpoint, args.ClusterNameOrID, clientWrapper)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -231,13 +236,13 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 			fmt.Println(color.WhiteString("Attempt to fetch v5 cluster details."))
 		}
 
-		responseV5, v5err := clientWrapper.GetClusterV5(args.ClusterID, auxParams)
+		responseV5, v5err := clientWrapper.GetClusterV5(result.clusterID, auxParams)
 		if errors.IsClusterNotFoundError(v5err) || clienterror.IsBadRequestError(v5err) {
 			if args.Verbose {
 				fmt.Println(color.WhiteString("Not found via v5 endpoint. Attempt to fetch v4 cluster details."))
 			}
 
-			responseV4, v4err := clientWrapper.GetClusterV4(args.ClusterID, auxParams)
+			responseV4, v4err := clientWrapper.GetClusterV4(result.clusterID, auxParams)
 			if v4err != nil {
 				return nil, microerror.Mask(v4err)
 			}
@@ -289,13 +294,13 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 	// Show some details independent of confirmation
 	if !targetRelease.Active {
 		fmt.Printf("Cluster '%s' will be upgraded from version %s to %s, which is not an active release.\n",
-			color.CyanString(args.ClusterID),
+			color.CyanString(args.ClusterNameOrID),
 			color.CyanString(result.versionBefore),
 			color.CyanString(targetVersion))
 		fmt.Printf("This might fail depending on your permissions.\n")
 	} else {
 		fmt.Printf("Cluster '%s' will be upgraded from version %s to %s.\n",
-			color.CyanString(args.ClusterID),
+			color.CyanString(args.ClusterNameOrID),
 			color.CyanString(result.versionBefore),
 			color.CyanString(targetVersion))
 	}
@@ -334,7 +339,7 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 			ReleaseVersion: targetVersion,
 		}
 
-		_, err = clientWrapper.ModifyClusterV5(args.ClusterID, reqBody, auxParams)
+		_, err = clientWrapper.ModifyClusterV5(result.clusterID, reqBody, auxParams)
 	} else {
 		if args.Verbose {
 			fmt.Println(color.WhiteString("Submitting cluster modification request to v4 endpoint."))
@@ -345,7 +350,7 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 		}
 
 		// perform API call
-		_, err = clientWrapper.ModifyClusterV4(args.ClusterID, reqBody, auxParams)
+		_, err = clientWrapper.ModifyClusterV4(result.clusterID, reqBody, auxParams)
 		if err != nil {
 			return nil, microerror.Maskf(errors.CouldNotUpgradeClusterError, err.Error())
 		}
