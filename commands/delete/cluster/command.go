@@ -203,9 +203,6 @@ func deleteCluster(args Arguments) (bool, error) {
 		if err != nil {
 			return false, microerror.Mask(err)
 		}
-		if clusterID == "" {
-			return false, nil
-		}
 	}
 
 	// confirmation
