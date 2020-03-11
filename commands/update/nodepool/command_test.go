@@ -40,10 +40,10 @@ func TestCollectArgs(t *testing.T) {
 				Command.ParseFlags([]string{"clusterid/nodepoolid"})
 			},
 			Arguments{
-				APIEndpoint: "https://foo",
-				AuthToken:   "some-token",
-				ClusterID:   "clusterid",
-				NodePoolID:  "nodepoolid",
+				APIEndpoint:     "https://foo",
+				AuthToken:       "some-token",
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
 			},
 		},
 		{
@@ -53,13 +53,13 @@ func TestCollectArgs(t *testing.T) {
 				Command.ParseFlags([]string{"clusterid/nodepoolid", "--nodes-min=3", "--nodes-max=5", "--name=NewName"})
 			},
 			Arguments{
-				APIEndpoint: "https://foo",
-				AuthToken:   "some-token",
-				ClusterID:   "clusterid",
-				NodePoolID:  "nodepoolid",
-				ScalingMin:  3,
-				ScalingMax:  5,
-				Name:        "NewName",
+				APIEndpoint:     "https://foo",
+				AuthToken:       "some-token",
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
+				ScalingMin:      3,
+				ScalingMax:      5,
+				Name:            "NewName",
 			},
 		},
 	}
@@ -102,39 +102,39 @@ func Test_verifyPreconditions(t *testing.T) {
 		// Node pool ID is missing.
 		{
 			Arguments{
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				ClusterID:   "abc",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "abc",
 			},
 			errors.IsNodePoolIDMissingError,
 		},
 		// No token provided.
 		{
 			Arguments{
-				APIEndpoint: "https://mock-url",
-				ClusterID:   "cluster-id",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
 			},
 			errors.IsNotLoggedInError,
 		},
 		// Nothing to change.
 		{
 			Arguments{
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				ClusterID:   "cluster-id",
-				NodePoolID:  "abc",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
+				NodePoolID:      "abc",
 			},
 			errors.IsNoOpError,
 		},
 		// Bad scaling parameters
 		{
 			Arguments{
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				ClusterID:   "cluster-id",
-				NodePoolID:  "abc",
-				ScalingMin:  10,
-				ScalingMax:  1,
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
+				NodePoolID:      "abc",
+				ScalingMin:      10,
+				ScalingMax:      1,
 			},
 			errors.IsWorkersMinMaxInvalid,
 		},
@@ -168,10 +168,10 @@ func TestSuccess(t *testing.T) {
 		// Name change.
 		{
 			Arguments{
-				ClusterID:  "clusterid",
-				NodePoolID: "nodepoolid",
-				AuthToken:  "token",
-				Name:       "New name",
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
+				AuthToken:       "token",
+				Name:            "New name",
 			},
 			`{
 				"id": "nodepoolid",
@@ -195,11 +195,11 @@ func TestSuccess(t *testing.T) {
 		// Scaling change.
 		{
 			Arguments{
-				ClusterID:  "clusterid",
-				NodePoolID: "nodepoolid",
-				AuthToken:  "token",
-				ScalingMin: 10,
-				ScalingMax: 20,
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
+				AuthToken:       "token",
+				ScalingMin:      10,
+				ScalingMax:      20,
 			},
 			`{
 				"id": "nodepoolid",
@@ -223,10 +223,10 @@ func TestSuccess(t *testing.T) {
 		// Scaling change min only.
 		{
 			Arguments{
-				ClusterID:  "clusterid",
-				NodePoolID: "nodepoolid",
-				AuthToken:  "token",
-				ScalingMin: 10,
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
+				AuthToken:       "token",
+				ScalingMin:      10,
 			},
 			`{
 				"id": "nodepoolid",
@@ -250,10 +250,10 @@ func TestSuccess(t *testing.T) {
 		// Scaling change max only.
 		{
 			Arguments{
-				ClusterID:  "clusterid",
-				NodePoolID: "nodepoolid",
-				AuthToken:  "token",
-				ScalingMax: 10,
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
+				AuthToken:       "token",
+				ScalingMax:      10,
 			},
 			`{
 				"id": "nodepoolid",
@@ -291,6 +291,15 @@ func TestSuccess(t *testing.T) {
 				if r.Method == "PATCH" && r.URL.Path == "/v5/clusters/clusterid/nodepools/nodepoolid/" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(tc.responseBody))
+				} else if r.Method == "GET" && r.URL.Path == "/v4/clusters/" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`[
+						{
+							"id": "clusterid",
+							"name": "Name of the cluster",
+							"owner": "acme"
+						}
+					]`))
 				} else {
 					t.Errorf("Case %d - Unsupported operation %s %s called in mock server", i, r.Method, r.URL.Path)
 				}
@@ -326,11 +335,11 @@ func TestExecuteWithError(t *testing.T) {
 	}{
 		{
 			Arguments{
-				ClusterID:   "clusterid",
-				NodePoolID:  "nodepoolid",
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				Name:        "weird-name",
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Name:            "weird-name",
 			},
 			401,
 			`{"code": "FORBIDDEN", "message": "Here is some error message"}`,
@@ -338,11 +347,11 @@ func TestExecuteWithError(t *testing.T) {
 		},
 		{
 			Arguments{
-				ClusterID:   "clusterid",
-				NodePoolID:  "nodepoolid",
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				Name:        "weird-name",
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Name:            "weird-name",
 			},
 			403,
 			`{"code": "FORBIDDEN", "message": "Here is some error message"}`,
@@ -350,11 +359,11 @@ func TestExecuteWithError(t *testing.T) {
 		},
 		{
 			Arguments{
-				ClusterID:   "clusterid",
-				NodePoolID:  "nodepoolid",
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				Name:        "weird-name",
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Name:            "weird-name",
 			},
 			404,
 			`{"code": "RESOURCE_NOT_FOUND", "message": "Here is some error message"}`,
@@ -362,11 +371,11 @@ func TestExecuteWithError(t *testing.T) {
 		},
 		{
 			Arguments{
-				ClusterID:   "clusterid",
-				NodePoolID:  "nodepoolid",
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				Name:        "weird-name",
+				ClusterNameOrID: "clusterid",
+				NodePoolID:      "nodepoolid",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Name:            "weird-name",
 			},
 			500,
 			`{"code": "UNKNOWN_ERROR", "message": "Here is some error message"}`,
@@ -387,6 +396,15 @@ func TestExecuteWithError(t *testing.T) {
 				if r.Method == "PATCH" && r.URL.Path == "/v5/clusters/clusterid/nodepools/nodepoolid/" {
 					w.WriteHeader(tc.responseStatusCode)
 					w.Write([]byte(tc.responseBody))
+				} else if r.Method == "GET" && r.URL.Path == "/v4/clusters/" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`[
+						{
+							"id": "clusterid",
+							"name": "Name of the cluster",
+							"owner": "acme"
+						}
+					]`))
 				} else {
 					t.Errorf("Unsupported operation %s %s called in mock server", r.Method, r.URL.Path)
 					w.WriteHeader(http.StatusNotFound)
