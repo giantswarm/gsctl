@@ -10,6 +10,7 @@ import (
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -24,7 +25,7 @@ var (
 	// ShowNodepoolCommand is the cobra command for 'gsctl show nodepool'
 	ShowNodepoolCommand = &cobra.Command{
 		DisableFlagsInUseLine: true,
-		Use:                   "nodepool <cluster-id>/<nodepool-id>",
+		Use:                   "nodepool <cluster-name/cluster-id>/<nodepool-id>",
 		Aliases:               []string{"np"},
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
 		Args:  cobra.ExactArgs(1),
@@ -34,6 +35,7 @@ var (
 Examples:
 
   gsctl show nodepool f01r4/75rh1
+  gsctl show nodepool "Cluster name"/75rh1
 `,
 
 		// PreRun checks a few general things, like authentication.
@@ -51,7 +53,7 @@ const (
 type Arguments struct {
 	apiEndpoint       string
 	authToken         string
-	clusterID         string
+	clusterNameOrID   string
 	nodePoolID        string
 	userProvidedToken string
 }
@@ -78,7 +80,7 @@ func collectArguments(positionalArgs []string) (*Arguments, error) {
 	return &Arguments{
 		apiEndpoint:       endpoint,
 		authToken:         token,
-		clusterID:         parts[0],
+		clusterNameOrID:   parts[0],
 		nodePoolID:        parts[1],
 		userProvidedToken: flags.Token,
 	}, nil
@@ -92,7 +94,7 @@ func verifyPreconditions(args *Arguments) error {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 
-	if args.clusterID == "" {
+	if args.clusterNameOrID == "" {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
 	if args.nodePoolID == "" {
@@ -120,8 +122,8 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	subtext := ""
 
 	if errors.IsInvalidNodePoolIDArgument(err) {
-		headline = "Bad cluster/nodepool ID"
-		subtext = "Please give the cluster ID, followed by /, followed by the node pool ID."
+		headline = "Bad cluster name/ID or nodepool ID"
+		subtext = "Please give the cluster name/ID, followed by /, followed by the node pool ID."
 	} else {
 		headline = err.Error()
 	}
@@ -141,13 +143,18 @@ func fetchNodePool(args *Arguments) (*result, error) {
 		return nil, microerror.Mask(err)
 	}
 
+	clusterID, err := clustercache.GetID(args.apiEndpoint, args.clusterNameOrID, clientWrapper)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
 	// create combined output data structure.
 	res := &result{}
 
-	response, err := clientWrapper.GetNodePool(args.clusterID, args.nodePoolID, auxParams)
+	response, err := clientWrapper.GetNodePool(clusterID, args.nodePoolID, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}

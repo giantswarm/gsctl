@@ -54,9 +54,20 @@ func Test_ShowNodePool(t *testing.T) {
 				w.Header().Set("Content-Type", "application/json")
 				if r.Method == "GET" {
 					switch uri := r.URL.Path; uri {
+					case "/v4/clusters/":
+						w.WriteHeader(http.StatusOK)
+						w.Write([]byte(`[
+						{
+							"id": "cluster-id",
+							"name": "Name of the cluster",
+							"owner": "acme"
+						}
+					]`))
+
 					case "/v5/clusters/cluster-id/nodepools/nodepool-id/":
 						w.WriteHeader(http.StatusOK)
 						w.Write([]byte(tc.responseBody))
+
 					default:
 						t.Errorf("Unsupported route %s called in mock server", r.URL.Path)
 						w.WriteHeader(http.StatusNotFound)
@@ -81,10 +92,10 @@ selected_endpoint: ` + mockServer.URL
 			}
 
 			args := &Arguments{
-				apiEndpoint: mockServer.URL,
-				authToken:   "some-token",
-				clusterID:   "cluster-id",
-				nodePoolID:  "nodepool-id",
+				apiEndpoint:     mockServer.URL,
+				authToken:       "some-token",
+				clusterNameOrID: "cluster-id",
+				nodePoolID:      "nodepool-id",
 			}
 			positionalArgs := []string{"cluster-id/nodepool-id"}
 
