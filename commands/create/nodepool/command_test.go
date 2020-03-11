@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
 
@@ -66,11 +67,11 @@ func TestCollectArgs(t *testing.T) {
 				Command.ParseFlags([]string{"cluster-id", "--name=my-name"})
 			},
 			Arguments{
-				APIEndpoint: mockServer.URL,
-				AuthToken:   "some-token",
-				ClusterID:   "cluster-id",
-				Name:        "my-name",
-				Scheme:      "giantswarm",
+				APIEndpoint:     mockServer.URL,
+				AuthToken:       "some-token",
+				ClusterNameOrID: "cluster-id",
+				Name:            "my-name",
+				Scheme:          "giantswarm",
 			},
 		},
 		{
@@ -89,7 +90,7 @@ func TestCollectArgs(t *testing.T) {
 			Arguments{
 				APIEndpoint:          mockServer.URL,
 				AuthToken:            "some-token",
-				ClusterID:            "some-cluster-id",
+				ClusterNameOrID:      "some-cluster-id",
 				Name:                 "my-nodepool-name",
 				Scheme:               "giantswarm",
 				AvailabilityZonesNum: 3,
@@ -110,7 +111,7 @@ func TestCollectArgs(t *testing.T) {
 			Arguments{
 				APIEndpoint:           mockServer.URL,
 				AuthToken:             "some-token",
-				ClusterID:             "a-cluster-id",
+				ClusterNameOrID:       "a-cluster-id",
 				Scheme:                "giantswarm",
 				AvailabilityZonesList: []string{"myzonea", "myzoneb", "myzonec"},
 			},
@@ -126,12 +127,12 @@ func TestCollectArgs(t *testing.T) {
 				})
 			},
 			Arguments{
-				APIEndpoint: mockServer.URL,
-				AuthToken:   "some-token",
-				ClusterID:   "another-cluster-id",
-				ScalingMax:  0,
-				ScalingMin:  5,
-				Scheme:      "giantswarm",
+				APIEndpoint:     mockServer.URL,
+				AuthToken:       "some-token",
+				ClusterNameOrID: "another-cluster-id",
+				ScalingMax:      0,
+				ScalingMin:      5,
+				Scheme:          "giantswarm",
 			},
 		},
 		// Only setting the --nodes-max, but not --nodes-min flag.
@@ -145,12 +146,12 @@ func TestCollectArgs(t *testing.T) {
 				})
 			},
 			Arguments{
-				APIEndpoint: mockServer.URL,
-				AuthToken:   "some-token",
-				ClusterID:   "another-cluster-id",
-				ScalingMax:  5,
-				ScalingMin:  0,
-				Scheme:      "giantswarm",
+				APIEndpoint:     mockServer.URL,
+				AuthToken:       "some-token",
+				ClusterNameOrID: "another-cluster-id",
+				ScalingMax:      5,
+				ScalingMin:      0,
+				Scheme:          "giantswarm",
 			},
 		},
 	}
@@ -192,8 +193,8 @@ func TestSuccess(t *testing.T) {
 		// Minimal node pool creation.
 		{
 			Arguments{
-				ClusterID: "cluster-id",
-				AuthToken: "token",
+				ClusterNameOrID: "cluster-id",
+				AuthToken:       "token",
 			},
 			`{
 				"id": "m0ckr",
@@ -208,7 +209,7 @@ func TestSuccess(t *testing.T) {
 		// Creation with availability zones list.
 		{
 			Arguments{
-				ClusterID:             "cluster-id",
+				ClusterNameOrID:       "cluster-id",
 				AuthToken:             "token",
 				Name:                  "my node pool",
 				ScalingMin:            4,
@@ -229,7 +230,7 @@ func TestSuccess(t *testing.T) {
 		// Creation with availability zones number.
 		{
 			Arguments{
-				ClusterID:            "cluster-id",
+				ClusterNameOrID:      "cluster-id",
 				AuthToken:            "token",
 				Name:                 "my node pool",
 				ScalingMin:           2,
@@ -281,7 +282,12 @@ func TestSuccess(t *testing.T) {
 				t.Fatalf("Case %d - Unxpected error '%s'", i, err)
 			}
 
-			r, err := createNodePool(tc.args)
+			clientWrapper, err := client.NewWithConfig(tc.args.APIEndpoint, tc.args.UserProvidedToken)
+			if err != nil {
+				t.Fatalf("Case %d - Unxpected error '%s'", i, err)
+			}
+
+			r, err := createNodePool(tc.args, tc.args.ClusterNameOrID, clientWrapper)
 			if err != nil {
 				t.Fatalf("Case %d - Unxpected error '%s'", i, err)
 			}
@@ -302,9 +308,9 @@ func TestVerifyPreconditions(t *testing.T) {
 		// Cluster ID is missing.
 		{
 			Arguments{
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				ClusterID:   "",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "",
 			},
 			errors.IsClusterNameOrIDMissingError,
 		},
@@ -315,18 +321,18 @@ func TestVerifyPreconditions(t *testing.T) {
 				APIEndpoint:           "https://mock-url",
 				AvailabilityZonesList: []string{"fooa", "foob"},
 				AvailabilityZonesNum:  3,
-				ClusterID:             "cluster-id",
+				ClusterNameOrID:       "cluster-id",
 			},
 			errors.IsConflictingFlagsError,
 		},
 		// Scaling min and max are not plausible.
 		{
 			Arguments{
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				ClusterID:   "cluster-id",
-				ScalingMax:  3,
-				ScalingMin:  5,
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
+				ScalingMax:      3,
+				ScalingMin:      5,
 			},
 			errors.IsWorkersMinMaxInvalid,
 		},
@@ -360,9 +366,9 @@ func TestExecuteWithError(t *testing.T) {
 	}{
 		{
 			Arguments{
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				ClusterID:   "cluster-id",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
 			},
 			400,
 			`{"code": "INVALID_INPUT", "message": "Here is some error message"}`,
@@ -370,9 +376,9 @@ func TestExecuteWithError(t *testing.T) {
 		},
 		{
 			Arguments{
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				ClusterID:   "cluster-id",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
 			},
 			403,
 			`{"code": "FORBIDDEN", "message": "Here is some error message"}`,
@@ -380,9 +386,9 @@ func TestExecuteWithError(t *testing.T) {
 		},
 		{
 			Arguments{
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				ClusterID:   "cluster-id",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
 			},
 			404,
 			`{"code": "RESOURCE_NOT_FOUND", "message": "Here is some error message"}`,
@@ -390,9 +396,9 @@ func TestExecuteWithError(t *testing.T) {
 		},
 		{
 			Arguments{
-				AuthToken:   "token",
-				APIEndpoint: "https://mock-url",
-				ClusterID:   "cluster-id",
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
 			},
 			500,
 			`{"code": "UNKNOWN_ERROR", "message": "Here is some error message"}`,
@@ -426,7 +432,12 @@ func TestExecuteWithError(t *testing.T) {
 
 			tc.args.APIEndpoint = mockServer.URL
 
-			_, err := createNodePool(tc.args)
+			clientWrapper, err := client.NewWithConfig(tc.args.APIEndpoint, tc.args.UserProvidedToken)
+			if err != nil {
+				t.Fatalf("Case %d - Unxpected error '%s'", i, err)
+			}
+
+			_, err = createNodePool(tc.args, tc.args.ClusterNameOrID, clientWrapper)
 			if err == nil {
 				t.Errorf("Case %d - Expected error, got nil", i)
 			} else if !tc.errorMatcher(err) {
