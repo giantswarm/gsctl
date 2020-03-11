@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -54,7 +55,7 @@ var (
 // listKeypairs() function.
 type Arguments struct {
 	apiEndpoint       string
-	clusterID         string
+	clusterNameOrID   string
 	full              bool
 	outputFormat      string
 	token             string
@@ -71,7 +72,7 @@ func collectArguments() Arguments {
 
 	return Arguments{
 		apiEndpoint:       endpoint,
-		clusterID:         flags.ClusterID,
+		clusterNameOrID:   flags.ClusterID,
 		full:              flags.Full,
 		outputFormat:      cmdOutput,
 		token:             token,
@@ -92,7 +93,7 @@ func init() {
 func initFlags() {
 	Command.ResetFlags()
 
-	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "ID of the cluster to list key pairs for")
+	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "Name/ID of the cluster to list key pairs for")
 	Command.Flags().BoolVarP(&flags.Full, "full", "", false, "Enables output of full, untruncated values")
 	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output. Defaults to human-friendly table output.")
 
@@ -115,9 +116,9 @@ func printValidation(cmd *cobra.Command, extraArgs []string) {
 
 // listKeypairsValidate validates our pre-conditions and returns an error in
 // case something is missing.
-// If no clusterID argument is given, and a default cluster can be determined,
+// If no clusterNameOrID argument is given, and a default cluster can be determined,
 // the Arguments given as argument will be modified to contain
-// the clusterID field.
+// the clusterNameOrID field.
 func listKeypairsValidate(args *Arguments) error {
 	if args.apiEndpoint == "" {
 		return microerror.Mask(errors.EndpointMissingError)
@@ -134,7 +135,7 @@ func listKeypairsValidate(args *Arguments) error {
 		return microerror.Mask(err)
 	}
 
-	if args.clusterID == "" {
+	if args.clusterNameOrID == "" {
 		// use default cluster if possible
 		clusterID, _ := clientWrapper.GetDefaultCluster(nil)
 		if clusterID != "" {
@@ -163,7 +164,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 		switch {
 		case errors.IsClusterNotFoundError(err):
 			headline = "The cluster does not exist."
-			subtext = fmt.Sprintf("We couldn't find a cluster with the ID '%s' via API endpoint %s.", arguments.clusterID, arguments.apiEndpoint)
+			subtext = fmt.Sprintf("We couldn't find the cluster '%s' via API endpoint %s.", arguments.clusterNameOrID, arguments.apiEndpoint)
 		default:
 			headline = err.Error()
 		}
@@ -238,10 +239,15 @@ func listKeypairs(args Arguments) (listKeypairsResult, error) {
 		return result, microerror.Mask(err)
 	}
 
+	clusterID, err := clustercache.GetID(args.apiEndpoint, args.clusterNameOrID, clientWrapper)
+	if err != nil {
+		return result, microerror.Mask(err)
+	}
+
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = listKeypairsActivityName
 
-	response, err := clientWrapper.GetKeyPairs(args.clusterID, auxParams)
+	response, err := clientWrapper.GetKeyPairs(clusterID, auxParams)
 	if err != nil {
 		if clienterror.IsUnauthorizedError(err) {
 			return result, microerror.Mask(errors.NotAuthorizedError)

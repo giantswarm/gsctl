@@ -45,16 +45,27 @@ func Test_ListKeypairs_Empty(t *testing.T) {
 	keyPairsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`[]`))
+
+		if r.Method == "GET" && r.URL.Path == "/v4/clusters/" {
+			w.Write([]byte(`[
+			{
+				"id": "my-cluster",
+				"name": "Name of the cluster",
+				"owner": "acme"
+			}
+		]`))
+		} else {
+			w.Write([]byte(`[]`))
+		}
 	}))
 	defer keyPairsMockServer.Close()
 
 	// needed to prevent search for the default cluster
 	args := Arguments{
-		apiEndpoint:  keyPairsMockServer.URL,
-		clusterID:    "my-cluster",
-		outputFormat: "table",
-		token:        "my-token",
+		apiEndpoint:     keyPairsMockServer.URL,
+		clusterNameOrID: "my-cluster",
+		outputFormat:    "table",
+		token:           "my-token",
 	}
 
 	err = listKeypairsValidate(&args)
@@ -88,10 +99,10 @@ func Test_ListKeypairs_NotFound(t *testing.T) {
 	defer keyPairsMockServer.Close()
 
 	args := Arguments{
-		apiEndpoint:  keyPairsMockServer.URL,
-		clusterID:    "unknown-cluster",
-		outputFormat: "json",
-		token:        "my-token",
+		apiEndpoint:     keyPairsMockServer.URL,
+		clusterNameOrID: "unknown-cluster",
+		outputFormat:    "json",
+		token:           "my-token",
 	}
 
 	err = listKeypairsValidate(&args)
@@ -121,7 +132,17 @@ func Test_ListKeyPairs_Nonempty(t *testing.T) {
 	keyPairsMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`[
+
+		if r.Method == "GET" && r.URL.Path == "/v4/clusters/" {
+			w.Write([]byte(`[
+			{
+				"id": "my-cluster",
+				"name": "Name of the cluster",
+				"owner": "acme"
+			}
+		]`))
+		} else {
+			w.Write([]byte(`[
 			{
 				"create_date": "2017-01-23T13:57:57.755631763Z",
 				"description": "Added by user oliver.ponder@gmail.com using Happa web interface",
@@ -135,14 +156,15 @@ func Test_ListKeyPairs_Nonempty(t *testing.T) {
 				"ttl_hours": 720
 			}
 		]`))
+		}
 	}))
 	defer keyPairsMockServer.Close()
 
 	args := Arguments{
-		apiEndpoint:  keyPairsMockServer.URL,
-		clusterID:    "my-cluster",
-		outputFormat: "json",
-		token:        "my-token",
+		apiEndpoint:     keyPairsMockServer.URL,
+		clusterNameOrID: "my-cluster",
+		outputFormat:    "json",
+		token:           "my-token",
 	}
 
 	err = listKeypairsValidate(&args)
@@ -183,7 +205,18 @@ func Test_ListKeyPairsOutput(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(jsonOutput))
+
+		if r.Method == "GET" && r.URL.Path == "/v4/clusters/" {
+			w.Write([]byte(`[
+			{
+				"id": "foo",
+				"name": "Name of the cluster",
+				"owner": "acme"
+			}
+		]`))
+		} else {
+			w.Write([]byte(jsonOutput))
+		}
 	}))
 	defer mockServer.Close()
 
@@ -196,6 +229,8 @@ func Test_ListKeyPairsOutput(t *testing.T) {
 			name: "case 0: table output",
 			args: []string{"-c=foo"},
 			expectedOutput: strings.Join([]string{
+				"Warning: endpoint URL uses an insecure protocol",
+				"Warning: endpoint URL uses an insecure protocol",
 				"Warning: endpoint URL uses an insecure protocol",
 				"Warning: endpoint URL uses an insecure protocol",
 				"Warning: endpoint URL uses an insecure protocol",
