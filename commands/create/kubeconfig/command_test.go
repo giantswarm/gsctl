@@ -52,6 +52,17 @@ func makeMockServer() *httptest.Server {
 	        "id": "48:b9:01:ce:34:8f:b2:08:d3:4f:8c:bb:5e:2f:d7:b6:bc:ae:5c:98",
 	        "ttl_hours": 24
 	      }`))
+		} else if r.Method == "GET" && r.URL.String() == "/v4/clusters/" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[
+			{
+				"create_date": "2017-05-16T09:30:31.192170835Z",
+				"id": "test-cluster-id",
+				"name": "Name of the cluster",
+				"owner": "acme",
+				"path": "/v4/clusters/test-cluster-id/"
+			}
+		]`))
 		}
 	}))
 }
@@ -81,11 +92,11 @@ func Test_CreateKubeconfig(t *testing.T) {
 	defer fs.RemoveAll(path.Dir(kubeConfigPath))
 
 	args := Arguments{
-		authToken:   "auth-token",
-		apiEndpoint: mockServer.URL,
-		clusterID:   "test-cluster-id",
-		contextName: "giantswarm-test-cluster-id",
-		fileSystem:  fs,
+		authToken:       "auth-token",
+		apiEndpoint:     mockServer.URL,
+		clusterNameOrID: "Name of the cluster",
+		contextName:     "giantswarm-test-cluster-id",
+		fileSystem:      fs,
 	}
 
 	err = verifyCreateKubeconfigPreconditions(args, []string{})
@@ -118,7 +129,7 @@ func Test_CreateKubeconfig(t *testing.T) {
 		t.Error(err)
 	}
 
-	if !strings.Contains(string(content), "current-context: giantswarm-"+args.clusterID) {
+	if !strings.Contains(string(content), "current-context: giantswarm-test-cluster-id") {
 		t.Error("Kubeconfig doesn't contain the expected current-context value")
 	}
 	if !strings.Contains(string(content), "client-certificate: "+configDir) {
@@ -151,7 +162,7 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 	args := Arguments{
 		apiEndpoint:       mockServer.URL,
 		authToken:         "auth-token",
-		clusterID:         "test-cluster-id",
+		clusterNameOrID:   "Name of the cluster",
 		contextName:       "giantswarm-test-cluster-id",
 		fileSystem:        fs,
 		selfContainedPath: path.Join(tmpdir, "kubeconfig"),
@@ -190,7 +201,7 @@ func Test_CreateKubeconfigSelfContained(t *testing.T) {
 		t.Error(err)
 	}
 
-	if !strings.Contains(string(content), "current-context: giantswarm-"+args.clusterID) {
+	if !strings.Contains(string(content), "current-context: giantswarm-test-cluster-id") {
 		t.Error("Kubeconfig doesn't contain the expected current-context value")
 	}
 	if !strings.Contains(string(content), "client-certificate-data:") {
@@ -230,11 +241,11 @@ func Test_CreateKubeconfigCustomContext(t *testing.T) {
 	defer fs.RemoveAll(path.Dir(kubeConfigPath))
 
 	args := Arguments{
-		apiEndpoint: mockServer.URL,
-		authToken:   "auth-token",
-		clusterID:   "test-cluster-id",
-		contextName: "test-context",
-		fileSystem:  fs,
+		apiEndpoint:     mockServer.URL,
+		authToken:       "auth-token",
+		clusterNameOrID: "Name of the cluster",
+		contextName:     "test-context",
+		fileSystem:      fs,
 	}
 
 	flags.APIEndpoint = mockServer.URL
@@ -284,11 +295,11 @@ func Test_CreateKubeconfigNoConnection(t *testing.T) {
 	}
 
 	args := Arguments{
-		authToken:   "auth-token",
-		apiEndpoint: "http://0.0.0.0:12345",
-		clusterID:   "test-cluster-id",
-		contextName: "giantswarm-test-cluster-id",
-		fileSystem:  fs,
+		authToken:       "auth-token",
+		apiEndpoint:     "http://0.0.0.0:12345",
+		clusterNameOrID: "test-cluster-id",
+		contextName:     "giantswarm-test-cluster-id",
+		fileSystem:      fs,
 	}
 
 	err = verifyCreateKubeconfigPreconditions(args, []string{})

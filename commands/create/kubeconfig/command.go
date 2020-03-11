@@ -13,6 +13,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/k8sclient/k8srestconfig"
 	"github.com/giantswarm/kubeconfig"
 	"github.com/giantswarm/microerror"
@@ -52,11 +53,11 @@ Examples:
 
   gsctl create kubeconfig -c my0c3
 
-  gsctl create kubeconfig -c my0c3 --self-contained ./kubeconfig.yaml
+  gsctl create kubeconfig -c "Production cluster" --self-contained ./kubeconfig.yaml
 
   gsctl create kubeconfig -c my0c3 --ttl 3h -d "Key pair living for only 3 hours"
 
-  gsctl create kubeconfig -c my0c3 --certificate-organizations system:masters
+  gsctl create kubeconfig -c "Development cluster" --certificate-organizations system:masters
 `,
 		PreRun: createKubeconfigPreRunOutput,
 		Run:    createKubeconfigRunOutput,
@@ -93,7 +94,7 @@ type Arguments struct {
 	apiEndpoint       string
 	authToken         string
 	certOrgs          string
-	clusterID         string
+	clusterNameOrID   string
 	cnPrefix          string
 	contextName       string
 	description       string
@@ -120,9 +121,6 @@ func collectArguments() (Arguments, error) {
 	}
 
 	contextName := cmdKubeconfigContextName
-	if cmdKubeconfigContextName == "" {
-		contextName = "giantswarm-" + flags.ClusterID
-	}
 
 	ttl, err := util.ParseDuration(flags.TTL)
 	if errors.IsInvalidDurationError(err) {
@@ -137,7 +135,7 @@ func collectArguments() (Arguments, error) {
 		apiEndpoint:       endpoint,
 		authToken:         token,
 		certOrgs:          flags.CertificateOrganizations,
-		clusterID:         flags.ClusterID,
+		clusterNameOrID:   flags.ClusterID,
 		cnPrefix:          flags.CNPrefix,
 		contextName:       contextName,
 		description:       description,
@@ -172,7 +170,7 @@ type createKubeconfigResult struct {
 }
 
 func init() {
-	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "ID of the cluster")
+	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "Name or ID of the cluster")
 	Command.Flags().StringVarP(&flags.Description, "description", "d", "", "Description for the key pair")
 	Command.Flags().StringVarP(&flags.CNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
 	Command.Flags().StringVarP(&cmdKubeconfigSelfContained, "self-contained", "", "", "Create a self-contained kubectl config with embedded credentials and write it to this path.")
@@ -252,7 +250,7 @@ func verifyCreateKubeconfigPreconditions(args Arguments, cmdLineArgs []string) e
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
-	if args.clusterID == "" {
+	if args.clusterNameOrID == "" {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
 
@@ -308,10 +306,10 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			headline = "Error: " + err.Error()
 		case util.IsCouldNotUseKubectlContextError(err):
 			headline = "Error: " + err.Error()
-			subtext = "Context name to select is: giantswarm-" + arguments.clusterID
+			subtext = "Context name to select is: giantswarm-" + arguments.clusterNameOrID
 		case errors.IsClusterNotFoundError(err):
-			headline = fmt.Sprintf("Error: Cluster '%s' does not exist.", arguments.clusterID)
-			subtext = "Please check the ID spelling or list clusters using 'gsctl list clusters'."
+			headline = fmt.Sprintf("Error: Cluster '%s' does not exist.", arguments.clusterNameOrID)
+			subtext = "Please check the name/ID spelling or list clusters using 'gsctl list clusters'."
 		case errors.IsCouldNotWriteFileError(err):
 			headline = "Error: File could not be written"
 			subtext = fmt.Sprintf("Details: %s", err.Error())
@@ -402,13 +400,18 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 
 	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
-		return createKubeconfigResult{}, microerror.Mask(err)
+		return result, microerror.Mask(err)
+	}
+
+	clusterID, err := clustercache.GetID(args.apiEndpoint, args.clusterNameOrID, clientWrapper)
+	if err != nil {
+		return result, microerror.Mask(err)
 	}
 
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = createKubeconfigActivityName
 
-	result.apiEndpoint, err = getClusterDetails(clientWrapper, args.clusterID, auxParams, args.verbose)
+	result.apiEndpoint, err = getClusterDetails(clientWrapper, clusterID, auxParams, args.verbose)
 	if err != nil {
 		return createKubeconfigResult{}, microerror.Mask(err)
 	}
@@ -426,7 +429,7 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 		CertificateOrganizations: args.certOrgs,
 	}
 
-	response, err := clientWrapper.CreateKeyPair(args.clusterID, addKeyPairBody, auxParams)
+	response, err := clientWrapper.CreateKeyPair(clusterID, addKeyPairBody, auxParams)
 	if err != nil {
 		// create specific error types for cases we care about
 		if clienterror.IsAccessForbiddenError(err) {
@@ -449,24 +452,27 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	if args.selfContainedPath == "" {
 		// modify the given kubeconfig file
 		result.caCertPath = util.StoreCaCertificate(args.fileSystem, config.CertsDirPath,
-			args.clusterID, response.Payload.CertificateAuthorityData)
+			clusterID, response.Payload.CertificateAuthorityData)
 		result.clientCertPath = util.StoreClientCertificate(args.fileSystem, config.CertsDirPath,
-			args.clusterID, response.Payload.ID, response.Payload.ClientCertificateData)
+			clusterID, response.Payload.ID, response.Payload.ClientCertificateData)
 		result.clientKeyPath = util.StoreClientKey(args.fileSystem, config.CertsDirPath,
-			args.clusterID, response.Payload.ID, response.Payload.ClientKeyData)
+			clusterID, response.Payload.ID, response.Payload.ClientKeyData)
 		result.contextName = args.contextName
+		if result.contextName == "" {
+			result.contextName = "giantswarm-" + clusterID
+		}
 
 		// edit kubectl config
-		if err := util.KubectlSetCluster(args.clusterID, result.apiEndpoint, result.caCertPath); err != nil {
+		if err := util.KubectlSetCluster(clusterID, result.apiEndpoint, result.caCertPath); err != nil {
 			return result, microerror.Mask(util.CouldNotSetKubectlClusterError)
 		}
-		if err := util.KubectlSetCredentials(args.clusterID, result.clientKeyPath, result.clientCertPath); err != nil {
+		if err := util.KubectlSetCredentials(clusterID, result.clientKeyPath, result.clientCertPath); err != nil {
 			return result, microerror.Mask(util.CouldNotSetKubectlCredentialsError)
 		}
-		if err := util.KubectlSetContext(args.contextName, args.clusterID); err != nil {
+		if err := util.KubectlSetContext(result.contextName, clusterID); err != nil {
 			return result, microerror.Mask(util.CouldNotSetKubectlContextError)
 		}
-		if err := util.KubectlUseContext(args.contextName); err != nil {
+		if err := util.KubectlUseContext(result.contextName); err != nil {
 			return result, microerror.Mask(util.CouldNotUseKubectlContextError)
 		}
 	} else {
@@ -495,7 +501,7 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 				return result, microerror.Mask(err)
 			}
 
-			yamlBytes, err = kubeconfig.NewKubeConfigForRESTConfig(ctx, restConfig, fmt.Sprintf("giantswarm-%s", args.clusterID), "")
+			yamlBytes, err = kubeconfig.NewKubeConfigForRESTConfig(ctx, restConfig, fmt.Sprintf("giantswarm-%s", clusterID), "")
 			if err != nil {
 				return result, microerror.Mask(err)
 			}
