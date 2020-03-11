@@ -8,6 +8,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -21,7 +22,7 @@ import (
 var (
 	// Command is the cobra command for 'gsctl delete nodepool'
 	Command = &cobra.Command{
-		Use:     "nodepool <cluster-id>/<nodepool-id>",
+		Use:     "nodepool <cluster-name/cluster-id>/<nodepool-id>",
 		Aliases: []string{"np"},
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
 		Args:  cobra.ExactArgs(1),
@@ -53,6 +54,10 @@ Examples:
   To prevent the confirmation questions, apply --force:
 
     gsctl delete nodepool f01r4/np1id --force
+
+  You can also delete node pool 'np1id' from the cluster, by using the cluster's name:
+
+    gsctl delete nodepool "Cluster name"/np1id
 `,
 
 		// PreRun checks a few general things, like authentication.
@@ -83,7 +88,7 @@ func initFlags() {
 type Arguments struct {
 	APIEndpoint       string
 	AuthToken         string
-	ClusterID         string
+	ClusterNameOrID   string
 	Force             bool
 	NodePoolID        string
 	UserProvidedToken string
@@ -99,13 +104,13 @@ func collectArguments(positionalArgs []string) (*Arguments, error) {
 	parts := strings.Split(positionalArgs[0], "/")
 
 	if len(parts) < 2 {
-		return nil, microerror.Maskf(errors.InvalidNodePoolIDArgumentError, "Please specify the node pool as <cluster_id>/<nodepool_id>. Use --help for details.")
+		return nil, microerror.Maskf(errors.InvalidNodePoolIDArgumentError, "Please specify the node pool as <cluster-name/cluster-id>/<nodepool-id>. Use --help for details.")
 	}
 
 	return &Arguments{
 		APIEndpoint:       endpoint,
 		AuthToken:         token,
-		ClusterID:         parts[0],
+		ClusterNameOrID:   parts[0],
 		Force:             flags.Force,
 		NodePoolID:        parts[1],
 		UserProvidedToken: flags.Token,
@@ -117,7 +122,7 @@ func verifyPreconditions(args *Arguments) error {
 	if args.AuthToken == "" && args.UserProvidedToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
-	if args.ClusterID == "" {
+	if args.ClusterNameOrID == "" {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
 	if args.NodePoolID == "" {
@@ -145,7 +150,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 
 	if errors.IsInvalidNodePoolIDArgument(err) {
 		headline = "Invalid argument syntax"
-		subtext = "Please specify the node pool as <cluster_id>/<nodepool_id>. Use --help for details."
+		subtext = "Please specify the node pool as <cluster-name/cluster-id>/<nodepool-id>. Use --help for details."
 	} else {
 		headline = "Unknown error"
 		subtext = fmt.Sprintf("Details: %#v", err)
@@ -164,7 +169,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 func deleteNodePool(args *Arguments) (bool, error) {
 	// confirmation
 	if !args.Force {
-		question := fmt.Sprintf("Do you really want to delete node pool '%s' from cluster '%s'?", args.NodePoolID, args.ClusterID)
+		question := fmt.Sprintf("Do you really want to delete node pool '%s' from cluster '%s'?", args.NodePoolID, args.ClusterNameOrID)
 		confirmed := confirm.Ask(question)
 		if !confirmed {
 			return false, nil
@@ -176,21 +181,26 @@ func deleteNodePool(args *Arguments) (bool, error) {
 		return false, microerror.Mask(err)
 	}
 
+	clusterID, err := clustercache.GetID(args.APIEndpoint, args.ClusterNameOrID, clientWrapper)
+	if err != nil {
+		return false, microerror.Mask(err)
+	}
+
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	_, err = clientWrapper.DeleteNodePool(args.ClusterID, args.NodePoolID, auxParams)
+	_, err = clientWrapper.DeleteNodePool(clusterID, args.NodePoolID, auxParams)
 	if clienterror.IsAccessForbiddenError(err) {
 		return false, microerror.Mask(errors.AccessForbiddenError)
 	} else if clienterror.IsNotFoundError(err) {
 		// Check whether the cluster exists
-		_, detailsErr := clientWrapper.GetClusterV5(args.ClusterID, auxParams)
+		_, detailsErr := clientWrapper.GetClusterV5(clusterID, auxParams)
 		if detailsErr == nil {
 			// Cluster exists, node pool does not exist.
 			return false, microerror.Mask(errors.NodePoolNotFoundError)
 		}
 
-		_, detailsErr = clientWrapper.GetClusterV4(args.ClusterID, auxParams)
+		_, detailsErr = clientWrapper.GetClusterV4(clusterID, auxParams)
 		if detailsErr == nil {
 			// Cluster exists, but is v4, so cannot have node pools.
 			return false, microerror.Mask(errors.ClusterDoesNotSupportNodePoolsError)
@@ -217,13 +227,13 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		switch {
 		case errors.IsClusterNotFoundError(err):
 			headline = "Cluster not found"
-			subtext = fmt.Sprintf("Could not find a cluster with ID %s. Please check the ID.", arguments.ClusterID)
+			subtext = fmt.Sprintf("Could not find a cluster with ID %s. Check 'gsctl list clusters' to make sure.", arguments.ClusterNameOrID)
 		case errors.IsNodePoolNotFound(err):
 			headline = "Node pool not found"
 			subtext = fmt.Sprintf("Could not find a node pool with ID %s in this cluster. ", arguments.NodePoolID)
 		case errors.IsClusterDoesNotSupportNodePools(err):
 			headline = "Bad cluster ID"
-			subtext = fmt.Sprint("You are trying to delete a node pool from a cluster that does not support node pools. Please check your cluster ID.")
+			subtext = fmt.Sprint("You are trying to delete a node pool from a cluster that does not support node pools. Check 'gsctl list clusters' to make sure.")
 		default:
 			headline = err.Error()
 		}
@@ -237,7 +247,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 
 	if deleted {
-		fmt.Println(color.GreenString("Node pool '%s' in cluster '%s' will be deleted as soon as all workloads are terminated.", arguments.NodePoolID, arguments.ClusterID))
+		fmt.Println(color.GreenString("Node pool '%s' in cluster '%s' will be deleted as soon as all workloads are terminated.", arguments.NodePoolID, arguments.ClusterNameOrID))
 	} else if arguments.Verbose {
 		fmt.Println(color.WhiteString("Aborted."))
 	}
