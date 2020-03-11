@@ -11,6 +11,7 @@ import (
 
 	"github.com/Jeffail/gabs"
 	"github.com/giantswarm/gscliauth/config"
+	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/microerror"
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
@@ -39,66 +40,66 @@ func TestCollectArguments(t *testing.T) {
 		{
 			[]string{"clusterid"},
 			Arguments{
-				APIEndpoint: "https://foo",
-				AuthToken:   "some-token",
-				ClusterID:   "clusterid",
-				Scheme:      "giantswarm",
+				APIEndpoint:     "https://foo",
+				AuthToken:       "some-token",
+				ClusterNameOrID: "clusterid",
+				Scheme:          "giantswarm",
 			},
 		},
 		{
 			[]string{"clusterid", "--num-workers=5"},
 			Arguments{
-				APIEndpoint:   "https://foo",
-				AuthToken:     "some-token",
-				ClusterID:     "clusterid",
-				Scheme:        "giantswarm",
-				WorkersMax:    5,
-				WorkersMaxSet: false,
-				WorkersMin:    5,
-				WorkersMinSet: false,
-				Workers:       5,
-				WorkersSet:    true,
+				APIEndpoint:     "https://foo",
+				AuthToken:       "some-token",
+				ClusterNameOrID: "clusterid",
+				Scheme:          "giantswarm",
+				WorkersMax:      5,
+				WorkersMaxSet:   false,
+				WorkersMin:      5,
+				WorkersMinSet:   false,
+				Workers:         5,
+				WorkersSet:      true,
 			},
 		},
 		{
 			[]string{"clusterid", "--workers-min=12"},
 			Arguments{
-				APIEndpoint:   "https://foo",
-				AuthToken:     "some-token",
-				ClusterID:     "clusterid",
-				Scheme:        "giantswarm",
-				WorkersMaxSet: false,
-				WorkersMin:    12,
-				WorkersMinSet: true,
-				WorkersSet:    false,
+				APIEndpoint:     "https://foo",
+				AuthToken:       "some-token",
+				ClusterNameOrID: "clusterid",
+				Scheme:          "giantswarm",
+				WorkersMaxSet:   false,
+				WorkersMin:      12,
+				WorkersMinSet:   true,
+				WorkersSet:      false,
 			},
 		},
 		{
 			[]string{"clusterid", "--workers-max=12"},
 			Arguments{
-				APIEndpoint:   "https://foo",
-				AuthToken:     "some-token",
-				ClusterID:     "clusterid",
-				Scheme:        "giantswarm",
-				WorkersMaxSet: true,
-				WorkersMax:    12,
-				WorkersMinSet: false,
-				WorkersSet:    false,
+				APIEndpoint:     "https://foo",
+				AuthToken:       "some-token",
+				ClusterNameOrID: "clusterid",
+				Scheme:          "giantswarm",
+				WorkersMaxSet:   true,
+				WorkersMax:      12,
+				WorkersMinSet:   false,
+				WorkersSet:      false,
 			},
 		},
 		{
 			[]string{"clusterid", "--num-workers=5", "--workers-min=4", "--workers-max=6"},
 			Arguments{
-				APIEndpoint:   "https://foo",
-				AuthToken:     "some-token",
-				ClusterID:     "clusterid",
-				Scheme:        "giantswarm",
-				WorkersMax:    5,
-				WorkersMaxSet: true,
-				WorkersMin:    5,
-				WorkersMinSet: true,
-				Workers:       5,
-				WorkersSet:    true,
+				APIEndpoint:     "https://foo",
+				AuthToken:       "some-token",
+				ClusterNameOrID: "clusterid",
+				Scheme:          "giantswarm",
+				WorkersMax:      5,
+				WorkersMaxSet:   true,
+				WorkersMin:      5,
+				WorkersMinSet:   true,
+				Workers:         5,
+				WorkersSet:      true,
 			},
 		},
 	}
@@ -156,51 +157,51 @@ func TestVerifyPreconditions(t *testing.T) {
 	}{
 		{
 			Arguments{
-				APIEndpoint: mockServer.URL,
-				ClusterID:   "v4-cluster-id",
-				Workers:     10,
-				WorkersSet:  true,
+				APIEndpoint:     mockServer.URL,
+				ClusterNameOrID: "v4-cluster-id",
+				Workers:         10,
+				WorkersSet:      true,
 			},
 			errors.IsNotLoggedInError,
 		},
 		{
 			Arguments{
-				APIEndpoint: mockServer.URL,
-				AuthToken:   "some-token",
-				ClusterID:   "v4-cluster-id",
-				Workers:     10,
-				WorkersSet:  true,
+				APIEndpoint:     mockServer.URL,
+				AuthToken:       "some-token",
+				ClusterNameOrID: "v4-cluster-id",
+				Workers:         10,
+				WorkersSet:      true,
 			},
 			nil,
 		},
 		{
 			Arguments{
-				APIEndpoint:   mockServer.URL,
-				AuthToken:     "some-token",
-				ClusterID:     "v4-cluster-id",
-				Workers:       10,
-				WorkersSet:    true,
-				WorkersMin:    4,
-				WorkersMinSet: true,
+				APIEndpoint:     mockServer.URL,
+				AuthToken:       "some-token",
+				ClusterNameOrID: "v4-cluster-id",
+				Workers:         10,
+				WorkersSet:      true,
+				WorkersMin:      4,
+				WorkersMinSet:   true,
 			},
 			errors.IsConflictingWorkerFlagsUsed,
 		},
 		{
 			Arguments{
-				APIEndpoint: mockServer.URL,
-				AuthToken:   "some-token",
-				ClusterID:   "v4-cluster-id",
+				APIEndpoint:     mockServer.URL,
+				AuthToken:       "some-token",
+				ClusterNameOrID: "v4-cluster-id",
 			},
 			errors.IsRequiredFlagMissingError,
 		},
 		{
 			Arguments{
-				APIEndpoint: mockServer.URL,
-				AuthToken:   "some-token",
-				ClusterID:   "v5-cluster-id",
-				Verbose:     true,
-				Workers:     10,
-				WorkersSet:  true,
+				APIEndpoint:     mockServer.URL,
+				AuthToken:       "some-token",
+				ClusterNameOrID: "v5-cluster-id",
+				Verbose:         true,
+				Workers:         10,
+				WorkersSet:      true,
 			},
 			errors.IsCannotScaleCluster,
 		},
@@ -225,7 +226,12 @@ updated: 2017-09-29T11:23:15+02:00
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			initFlags()
 
-			err := verifyPreconditions(tc.testArgs)
+			clientWrapper, err := client.NewWithConfig(tc.testArgs.APIEndpoint, tc.testArgs.UserProvidedToken)
+			if err != nil {
+				t.Errorf("Case %d - Unexpected error '%s'", i, err)
+			}
+
+			err = verifyPreconditions(tc.testArgs, clientWrapper)
 			if tc.errorMatcher == nil {
 				if err != nil {
 					t.Errorf("Case %d - Unexpected error '%s'", i, err)
@@ -258,12 +264,17 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 	config.Initialize(fs, configDir)
 
 	testArgs := Arguments{
-		APIEndpoint: mockServer.URL,
-		ClusterID:   "cluster-id",
-		Workers:     5,
+		APIEndpoint:     mockServer.URL,
+		ClusterNameOrID: "cluster-id",
+		Workers:         5,
 	}
 
-	err := verifyPreconditions(testArgs)
+	clientWrapper, err := client.NewWithConfig(testArgs.APIEndpoint, testArgs.UserProvidedToken)
+	if err != nil {
+		t.Errorf("Unexpected error '%s'", err)
+	}
+
+	err = verifyPreconditions(testArgs, clientWrapper)
 	if !errors.IsNotLoggedInError(err) {
 		t.Error("Expected NotLoggedInError, got", err)
 	}
@@ -382,7 +393,7 @@ selected_endpoint: ` + mockServer.URL
 
 	testArgs := Arguments{
 		APIEndpoint:       mockServer.URL,
-		ClusterID:         "cluster-id",
+		ClusterNameOrID:   "cluster-id",
 		WorkersMax:        int64(5),
 		WorkersMin:        int64(5),
 		UserProvidedToken: "my-token",
@@ -390,7 +401,12 @@ selected_endpoint: ` + mockServer.URL
 		WorkersMaxSet:     true,
 	}
 
-	err = verifyPreconditions(testArgs)
+	clientWrapper, err := client.NewWithConfig(testArgs.APIEndpoint, testArgs.UserProvidedToken)
+	if err != nil {
+		t.Errorf("Unexpected error '%s'", err)
+	}
+
+	err = verifyPreconditions(testArgs, clientWrapper)
 	if err != nil {
 		t.Error(err)
 	}

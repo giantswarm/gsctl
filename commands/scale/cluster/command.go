@@ -8,6 +8,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -41,6 +42,8 @@ Examples:
   gsctl scale cluster c7t2o --workers-min 3 --workers-max 3
 
   gsctl scale cluster c7t2o --num-workers 3
+
+  gsctl scale cluster "Cluster name" --num-workers 3
 `,
 
 		PreRun: printValidation,
@@ -49,7 +52,7 @@ Examples:
 		Run: printResult,
 	}
 
-	//Flag names.
+	// Flag names.
 	cmdWorkersMaxName = "workers-max"
 	cmdWorkersMinName = "workers-min"
 	cmdWorkersNumName = "num-workers"
@@ -78,7 +81,7 @@ func initFlags() {
 type Arguments struct {
 	APIEndpoint         string
 	AuthToken           string
-	ClusterID           string
+	ClusterNameOrID     string
 	NumWorkersDesired   int
 	OppressConfirmation bool
 	Scheme              string
@@ -131,7 +134,7 @@ func collectArguments(cmd *cobra.Command, positionalArgs []string) (Arguments, e
 	args := Arguments{
 		APIEndpoint:         endpoint,
 		AuthToken:           token,
-		ClusterID:           positionalArgs[0],
+		ClusterNameOrID:     positionalArgs[0],
 		OppressConfirmation: flags.Force,
 		Scheme:              scheme,
 		UserProvidedToken:   flags.Token,
@@ -152,23 +155,19 @@ func collectArguments(cmd *cobra.Command, positionalArgs []string) (Arguments, e
 	return args, nil
 }
 
-func verifyPreconditions(args Arguments) error {
+func verifyPreconditions(args Arguments, clientWrapper *client.Wrapper) error {
 	if args.APIEndpoint == "" {
 		return microerror.Mask(errors.EndpointMissingError)
 	}
 	if args.AuthToken == "" && args.UserProvidedToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
-	if args.ClusterID == "" {
+	if args.ClusterNameOrID == "" {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
 
 	// Check if the cluster is v5, so we can provide helpful details.
 	{
-		clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
-		if err != nil {
-			return microerror.Mask(err)
-		}
 		auxParams := clientWrapper.DefaultAuxiliaryParams()
 		auxParams.ActivityName = scaleClusterActivityName
 
@@ -176,7 +175,7 @@ func verifyPreconditions(args Arguments) error {
 			fmt.Println(color.WhiteString("Checking whether this is a v5 cluster"))
 		}
 
-		_, err = clientWrapper.GetClusterV5(args.ClusterID, auxParams)
+		_, err := clientWrapper.GetClusterV5(args.ClusterNameOrID, auxParams)
 		if errors.IsClusterNotFoundError(err) || clienterror.IsBadRequestError(err) {
 			// The cluster is not a v5 cluster. So do nothing.
 		} else if err != nil {
@@ -188,7 +187,7 @@ func verifyPreconditions(args Arguments) error {
 			if args.Verbose {
 				fmt.Println(color.WhiteString("Getting v5 cluster node pools information"))
 			}
-			nodePools, err := clientWrapper.GetNodePools(args.ClusterID, auxParams)
+			nodePools, err := clientWrapper.GetNodePools(args.ClusterNameOrID, auxParams)
 			if err != nil {
 				return microerror.Mask(err)
 			}
@@ -203,12 +202,12 @@ func verifyPreconditions(args Arguments) error {
 				if args.Verbose {
 					fmt.Println(color.WhiteString("Found one node pool with ID %s", nodePools.Payload[0].ID))
 				}
-				thisErr.Desc = fmt.Sprintf("To scale the node pool of this cluster, please use the 'gsctl update nodepool %s/%s' command.", args.ClusterID, nodePools.Payload[0].ID)
+				thisErr.Desc = fmt.Sprintf("To scale the node pool of this cluster, please use the 'gsctl update nodepool %s/%s' command.", args.ClusterNameOrID, nodePools.Payload[0].ID)
 			default:
 				if args.Verbose {
 					fmt.Println(color.WhiteString("Found several node pools"))
 				}
-				thisErr.Desc = fmt.Sprintf("This cluster has %d node pools. Please use 'gsctl list nodepools %s' to list them. Then use 'gsctl update nodepool %s/<nodepool-id>' for scaling.", len(nodePools.Payload), args.ClusterID, args.ClusterID)
+				thisErr.Desc = fmt.Sprintf("This cluster has %d node pools. Please use 'gsctl list nodepools %s' to list them. Then use 'gsctl update nodepool %s/<nodepool-id>' for scaling.", len(nodePools.Payload), args.ClusterNameOrID, args.ClusterNameOrID)
 			}
 
 			return microerror.Mask(thisErr)
@@ -235,7 +234,11 @@ func verifyPreconditions(args Arguments) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	var err error
+	var (
+		err       error
+		clusterID string
+	)
+
 	arguments, err = collectArguments(cmd, positionalArgs)
 
 	if err != nil {
@@ -243,7 +246,16 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		os.Exit(1)
 	}
 
-	err = verifyPreconditions(arguments)
+	clientWrapper, err := client.NewWithConfig(arguments.APIEndpoint, arguments.UserProvidedToken)
+
+	if err == nil {
+		clusterID, err = clustercache.GetID(arguments.APIEndpoint, arguments.ClusterNameOrID, clientWrapper)
+		arguments.ClusterNameOrID = clusterID
+	}
+
+	if err == nil {
+		err = verifyPreconditions(arguments, clientWrapper)
+	}
 
 	if err == nil {
 		return
@@ -296,7 +308,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 	if args.Verbose {
 		fmt.Println(color.WhiteString("Fetching v4 cluster details"))
 	}
-	clusterDetails, err := clientWrapper.GetClusterV4(args.ClusterID, auxParams)
+	clusterDetails, err := clientWrapper.GetClusterV4(args.ClusterNameOrID, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -313,7 +325,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 		fmt.Println(color.WhiteString("Fetching v4 cluster status"))
 	}
 
-	status, err := clientWrapper.GetClusterStatus(args.ClusterID, auxParams)
+	status, err := clientWrapper.GetClusterStatus(args.ClusterNameOrID, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -352,7 +364,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 	if args.Verbose {
 		fmt.Println(color.WhiteString("Sending API request to modify cluster"))
 	}
-	_, err = clientWrapper.ModifyClusterV4(args.ClusterID, reqBody, auxParams)
+	_, err = clientWrapper.ModifyClusterV4(args.ClusterNameOrID, reqBody, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
