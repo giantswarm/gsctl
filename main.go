@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 	"runtime"
+	"strconv"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
@@ -18,6 +20,9 @@ func init() {
 	if runtime.GOOS == "windows" || os.Getenv("GSCTL_DISABLE_COLORS") != "" {
 		color.NoColor = true
 	}
+
+	isKubectl := strings.Contains(os.Args[0], "kubectl-gs")
+	os.Setenv("GSCTL_IS_KUBECTL", strconv.FormatBool(isKubectl))
 }
 
 func main() {
