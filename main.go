@@ -21,7 +21,7 @@ func init() {
 		color.NoColor = true
 	}
 
-	isKubectl := strings.Contains(os.Args[0], "kubectl-gs")
+	isKubectl := strings.Contains(os.Args[0], "kubectl")
 	os.Setenv("GSCTL_IS_KUBECTL", strconv.FormatBool(isKubectl))
 }
 
