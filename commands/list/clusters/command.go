@@ -270,5 +270,9 @@ func getClustersOutput(args Arguments) (string, error) {
 		}
 	}
 
+	if config.IsKubectlPlugin {
+		return "Hi", nil
+	}
+
 	return output, nil
 }
