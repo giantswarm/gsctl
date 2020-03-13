@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
+	"github.com/giantswarm/apiextensions/pkg/clientset/versioned"
 	"github.com/giantswarm/gscliauth/config"
 	gsclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/gsclientgen/client/apps"
@@ -28,6 +30,8 @@ import (
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	rootcerts "github.com/hashicorp/go-rootcerts"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/giantswarm/gsctl/client/clienterror"
 )
@@ -409,14 +413,62 @@ func (w *Wrapper) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, erro
 	params := clusters.NewGetClustersParams()
 	setParams(p, w, params)
 
-	authWriter, err := getAuthorization(w)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
+	var (
+		response = new(clusters.GetClustersOK)
+		err      error
+	)
 
-	response, err := w.gsclient.Clusters.GetClusters(params, authWriter)
-	if err != nil {
-		return nil, clienterror.New(err)
+	if config.IsKubectlPlugin {
+		config, err := clientcmd.BuildConfigFromFlags("", config.KubeConfigPaths[0])
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		// create the clientset
+		clientset, err := versioned.NewForConfig(config)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		var payload []*models.V4ClusterListItem
+
+		clustersV4, err := clientset.CoreV1alpha1().AWSClusterConfigs("default").List(metav1.ListOptions{})
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		for _, cluster := range clustersV4.Items {
+			formattedCluster := &models.V4ClusterListItem{
+				ID:             cluster.Spec.Guest.ID,
+				CreateDate:     cluster.GetCreationTimestamp().UTC().Format(time.RFC3339),
+				Name:           cluster.Spec.Guest.Name,
+				Owner:          cluster.Spec.Guest.Owner,
+				ReleaseVersion: cluster.Spec.Guest.ReleaseVersion,
+			}
+			formattedCluster.Path = fmt.Sprintf("/v4/clusters/%s/", formattedCluster.ID)
+			if cluster.DeletionTimestamp != nil {
+				deleteDate := strfmt.DateTime(cluster.DeletionTimestamp.Time.UTC())
+				formattedCluster.DeleteDate = &deleteDate
+			}
+
+			payload = append(payload, formattedCluster)
+		}
+
+		response.Payload = payload
+
+	} else {
+		var authWriter runtime.ClientAuthInfoWriter
+		{
+			authWriter, err = getAuthorization(w)
+			if err != nil {
+				return nil, microerror.Mask(err)
+			}
+		}
+
+		response, err = w.gsclient.Clusters.GetClusters(params, authWriter)
+		if err != nil {
+			return nil, clienterror.New(err)
+		}
 	}
 
 	return response, nil
@@ -747,7 +799,7 @@ func (w *Wrapper) CreateApp(clusterID string, appName string, addAppRequest *mod
 	return response, nil
 }
 
-//GetApp fetches details on a cluster using the gsclientgen client.
+// GetApp fetches details on a cluster using the gsclientgen client.
 func (w *Wrapper) GetApp(clusterID string, appName string, p *AuxiliaryParams) (*models.V4GetClusterAppsResponseItems, error) {
 
 	params := apps.NewGetClusterAppsParams().WithClusterID(clusterID)
@@ -792,7 +844,7 @@ func (w *Wrapper) GetAppStatus(clusterID string, appName string, p *AuxiliaryPar
 		return "", clienterror.New(err)
 	}
 
-	//type V4GetClusterAppsResponse []*V4GetClusterAppsResponseItems
+	// type V4GetClusterAppsResponse []*V4GetClusterAppsResponseItems
 	apps := response.Payload
 
 	for _, app := range apps {
