@@ -488,6 +488,9 @@ func addCluster(args Arguments) (*creationResult, error) {
 	}
 
 	nodePoolsEnabled, err = capabilityService.HasCapability(wantedRelease, capabilities.NodePools)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
 
 	// Fail for edge cases:
 	// - User uses v5 definition, but the installation doesn't support node pools.
