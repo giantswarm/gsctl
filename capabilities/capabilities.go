@@ -30,5 +30,11 @@ var (
 	// Details get completed with API data, if the feature is available.
 	NodePools = CapabilityDefinition{
 		Name: "NodePools",
+		RequiredReleasePerProvider: []ReleaseProviderPair{
+			ReleaseProviderPair{
+				Provider:       "aws",
+				ReleaseVersion: semver.MustParse("10.0.0"),
+			},
+		},
 	}
 )
