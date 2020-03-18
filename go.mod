@@ -48,3 +48,5 @@ require (
 	k8s.io/client-go v0.17.4
 	k8s.io/kube-openapi v0.0.0-20200204173128-addea2498afe // indirect
 )
+
+replace github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.3.1
