@@ -13,6 +13,7 @@ type Capiclient struct {
 	Clusters  *clusters.Client
 }
 
+// New creates a new Capiclient client
 func New(kubeconfigPath string, formats strfmt.Registry) *Capiclient {
 	// ensure nullable parameters have default
 	if formats == nil {
