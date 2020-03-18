@@ -19,6 +19,10 @@ func New(kubeconfigPath string, formats strfmt.Registry) *Capiclient {
 		formats = strfmt.Default
 	}
 
+	if kubeconfigPath == "" {
+		return nil
+	}
+
 	cli := new(Capiclient)
 	cli.Clusters = clusters.New(formats)
 
