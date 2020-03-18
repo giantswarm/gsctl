@@ -11,6 +11,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	clusterMaxAge = 1 // days
+)
+
 type Client struct {
 	formats strfmt.Registry
 }
@@ -42,7 +46,7 @@ func (c *Client) GetClusters(clientset *versioned.Clientset) ([]*models.V4Cluste
 
 		tClusters              = len(clustersV4.Items) + len(clustersV5.Items)
 		payload                = make([]*models.V4ClusterListItem, 0, tClusters)
-		minAllowedCreationDate = time.Now().UTC().AddDate(0, 0, -1)
+		minAllowedCreationDate = time.Now().UTC().AddDate(0, 0, -clusterMaxAge)
 	)
 
 	// V4 Clusters
