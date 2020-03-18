@@ -83,6 +83,7 @@ func (c *Client) GetClusters(clientset *versioned.Clientset) ([]*models.V4Cluste
 			ReleaseVersion: cluster.Labels["release.giantswarm.io/version"],
 		}
 		formattedCluster.Path = fmt.Sprintf("/v5/clusters/%s/", formattedCluster.ID)
+		// TODO: Fix deletion date for v5 clusters
 
 		payload = append(payload, formattedCluster)
 	}
