@@ -6,7 +6,6 @@ require (
 	github.com/Jeffail/gabs v1.4.0
 	github.com/Masterminds/semver v1.5.0
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
 	github.com/fatih/color v1.9.0
 	github.com/giantswarm/apiextensions v0.0.0-20191213075442-71155aa0f5b7
@@ -18,6 +17,7 @@ require (
 	github.com/giantswarm/microerror v0.0.0-20191011121515-e0ebc4ecf5a5
 	github.com/giantswarm/micrologger v0.0.0-20190118112544-0926d9b7c541
 	github.com/go-kit/kit v0.9.0 // indirect
+	github.com/go-logfmt/logfmt v0.4.0 // indirect
 	github.com/go-openapi/errors v0.19.3-0.20190617201723-9b273e805998 // indirect
 	github.com/go-openapi/runtime v0.19.4
 	github.com/go-openapi/strfmt v0.19.5
@@ -38,7 +38,6 @@ require (
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v0.0.6-0.20190724161051-1c9c46d5c1cc
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.4.0 // indirect
 	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4 // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
