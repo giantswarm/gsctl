@@ -129,7 +129,7 @@ func New(conf *Configuration) (*Wrapper, error) {
 
 	var kubeconfigPath string
 	{
-		if len(config.KubeConfigPaths) > 1 {
+		if len(config.KubeConfigPaths) > 0 {
 			kubeconfigPath = config.KubeConfigPaths[0]
 		}
 	}
