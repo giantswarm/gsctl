@@ -127,10 +127,17 @@ func New(conf *Configuration) (*Wrapper, error) {
 		Timeout:   conf.Timeout,
 	}
 
+	var kubeconfigPath string
+	{
+		if len(config.KubeConfigPaths) > 1 {
+			kubeconfigPath = config.KubeConfigPaths[0]
+		}
+	}
+
 	return &Wrapper{
 		conf:        conf,
 		gsclient:    gsclient.New(transport, strfmt.Default),
-		capiclient:  capiclient.New(config.KubeConfigPaths[0], strfmt.Default),
+		capiclient:  capiclient.New(kubeconfigPath, strfmt.Default),
 		requestID:   randomRequestID(),
 		commandLine: getCommandLine(),
 		rawClient:   rawClient,

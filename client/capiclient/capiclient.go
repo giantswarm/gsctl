@@ -22,13 +22,14 @@ func New(kubeconfigPath string, formats strfmt.Registry) *Capiclient {
 	cli := new(Capiclient)
 	cli.Clusters = clusters.New(formats)
 
-	// Do nothing with the error, because the clientset will be null
-	cli.Clientset, _ = buildClientset(kubeconfigPath)
+	// Do nothing with the error, because the clientset will be nil
+	// if there's an error
+	cli.Clientset, _ = newClientset(kubeconfigPath)
 
 	return cli
 }
 
-func buildClientset(kubeconfigPath string) (*versioned.Clientset, error) {
+func newClientset(kubeconfigPath string) (*versioned.Clientset, error) {
 	clientConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
 		return nil, microerror.Mask(err)
