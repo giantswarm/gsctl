@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -13,7 +12,6 @@ import (
 	"time"
 
 	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
-	"github.com/giantswarm/apiextensions/pkg/clientset/versioned"
 	"github.com/giantswarm/gscliauth/config"
 	gsclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/gsclientgen/client/apps"
@@ -25,15 +23,13 @@ import (
 	"github.com/giantswarm/gsclientgen/client/organizations"
 	"github.com/giantswarm/gsclientgen/client/releases"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsctl/client/capiclient"
+	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/microerror"
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	rootcerts "github.com/hashicorp/go-rootcerts"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/giantswarm/gsctl/client/clienterror"
 )
 
 var (
@@ -75,6 +71,9 @@ type Wrapper struct {
 
 	// gsclient is a pointer to the API client library's client.
 	gsclient *gsclient.Gsclientgen
+
+	// capiclient points to the Cluster API client
+	capiclient *capiclient.Capiclient
 
 	// requestID is the default request ID to use, can be overridden per request.
 	requestID string
@@ -131,6 +130,7 @@ func New(conf *Configuration) (*Wrapper, error) {
 	return &Wrapper{
 		conf:        conf,
 		gsclient:    gsclient.New(transport, strfmt.Default),
+		capiclient:  capiclient.New(config.KubeConfigPaths[0], strfmt.Default),
 		requestID:   randomRequestID(),
 		commandLine: getCommandLine(),
 		rawClient:   rawClient,
@@ -408,7 +408,7 @@ func (w *Wrapper) DeleteCluster(clusterID string, p *AuxiliaryParams) (*clusters
 	return response, nil
 }
 
-// GetClusters fetches a list of clusters using the gsclientgen client.
+// GetClusters fetches a list of clusters using the capiclient/gsclientgen client.
 func (w *Wrapper) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, error) {
 	params := clusters.NewGetClustersParams()
 	setParams(p, w, params)
@@ -419,43 +419,7 @@ func (w *Wrapper) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, erro
 	)
 
 	if config.IsKubectlPlugin {
-		config, err := clientcmd.BuildConfigFromFlags("", config.KubeConfigPaths[0])
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-
-		// create the clientset
-		clientset, err := versioned.NewForConfig(config)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-
-		var payload []*models.V4ClusterListItem
-
-		clustersV4, err := clientset.CoreV1alpha1().AWSClusterConfigs("default").List(metav1.ListOptions{})
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-
-		for _, cluster := range clustersV4.Items {
-			formattedCluster := &models.V4ClusterListItem{
-				ID:             cluster.Spec.Guest.ID,
-				CreateDate:     cluster.GetCreationTimestamp().UTC().Format(time.RFC3339),
-				Name:           cluster.Spec.Guest.Name,
-				Owner:          cluster.Spec.Guest.Owner,
-				ReleaseVersion: cluster.Spec.Guest.ReleaseVersion,
-			}
-			formattedCluster.Path = fmt.Sprintf("/v4/clusters/%s/", formattedCluster.ID)
-			if cluster.DeletionTimestamp != nil {
-				deleteDate := strfmt.DateTime(cluster.DeletionTimestamp.Time.UTC())
-				formattedCluster.DeleteDate = &deleteDate
-			}
-
-			payload = append(payload, formattedCluster)
-		}
-
-		response.Payload = payload
-
+		response.Payload, err = w.capiclient.Clusters.GetClusters(w.capiclient.Clientset)
 	} else {
 		var authWriter runtime.ClientAuthInfoWriter
 		{
@@ -466,9 +430,10 @@ func (w *Wrapper) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, erro
 		}
 
 		response, err = w.gsclient.Clusters.GetClusters(params, authWriter)
-		if err != nil {
-			return nil, clienterror.New(err)
-		}
+	}
+
+	if err != nil {
+		return nil, clienterror.New(err)
 	}
 
 	return response, nil
