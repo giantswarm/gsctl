@@ -9,7 +9,7 @@ import (
 )
 
 type Capiclient struct {
-	Clientset *versioned.Clientset
+	G8sClient *versioned.Clientset
 	Clusters  *clusters.Client
 }
 
@@ -29,7 +29,7 @@ func New(kubeconfigPath string, formats strfmt.Registry) *Capiclient {
 
 	// Do nothing with the error, because the clientset will be nil
 	// if there's an error
-	cli.Clientset, _ = newClientset(kubeconfigPath)
+	cli.G8sClient, _ = newClientset(kubeconfigPath)
 
 	return cli
 }

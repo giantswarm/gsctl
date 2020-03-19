@@ -426,7 +426,7 @@ func (w *Wrapper) GetClusters(p *AuxiliaryParams) (*clusters.GetClustersOK, erro
 	)
 
 	if config.IsKubectlPlugin {
-		response.Payload, err = w.capiclient.Clusters.GetClusters(w.capiclient.Clientset)
+		response.Payload, err = w.capiclient.Clusters.GetClusters(w.capiclient.G8sClient)
 	} else {
 		var authWriter runtime.ClientAuthInfoWriter
 		{
