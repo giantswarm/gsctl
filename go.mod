@@ -6,6 +6,7 @@ require (
 	github.com/Jeffail/gabs v1.4.0
 	github.com/Masterminds/semver v1.5.0
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
+	github.com/coreos/go-oidc v2.2.1+incompatible
 	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
 	github.com/fatih/color v1.9.0
 	github.com/giantswarm/apiextensions v0.0.0-20191213075442-71155aa0f5b7
@@ -39,6 +40,7 @@ require (
 	github.com/spf13/cobra v0.0.6-0.20190724161051-1c9c46d5c1cc
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4 // indirect
+	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
 	google.golang.org/appengine v1.6.5 // indirect

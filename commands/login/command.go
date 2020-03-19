@@ -176,11 +176,18 @@ func verifyLoginPreconditions(positionalArgs []string) error {
 func login(loginArgs Arguments) (loginResult, error) {
 	var result loginResult
 	var err error
-	if cmdSSO {
+
+	if config.IsKubectlPlugin {
+		result, err = loginOIDC(loginArgs)
+	} else if cmdSSO {
 		result, err = loginSSO(loginArgs)
 	} else {
 		result, err = loginGiantSwarm(loginArgs)
 	}
+
+	fmt.Println("login response")
+	fmt.Println(result)
+	fmt.Println(err)
 
 	return result, err
 }
