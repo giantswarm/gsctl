@@ -185,10 +185,6 @@ func login(loginArgs Arguments) (loginResult, error) {
 		result, err = loginGiantSwarm(loginArgs)
 	}
 
-	fmt.Println("login response")
-	fmt.Println(result)
-	fmt.Println(err)
-
 	return result, err
 }
 
