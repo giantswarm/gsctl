@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/fatih/color"
@@ -134,7 +133,7 @@ func initFlags() {
 	Command.Flags().Int64VarP(&flags.WorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool.")
 	Command.Flags().BoolVarP(&flags.AWSUseAlikeInstanceTypes, "aws-use-alike-instance-types", "", false, "Use similar instance type in your node pool. This list is maintained by Giant Swarm at the moment. Eg if you select m5.xlarge then the node pool can fall back on m4.xlarge too.")
 	Command.Flags().Int64VarP(&flags.AWSOnDemandBaseCapacity, "aws-on-demand-base-capacity", "", 0, "Number of on-demand instances that this node pool needs to have until spot instances are used. Default is 0")
-	Command.Flags().StringVarP(&flags.AWSOnDemandPercentageAboveBaseCapacity, "aws-on-demand-percentage-above-base-capacity", "", "100", "Percentage of on-demand instances used once the on-demand base capacity is fullfilled. A number of 40 would mean that 60 percent will be spot instances. Default is 100.")
+	Command.Flags().Int64VarP(&flags.AWSOnDemandPercentageAboveBaseCapacity, "aws-on-demand-percentage-above-base-capacity", "", 100, "Percentage of on-demand instances used once the on-demand base capacity is fullfilled. A number of 40 would mean that 60 percent will be spot instances. Default is 100.")
 }
 
 // Arguments defines the arguments this command can take into consideration.
@@ -179,12 +178,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		}
 	}
 
-	// the percentage is a string on purpose. otherwise adding "0" doesn't work.
-	// "0" would always be defaulted with "100"
-	awsOnDemandPercentageAboveBaseCapacity, err := strconv.Atoi(flags.AWSOnDemandPercentageAboveBaseCapacity)
-	if err != nil {
-		return Arguments{}, microerror.Mask(err)
-	}
+	fmt.Println(flags.AWSOnDemandPercentageAboveBaseCapacity)
 
 	return Arguments{
 		APIEndpoint:                         endpoint,
@@ -195,7 +189,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		InstanceType:                        flags.WorkerAwsEc2InstanceType,
 		UseAlikeInstanceTypes:               flags.AWSUseAlikeInstanceTypes,
 		OnDemandBaseCapacity:                flags.AWSOnDemandBaseCapacity,
-		OnDemandPercentageAboveBaseCapacity: int64(awsOnDemandPercentageAboveBaseCapacity),
+		OnDemandPercentageAboveBaseCapacity: flags.AWSOnDemandPercentageAboveBaseCapacity,
 		Name:                                flags.Name,
 		ScalingMax:                          flags.WorkersMax,
 		ScalingMin:                          flags.WorkersMin,
@@ -315,8 +309,8 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 		Aws: &models.V5AddNodePoolRequestNodeSpecAws{
 			UseAlikeInstanceTypes: args.UseAlikeInstanceTypes,
 			InstanceDistribution: &models.V5AddNodePoolRequestNodeSpecAwsInstanceDistribution{
-				OnDemandBaseCapacity:                args.OnDemandBaseCapacity,
-				OnDemandPercentageAboveBaseCapacity: args.OnDemandPercentageAboveBaseCapacity,
+				OnDemandBaseCapacity:                &args.OnDemandBaseCapacity,
+				OnDemandPercentageAboveBaseCapacity: &args.OnDemandPercentageAboveBaseCapacity,
 			},
 		},
 	}

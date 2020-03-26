@@ -16,7 +16,7 @@ var (
 
 	// AWSOnDemandPercentageAboveBaseCapacity represents the percentage of on-demand instances
 	// to use in an node pool (string is on purpose to differentiate "0" and "")
-	AWSOnDemandPercentageAboveBaseCapacity string
+	AWSOnDemandPercentageAboveBaseCapacity int64
 
 	// ConfigDirPath represents the configuration path to use temporarily passed as a flag.
 	ConfigDirPath string
