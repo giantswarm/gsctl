@@ -101,6 +101,10 @@ github.com/giantswarm/gscliauth v0.1.1-0.20200207091127-822ebfd95297 h1:O0UN70TP
 github.com/giantswarm/gscliauth v0.1.1-0.20200207091127-822ebfd95297/go.mod h1:qYjj5CylbM318aJhK1qc912yMTp9fUk0na2IaIQU7xc=
 github.com/giantswarm/gsclientgen v2.0.3+incompatible h1:9s1LCJ1wHEqPkdeYxY3otmsXYIK0+OnL7AtQZxDMPA4=
 github.com/giantswarm/gsclientgen v2.0.3+incompatible/go.mod h1:w3fPQmyNcZPB0I/eULLADOfkk0VTSn8Pijvj7JacnNQ=
+github.com/giantswarm/gsclientgen v2.0.4-0.20200325154052-d6aaf1bed1d4+incompatible h1:ETpk/yV8f+L04gea1lSyjHVGT365d7ySaX29Qn6Rc2k=
+github.com/giantswarm/gsclientgen v2.0.4-0.20200325154052-d6aaf1bed1d4+incompatible/go.mod h1:w3fPQmyNcZPB0I/eULLADOfkk0VTSn8Pijvj7JacnNQ=
+github.com/giantswarm/gsclientgen v2.0.4-0.20200325211540-6c98781fca72+incompatible h1:9c+aaAKcAAPGCdZjaA7tKI5YYIzQFieKJz1SjeRo51w=
+github.com/giantswarm/gsclientgen v2.0.4-0.20200325211540-6c98781fca72+incompatible/go.mod h1:w3fPQmyNcZPB0I/eULLADOfkk0VTSn8Pijvj7JacnNQ=
 github.com/giantswarm/k8sclient v0.0.0-20191213144452-f75fead2ae06 h1:ARogDNpItRylPLIYWQqHLne7Cv1PnHahcGxx8/Zm+l4=
 github.com/giantswarm/k8sclient v0.0.0-20191213144452-f75fead2ae06/go.mod h1:XH0Ea+GvJOStcuamQyFSJXIQasGcPpHnWnHQVyG7AJc=
 github.com/giantswarm/kubeconfig v0.0.0-20191209121754-c5784ae65a49 h1:7A4URevsdTMdWlAnbYdryrfLdqBuHvyU2ans0oDEqck=

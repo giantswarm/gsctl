@@ -728,9 +728,9 @@ func (w *Wrapper) GetClusterStatus(clusterID string, p *AuxiliaryParams) (*Clust
 }
 
 // CreateApp creates an App in a cluster.
-func (w *Wrapper) CreateApp(clusterID string, appName string, addAppRequest *models.V4CreateAppRequest, p *AuxiliaryParams) (*apps.CreateClusterAppOK, error) {
+func (w *Wrapper) CreateApp(clusterID string, appName string, addAppRequest *models.V4CreateAppRequest, p *AuxiliaryParams) (*apps.CreateClusterAppV4OK, error) {
 
-	params := apps.NewCreateClusterAppParams().WithClusterID(clusterID).WithAppName(appName).WithBody(addAppRequest)
+	params := apps.NewCreateClusterAppV4Params().WithClusterID(clusterID).WithAppName(appName).WithBody(addAppRequest)
 
 	setParams(p, w, params)
 
@@ -739,7 +739,7 @@ func (w *Wrapper) CreateApp(clusterID string, appName string, addAppRequest *mod
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Apps.CreateClusterApp(params, authWriter)
+	response, err := w.gsclient.Apps.CreateClusterAppV4(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -750,7 +750,7 @@ func (w *Wrapper) CreateApp(clusterID string, appName string, addAppRequest *mod
 //GetApp fetches details on a cluster using the gsclientgen client.
 func (w *Wrapper) GetApp(clusterID string, appName string, p *AuxiliaryParams) (*models.V4GetClusterAppsResponseItems, error) {
 
-	params := apps.NewGetClusterAppsParams().WithClusterID(clusterID)
+	params := apps.NewGetClusterAppsV4Params().WithClusterID(clusterID)
 
 	setParams(p, w, params)
 
@@ -759,7 +759,7 @@ func (w *Wrapper) GetApp(clusterID string, appName string, p *AuxiliaryParams) (
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Apps.GetClusterApps(params, authWriter)
+	response, err := w.gsclient.Apps.GetClusterAppsV4(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -778,7 +778,7 @@ func (w *Wrapper) GetApp(clusterID string, appName string, p *AuxiliaryParams) (
 // GetAppStatus fetches details on a cluster using the gsclientgen client.
 func (w *Wrapper) GetAppStatus(clusterID string, appName string, p *AuxiliaryParams) (string, error) {
 
-	params := apps.NewGetClusterAppsParams().WithClusterID(clusterID)
+	params := apps.NewGetClusterAppsV4Params().WithClusterID(clusterID)
 
 	setParams(p, w, params)
 
@@ -787,7 +787,7 @@ func (w *Wrapper) GetAppStatus(clusterID string, appName string, p *AuxiliaryPar
 		return "", microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Apps.GetClusterApps(params, authWriter)
+	response, err := w.gsclient.Apps.GetClusterAppsV4(params, authWriter)
 	if err != nil {
 		return "", clienterror.New(err)
 	}
@@ -805,8 +805,8 @@ func (w *Wrapper) GetAppStatus(clusterID string, appName string, p *AuxiliaryPar
 }
 
 // DeleteApp deletes an app using the gsclientgen client.
-func (w *Wrapper) DeleteApp(clusterID string, appName string, p *AuxiliaryParams) (*apps.DeleteClusterAppOK, error) {
-	params := apps.NewDeleteClusterAppParams().WithClusterID(clusterID).WithAppName(appName)
+func (w *Wrapper) DeleteApp(clusterID string, appName string, p *AuxiliaryParams) (*apps.DeleteClusterAppV4OK, error) {
+	params := apps.NewDeleteClusterAppV4Params().WithClusterID(clusterID).WithAppName(appName)
 	setParams(p, w, params)
 
 	authWriter, err := getAuthorization(w)
@@ -814,7 +814,7 @@ func (w *Wrapper) DeleteApp(clusterID string, appName string, p *AuxiliaryParams
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Apps.DeleteClusterApp(params, authWriter)
+	response, err := w.gsclient.Apps.DeleteClusterAppV4(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
@@ -823,9 +823,9 @@ func (w *Wrapper) DeleteApp(clusterID string, appName string, p *AuxiliaryParams
 }
 
 // ModifyApp modifies an app using the gsclientgen client.
-func (w *Wrapper) ModifyApp(clusterID string, appName string, body *models.V4ModifyAppRequest, p *AuxiliaryParams) (*apps.ModifyClusterAppOK, error) {
+func (w *Wrapper) ModifyApp(clusterID string, appName string, body *models.V4ModifyAppRequest, p *AuxiliaryParams) (*apps.ModifyClusterAppV4OK, error) {
 
-	params := apps.NewModifyClusterAppParams().WithClusterID(clusterID).WithAppName(appName).WithBody(body)
+	params := apps.NewModifyClusterAppV4Params().WithClusterID(clusterID).WithAppName(appName).WithBody(body)
 	setParams(p, w, params)
 
 	authWriter, err := getAuthorization(w)
@@ -833,7 +833,7 @@ func (w *Wrapper) ModifyApp(clusterID string, appName string, body *models.V4Mod
 		return nil, microerror.Mask(err)
 	}
 
-	response, err := w.gsclient.Apps.ModifyClusterApp(params, authWriter)
+	response, err := w.gsclient.Apps.ModifyClusterAppV4(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}
