@@ -82,6 +82,11 @@ Examples:
   size limit like this:
 
     gsctl create nodepool f01r4 --nodes-min 3 --nodes-max 10
+
+  To use 100% spot instances in a node pool you can create your
+  node pool like this:
+
+    gsctl create nodepool f01r4 --nodes-min 3 --nodes-max 10 --enable-spot-instances
 `,
 
 		// PreRun checks a few general things, like authentication.
@@ -115,6 +120,7 @@ func initFlags() {
 	Command.Flags().StringVarP(&flags.WorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers, e. g. 'm5.2xlarge'")
 	Command.Flags().Int64VarP(&flags.WorkersMin, "nodes-min", "", 0, "Minimum number of worker nodes for the node pool.")
 	Command.Flags().Int64VarP(&flags.WorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool.")
+	Command.Flags().BoolVarP(&flags.EnableSpotInstances, "enable-spot-instances", "", false, "Use 100% spot instances for this node pool.")
 }
 
 // Arguments defines the arguments this command can take into consideration.
@@ -124,6 +130,7 @@ type Arguments struct {
 	AvailabilityZonesList []string
 	AvailabilityZonesNum  int
 	ClusterNameOrID       string
+	EnableSpotInstances   bool
 	InstanceType          string
 	Name                  string
 	ScalingMax            int64
@@ -162,6 +169,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		AvailabilityZonesList: zones,
 		AvailabilityZonesNum:  cmdAvailabilityZonesNum,
 		ClusterNameOrID:       positionalArgs[0],
+		EnableSpotInstances:   flags.EnableSpotInstances,
 		InstanceType:          flags.WorkerAwsEc2InstanceType,
 		Name:                  flags.Name,
 		ScalingMax:            flags.WorkersMax,
@@ -275,7 +283,8 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 	if args.InstanceType != "" {
 		requestBody.NodeSpec = &models.V5AddNodePoolRequestNodeSpec{
 			Aws: &models.V5AddNodePoolRequestNodeSpecAws{
-				InstanceType: args.InstanceType,
+				InstanceType:        args.InstanceType,
+				SpotInstanceEnabled: args.EnableSpotInstances,
 			},
 		}
 	}

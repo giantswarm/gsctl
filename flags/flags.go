@@ -32,6 +32,9 @@ var (
 	// Description represents the description passed as a flag.
 	Description string
 
+	// Use spot instances for a node pool
+	EnableSpotInstances bool
+
 	// Force represents the value of the force flag, passed as a flag.
 	// If true, all warnings should be suppressed.
 	Force bool
