@@ -280,13 +280,14 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 	requestBody := &models.V5AddNodePoolRequest{
 		Name: args.Name,
 	}
+
+	requestBody.NodeSpec = &models.V5AddNodePoolRequestNodeSpec{
+		Aws: &models.V5AddNodePoolRequestNodeSpecAws{
+			SpotInstanceEnabled: args.EnableSpotInstances,
+		},
+	}
 	if args.InstanceType != "" {
-		requestBody.NodeSpec = &models.V5AddNodePoolRequestNodeSpec{
-			Aws: &models.V5AddNodePoolRequestNodeSpecAws{
-				InstanceType:        args.InstanceType,
-				SpotInstanceEnabled: args.EnableSpotInstances,
-			},
-		}
+		requestBody.NodeSpec.Aws.InstanceType = args.InstanceType
 	}
 	if args.AvailabilityZonesList != nil && len(args.AvailabilityZonesList) > 0 {
 		requestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
