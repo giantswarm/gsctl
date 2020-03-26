@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/fatih/color"
@@ -83,10 +84,21 @@ Examples:
 
     gsctl create nodepool f01r4 --nodes-min 3 --nodes-max 10
 
-  To use 100% spot instances in a node pool you can create your
-  node pool like this:
+  To use 50% spot instances in a node pool and making sure to always have
+  three on-demand instances you can create your node pool like this:
 
-    gsctl create nodepool f01r4 --nodes-min 3 --nodes-max 10 --enable-spot-instances
+    gsctl create nodepool f01r4 --nodes-min 3 --nodes-max 10 \
+	  --aws-on-demand-base-capacity 3 \
+	  --aws-on-demand-percentage-above-base-capacity 50
+
+  To use similar instances in your node pool to the one that you defined
+  you can create your node pool like this (the list is maintained by
+  Giant Swarm for now eg. if you select m5.xlarge the node pool can fall
+  back on m4.xlarge too):
+
+    gsctl create nodepool f01r4 --aws-instance-type m4.xlarge \
+	  --aws-use-alike-instance-types
+
 `,
 
 		// PreRun checks a few general things, like authentication.
@@ -120,24 +132,28 @@ func initFlags() {
 	Command.Flags().StringVarP(&flags.WorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers, e. g. 'm5.2xlarge'")
 	Command.Flags().Int64VarP(&flags.WorkersMin, "nodes-min", "", 0, "Minimum number of worker nodes for the node pool.")
 	Command.Flags().Int64VarP(&flags.WorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool.")
-	Command.Flags().BoolVarP(&flags.EnableSpotInstances, "enable-spot-instances", "", false, "Use 100% spot instances for this node pool.")
+	Command.Flags().BoolVarP(&flags.AWSUseAlikeInstanceTypes, "aws-use-alike-instance-types", "", false, "Use similar instance type in your node pool. This list is maintained by Giant Swarm at the moment. Eg if you select m5.xlarge then the node pool can fall back on m4.xlarge too.")
+	Command.Flags().Int64VarP(&flags.AWSOnDemandBaseCapacity, "aws-on-demand-base-capacity", "", 0, "Number of on-demand instances that this node pool needs to have until spot instances are used. Default is 0")
+	Command.Flags().StringVarP(&flags.AWSOnDemandPercentageAboveBaseCapacity, "aws-on-demand-percentage-above-base-capacity", "", "100", "Percentage of on-demand instances used once the on-demand base capacity is fullfilled. A number of 40 would mean that 60 percent will be spot instances. Default is 100.")
 }
 
 // Arguments defines the arguments this command can take into consideration.
 type Arguments struct {
-	APIEndpoint           string
-	AuthToken             string
-	AvailabilityZonesList []string
-	AvailabilityZonesNum  int
-	ClusterNameOrID       string
-	EnableSpotInstances   bool
-	InstanceType          string
-	Name                  string
-	ScalingMax            int64
-	ScalingMin            int64
-	Scheme                string
-	UserProvidedToken     string
-	Verbose               bool
+	APIEndpoint                         string
+	AuthToken                           string
+	AvailabilityZonesList               []string
+	AvailabilityZonesNum                int
+	ClusterNameOrID                     string
+	InstanceType                        string
+	UseAlikeInstanceTypes               bool
+	OnDemandBaseCapacity                int64
+	OnDemandPercentageAboveBaseCapacity int64
+	Name                                string
+	ScalingMax                          int64
+	ScalingMin                          int64
+	Scheme                              string
+	UserProvidedToken                   string
+	Verbose                             bool
 }
 
 type result struct {
@@ -163,20 +179,29 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		}
 	}
 
+	// the percentage is a string on purpose. otherwise adding "0" doesn't work.
+	// "0" would always be defaulted with "100"
+	awsOnDemandPercentageAboveBaseCapacity, err := strconv.Atoi(flags.AWSOnDemandPercentageAboveBaseCapacity)
+	if err != nil {
+		return Arguments{}, microerror.Mask(err)
+	}
+
 	return Arguments{
-		APIEndpoint:           endpoint,
-		AuthToken:             token,
-		AvailabilityZonesList: zones,
-		AvailabilityZonesNum:  cmdAvailabilityZonesNum,
-		ClusterNameOrID:       positionalArgs[0],
-		EnableSpotInstances:   flags.EnableSpotInstances,
-		InstanceType:          flags.WorkerAwsEc2InstanceType,
-		Name:                  flags.Name,
-		ScalingMax:            flags.WorkersMax,
-		ScalingMin:            flags.WorkersMin,
-		Scheme:                scheme,
-		UserProvidedToken:     flags.Token,
-		Verbose:               flags.Verbose,
+		APIEndpoint:                         endpoint,
+		AuthToken:                           token,
+		AvailabilityZonesList:               zones,
+		AvailabilityZonesNum:                cmdAvailabilityZonesNum,
+		ClusterNameOrID:                     positionalArgs[0],
+		InstanceType:                        flags.WorkerAwsEc2InstanceType,
+		UseAlikeInstanceTypes:               flags.AWSUseAlikeInstanceTypes,
+		OnDemandBaseCapacity:                flags.AWSOnDemandBaseCapacity,
+		OnDemandPercentageAboveBaseCapacity: int64(awsOnDemandPercentageAboveBaseCapacity),
+		Name:                                flags.Name,
+		ScalingMax:                          flags.WorkersMax,
+		ScalingMin:                          flags.WorkersMin,
+		Scheme:                              scheme,
+		UserProvidedToken:                   flags.Token,
+		Verbose:                             flags.Verbose,
 	}, nil
 }
 
@@ -235,6 +260,11 @@ func verifyPreconditions(args Arguments) error {
 		}
 	}
 
+	// OnDemandPercentageAboveBaseCapacity check percentage
+	if args.OnDemandPercentageAboveBaseCapacity < 0 || args.OnDemandPercentageAboveBaseCapacity > 100 {
+		return microerror.Mask(errors.NotPercentage)
+	}
+
 	return nil
 }
 
@@ -283,7 +313,11 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 
 	requestBody.NodeSpec = &models.V5AddNodePoolRequestNodeSpec{
 		Aws: &models.V5AddNodePoolRequestNodeSpecAws{
-			SpotInstanceEnabled: args.EnableSpotInstances,
+			UseAlikeInstanceTypes: args.UseAlikeInstanceTypes,
+			InstanceDistribution: &models.V5AddNodePoolRequestNodeSpecAwsInstanceDistribution{
+				OnDemandBaseCapacity:                args.OnDemandBaseCapacity,
+				OnDemandPercentageAboveBaseCapacity: args.OnDemandPercentageAboveBaseCapacity,
+			},
 		},
 	}
 	if args.InstanceType != "" {
