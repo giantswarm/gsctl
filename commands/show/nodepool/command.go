@@ -200,6 +200,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	table = append(table, color.YellowString("Name:")+"|"+data.nodePool.Name)
 	table = append(table, color.YellowString("Node instance type:")+"|"+formatInstanceType(data.nodePool.NodeSpec.Aws.InstanceType, data.instanceTypeDetails))
 	table = append(table, color.YellowString("Availability zones:")+"|"+formatting.AvailabilityZonesList(data.nodePool.AvailabilityZones))
+	table = append(table, color.YellowString("Spot Instances:")+fmt.Sprintf("|%t", data.nodePool.NodeSpec.Aws.SpotInstanceEnabled))
 	table = append(table, color.YellowString("Node scaling:")+"|"+formatNodeScaling(data.nodePool.Scaling))
 	table = append(table, color.YellowString("Nodes desired:")+fmt.Sprintf("|%d", data.nodePool.Status.Nodes))
 	table = append(table, color.YellowString("Nodes in state Ready:")+fmt.Sprintf("|%d", data.nodePool.Status.NodesReady))
