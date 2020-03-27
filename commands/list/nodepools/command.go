@@ -254,6 +254,9 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
 		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
 		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
 	}
 
 	fmt.Println(columnize.Format(table, colConfig))
