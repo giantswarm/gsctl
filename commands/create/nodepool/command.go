@@ -133,7 +133,7 @@ func initFlags() {
 	Command.Flags().Int64VarP(&flags.WorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool.")
 	Command.Flags().BoolVarP(&flags.AWSUseAlikeInstanceTypes, "aws-use-alike-instance-types", "", false, "Use similar instance type in your node pool. This list is maintained by Giant Swarm at the moment. Eg if you select m5.xlarge then the node pool can fall back on m4.xlarge too.")
 	Command.Flags().Int64VarP(&flags.AWSOnDemandBaseCapacity, "aws-on-demand-base-capacity", "", 0, "Number of on-demand instances that this node pool needs to have until spot instances are used. Default is 0")
-	Command.Flags().Int64VarP(&flags.AWSSpotInstancePercentageAboveBaseCapacity, "aws-spot-instance-percentage-above-base-capacity", "", 100, "Percentage of on-demand instances used once the on-demand base capacity is fullfilled. A number of 40 would mean that 60 percent will be spot instances. Default is 100.")
+	Command.Flags().Int64VarP(&flags.AWSSpotInstancePercentageAboveBaseCapacity, "aws-spot-instance-percentage-above-base-capacity", "", 0, "Percentage of spot instances used once the on-demand base capacity is fullfilled. A number of 40 would mean that 60% will be on-demand and 40% will be spot instances.")
 }
 
 // Arguments defines the arguments this command can take into consideration.
