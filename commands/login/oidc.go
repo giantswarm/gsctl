@@ -4,23 +4,51 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os/user"
+	"path/filepath"
 	"strings"
 
 	oidc "github.com/coreos/go-oidc"
 	"github.com/giantswarm/microerror"
 	"github.com/skratchdot/open-golang/open"
+	"github.com/spf13/afero"
 	"golang.org/x/oauth2"
+	"gopkg.in/yaml.v2"
 )
+
+// TODO: Get rid of this
+const caCert = `-----BEGIN CERTIFICATE-----
+MIIDdjCCAl6gAwIBAgIUEm/lmd55cJt+wfbVAr5MmJmg+BswDQYJKoZIhvcNAQEL
+BQAwKzEpMCcGA1UEAxMgZ2luZ2VyLmV1LXdlc3QtMS5hd3MuZ2lnYW50aWMuaW8w
+HhcNMjAwMTE1MTM1MjQzWhcNMjkxMTIzMTM1MzEzWjArMSkwJwYDVQQDEyBnaW5n
+ZXIuZXUtd2VzdC0xLmF3cy5naWdhbnRpYy5pbzCCASIwDQYJKoZIhvcNAQEBBQAD
+ggEPADCCAQoCggEBALnpflHlKxJ/Hl7J8+5B8inf477sZvfEID4HQfoVC2VZPu4O
+P4eoYhQ11yqir5ehmGKgClNYFCEbtWbJwNnOoS8F7/AH+BsRtUNzXYsVj9VCpwvO
+hpDpetA4yhfv0sK292HhlIwdFrpeNmaO+sRTz/34aK7RbOfXnJ12VvL/61ppmizj
+7f+7MFdRcPdu+yhKThKlLUfnGciHSS2xOS+GJ9wUvtjleZAW6pmZX5sTCafncNJ5
+d8AphigZbn3OjNepVelhPnCtNR2kCD6NAxZi+SkGtoZg1EtxMgHhfjrokpolOqTR
+jZsnAV3HSGqLYMiDliJLqlzNa9kv2IWvMEwSvMcCAwEAAaOBkTCBjjAOBgNVHQ8B
+Af8EBAMCAQYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQU6DIUUBsUv5ae1TQS
+rSYQ+oHs0xcwHwYDVR0jBBgwFoAU6DIUUBsUv5ae1TQSrSYQ+oHs0xcwKwYDVR0R
+BCQwIoIgZ2luZ2VyLmV1LXdlc3QtMS5hd3MuZ2lnYW50aWMuaW8wDQYJKoZIhvcN
+AQELBQADggEBALT1T9v4+5kfDRuFzLoDYX/rZmILVvbItRMAcXV62bsgiK5ko9sh
+ro0eBhHmKvmGz70Y4M+dA0mCqlt1m16PYnz96LF4dBvF7/t4by4FzQRpObax9RPl
+RmC/xqB285RHOU0gvHM5xeI3KDLapJDh+Al9oH9pfZmLf2Hc/vGjgMdjA1iiNyhn
+tpUu65HZSntcmcLR9hlZ6aPMg60dXzoDhKsnTERNLygDq40G3OxQu7Hcejb5Tr/u
+mFhWZ+pFznSeD34Jek/irOQ8x8S8LqPZaUCqvGgedkE0APUsg82Elsc2RRf2fGUV
+eYyPtbJ0CrKvc2vKFPH+whGPvAkM1z5IXnM=
+-----END CERTIFICATE-----`
 
 const (
 	clientID         = "zQiFLUnrTFQwrybYzeY53hWWfhOKWRAU"
 	clientSecret     = "WmZq4t7w!z%C*F-JaNdRgUkXp2r5u8x/"
 	authCallbackURL  = "http://localhost:8085/oauth/callback"
 	authCallbackPath = "/oauth/callback"
+	apiServerPrefix  = "g8s"
+	authServerPrefix = "dex"
 )
 
 var (
@@ -28,10 +56,10 @@ var (
 )
 
 type Authenticator struct {
+	ctx          context.Context
 	provider     *oidc.Provider
 	clientConfig oauth2.Config
 	state        string
-	ctx          context.Context
 }
 
 type UserInfo struct {
@@ -39,42 +67,48 @@ type UserInfo struct {
 	IDToken      string
 	RefreshToken string
 	IssuerURL    string
-	ClusterCA    string
+	Username     string
 }
 
 type Installation struct {
 	*Authenticator
-	baseURL  string
-	provider string
-	alias    string
+	FileSystem afero.Fs
+	BaseURL    string
+	Provider   string
+	Alias      string
+	CaCert     string
 }
 
-func newInstallation(baseURL string) (*Installation, error) {
-	i := &Installation{baseURL: baseURL}
+func newInstallation(baseURL string, fs afero.Fs) (*Installation, error) {
+	i := &Installation{
+		BaseURL:    baseURL,
+		CaCert:     caCert,
+		FileSystem: fs,
+	}
 
 	switch {
 	case strings.Contains(baseURL, "aws"):
-		i.provider = "aws"
+		i.Provider = "aws"
 
 	case strings.Contains(baseURL, "azure"):
-		i.provider = "azure"
+		i.Provider = "azure"
 
 	default:
-		i.provider = "kvm"
+		i.Provider = "kvm"
 	}
 
 	urlParts := strings.Split(baseURL, ".")
 	if len(urlParts) == 0 {
 		return nil, microerror.Maskf(authorizationError, "The installation alias name could not be determined.")
 	}
-	i.alias = urlParts[0]
+	i.Alias = urlParts[0]
 
 	return i, nil
 }
 
 func (i *Installation) newAuthenticator(redirectURL string, authScopes []string) error {
 	ctx := context.Background()
-	issuer := fmt.Sprintf("https://dex.g8s.%s", i.baseURL)
+	issuer := getUrlFromParts("https://", []string{authServerPrefix, apiServerPrefix, i.BaseURL})
 	provider, err := oidc.NewProvider(ctx, issuer)
 	if err != nil {
 		return microerror.Maskf(err, "Could not access authentication issuer.")
@@ -95,6 +129,98 @@ func (i *Installation) newAuthenticator(redirectURL string, authScopes []string)
 	}
 
 	return nil
+}
+
+func (i *Installation) storeCredentials(u *UserInfo) error {
+	k := i.generateKubeConfig(u)
+	err := i.writeKubeConfig(k)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	return nil
+}
+
+func (i *Installation) writeKubeConfig(k *KubeConfigValue) error {
+	d, err := yaml.Marshal(k)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	fmt.Println(string(d))
+
+	return nil
+}
+
+func (i *Installation) readKubeConfig() (*KubeConfigValue, error) {
+	kubeConfigPath, err := getKubeConfigPath()
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	k, err := afero.ReadFile(i.FileSystem, kubeConfigPath)
+	if err != nil {
+		return nil, microerror.Maskf(authorizationError, "Error reading existing kubeconfig.")
+	}
+
+	var kubeConfig KubeConfigValue
+	err = yaml.Unmarshal(k, &kubeConfig)
+	if err != nil {
+		return nil, microerror.Maskf(authorizationError, "Error reading existing kubeconfig.")
+	}
+
+	return &kubeConfig, nil
+}
+
+func (i *Installation) generateKubeConfig(u *UserInfo) *KubeConfigValue {
+	existing, _ := i.readKubeConfig()
+	if existing == nil {
+		existing = &KubeConfigValue{}
+	}
+
+	kUsername := getUsername(i.Alias, u.Username)
+
+	// Set current context
+	existing.CurrentContext = kUsername
+
+	// TODO: Check if configuration already exists
+
+	// Add cluster to list
+	existing.Clusters = append(existing.Clusters, KubeconfigNamedCluster{
+		Name: i.Alias,
+		Cluster: KubeconfigCluster{
+			Server:                   getUrlFromParts("https://", []string{apiServerPrefix, i.BaseURL}),
+			CertificateAuthorityData: i.CaCert,
+		},
+	})
+
+	// Add context to list
+	existing.Contexts = append(existing.Contexts, KubeconfigNamedContext{
+		Name: kUsername,
+		Context: KubeconfigContext{
+			Cluster: i.Alias,
+			User:    kUsername,
+		},
+	})
+
+	// Add authentication info  to list
+	existing.Users = append(existing.Users, KubeconfigUser{
+		Name: kUsername,
+		User: KubeconfigUserKeyPair{
+			AuthProvider: KubeconfigAuthProvider{
+				Name: "oidc",
+				Config: map[string]string{
+					"client-id":      i.Authenticator.clientConfig.ClientID,
+					"client-secret":  i.Authenticator.clientConfig.ClientSecret,
+					"id-token":       u.IDToken,
+					"idp-issuer-url": u.IssuerURL,
+					"refresh-token":  u.RefreshToken,
+				},
+			},
+		},
+	})
+
+	return existing
 }
 
 func (a *Authenticator) getAuthURL() string {
@@ -138,6 +264,7 @@ func (a *Authenticator) handleCallback(_ http.ResponseWriter, r *http.Request) (
 		return nil, microerror.Maskf(authorizationError, "Could not construct the User Info.")
 	}
 	res.Email = userInfo.Email
+	res.Username = strings.Split(userInfo.Email, "@")[0]
 
 	return res, nil
 }
@@ -145,7 +272,7 @@ func (a *Authenticator) handleCallback(_ http.ResponseWriter, r *http.Request) (
 func loginOIDC(args Arguments) (loginResult, error) {
 	result := loginResult{}
 
-	i, err := newInstallation("ginger.eu-west-1.aws.gigantic.io")
+	i, err := newInstallation("ginger.eu-west-1.aws.gigantic.io", afero.NewOsFs())
 	if err != nil {
 		return loginResult{}, microerror.Maskf(err, "Could not define installation.")
 	}
@@ -165,20 +292,17 @@ func loginOIDC(args Arguments) (loginResult, error) {
 	authResult := p.(UserInfo)
 
 	// Store kubeconfig
-	// err = storeCredentials(&authResult, i)
-	// if err != nil {
-	// 	return loginResult{}, microerror.Maskf(err, "Could not store credentials.")
-	// }
-
-	ff, _ := json.MarshalIndent(authResult, "", "\t")
-	fmt.Println(string(ff))
+	err = i.storeCredentials(&authResult)
+	if err != nil {
+		return loginResult{}, microerror.Maskf(err, "Could not store credentials.")
+	}
 
 	result = loginResult{
-		apiEndpoint:     i.baseURL,
+		apiEndpoint:     i.BaseURL,
 		email:           authResult.Email,
 		loggedOutBefore: false,
-		alias:           i.alias,
-		provider:        i.provider,
+		alias:           i.Alias,
+		provider:        i.Provider,
 		token:           authResult.IDToken,
 	}
 
@@ -191,6 +315,24 @@ func generateState() string {
 	state := base64.StdEncoding.EncodeToString(b)
 
 	return state
+}
+
+func getUsername(iAlias, oAuth2Username string) string {
+	return strings.Join([]string{oAuth2Username, iAlias}, "-")
+}
+
+func getUrlFromParts(protocol string, parts []string) string {
+	return protocol + strings.Join(parts, ".")
+}
+
+func getKubeConfigPath() (string, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return "", microerror.Maskf(authorizationError, "Error getting current OS user.")
+	}
+	kubeConfigPath := filepath.Join(usr.HomeDir, ".kube", "config")
+
+	return kubeConfigPath, nil
 }
 
 // From OIDC Package
@@ -256,12 +398,59 @@ func IsAuthorizationError(err error) bool {
 	return microerror.Cause(err) == authorizationError
 }
 
-// This goes into config package
-// func storeCredentials(a *UserInfo, i *Installation) error {
-//
-// }
+// kubeconfig package
 
-//
-// func generateKubeConfig(a *UserInfo) clientcmdapi.Config {
-//
-// }
+type KubeConfigValue struct {
+	APIVersion     string                   `yaml:"apiVersion,omitempty"`
+	Kind           string                   `yaml:"kind,omitempty"`
+	Clusters       []KubeconfigNamedCluster `yaml:"clusters,omitempty"`
+	Users          []KubeconfigUser         `yaml:"users,omitempty"`
+	Contexts       []KubeconfigNamedContext `yaml:"contexts,omitempty"`
+	CurrentContext string                   `yaml:"current-context,omitempty"`
+	Preferences    struct{}                 `yaml:"preferences,omitempty"`
+}
+
+// KubeconfigUser is a struct used to create a kubectl configuration YAML file
+type KubeconfigUser struct {
+	Name string                `yaml:"name,omitempty"`
+	User KubeconfigUserKeyPair `yaml:"user,omitempty"`
+}
+
+// KubeconfigUserKeyPair is a struct used to create a kubectl configuration YAML file
+type KubeconfigUserKeyPair struct {
+	ClientCertificateData string                 `yaml:"client-certificate-data,omitempty"`
+	ClientKeyData         string                 `yaml:"client-key-data,omitempty"`
+	AuthProvider          KubeconfigAuthProvider `yaml:"auth-provider,omitempty,omitempty"`
+}
+
+// KubeconfigAuthProvider is a struct used to create a kubectl authentication provider
+type KubeconfigAuthProvider struct {
+	Name   string            `yaml:"name,omitempty"`
+	Config map[string]string `yaml:"config,omitempty"`
+}
+
+// KubeconfigNamedCluster is a struct used to create a kubectl configuration YAML file
+type KubeconfigNamedCluster struct {
+	Name    string            `yaml:"name,omitempty"`
+	Cluster KubeconfigCluster `yaml:"cluster,omitempty"`
+}
+
+// KubeconfigCluster is a struct used to create a kubectl configuration YAML file
+type KubeconfigCluster struct {
+	Server                   string `yaml:"server,omitempty"`
+	CertificateAuthorityData string `yaml:"certificate-authority-data,omitempty"`
+	CertificateAuthority     string `yaml:"certificate-authority,omitempty"`
+}
+
+// KubeconfigNamedContext is a struct used to create a kubectl configuration YAML file
+type KubeconfigNamedContext struct {
+	Name    string            `yaml:"name,omitempty"`
+	Context KubeconfigContext `yaml:"context,omitempty"`
+}
+
+// KubeconfigContext is a struct used to create a kubectl configuration YAML file
+type KubeconfigContext struct {
+	Cluster   string `yaml:"cluster,omitempty"`
+	Namespace string `yaml:"namespace,omitempty,omitempty"`
+	User      string `yaml:"user,omitempty"`
+}
