@@ -220,7 +220,6 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		color.CyanString("ON-DEMAND-PERCENTAGE"),
 		color.CyanString("NODES MIN/MAX"),
 		color.CyanString("NODES DESIRED"),
-		color.CyanString("NODES DESIRED"),
 		color.CyanString("NODES READY"),
 		color.CyanString("CPUS"),
 		color.CyanString("RAM (GB)"),
