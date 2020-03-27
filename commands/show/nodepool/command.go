@@ -194,11 +194,18 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		os.Exit(1)
 	}
 
+	var instanceTypes string
+	if len(data.nodePool.Status.InstanceTypes) > 0 {
+		instanceTypes = strings.Join(data.nodePool.Status.InstanceTypes, ",")
+	} else {
+		instanceTypes = data.nodePool.NodeSpec.Aws.InstanceType
+	}
+
 	table := []string{}
 
 	table = append(table, color.YellowString("ID:")+"|"+data.nodePool.ID)
 	table = append(table, color.YellowString("Name:")+"|"+data.nodePool.Name)
-	table = append(table, color.YellowString("Node instance type:")+"|"+formatInstanceType(data.nodePool.NodeSpec.Aws.InstanceType, data.instanceTypeDetails))
+	table = append(table, color.YellowString("Node instance types:")+"|"+formatInstanceType(instanceTypes, data.instanceTypeDetails))
 	table = append(table, color.YellowString("Alike instances types:")+fmt.Sprintf("|%t", data.nodePool.NodeSpec.Aws.UseAlikeInstanceTypes))
 	table = append(table, color.YellowString("Availability zones:")+"|"+formatting.AvailabilityZonesList(data.nodePool.AvailabilityZones))
 	table = append(table, color.YellowString("On-demand base capacity:")+fmt.Sprintf("|%d", data.nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandBaseCapacity))
@@ -206,6 +213,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	table = append(table, color.YellowString("Node scaling:")+"|"+formatNodeScaling(data.nodePool.Scaling))
 	table = append(table, color.YellowString("Nodes desired:")+fmt.Sprintf("|%d", data.nodePool.Status.Nodes))
 	table = append(table, color.YellowString("Nodes in state Ready:")+fmt.Sprintf("|%d", data.nodePool.Status.NodesReady))
+	table = append(table, color.YellowString("Spot instances:")+fmt.Sprintf("|%d", data.nodePool.Status.SpotInstances))
 	table = append(table, color.YellowString("CPUs:")+"|"+formatCPUs(data.nodePool.Status.NodesReady, data.instanceTypeDetails))
 	table = append(table, color.YellowString("RAM:")+"|"+formatRAM(data.nodePool.Status.NodesReady, data.instanceTypeDetails))
 
