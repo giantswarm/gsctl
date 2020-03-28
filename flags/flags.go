@@ -14,9 +14,9 @@ var (
 	// before starting to use spot instances
 	AWSOnDemandBaseCapacity int64
 
-	// AWSSpotInstancePercentageAboveBaseCapacity represents the percentage of spot instances
+	// AWSSpotPercentage represents the percentage of spot instances
 	// to use in an node pool
-	AWSSpotInstancePercentageAboveBaseCapacity int64
+	AWSSpotPercentage int64
 
 	// ConfigDirPath represents the configuration path to use temporarily passed as a flag.
 	ConfigDirPath string
