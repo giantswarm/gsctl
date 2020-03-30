@@ -1,11 +1,17 @@
 package capiclient
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/fatih/color"
 	"github.com/giantswarm/apiextensions/pkg/clientset/versioned"
 	"github.com/giantswarm/gsctl/client/capiclient/clusters"
 	"github.com/giantswarm/microerror"
 	"github.com/go-openapi/strfmt"
 	"k8s.io/client-go/tools/clientcmd"
+
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
 
 type Capiclient struct {
@@ -27,9 +33,13 @@ func New(kubeconfigPath string, formats strfmt.Registry) *Capiclient {
 	cli := new(Capiclient)
 	cli.Clusters = clusters.New(formats)
 
-	// Do nothing with the error, because the clientset will be nil
-	// if there's an error
-	cli.G8sClient, _ = newClientset(kubeconfigPath)
+	var err error
+	cli.G8sClient, err = newClientset(kubeconfigPath)
+	if err != nil {
+		fmt.Println(color.RedString("The connection to the Kubernetes API could not be established."))
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	return cli
 }

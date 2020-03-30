@@ -29,8 +29,6 @@ func New(formats strfmt.Registry) *Client {
 
 // Using response model from gs api until it's deprecated, for compatibility
 func (c *Client) GetClusters(clientset *versioned.Clientset) ([]*models.V4ClusterListItem, error) {
-	// TODO: Assert if there is no clientset
-
 	clustersV4, err := clientset.CoreV1alpha1().AWSClusterConfigs(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -83,7 +81,16 @@ func (c *Client) GetClusters(clientset *versioned.Clientset) ([]*models.V4Cluste
 			ReleaseVersion: cluster.Labels["release.giantswarm.io/version"],
 		}
 		formattedCluster.Path = fmt.Sprintf("/v5/clusters/%s/", formattedCluster.ID)
-		// TODO: Fix deletion date for v5 clusters
+		if cluster.DeletionTimestamp != nil {
+			deleteDate = cluster.GetDeletionTimestamp().Time.UTC()
+			if deleteDate.After(minAllowedCreationDate) {
+				fDeleteDate := strfmt.DateTime(deleteDate)
+				formattedCluster.DeleteDate = &fDeleteDate
+
+				payload = append(payload, formattedCluster)
+			}
+			continue
+		}
 
 		payload = append(payload, formattedCluster)
 	}
