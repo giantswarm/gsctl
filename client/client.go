@@ -134,10 +134,17 @@ func New(conf *Configuration) (*Wrapper, error) {
 		}
 	}
 
+	var capiClient *capiclient.Capiclient
+	{
+		if config.IsKubectlPlugin {
+			capiClient = capiclient.New(kubeconfigPath, strfmt.Default)
+		}
+	}
+
 	return &Wrapper{
 		conf:        conf,
 		gsclient:    gsclient.New(transport, strfmt.Default),
-		capiclient:  capiclient.New(kubeconfigPath, strfmt.Default),
+		capiclient:  capiClient,
 		requestID:   randomRequestID(),
 		commandLine: getCommandLine(),
 		rawClient:   rawClient,
