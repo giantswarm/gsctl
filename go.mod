@@ -9,7 +9,7 @@ require (
 	github.com/coreos/go-oidc v2.2.1+incompatible
 	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
 	github.com/fatih/color v1.9.0
-	github.com/giantswarm/apiextensions v0.0.0-20191213075442-71155aa0f5b7
+	github.com/giantswarm/apiextensions v0.2.0
 	github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatible
 	github.com/giantswarm/gscliauth v0.1.1-0.20200312170820-9ee36484efa2
 	github.com/giantswarm/gsclientgen v2.0.3+incompatible
@@ -32,7 +32,6 @@ require (
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/json-iterator/go v1.1.9 // indirect
 	github.com/juju/errgo v0.0.0-20140925100237-08cceb5d0b53
-	github.com/onsi/ginkgo v1.11.0 // indirect
 	github.com/onsi/gomega v1.8.1 // indirect
 	github.com/rogpeppe/go-internal v1.5.0 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20190402232053-79abb63cd66e
@@ -41,14 +40,14 @@ require (
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4 // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
 	google.golang.org/appengine v1.6.5 // indirect
 	gopkg.in/yaml.v2 v2.2.8
-	k8s.io/apiextensions-apiserver v0.17.4 // indirect
-	k8s.io/apimachinery v0.17.4
-	k8s.io/client-go v0.17.4
-	k8s.io/kube-openapi v0.0.0-20200204173128-addea2498afe // indirect
 )
 
 replace github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.3.1
+
+require (
+	k8s.io/apimachinery v0.16.6
+	k8s.io/client-go v0.16.6
+)
