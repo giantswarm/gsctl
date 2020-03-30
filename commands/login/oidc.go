@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"fmt"
 	"log"
 	"net/http"
 	"os/user"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -20,7 +20,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// TODO: Get rid of this
 const caCert = `-----BEGIN CERTIFICATE-----
 MIIDdjCCAl6gAwIBAgIUEm/lmd55cJt+wfbVAr5MmJmg+BswDQYJKoZIhvcNAQEL
 BQAwKzEpMCcGA1UEAxMgZ2luZ2VyLmV1LXdlc3QtMS5hd3MuZ2lnYW50aWMuaW8w
@@ -41,15 +40,20 @@ RmC/xqB285RHOU0gvHM5xeI3KDLapJDh+Al9oH9pfZmLf2Hc/vGjgMdjA1iiNyhn
 tpUu65HZSntcmcLR9hlZ6aPMg60dXzoDhKsnTERNLygDq40G3OxQu7Hcejb5Tr/u
 mFhWZ+pFznSeD34Jek/irOQ8x8S8LqPZaUCqvGgedkE0APUsg82Elsc2RRf2fGUV
 eYyPtbJ0CrKvc2vKFPH+whGPvAkM1z5IXnM=
------END CERTIFICATE-----`
+-----END CERTIFICATE-----
+`
 
 const (
-	clientID         = "zQiFLUnrTFQwrybYzeY53hWWfhOKWRAU"
-	clientSecret     = "WmZq4t7w!z%C*F-JaNdRgUkXp2r5u8x/"
+	clientID     = "zQiFLUnrTFQwrybYzeY53hWWfhOKWRAU"
+	clientSecret = "WmZq4t7w!z%C*F-JaNdRgUkXp2r5u8x/"
+
 	authCallbackURL  = "http://localhost:8085/oauth/callback"
 	authCallbackPath = "/oauth/callback"
+
 	apiServerPrefix  = "g8s"
 	authServerPrefix = "dex"
+
+	certificateFileName = "k8s-ca.crt"
 )
 
 var (
@@ -81,6 +85,8 @@ type Installation struct {
 }
 
 func newInstallation(baseURL string, fs afero.Fs) (*Installation, error) {
+	caCert := getClusterCert(baseURL)
+
 	i := &Installation{
 		BaseURL:    baseURL,
 		CaCert:     caCert,
@@ -133,8 +139,34 @@ func (i *Installation) newAuthenticator(redirectURL string, authScopes []string)
 }
 
 func (i *Installation) storeCredentials(u *UserInfo) error {
+	err := i.writeCertificate()
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
 	k := i.generateKubeConfig(u)
-	err := i.writeKubeConfig(k)
+	err = i.writeKubeConfig(k)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	return nil
+}
+
+func (i *Installation) writeCertificate() error {
+	certPath, err := getKubeCertPath(i.Alias)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	certFilePath := path.Join(certPath, certificateFileName)
+
+	err = i.FileSystem.MkdirAll(certPath, 0700)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	err = afero.WriteFile(i.FileSystem, certFilePath, []byte(i.CaCert), 0600)
 	if err != nil {
 		return microerror.Mask(err)
 	}
@@ -148,8 +180,15 @@ func (i *Installation) writeKubeConfig(k *KubeConfigValue) error {
 		return microerror.Mask(err)
 	}
 
-	fmt.Println(string(d))
-	// TODO: Write to kubeconfig file
+	kubeConfigPath, err := getKubeConfigPath()
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	err = afero.WriteFile(i.FileSystem, kubeConfigPath, d, 0600)
+	if err != nil {
+		return microerror.Maskf(authorizationError, "Error writing kubeconfig.")
+	}
 
 	return nil
 }
@@ -166,9 +205,11 @@ func (i *Installation) readKubeConfig() (*KubeConfigValue, error) {
 	}
 
 	var kubeConfig KubeConfigValue
-	err = yaml.Unmarshal(k, &kubeConfig)
-	if err != nil {
-		return nil, microerror.Maskf(authorizationError, "Error reading existing kubeconfig.")
+	{
+		err = yaml.Unmarshal(k, &kubeConfig)
+		if err != nil {
+			return nil, microerror.Maskf(authorizationError, "Error reading existing kubeconfig.")
+		}
 	}
 
 	return &kubeConfig, nil
@@ -255,8 +296,7 @@ func (a *Authenticator) handleCallback(_ http.ResponseWriter, r *http.Request) (
 
 	var ok bool
 	// Generate the ID Token
-	res.IDToken, ok = token.Extra("id_token").(string)
-	if !ok {
+	if res.IDToken, ok = token.Extra("id_token").(string); !ok {
 		return nil, microerror.Maskf(authorizationError, "No id_token field in OAuth2 token.")
 	}
 
@@ -321,6 +361,11 @@ func loginOIDC(args Arguments) (loginResult, error) {
 	return result, nil
 }
 
+func getClusterCert(baseURL string) string {
+	// TODO: Make HTTP Call to get this from somewhere
+	return caCert
+}
+
 func generateState() string {
 	b := make([]byte, 32)
 	rand.Read(b)
@@ -345,6 +390,16 @@ func getKubeConfigPath() (string, error) {
 	kubeConfigPath := filepath.Join(usr.HomeDir, ".kube", "config")
 
 	return kubeConfigPath, nil
+}
+
+func getKubeCertPath(alias string) (string, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return "", microerror.Maskf(authorizationError, "Error getting current OS user.")
+	}
+	kubeCertPath := path.Join(usr.HomeDir, ".kube", "certs", alias)
+
+	return kubeCertPath, nil
 }
 
 func appendOrModify(target interface{}, entry interface{}, compareByField string) interface{} {
