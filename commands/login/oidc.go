@@ -40,14 +40,13 @@ RmC/xqB285RHOU0gvHM5xeI3KDLapJDh+Al9oH9pfZmLf2Hc/vGjgMdjA1iiNyhn
 tpUu65HZSntcmcLR9hlZ6aPMg60dXzoDhKsnTERNLygDq40G3OxQu7Hcejb5Tr/u
 mFhWZ+pFznSeD34Jek/irOQ8x8S8LqPZaUCqvGgedkE0APUsg82Elsc2RRf2fGUV
 eYyPtbJ0CrKvc2vKFPH+whGPvAkM1z5IXnM=
------END CERTIFICATE-----
-`
+-----END CERTIFICATE-----`
 
 const (
 	clientID     = "zQiFLUnrTFQwrybYzeY53hWWfhOKWRAU"
 	clientSecret = "WmZq4t7w!z%C*F-JaNdRgUkXp2r5u8x/"
 
-	authCallbackURL  = "http://localhost:8085/oauth/callback"
+	authCallbackURL  = "http://localhost:8085"
 	authCallbackPath = "/oauth/callback"
 
 	apiServerPrefix  = "g8s"
@@ -144,7 +143,11 @@ func (i *Installation) storeCredentials(u *UserInfo) error {
 		return microerror.Mask(err)
 	}
 
-	k := i.generateKubeConfig(u)
+	k, err := i.generateKubeConfig(u)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
 	err = i.writeKubeConfig(k)
 	if err != nil {
 		return microerror.Mask(err)
@@ -215,7 +218,7 @@ func (i *Installation) readKubeConfig() (*KubeConfigValue, error) {
 	return &kubeConfig, nil
 }
 
-func (i *Installation) generateKubeConfig(u *UserInfo) *KubeConfigValue {
+func (i *Installation) generateKubeConfig(u *UserInfo) (*KubeConfigValue, error) {
 	existing, _ := i.readKubeConfig()
 	if existing == nil {
 		existing = &KubeConfigValue{}
@@ -226,14 +229,20 @@ func (i *Installation) generateKubeConfig(u *UserInfo) *KubeConfigValue {
 	// Set current context
 	existing.CurrentContext = kUsername
 
+	certPath, err := getKubeCertPath(i.Alias)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	certPath = path.Join(certPath, certificateFileName)
 	// Add cluster to list
 	existing.Clusters = appendOrModify(
 		existing.Clusters,
 		KubeconfigNamedCluster{
 			Name: i.Alias,
 			Cluster: KubeconfigCluster{
-				Server:                   getUrlFromParts("https://", []string{apiServerPrefix, i.BaseURL}),
-				CertificateAuthorityData: i.CaCert,
+				Server:               getUrlFromParts("https://", []string{apiServerPrefix, i.BaseURL}),
+				CertificateAuthority: certPath,
 			},
 		},
 		"Name",
@@ -273,7 +282,7 @@ func (i *Installation) generateKubeConfig(u *UserInfo) *KubeConfigValue {
 		"Name",
 	).([]KubeconfigUser)
 
-	return existing
+	return existing, nil
 }
 
 func (a *Authenticator) getAuthURL() string {
@@ -329,7 +338,8 @@ func loginOIDC(args Arguments) (loginResult, error) {
 		return loginResult{}, microerror.Maskf(err, "Could not define installation.")
 	}
 
-	err = i.newAuthenticator(authCallbackURL, authScopes)
+	authURL := authCallbackURL + authCallbackPath
+	err = i.newAuthenticator(authURL, authScopes)
 	if err != nil {
 		log.Fatalf("failed to get authenticator: %v", err)
 	}
