@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os/user"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	oidc "github.com/coreos/go-oidc"
@@ -148,6 +149,7 @@ func (i *Installation) writeKubeConfig(k *KubeConfigValue) error {
 	}
 
 	fmt.Println(string(d))
+	// TODO: Write to kubeconfig file
 
 	return nil
 }
@@ -183,42 +185,52 @@ func (i *Installation) generateKubeConfig(u *UserInfo) *KubeConfigValue {
 	// Set current context
 	existing.CurrentContext = kUsername
 
-	// TODO: Check if configuration already exists
-
 	// Add cluster to list
-	existing.Clusters = append(existing.Clusters, KubeconfigNamedCluster{
-		Name: i.Alias,
-		Cluster: KubeconfigCluster{
-			Server:                   getUrlFromParts("https://", []string{apiServerPrefix, i.BaseURL}),
-			CertificateAuthorityData: i.CaCert,
+	existing.Clusters = appendOrModify(
+		existing.Clusters,
+		KubeconfigNamedCluster{
+			Name: i.Alias,
+			Cluster: KubeconfigCluster{
+				Server:                   getUrlFromParts("https://", []string{apiServerPrefix, i.BaseURL}),
+				CertificateAuthorityData: i.CaCert,
+			},
 		},
-	})
+		"Name",
+	).([]KubeconfigNamedCluster)
 
 	// Add context to list
-	existing.Contexts = append(existing.Contexts, KubeconfigNamedContext{
-		Name: kUsername,
-		Context: KubeconfigContext{
-			Cluster: i.Alias,
-			User:    kUsername,
+	existing.Contexts = appendOrModify(
+		existing.Contexts,
+		KubeconfigNamedContext{
+			Name: kUsername,
+			Context: KubeconfigContext{
+				Cluster: i.Alias,
+				User:    kUsername,
+			},
 		},
-	})
+		"Name",
+	).([]KubeconfigNamedContext)
 
 	// Add authentication info  to list
-	existing.Users = append(existing.Users, KubeconfigUser{
-		Name: kUsername,
-		User: KubeconfigUserKeyPair{
-			AuthProvider: KubeconfigAuthProvider{
-				Name: "oidc",
-				Config: map[string]string{
-					"client-id":      i.Authenticator.clientConfig.ClientID,
-					"client-secret":  i.Authenticator.clientConfig.ClientSecret,
-					"id-token":       u.IDToken,
-					"idp-issuer-url": u.IssuerURL,
-					"refresh-token":  u.RefreshToken,
+	existing.Users = appendOrModify(
+		existing.Users,
+		KubeconfigUser{
+			Name: kUsername,
+			User: KubeconfigUserKeyPair{
+				AuthProvider: KubeconfigAuthProvider{
+					Name: "oidc",
+					Config: map[string]string{
+						"client-id":      i.Authenticator.clientConfig.ClientID,
+						"client-secret":  i.Authenticator.clientConfig.ClientSecret,
+						"id-token":       u.IDToken,
+						"idp-issuer-url": u.IssuerURL,
+						"refresh-token":  u.RefreshToken,
+					},
 				},
 			},
 		},
-	})
+		"Name",
+	).([]KubeconfigUser)
 
 	return existing
 }
@@ -333,6 +345,38 @@ func getKubeConfigPath() (string, error) {
 	kubeConfigPath := filepath.Join(usr.HomeDir, ".kube", "config")
 
 	return kubeConfigPath, nil
+}
+
+func appendOrModify(target interface{}, entry interface{}, compareByField string) interface{} {
+	// TODO: Add error handling, stricter checking
+
+	if reflect.TypeOf(target).Kind() == reflect.Slice {
+		s := reflect.ValueOf(target)
+
+		var (
+			t, e   reflect.Value
+			update bool
+		)
+
+		for i := 0; i < s.Len(); i++ {
+			t = s.Index(i)
+			e = reflect.ValueOf(entry)
+
+			if t.FieldByName(compareByField).Interface() == e.FieldByName(compareByField).Interface() {
+				t.Set(e)
+
+				update = true
+			}
+		}
+
+		if !update {
+			s = reflect.Append(s, reflect.ValueOf(entry))
+		}
+
+		return s.Interface()
+	}
+
+	return target
 }
 
 // From OIDC Package
