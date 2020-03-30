@@ -12,7 +12,7 @@ require (
 	github.com/giantswarm/apiextensions v0.0.0-20191213075442-71155aa0f5b7
 	github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatible
 	github.com/giantswarm/gscliauth v0.1.1-0.20200312170820-9ee36484efa2
-	github.com/giantswarm/gsclientgen v2.0.4-0.20200326073611-051495b87c99+incompatible
+	github.com/giantswarm/gsclientgen v2.0.3+incompatible
 	github.com/giantswarm/k8sclient v0.0.0-20191213144452-f75fead2ae06
 	github.com/giantswarm/kubeconfig v0.0.0-20191209121754-c5784ae65a49
 	github.com/giantswarm/microerror v0.0.0-20191011121515-e0ebc4ecf5a5
