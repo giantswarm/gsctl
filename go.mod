@@ -6,6 +6,7 @@ require (
 	github.com/Jeffail/gabs v1.4.0
 	github.com/Masterminds/semver v1.5.0
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
+	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
 	github.com/fatih/color v1.9.0
 	github.com/giantswarm/apiextensions v0.0.0-20191213075442-71155aa0f5b7
@@ -34,20 +35,22 @@ require (
 	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/rogpeppe/go-internal v1.5.0 // indirect
-	github.com/skratchdot/open-golang v0.0.0-20190402232053-79abb63cd66e // indirect
+	github.com/skratchdot/open-golang v0.0.0-20190402232053-79abb63cd66e
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v0.0.6-0.20190724161051-1c9c46d5c1cc
 	github.com/spf13/pflag v1.0.5
 	go.mongodb.org/mongo-driver v1.0.4 // indirect
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413 // indirect
+	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20191210023423-ac6580df4449 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.2.8
-	honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc
 	k8s.io/apiextensions-apiserver v0.16.4 // indirect
+	k8s.io/apimachinery v0.16.4
+	k8s.io/client-go v0.16.4
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a // indirect
 )
