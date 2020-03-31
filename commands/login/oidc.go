@@ -1,6 +1,7 @@
 package login
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -11,10 +12,12 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	oidc "github.com/coreos/go-oidc"
 	k "github.com/giantswarm/gsctl/kubernetes"
 	"github.com/giantswarm/microerror"
+	"github.com/gobuffalo/packr"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/spf13/afero"
 	"golang.org/x/oauth2"
@@ -45,7 +48,7 @@ eYyPtbJ0CrKvc2vKFPH+whGPvAkM1z5IXnM=
 
 const (
 	clientID     = "zQiFLUnrTFQwrybYzeY53hWWfhOKWRAU"
-	clientSecret = "WmZq4t7w!z%C*F-JaNdRgUkXp2r5u8x/"
+	clientSecret = "11dr35cv6v4hkd4gjgzl9f36xj2kyjzdl1i4etclg3s0tgrtx8gb997jfkdn4hg8"
 
 	authCallbackURL  = "http://localhost:8085"
 	authCallbackPath = "/oauth/callback"
@@ -58,6 +61,7 @@ const (
 
 var (
 	authScopes = []string{oidc.ScopeOpenID, "profile", "email", "groups", "offline_access"}
+	templates  = packr.NewBox("html")
 )
 
 type Authenticator struct {
@@ -68,11 +72,13 @@ type Authenticator struct {
 }
 
 type UserInfo struct {
-	Email        string
-	IDToken      string
-	RefreshToken string
-	IssuerURL    string
-	Username     string
+	Email         string
+	EmailVerified bool
+	IDToken       string
+	RefreshToken  string
+	IssuerURL     string
+	Username      string
+	Groups        []string
 }
 
 type Installation struct {
@@ -290,7 +296,7 @@ func (a *Authenticator) getAuthURL() string {
 	return a.clientConfig.AuthCodeURL(a.state, oauth2.AccessTypeOffline)
 }
 
-func (a *Authenticator) handleCallback(_ http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (a *Authenticator) handleIssResponse(_ http.ResponseWriter, r *http.Request) (interface{}, error) {
 	if r.URL.Query().Get("state") != a.state {
 		return nil, microerror.Maskf(authorizationError, "State did not match.")
 	}
@@ -300,14 +306,14 @@ func (a *Authenticator) handleCallback(_ http.ResponseWriter, r *http.Request) (
 	// Convert authorization code into a token
 	token, err := a.clientConfig.Exchange(a.ctx, r.URL.Query().Get("code"))
 	if err != nil {
-		return nil, microerror.Maskf(authorizationError, "No token found.")
+		return nil, microerror.Mask(err)
 	}
 	res.RefreshToken = token.RefreshToken
 
 	var ok bool
 	// Generate the ID Token
 	if res.IDToken, ok = token.Extra("id_token").(string); !ok {
-		return nil, microerror.Maskf(authorizationError, "No id_token field in OAuth2 token.")
+		return nil, microerror.Mask(err)
 	}
 
 	oidcConfig := &oidc.Config{
@@ -316,18 +322,34 @@ func (a *Authenticator) handleCallback(_ http.ResponseWriter, r *http.Request) (
 	// Verify if ID Token is valid
 	idToken, err := a.provider.Verifier(oidcConfig).Verify(a.ctx, res.IDToken)
 	if err != nil {
-		return nil, microerror.Maskf(authorizationError, "Failed to verify ID Token.")
+		return nil, microerror.Mask(err)
 	}
 	res.IssuerURL = idToken.Issuer
 
-	// Get the user's info
-	userInfo, err := a.provider.UserInfo(a.ctx, a.clientConfig.TokenSource(a.ctx, token))
-	if err != nil {
-		return nil, microerror.Maskf(authorizationError, "Could not construct the User Info.")
+	var claims struct {
+		Email    string   `json:"email"`
+		Verified bool     `json:"email_verified"`
+		Groups   []string `json:"groups"`
 	}
-	res.Email = userInfo.Email
-	res.Username = strings.Split(userInfo.Email, "@")[0]
+	// Get the user's info
+	if err = idToken.Claims(&claims); err != nil {
+		return nil, microerror.Mask(err)
+	}
+	res.Email = claims.Email
+	res.EmailVerified = claims.Verified
+	res.Groups = claims.Groups
+	res.Username = strings.Split(res.Email, "@")[0]
 
+	return res, nil
+}
+
+func (a *Authenticator) handleCallback(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+	res, err := a.handleIssResponse(w, r)
+	if err != nil {
+		http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(templates.Bytes("sso_failed.html")))
+	}
+
+	http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(templates.Bytes("sso_complete.html")))
 	return res, nil
 }
 
@@ -352,7 +374,13 @@ func loginOIDC(args Arguments) (loginResult, error) {
 	open.Run(aURL)
 
 	p, err := startCallbackServer("8085", authCallbackPath, i.Authenticator.handleCallback)
-	authResult := p.(UserInfo)
+	if err != nil {
+		return loginResult{}, microerror.Mask(err)
+	}
+	authResult, ok := p.(UserInfo)
+	if !ok {
+		return loginResult{}, microerror.Mask(err)
+	}
 
 	// Store kubeconfig
 	err = i.storeCredentials(&authResult)
@@ -416,6 +444,7 @@ func getKubeCertPath(alias string) (string, error) {
 func appendOrModify(target interface{}, entry interface{}, compareByField string) interface{} {
 	// TODO: Add error handling, stricter checking
 
+	// Check if the target is a slice
 	if reflect.TypeOf(target).Kind() == reflect.Slice {
 		s := reflect.ValueOf(target)
 
@@ -424,11 +453,15 @@ func appendOrModify(target interface{}, entry interface{}, compareByField string
 			update bool
 		)
 
+		// Look through all target entries
 		for i := 0; i < s.Len(); i++ {
 			t = s.Index(i)
 			e = reflect.ValueOf(entry)
 
+			// If the current entry `compareByField` field value is the same
+			// as the field value of the one provided to the function
 			if t.FieldByName(compareByField).Interface() == e.FieldByName(compareByField).Interface() {
+				// Replace the value with the new one
 				t.Set(e)
 
 				update = true
@@ -436,6 +469,7 @@ func appendOrModify(target interface{}, entry interface{}, compareByField string
 		}
 
 		if !update {
+			// Add value to the end of the slice
 			s = reflect.Append(s, reflect.ValueOf(entry))
 		}
 
