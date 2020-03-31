@@ -1,7 +1,10 @@
 package login
 
 import (
+	"fmt"
+
 	"github.com/coreos/go-oidc"
+	"github.com/fatih/color"
 	oidc2 "github.com/giantswarm/gsctl/commands/login/oidc"
 	"github.com/giantswarm/microerror"
 	"github.com/skratchdot/open-golang/open"
@@ -39,6 +42,9 @@ func loginOIDC(args Arguments) (loginResult, error) {
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
+
+	fmt.Println(color.YellowString("\nYour browser should now be opening:"))
+	fmt.Println(aURL + "\n")
 
 	p, err := oidc2.StartCallbackServer("8085", authCallbackPath, i.Authenticator.HandleCallback)
 	if err != nil {
