@@ -1,4 +1,4 @@
-package login
+package oidc
 
 import "github.com/gobuffalo/packr"
 
