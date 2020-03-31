@@ -54,7 +54,13 @@ The -e or --endpoint argument can be omitted if an endpoint is already selected.
 )
 
 func init() {
-	if !config.IsKubectlPlugin {
+	if config.IsKubectlPlugin {
+		Command.Use = "login <baseURL>"
+		Command.Long = `Sign in against your installation's baseURL with an OIDC provider.
+
+This will update the kubeconfig file with the new authorization info.`
+		Command.Example = "  gsctl login coolalias.eu-west-1.aws.gigantic.io"
+	} else {
 		Command.Flags().StringVarP(&cmdPassword, "password", "p", "", "Password. If not given, will be prompted interactively.")
 		Command.Flags().BoolVarP(&cmdSSO, "sso", "", false, "Authenticate using Single Sign On through our identity provider.")
 		Command.Flags().MarkHidden("sso")
