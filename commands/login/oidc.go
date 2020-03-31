@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	oidc "github.com/coreos/go-oidc"
+	k "github.com/giantswarm/gsctl/kubernetes"
 	"github.com/giantswarm/microerror"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/spf13/afero"
@@ -177,7 +178,7 @@ func (i *Installation) writeCertificate() error {
 	return nil
 }
 
-func (i *Installation) writeKubeConfig(k *KubeConfigValue) error {
+func (i *Installation) writeKubeConfig(k *k.KubeConfigValue) error {
 	d, err := yaml.Marshal(k)
 	if err != nil {
 		return microerror.Mask(err)
@@ -196,20 +197,20 @@ func (i *Installation) writeKubeConfig(k *KubeConfigValue) error {
 	return nil
 }
 
-func (i *Installation) readKubeConfig() (*KubeConfigValue, error) {
+func (i *Installation) readKubeConfig() (*k.KubeConfigValue, error) {
 	kubeConfigPath, err := getKubeConfigPath()
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	k, err := afero.ReadFile(i.FileSystem, kubeConfigPath)
+	kFile, err := afero.ReadFile(i.FileSystem, kubeConfigPath)
 	if err != nil {
 		return nil, microerror.Maskf(authorizationError, "Error reading existing kubeconfig.")
 	}
 
-	var kubeConfig KubeConfigValue
+	var kubeConfig k.KubeConfigValue
 	{
-		err = yaml.Unmarshal(k, &kubeConfig)
+		err = yaml.Unmarshal(kFile, &kubeConfig)
 		if err != nil {
 			return nil, microerror.Maskf(authorizationError, "Error reading existing kubeconfig.")
 		}
@@ -218,10 +219,10 @@ func (i *Installation) readKubeConfig() (*KubeConfigValue, error) {
 	return &kubeConfig, nil
 }
 
-func (i *Installation) generateKubeConfig(u *UserInfo) (*KubeConfigValue, error) {
+func (i *Installation) generateKubeConfig(u *UserInfo) (*k.KubeConfigValue, error) {
 	existing, _ := i.readKubeConfig()
 	if existing == nil {
-		existing = &KubeConfigValue{}
+		existing = &k.KubeConfigValue{}
 	}
 
 	kUsername := getUsername(i.Alias, u.Username)
@@ -238,36 +239,36 @@ func (i *Installation) generateKubeConfig(u *UserInfo) (*KubeConfigValue, error)
 	// Add cluster to list
 	existing.Clusters = appendOrModify(
 		existing.Clusters,
-		KubeconfigNamedCluster{
+		k.KubeconfigNamedCluster{
 			Name: i.Alias,
-			Cluster: KubeconfigCluster{
+			Cluster: k.KubeconfigCluster{
 				Server:               getUrlFromParts("https://", []string{apiServerPrefix, i.BaseURL}),
 				CertificateAuthority: certPath,
 			},
 		},
 		"Name",
-	).([]KubeconfigNamedCluster)
+	).([]k.KubeconfigNamedCluster)
 
 	// Add context to list
 	existing.Contexts = appendOrModify(
 		existing.Contexts,
-		KubeconfigNamedContext{
+		k.KubeconfigNamedContext{
 			Name: kUsername,
-			Context: KubeconfigContext{
+			Context: k.KubeconfigContext{
 				Cluster: i.Alias,
 				User:    kUsername,
 			},
 		},
 		"Name",
-	).([]KubeconfigNamedContext)
+	).([]k.KubeconfigNamedContext)
 
 	// Add authentication info  to list
 	existing.Users = appendOrModify(
 		existing.Users,
-		KubeconfigUser{
+		k.KubeconfigUser{
 			Name: kUsername,
-			User: KubeconfigUserKeyPair{
-				AuthProvider: KubeconfigAuthProvider{
+			User: k.KubeconfigUserKeyPair{
+				AuthProvider: k.KubeconfigAuthProvider{
 					Name: "oidc",
 					Config: map[string]string{
 						"client-id":      i.Authenticator.clientConfig.ClientID,
@@ -280,7 +281,7 @@ func (i *Installation) generateKubeConfig(u *UserInfo) (*KubeConfigValue, error)
 			},
 		},
 		"Name",
-	).([]KubeconfigUser)
+	).([]k.KubeconfigUser)
 
 	return existing, nil
 }
@@ -505,61 +506,4 @@ var authorizationError = &microerror.Error{
 // IsAuthorizationError asserts authorizationError.
 func IsAuthorizationError(err error) bool {
 	return microerror.Cause(err) == authorizationError
-}
-
-// kubeconfig package
-
-type KubeConfigValue struct {
-	APIVersion     string                   `yaml:"apiVersion,omitempty"`
-	Kind           string                   `yaml:"kind,omitempty"`
-	Clusters       []KubeconfigNamedCluster `yaml:"clusters,omitempty"`
-	Users          []KubeconfigUser         `yaml:"users,omitempty"`
-	Contexts       []KubeconfigNamedContext `yaml:"contexts,omitempty"`
-	CurrentContext string                   `yaml:"current-context,omitempty"`
-	Preferences    struct{}                 `yaml:"preferences,omitempty"`
-}
-
-// KubeconfigUser is a struct used to create a kubectl configuration YAML file
-type KubeconfigUser struct {
-	Name string                `yaml:"name,omitempty"`
-	User KubeconfigUserKeyPair `yaml:"user,omitempty"`
-}
-
-// KubeconfigUserKeyPair is a struct used to create a kubectl configuration YAML file
-type KubeconfigUserKeyPair struct {
-	ClientCertificateData string                 `yaml:"client-certificate-data,omitempty"`
-	ClientKeyData         string                 `yaml:"client-key-data,omitempty"`
-	AuthProvider          KubeconfigAuthProvider `yaml:"auth-provider,omitempty,omitempty"`
-}
-
-// KubeconfigAuthProvider is a struct used to create a kubectl authentication provider
-type KubeconfigAuthProvider struct {
-	Name   string            `yaml:"name,omitempty"`
-	Config map[string]string `yaml:"config,omitempty"`
-}
-
-// KubeconfigNamedCluster is a struct used to create a kubectl configuration YAML file
-type KubeconfigNamedCluster struct {
-	Name    string            `yaml:"name,omitempty"`
-	Cluster KubeconfigCluster `yaml:"cluster,omitempty"`
-}
-
-// KubeconfigCluster is a struct used to create a kubectl configuration YAML file
-type KubeconfigCluster struct {
-	Server                   string `yaml:"server,omitempty"`
-	CertificateAuthorityData string `yaml:"certificate-authority-data,omitempty"`
-	CertificateAuthority     string `yaml:"certificate-authority,omitempty"`
-}
-
-// KubeconfigNamedContext is a struct used to create a kubectl configuration YAML file
-type KubeconfigNamedContext struct {
-	Name    string            `yaml:"name,omitempty"`
-	Context KubeconfigContext `yaml:"context,omitempty"`
-}
-
-// KubeconfigContext is a struct used to create a kubectl configuration YAML file
-type KubeconfigContext struct {
-	Cluster   string `yaml:"cluster,omitempty"`
-	Namespace string `yaml:"namespace,omitempty,omitempty"`
-	User      string `yaml:"user,omitempty"`
 }
