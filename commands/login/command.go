@@ -32,6 +32,8 @@ var (
 	// cmdSSO is the bool that triggers login via SSO.
 	cmdSSO bool
 
+	cmdBaseURL string
+
 	// Command is the "login" CLI command
 	Command = &cobra.Command{
 		Use:   "login <email> [-e|--endpoint <endpoint>]",
@@ -52,15 +54,18 @@ The -e or --endpoint argument can be omitted if an endpoint is already selected.
 )
 
 func init() {
-	Command.Flags().StringVarP(&cmdPassword, "password", "p", "", "Password. If not given, will be prompted interactively.")
-	Command.Flags().BoolVarP(&cmdSSO, "sso", "", false, "Authenticate using Single Sign On through our identity provider.")
-	Command.Flags().MarkHidden("sso")
+	if !config.IsKubectlPlugin {
+		Command.Flags().StringVarP(&cmdPassword, "password", "p", "", "Password. If not given, will be prompted interactively.")
+		Command.Flags().BoolVarP(&cmdSSO, "sso", "", false, "Authenticate using Single Sign On through our identity provider.")
+		Command.Flags().MarkHidden("sso")
+	}
 }
 
 // Arguments is the argument struct for the business function.
 // Note: the absence of 'token', which is available in all other commands,
 // is by design.
 type Arguments struct {
+	baseURL     string
 	apiEndpoint string
 	email       string
 	password    string
@@ -71,11 +76,16 @@ func collectArguments(positionalArgs []string) Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 
 	if len(positionalArgs) > 0 {
-		cmdEmail = positionalArgs[0]
+		if config.IsKubectlPlugin {
+			cmdBaseURL = positionalArgs[0]
+		} else {
+			cmdEmail = positionalArgs[0]
+		}
 	}
 
 	return Arguments{
 		apiEndpoint: endpoint,
+		baseURL:     cmdBaseURL,
 		email:       cmdEmail,
 		password:    cmdPassword,
 		verbose:     flags.Verbose,
@@ -147,7 +157,12 @@ func verifyLoginPreconditions(positionalArgs []string) error {
 		return microerror.Mask(errors.TokenArgumentNotApplicableError)
 	}
 
-	if cmdSSO {
+	if config.IsKubectlPlugin {
+		if arguments.baseURL == "" {
+			// TODO: Throw an actual error
+			return microerror.New("No installation base url provided.")
+		}
+	} else if cmdSSO {
 		if cmdPassword != "" {
 			return microerror.Mask(errors.PasswordArgumentNotApplicableError)
 		}

@@ -20,7 +20,7 @@ var (
 func loginOIDC(args Arguments) (loginResult, error) {
 	result := loginResult{}
 
-	i, err := oidc2.NewInstallation("ginger.eu-west-1.aws.gigantic.io", afero.NewOsFs())
+	i, err := oidc2.NewInstallation(args.baseURL, afero.NewOsFs())
 	if err != nil {
 		return result, microerror.Mask(err)
 	}
