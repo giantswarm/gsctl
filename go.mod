@@ -40,9 +40,7 @@ require (
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/square/go-jose.v2 v2.4.1 // indirect
 	gopkg.in/yaml.v2 v2.2.8
-	k8s.io/api v0.16.6
-	k8s.io/apiextensions-apiserver v0.16.6
-	k8s.io/apimachinery v0.16.6
-	k8s.io/client-go v0.16.6
-	k8s.io/code-generator v0.16.6
+	k8s.io/apiextensions-apiserver v0.16.4 // indirect
+	k8s.io/apimachinery v0.16.4
+	k8s.io/client-go v0.16.4
 )
