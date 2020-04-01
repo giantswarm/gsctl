@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	authScopes = []string{oidc.ScopeOpenID, "profile", "email", "groups", "offline_access"}
+	authScopes = []string{oidc.ScopeOpenID, "profile", "email", "groups", "offline_access", "audience:server:client_id:dex-k8s-authenticator"}
 )
 
 func loginOIDC(args Arguments) (loginResult, error) {
