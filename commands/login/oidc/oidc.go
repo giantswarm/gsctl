@@ -46,7 +46,7 @@ eYyPtbJ0CrKvc2vKFPH+whGPvAkM1z5IXnM=
 
 const (
 	clientID     = "zQiFLUnrTFQwrybYzeY53hWWfhOKWRAU"
-	clientSecret = "11dr35cv6v4hkd4gjgzl9f36xj2kyjzdl1i4etclg3s0tgrtx8gb997jfkdn4hg8"
+	clientSecret = "TVHzVPin2WTiCma6bqp5hdxgKbWZKRbz"
 
 	apiServerPrefix  = "g8s"
 	authServerPrefix = "dex"
