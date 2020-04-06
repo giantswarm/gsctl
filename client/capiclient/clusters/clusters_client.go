@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	clusterMaxAge = 1 // days
+	clusterMaxAge = 24 * time.Hour
 )
 
 type Client struct {
@@ -44,7 +44,6 @@ func (c *Client) GetClusters(clientset *versioned.Clientset) ([]*models.V4Cluste
 
 		tClusters              = len(clustersV4.Items) + len(clustersV5.Items)
 		payload                = make([]*models.V4ClusterListItem, 0, tClusters)
-		minAllowedCreationDate = time.Now().UTC().AddDate(0, 0, -clusterMaxAge)
 	)
 
 	// V4 Clusters
@@ -59,7 +58,7 @@ func (c *Client) GetClusters(clientset *versioned.Clientset) ([]*models.V4Cluste
 		formattedCluster.Path = fmt.Sprintf("/v4/clusters/%s/", formattedCluster.ID)
 		if cluster.DeletionTimestamp != nil {
 			deleteDate = cluster.GetDeletionTimestamp().Time.UTC()
-			if deleteDate.After(minAllowedCreationDate) {
+			if time.Now().Sub(deleteDate) < clusterMaxAge {
 				fDeleteDate := strfmt.DateTime(deleteDate)
 				formattedCluster.DeleteDate = &fDeleteDate
 
@@ -83,7 +82,7 @@ func (c *Client) GetClusters(clientset *versioned.Clientset) ([]*models.V4Cluste
 		formattedCluster.Path = fmt.Sprintf("/v5/clusters/%s/", formattedCluster.ID)
 		if cluster.DeletionTimestamp != nil {
 			deleteDate = cluster.GetDeletionTimestamp().Time.UTC()
-			if deleteDate.After(minAllowedCreationDate) {
+			if time.Now().Sub(deleteDate) < clusterMaxAge {
 				fDeleteDate := strfmt.DateTime(deleteDate)
 				formattedCluster.DeleteDate = &fDeleteDate
 
