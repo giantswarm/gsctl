@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/microerror"
@@ -51,6 +52,13 @@ func init() {
 	RootCommand.PersistentFlags().StringVarP(&flags.Token, "auth-token", "", "", "Authorization token to use")
 	RootCommand.PersistentFlags().StringVarP(&flags.ConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
 	RootCommand.PersistentFlags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Print more information")
+
+	// Use the auth token defined as an environmental variable,
+	// if it exists.
+	tokenFromEnv := os.Getenv("GSCTL_AUTH_TOKEN")
+	if tokenFromEnv != "" && flags.Token == "" {
+		flags.Token = tokenFromEnv
+	}
 
 	// add subcommands
 	RootCommand.AddCommand(CompletionCommand)
