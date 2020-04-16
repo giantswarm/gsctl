@@ -40,7 +40,9 @@ var (
 
 const (
 	activityName = "add-keypair"
-	maxTTLHours  = 30 * 24 // 30 days
+
+	// Maximum TTL (in hours)
+	maxTTLHours = 30 * 24 // 30 days
 )
 
 // Arguments struct to pass to our business function and

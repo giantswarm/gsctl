@@ -86,6 +86,9 @@ const (
 	tenantInternalAPIPrefix = "internal-api"
 
 	urlDelimiter = "."
+
+	// Maximum TTL (in hours)
+	maxTTLHours = 30 * 24 // 30 days
 )
 
 // Arguments is an argument struct to pass to our business
@@ -176,7 +179,7 @@ func init() {
 	Command.Flags().StringVarP(&cmdKubeconfigSelfContained, "self-contained", "", "", "Create a self-contained kubectl config with embedded credentials and write it to this path.")
 	Command.Flags().StringVarP(&cmdKubeconfigContextName, "context", "", "", "Set a custom context name. Defaults to 'giantswarm-<cluster-id>'.")
 	Command.Flags().StringVarP(&flags.CertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
-	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation.")
+	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation. Also, there will not be any confirmation for TTL > 30d.")
 	Command.Flags().BoolVarP(&flags.TenantInternal, "tenant-internal", "", false, "If set, kubeconfig will be rendered with internal Kubernets API address.")
 	Command.Flags().StringVarP(&flags.TTL, "ttl", "", "1d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
 
@@ -194,11 +197,19 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 			fmt.Println("Please provide a number and a unit, e. g. '10h', '1d', '1w'.")
 		} else if errors.IsDurationExceededError(argsErr) {
 			fmt.Println(color.RedString("The expiration period passed with --ttl is too long."))
-			fmt.Println("The maximum possible value is the eqivalent of 292 years.")
+			fmt.Println("The maximum possible value is the equivalent of 292 years.")
 		} else {
 			fmt.Println(color.RedString(argsErr.Error()))
 		}
 		os.Exit(1)
+	}
+
+	if !arguments.force && arguments.ttlHours >= maxTTLHours {
+		question := fmt.Sprintf("The desired expiry date is pretty far away. Are you sure you want to set the TTL to %s?", flags.TTL)
+		confirmed := confirm.Ask(question)
+		if !confirmed {
+			os.Exit(0)
+		}
 	}
 
 	err := verifyCreateKubeconfigPreconditions(arguments, cmdLineArgs)
