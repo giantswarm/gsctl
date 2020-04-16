@@ -264,6 +264,7 @@ func getEnvironmentVariables() map[string]string {
 		"GSCTL_DISABLE_CMDLINE_TRACKING",
 		"GSCTL_DISABLE_COLORS",
 		"GSCTL_ENDPOINT",
+		"GSCTL_AUTH_TOKEN",
 		"HTTP_PROXY",
 		"KUBECONFIG",
 	}
