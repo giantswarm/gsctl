@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/fatih/color"
@@ -94,10 +95,10 @@ func HandleErrors(err error) {
 		subtext = "Please use the '-e|--endpoint' flag or select an endpoint using 'gsctl select endpoint'."
 	}
 
-	if httpStatusCode == 500 {
+	if httpStatusCode == http.StatusInternalServerError {
 		headline = "An internal error occurred."
 		subtext = details
-	} else if httpStatusCode == 503 {
+	} else if httpStatusCode == http.StatusServiceUnavailable {
 		headline = message
 		subtext = details
 	} else if message != "" {
