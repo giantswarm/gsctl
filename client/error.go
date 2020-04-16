@@ -80,6 +80,9 @@ func HandleErrors(err error) {
 		if clienterror.IsMalformedResponse(err) {
 			message = "Malformed response - No API access?"
 			subtext = convertedErr.ErrorDetails
+		} else if clienterror.IsServiceUnavailableError(err) {
+			details = "It is not yet possible to create a key pair for this cluster, as the PKI backend is not yet available.\n"
+			details += "Please try again in a moment."
 		}
 	} else if convertedErr, ok := err.(*clienterror.APIError); ok {
 		httpStatusCode = convertedErr.HTTPStatusCode
@@ -93,6 +96,9 @@ func HandleErrors(err error) {
 
 	if httpStatusCode == 500 {
 		headline = "An internal error occurred."
+		subtext = details
+	} else if httpStatusCode == 503 {
+		headline = message
 		subtext = details
 	} else if message != "" {
 		headline = message
