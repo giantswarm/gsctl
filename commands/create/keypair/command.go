@@ -111,7 +111,7 @@ func init() {
 	Command.Flags().StringVarP(&flags.Description, "description", "d", "", "Description for the key pair")
 	Command.Flags().StringVarP(&flags.CNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
 	Command.Flags().StringVarP(&flags.CertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
-	Command.Flags().StringVarP(&flags.TTL, "ttl", "", "30d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
+	Command.Flags().StringVarP(&flags.TTL, "ttl", "", "1d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
 
 	Command.MarkFlagRequired("cluster")
 }
@@ -126,7 +126,7 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 			fmt.Println("Please provide a number and a unit, e. g. '10h', '1d', '1w'.")
 		} else if errors.IsDurationExceededError(argsErr) {
 			fmt.Println(color.RedString("The expiration period passed with --ttl is too long."))
-			fmt.Println("The maximum possible value is the eqivalent of 292 years.")
+			fmt.Println("The maximum possible value is the equivalent of 292 years.")
 		} else {
 			fmt.Println(color.RedString(argsErr.Error()))
 		}
