@@ -85,6 +85,18 @@ func IsInternalServerError(err error) bool {
 	return false
 }
 
+// IsServiceUnavailableError checks whether the error
+// is an HTTP 503 error.
+func IsServiceUnavailableError(err error) bool {
+	if clientErr, ok := err.(*APIError); ok {
+		return clientErr.HTTPStatusCode == http.StatusServiceUnavailable
+	}
+	if apiErr, apiErrOK := microerror.Cause(err).(*APIError); apiErrOK {
+		return apiErr.HTTPStatusCode == http.StatusServiceUnavailable
+	}
+	return false
+}
+
 // IsCertificateSignedByUnknownAuthorityError checks whether the error represents
 // a x509.UnknownAuthorityError
 func IsCertificateSignedByUnknownAuthorityError(err error) bool {

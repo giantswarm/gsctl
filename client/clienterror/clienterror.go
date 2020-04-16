@@ -470,6 +470,13 @@ func New(err error) *APIError {
 			ErrorMessage:   "Unauthorized",
 			ErrorDetails:   "You don't have permission to create a key pair for this cluster.",
 		}
+	} else if createKeyPairServiceUnavailableErr, ok := err.(*key_pairs.AddKeyPairServiceUnavailable); ok {
+		return &APIError{
+			HTTPStatusCode: http.StatusServiceUnavailable,
+			OriginalError:  createKeyPairServiceUnavailableErr,
+			ErrorMessage:   "Not yet available",
+			ErrorDetails:   "It is not yet possible to create a key pair for this cluster. Please try again in a moment.",
+		}
 	}
 
 	// get key pairs

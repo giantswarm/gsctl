@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/fatih/color"
@@ -80,6 +81,9 @@ func HandleErrors(err error) {
 		if clienterror.IsMalformedResponse(err) {
 			message = "Malformed response - No API access?"
 			subtext = convertedErr.ErrorDetails
+		} else if clienterror.IsServiceUnavailableError(err) {
+			details = "It is not yet possible to create a key pair for this cluster, as the PKI backend is not yet available.\n"
+			details += "Please try again in a moment."
 		}
 	} else if convertedErr, ok := err.(*clienterror.APIError); ok {
 		httpStatusCode = convertedErr.HTTPStatusCode
@@ -91,8 +95,11 @@ func HandleErrors(err error) {
 		subtext = "Please use the '-e|--endpoint' flag or select an endpoint using 'gsctl select endpoint'."
 	}
 
-	if httpStatusCode == 500 {
+	if httpStatusCode == http.StatusInternalServerError {
 		headline = "An internal error occurred."
+		subtext = details
+	} else if httpStatusCode == http.StatusServiceUnavailable {
+		headline = message
 		subtext = details
 	} else if message != "" {
 		headline = message
