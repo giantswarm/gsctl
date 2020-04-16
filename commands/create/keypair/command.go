@@ -9,7 +9,10 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
+
 	"github.com/giantswarm/gsctl/clustercache"
+	"github.com/giantswarm/gsctl/confirm"
+
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -37,6 +40,7 @@ var (
 
 const (
 	activityName = "add-keypair"
+	maxTTLHours  = 30 * 24 // 30 days
 )
 
 // Arguments struct to pass to our business function and
@@ -49,6 +53,7 @@ type Arguments struct {
 	commonNamePrefix         string
 	description              string
 	fileSystem               afero.Fs
+	force                    bool
 	scheme                   string
 	ttlHours                 int32
 	userProvidedToken        string
@@ -88,6 +93,7 @@ func collectArguments() (Arguments, error) {
 		ttlHours:                 int32(ttl.Hours()),
 		userProvidedToken:        flags.Token,
 		verbose:                  flags.Verbose,
+		force:                    flags.Force,
 	}, nil
 }
 
@@ -112,6 +118,7 @@ func init() {
 	Command.Flags().StringVarP(&flags.CNPrefix, "cn-prefix", "", "", "The common name prefix for the issued certificates 'CN' field.")
 	Command.Flags().StringVarP(&flags.CertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
 	Command.Flags().StringVarP(&flags.TTL, "ttl", "", "1d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
+	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, there will be no confirmation for TTL > 30d.")
 
 	Command.MarkFlagRequired("cluster")
 }
@@ -133,8 +140,15 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 		os.Exit(1)
 	}
 
-	err := verifyPreconditions(arguments)
+	if !arguments.force && arguments.ttlHours >= maxTTLHours {
+		question := fmt.Sprintf("The desired expiry date is pretty far away. Are you sure you want to set the TTL to %s?", flags.TTL)
+		confirmed := confirm.Ask(question)
+		if !confirmed {
+			os.Exit(0)
+		}
+	}
 
+	err := verifyPreconditions(arguments)
 	if err == nil {
 		return
 	}
