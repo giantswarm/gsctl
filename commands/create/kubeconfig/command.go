@@ -87,8 +87,8 @@ const (
 
 	urlDelimiter = "."
 
-	// Maximum TTL (in hours)
-	maxTTLHours = 30 * 24 // 30 days
+	// Maximum safe TTL (in hours)
+	maxSafeTTLHours = 30 * 24 // 30 days
 )
 
 // Arguments is an argument struct to pass to our business
@@ -204,7 +204,7 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		os.Exit(1)
 	}
 
-	if !arguments.force && arguments.ttlHours >= maxTTLHours {
+	if !arguments.force && arguments.ttlHours >= maxSafeTTLHours {
 		fmt.Println("The desired expiry date is pretty far away.")
 		fmt.Println("There is no way to revoke keypairs once they've been created.")
 		question := fmt.Sprintf("Are you sure you want to set the TTL to %s?", flags.TTL)
