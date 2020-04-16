@@ -205,7 +205,9 @@ func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	if !arguments.force && arguments.ttlHours >= maxTTLHours {
-		question := fmt.Sprintf("The desired expiry date is pretty far away. Are you sure you want to set the TTL to %s?", flags.TTL)
+		fmt.Println("The desired expiry date is pretty far away.")
+		fmt.Println("There is no way to revoke keypairs once they've been created.")
+		question := fmt.Sprintf("Are you sure you want to set the TTL to %s?", flags.TTL)
 		confirmed := confirm.Ask(question)
 		if !confirmed {
 			os.Exit(0)
