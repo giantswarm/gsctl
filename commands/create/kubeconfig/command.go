@@ -397,7 +397,11 @@ func getClusterDetails(clientWrapper *client.Wrapper, clusterID string, auxParam
 		}
 
 		if clientErr, ok := err.(*clienterror.APIError); ok {
-			return "", microerror.Maskf(clientErr, "HTTP Status: %d, %s", clientErr.HTTPStatusCode, clientErr.ErrorMessage)
+			apiErr := &microerror.Error{
+				Kind: clientErr.ErrorMessage,
+			}
+
+			return "", microerror.Maskf(apiErr, "HTTP Status: %d, %s", clientErr.HTTPStatusCode, clientErr.ErrorMessage)
 		}
 
 		return "", microerror.Mask(err)
