@@ -72,10 +72,11 @@ func collectArguments(positionalArgs []string) (*Arguments, error) {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
 
-	if !strings.Contains(positionalArgs[0], "/") {
-		return nil, microerror.Mask(errors.InvalidNodePoolIDArgumentError)
-	}
 	parts := strings.Split(positionalArgs[0], "/")
+
+	if len(parts) < 2 {
+		return nil, microerror.Maskf(errors.InvalidNodePoolIDArgumentError, "Please specify the node pool as <cluster-name/cluster-id>/<nodepool-id>. Use --help for details.")
+	}
 
 	return &Arguments{
 		apiEndpoint:       endpoint,
@@ -106,8 +107,7 @@ func verifyPreconditions(args *Arguments) error {
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	args, err := collectArguments(positionalArgs)
-
-	if err != nil {
+	if err == nil {
 		err = verifyPreconditions(args)
 	}
 
@@ -122,8 +122,8 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	subtext := ""
 
 	if errors.IsInvalidNodePoolIDArgument(err) {
-		headline = "Bad cluster name/ID or nodepool ID"
-		subtext = "Please give the cluster name/ID, followed by /, followed by the node pool ID."
+		headline = "Invalid argument syntax"
+		subtext = "Please give the cluster name or ID, followed by /, followed by the node pool ID."
 	} else {
 		headline = err.Error()
 	}
