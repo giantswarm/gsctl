@@ -307,7 +307,7 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 
 	requestBody.NodeSpec = &models.V5AddNodePoolRequestNodeSpec{
 		Aws: &models.V5AddNodePoolRequestNodeSpecAws{
-			UseAlikeInstanceTypes: args.UseAlikeInstanceTypes,
+			UseAlikeInstanceTypes: &args.UseAlikeInstanceTypes,
 			InstanceDistribution: &models.V5AddNodePoolRequestNodeSpecAwsInstanceDistribution{
 				OnDemandBaseCapacity:                &args.OnDemandBaseCapacity,
 				OnDemandPercentageAboveBaseCapacity: &onDemandPercentageAboveBaseCapacity,
