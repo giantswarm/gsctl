@@ -9,11 +9,12 @@ import (
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/microerror"
+
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
-	"github.com/giantswarm/microerror"
 )
 
 const (
@@ -37,6 +38,7 @@ If an endpoint was selected before, it remains selected. Re-login using 'gsctl l
 type Arguments struct {
 	// apiEndpoint is the API to log out from
 	apiEndpoint string
+	scheme      string
 	// token is the session token to expire (log out)
 	token             string
 	userProvidedToken string
@@ -45,9 +47,11 @@ type Arguments struct {
 func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
+	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
 
 	return Arguments{
 		apiEndpoint:       endpoint,
+		scheme:            scheme,
 		token:             token,
 		userProvidedToken: flags.Token,
 	}
@@ -92,7 +96,7 @@ func logout(args Arguments) error {
 	// erase local credentials, no matter what the result on the API side is
 	defer config.Config.Logout(args.apiEndpoint)
 
-	if config.Config.Scheme == "Bearer" {
+	if args.scheme == "Bearer" {
 		return nil
 	}
 
