@@ -12,9 +12,11 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
-	"github.com/giantswarm/gsctl/clustercache"
+	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/clustercache"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
@@ -96,13 +98,8 @@ func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
 	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 
-	if errors.IsConflictingFlagsError(err) {
-		fmt.Println(color.RedString("Conflicting flags used"))
-		fmt.Println("The --show-deleting flag cannot be used with JSON output.")
-		fmt.Println("JSON output contains all clusters, including deleted, by default.")
-	} else {
-		fmt.Println(color.RedString(err.Error()))
-	}
+	// Display error
+	fmt.Println(color.RedString(err.Error()))
 
 	os.Exit(1)
 }
@@ -116,9 +113,6 @@ func verifyListClusterPreconditions(args Arguments) error {
 	}
 	if args.outputFormat != outputFormatJSON && args.outputFormat != outputFormatTable {
 		return microerror.Maskf(errors.OutputFormatInvalidError, "Output format '%s' is unknown", args.outputFormat)
-	}
-	if args.outputFormat == outputFormatJSON && args.showDeleting == true {
-		return microerror.Maskf(errors.ConflictingFlagsError, "The --show-deleting flag cannot be used with JSON output.")
 	}
 
 	return nil
@@ -169,19 +163,30 @@ func getClustersOutput(args Arguments) (string, error) {
 		return "", microerror.Mask(err)
 	}
 
+	// sort clusters by ID
+	sort.Slice(response.Payload[:], func(i, j int) bool {
+		return response.Payload[i].ID < response.Payload[j].ID
+	})
+
 	if args.outputFormat == "json" {
-		outputBytes, err := json.MarshalIndent(response.Payload, outputJSONPrefix, outputJSONIndent)
+		var clusters []*models.V4ClusterListItem
+		{
+			for _, cluster := range response.Payload {
+				if cluster.DeleteDate != nil && !args.showDeleting {
+					continue
+				}
+
+				clusters = append(clusters, cluster)
+			}
+		}
+
+		outputBytes, err := json.MarshalIndent(clusters, outputJSONPrefix, outputJSONIndent)
 		if err != nil {
 			return "", microerror.Mask(err)
 		}
 
 		return string(outputBytes), nil
 	}
-
-	// sort clusters by ID
-	sort.Slice(response.Payload[:], func(i, j int) bool {
-		return response.Payload[i].ID < response.Payload[j].ID
-	})
 
 	headers := []string{
 		color.CyanString("ID"),
