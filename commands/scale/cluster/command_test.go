@@ -240,7 +240,7 @@ updated: 2017-09-29T11:23:15+02:00
 				if !tc.errorMatcher(err) {
 					t.Errorf("Case %d - Expected error %v, got %v", i, runtime.FuncForPC(reflect.ValueOf(tc.errorMatcher).Pointer()).Name(), err)
 					if err != nil {
-						t.Logf("Case %d - Stack: %s", i, microerror.Stack(err))
+						t.Logf("Case %d - Stack: %s", i, microerror.JSON(err))
 					}
 				}
 			}
