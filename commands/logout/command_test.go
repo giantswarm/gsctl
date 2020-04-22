@@ -64,6 +64,43 @@ func Test_LogoutInvalidToken(t *testing.T) {
 	}
 }
 
+// Test_LogoutSSO tests the logout for an user authenticated with SSO
+func Test_LogoutSSO(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("This shouldn't have happened!")
+	}))
+	defer mockServer.Close()
+
+	var configYAML = `last_version_check: 0001-01-01T00:00:00Z
+endpoints:
+  ` + mockServer.URL + `:
+    email: email@example.com
+    alias: frog
+    provider: aws
+    refresh_token: 8PyriiiTwCunDCK4tB7E4STRVuN-A3Rg7NaVIrZHmWWD5
+    auth_scheme: Bearer
+    token: eyJhbGcasdi1huojbnkjasd123jkbdkajs
+updated: 2017-09-29T11:23:15+02:00
+selected_endpoint: ` + mockServer.URL
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, configYAML)
+	if err != nil {
+		t.Error(err)
+	}
+
+	logoutArgs := Arguments{
+		apiEndpoint: mockServer.URL,
+		token:       "test-token",
+		scheme:      "Bearer",
+	}
+
+	err = logout(logoutArgs)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 // Test_LogoutCommand simply calls the functions cobra would call,
 // with a temporary config path and mock server as endpoint.
 func Test_LogoutCommand(t *testing.T) {
