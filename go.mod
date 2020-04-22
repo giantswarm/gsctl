@@ -10,11 +10,11 @@ require (
 	github.com/fatih/color v1.9.0
 	github.com/giantswarm/apiextensions v0.0.0-20191213075442-71155aa0f5b7
 	github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatible
-	github.com/giantswarm/gscliauth v0.1.1-0.20200207091127-822ebfd95297
+	github.com/giantswarm/gscliauth v0.2.0
 	github.com/giantswarm/gsclientgen v1.0.2-0.20200416135047-1857195c31fd
 	github.com/giantswarm/k8sclient v0.0.0-20191213144452-f75fead2ae06
 	github.com/giantswarm/kubeconfig v0.0.0-20191209121754-c5784ae65a49
-	github.com/giantswarm/microerror v0.0.0-20191011121515-e0ebc4ecf5a5
+	github.com/giantswarm/microerror v0.2.0
 	github.com/giantswarm/micrologger v0.0.0-20190118112544-0926d9b7c541
 	github.com/go-kit/kit v0.6.0 // indirect
 	github.com/go-logfmt/logfmt v0.4.0 // indirect
@@ -34,7 +34,6 @@ require (
 	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/rogpeppe/go-internal v1.5.0 // indirect
-	github.com/skratchdot/open-golang v0.0.0-20190402232053-79abb63cd66e // indirect
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v0.0.6-0.20190724161051-1c9c46d5c1cc
 	github.com/spf13/pflag v1.0.5

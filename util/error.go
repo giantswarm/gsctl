@@ -3,7 +3,10 @@ package util
 import "github.com/giantswarm/microerror"
 
 // CouldNotSetKubectlClusterError is used if kubectl config set-cluster could not be executed.
-var CouldNotSetKubectlClusterError = microerror.New("could not set cluster using 'kubectl config set-cluster'")
+var CouldNotSetKubectlClusterError = &microerror.Error{
+	Kind: "CouldNotSetKubectlClusterError",
+	Desc: "could not set cluster using 'kubectl config set-cluster'",
+}
 
 // IsCouldNotSetKubectlClusterError asserts CouldNotSetKubectlClusterError.
 func IsCouldNotSetKubectlClusterError(err error) bool {
@@ -11,7 +14,10 @@ func IsCouldNotSetKubectlClusterError(err error) bool {
 }
 
 // CouldNotSetKubectlCredentialsError is used when kubectl config set-credentials could not be executed.
-var CouldNotSetKubectlCredentialsError = microerror.New("could not set credentials using 'kubectl config set-credentials'")
+var CouldNotSetKubectlCredentialsError = &microerror.Error{
+	Kind: "CouldNotSetKubectlCredentialsError",
+	Desc: "could not set credentials using 'kubectl config set-credentials'",
+}
 
 // IsCouldNotSetKubectlCredentialsError asserts CouldNotSetKubectlClusterError.
 func IsCouldNotSetKubectlCredentialsError(err error) bool {
@@ -19,7 +25,10 @@ func IsCouldNotSetKubectlCredentialsError(err error) bool {
 }
 
 // CouldNotSetKubectlContextError is used when kubectl config set-context could not be executed.
-var CouldNotSetKubectlContextError = microerror.New("could not set context using 'kubectl config set-context''")
+var CouldNotSetKubectlContextError = &microerror.Error{
+	Kind: "CouldNotSetKubectlContextError",
+	Desc: "could not set context using 'kubectl config set-context'",
+}
 
 // IsCouldNotSetKubectlContextError asserts CouldNotSetKubectlContextError.
 func IsCouldNotSetKubectlContextError(err error) bool {
@@ -27,7 +36,10 @@ func IsCouldNotSetKubectlContextError(err error) bool {
 }
 
 // CouldNotUseKubectlContextError is used when kubectl config use-context could not be executed.
-var CouldNotUseKubectlContextError = microerror.New("could not apply context using 'kubectl config use-context'")
+var CouldNotUseKubectlContextError = &microerror.Error{
+	Kind: "CouldNotUseKubectlContextError",
+	Desc: "could not apply context using 'kubectl config set-context'",
+}
 
 // IsCouldNotUseKubectlContextError asserts CouldNotUseKubectlContextError.
 func IsCouldNotUseKubectlContextError(err error) bool {

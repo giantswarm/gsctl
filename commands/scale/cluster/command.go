@@ -281,7 +281,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		subtext = "Please use --help to see details regarding the command's usage."
 	case errors.IsCannotScaleCluster(err):
 		headline = "This cluster cannot be scaled as a whole."
-		subtext = microerror.Desc(err)
+		subtext = errors.CannotScaleClusterError.Desc
 
 	default:
 		headline = err.Error()
