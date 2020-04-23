@@ -11,7 +11,7 @@ require (
 	github.com/giantswarm/apiextensions v0.0.0-20191213075442-71155aa0f5b7
 	github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatible
 	github.com/giantswarm/gscliauth v0.1.1-0.20200207091127-822ebfd95297
-	github.com/giantswarm/gsclientgen v1.0.2-0.20200420145256-cbdc083194e8
+	github.com/giantswarm/gsclientgen v0.0.0-20200423130825-3202ff18d14f
 	github.com/giantswarm/k8sclient v0.0.0-20191213144452-f75fead2ae06
 	github.com/giantswarm/kubeconfig v0.0.0-20191209121754-c5784ae65a49
 	github.com/giantswarm/microerror v0.0.0-20191011121515-e0ebc4ecf5a5
@@ -46,7 +46,6 @@ require (
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.2.8
-	honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc
 	k8s.io/apiextensions-apiserver v0.16.4 // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a // indirect
