@@ -54,6 +54,7 @@ func Test_CreateKeypair(t *testing.T) {
 		authToken:       "test-token",
 		clusterNameOrID: "test-cluster-id",
 		fileSystem:      fs,
+		force:           true,
 	}
 
 	err = verifyPreconditions(args)
