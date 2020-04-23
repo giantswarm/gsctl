@@ -25,7 +25,7 @@ func Test_ShowNodePool(t *testing.T) {
 				"name": "Application servers",
 				"availability_zones": ["eu-west-1a", "eu-west-1c"],
 				"scaling": {"min": 3, "max": 10},
-				"node_spec": {"aws": {"instance_type": "c5.large"}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}},
+				"node_spec": {"aws": {"instance_type": "c5.large", "use_alike_instance_types": false, "instance_distribution": {"on_demand_base_capacity": 0, "on_demand_percentage_above_base_capacity": 0}}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}},
 				"status": {"nodes": 3, "nodes_ready": 3},
 				"subnet": "10.1.0.0/24"
 			}`,
@@ -39,7 +39,7 @@ func Test_ShowNodePool(t *testing.T) {
 				"name":"awesome-nodepool",
 				"availability_zones":["europe-west-1b","europe-central-1a","europe-central-1b"],
 				"scaling":{"min":2,"max":5},
-				"node_spec":{"aws":{"instance_type":"nonexisting"},"labels":["web-compute"],"volume_sizes":{"docker":100,"kubelet":100}},
+				"node_spec":{"aws":{"instance_type":"nonexisting", "use_alike_instance_types": false, "instance_distribution": {"on_demand_base_capacity": 0, "on_demand_percentage_above_base_capacity": 0}},"labels":["web-compute"],"volume_sizes":{"docker":100,"kubelet":100}},
 				"status":{"nodes":4,"nodes_ready":4},
 				"subnet":"10.1.0.0/24"
 			}`,

@@ -7,6 +7,17 @@ var (
 	// AvailabilityZones is the number of availability zones to use.
 	AvailabilityZones int
 
+	// AWSUseAlikeInstanceTypes determines if similar instance types are used in an node pool
+	AWSUseAlikeInstanceTypes bool
+
+	// AWSOnDemandBaseCapacity determines the number of on-demand instances used in a node pool
+	// before starting to use spot instances
+	AWSOnDemandBaseCapacity int64
+
+	// AWSSpotPercentage represents the percentage of spot instances
+	// to use in an node pool
+	AWSSpotPercentage int64
+
 	// ConfigDirPath represents the configuration path to use temporarily passed as a flag.
 	ConfigDirPath string
 
@@ -31,6 +42,9 @@ var (
 
 	// Description represents the description passed as a flag.
 	Description string
+
+	// Use spot instances for a node pool
+	EnableSpotInstances bool
 
 	// Force represents the value of the force flag, passed as a flag.
 	// If true, all warnings should be suppressed.

@@ -82,6 +82,22 @@ Examples:
   size limit like this:
 
     gsctl create nodepool f01r4 --nodes-min 3 --nodes-max 10
+
+  To use 50% spot instances in a node pool and making sure to always have
+  three on-demand instances you can create your node pool like this:
+
+    gsctl create nodepool f01r4 --nodes-min 3 --nodes-max 10 \
+	  --aws-on-demand-base-capacity 3 \
+	  --aws-spot-percentage 50
+
+  To use similar instances in your node pool to the one that you defined
+  you can create your node pool like this (the list is maintained by
+  Giant Swarm for now eg. if you select m5.xlarge the node pool can fall
+  back on m4.xlarge too):
+
+    gsctl create nodepool f01r4 --aws-instance-type m4.xlarge \
+	  --aws-use-alike-instance-types
+
 `,
 
 		// PreRun checks a few general things, like authentication.
@@ -115,6 +131,9 @@ func initFlags() {
 	Command.Flags().StringVarP(&flags.WorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers, e. g. 'm5.2xlarge'")
 	Command.Flags().Int64VarP(&flags.WorkersMin, "nodes-min", "", 0, "Minimum number of worker nodes for the node pool.")
 	Command.Flags().Int64VarP(&flags.WorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool.")
+	Command.Flags().BoolVarP(&flags.AWSUseAlikeInstanceTypes, "aws-use-alike-instance-types", "", false, "Use similar instance type in your node pool. This list is maintained by Giant Swarm at the moment. Eg if you select m5.xlarge then the node pool can fall back on m4.xlarge too.")
+	Command.Flags().Int64VarP(&flags.AWSOnDemandBaseCapacity, "aws-on-demand-base-capacity", "", 0, "Number of on-demand instances that this node pool needs to have until spot instances are used. Default is 0")
+	Command.Flags().Int64VarP(&flags.AWSSpotPercentage, "aws-spot-percentage", "", 0, "Percentage of spot instances used once the on-demand base capacity is fullfilled. A number of 40 would mean that 60% will be on-demand and 40% will be spot instances.")
 }
 
 // Arguments defines the arguments this command can take into consideration.
@@ -125,6 +144,9 @@ type Arguments struct {
 	AvailabilityZonesNum  int
 	ClusterNameOrID       string
 	InstanceType          string
+	UseAlikeInstanceTypes bool
+	OnDemandBaseCapacity  int64
+	SpotPercentage        int64
 	Name                  string
 	ScalingMax            int64
 	ScalingMin            int64
@@ -163,6 +185,9 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		AvailabilityZonesNum:  cmdAvailabilityZonesNum,
 		ClusterNameOrID:       positionalArgs[0],
 		InstanceType:          flags.WorkerAwsEc2InstanceType,
+		UseAlikeInstanceTypes: flags.AWSUseAlikeInstanceTypes,
+		OnDemandBaseCapacity:  flags.AWSOnDemandBaseCapacity,
+		SpotPercentage:        flags.AWSSpotPercentage,
 		Name:                  flags.Name,
 		ScalingMax:            flags.WorkersMax,
 		ScalingMin:            flags.WorkersMin,
@@ -227,6 +252,11 @@ func verifyPreconditions(args Arguments) error {
 		}
 	}
 
+	// SpotPercentage check percentage
+	if args.SpotPercentage < 0 || args.SpotPercentage > 100 {
+		return microerror.Mask(errors.NotPercentage)
+	}
+
 	return nil
 }
 
@@ -272,12 +302,20 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 	requestBody := &models.V5AddNodePoolRequest{
 		Name: args.Name,
 	}
-	if args.InstanceType != "" {
-		requestBody.NodeSpec = &models.V5AddNodePoolRequestNodeSpec{
-			Aws: &models.V5AddNodePoolRequestNodeSpecAws{
-				InstanceType: args.InstanceType,
+
+	onDemandPercentageAboveBaseCapacity := 100 - args.SpotPercentage
+
+	requestBody.NodeSpec = &models.V5AddNodePoolRequestNodeSpec{
+		Aws: &models.V5AddNodePoolRequestNodeSpecAws{
+			UseAlikeInstanceTypes: &args.UseAlikeInstanceTypes,
+			InstanceDistribution: &models.V5AddNodePoolRequestNodeSpecAwsInstanceDistribution{
+				OnDemandBaseCapacity:                &args.OnDemandBaseCapacity,
+				OnDemandPercentageAboveBaseCapacity: &onDemandPercentageAboveBaseCapacity,
 			},
-		}
+		},
+	}
+	if args.InstanceType != "" {
+		requestBody.NodeSpec.Aws.InstanceType = args.InstanceType
 	}
 	if args.AvailabilityZonesList != nil && len(args.AvailabilityZonesList) > 0 {
 		requestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{

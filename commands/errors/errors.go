@@ -710,3 +710,10 @@ var EndpointNotFoundError = &microerror.Error{
 func IsEndpointNotFoundError(err error) bool {
 	return microerror.Cause(err) == EndpointNotFoundError
 }
+
+// NotPercentage should be used when the user
+// tries to set a percentage value outside 0-100
+var NotPercentage = &microerror.Error{
+	Kind: "NotPercentage",
+	Desc: "Value should be in the range between 0 and 100.",
+}

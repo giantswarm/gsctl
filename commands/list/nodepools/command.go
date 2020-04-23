@@ -37,15 +37,19 @@ var (
 The result will be a table of all node pools of a specific cluster with the following details in
 columns:
 
-	ID:             Node pool identifier (unique within the cluster)
-	NAME:           Name specified for the node pool, usually indicating the purpose
-	AZ:             Availability zone letters used by the node pool, separated by comma
-	INSTANCE TYPE:  EC2 instance type used for worker nodes
-	NODES MIN/MAX:  The minimum and maximum number of worker nodes in this pool
-	NODES DESIRED:  Current desired number of nodes as determined by the autoscaler
-	NODES READY:    Number of nodes that are in the Ready state in kubernetes
-	CPUS:           Sum of CPU cores in nodes that are in state Ready
-	RAM (GB):       Sum of memory in GB of all nodes that are in state Ready
+	ID:              Node pool identifier (unique within the cluster)
+	NAME:            Name specified for the node pool, usually indicating the purpose
+	AZ:              Availability zone letters used by the node pool, separated by comma
+	INSTANCE TYPES:  EC2 instance types used for worker nodes
+	ALIKE:           If similar instance types are allowed in your node pool. This list is maintained by Giant Swarm at the moment. Eg if you select m5.xlarge then the node pool can fall back on m4.xlarge too
+	ON-DEMAND BASE:  Number of on-demand instances that this node pool needs to have until spot instances are used.
+	SPOT PERCENTAGE: Percentage of spot instances used once the on-demand base capacity is fullfilled. A number of 40 means that 60% will be on-demand and 40% will be spot instances.
+	NODES MIN/MAX:   The minimum and maximum number of worker nodes in this pool
+	NODES DESIRED:   Current desired number of nodes as determined by the autoscaler
+	NODES READY:     Number of nodes that are in the Ready state in kubernetes
+	SPOT INSTANCES:  Number of spot instances in this node pool
+	CPUS:            Sum of CPU cores in nodes that are in state Ready
+	RAM (GB):        Sum of memory in GB of all nodes that are in state Ready
 
 To see all available details for a cluster, use 'gsctl show nodepool <cluster-id>/<nodepool-id>'.
 
@@ -215,23 +219,38 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		color.CyanString("NAME"),
 		color.CyanString("AZ"),
 		color.CyanString("INSTANCE TYPE"),
+		color.CyanString("ALIKE"),
+		color.CyanString("ON-DEMAND BASE"),
+		color.CyanString("SPOT PERCENTAGE"),
 		color.CyanString("NODES MIN/MAX"),
 		color.CyanString("NODES DESIRED"),
 		color.CyanString("NODES READY"),
+		color.CyanString("SPOT INSTANCES"),
 		color.CyanString("CPUS"),
 		color.CyanString("RAM (GB)"),
 	}
 	table = append(table, strings.Join(headers, "|"))
 
 	for _, row := range nodePools {
+		var instanceTypes string
+		if len(row.nodePool.Status.InstanceTypes) > 0 {
+			instanceTypes = strings.Join(row.nodePool.Status.InstanceTypes, ",")
+		} else {
+			instanceTypes = row.nodePool.NodeSpec.Aws.InstanceType
+		}
+
 		table = append(table, strings.Join([]string{
 			row.nodePool.ID,
 			row.nodePool.Name,
 			formatting.AvailabilityZonesList(row.nodePool.AvailabilityZones),
-			row.nodePool.NodeSpec.Aws.InstanceType,
+			instanceTypes,
+			fmt.Sprintf("%t", row.nodePool.NodeSpec.Aws.UseAlikeInstanceTypes),
+			strconv.FormatInt(row.nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandBaseCapacity, 10),
+			strconv.FormatInt(100-row.nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandPercentageAboveBaseCapacity, 10),
 			strconv.FormatInt(row.nodePool.Scaling.Min, 10) + "/" + strconv.FormatInt(row.nodePool.Scaling.Max, 10),
 			strconv.FormatInt(row.nodePool.Status.Nodes, 10),
 			formatNodesReady(row.nodePool.Status.Nodes, row.nodePool.Status.NodesReady),
+			strconv.FormatInt(row.nodePool.Status.SpotInstances, 10),
 			strconv.FormatInt(row.sumCPUs, 10),
 			strconv.FormatFloat(row.sumMemory, 'f', 1, 64),
 		}, "|"))
@@ -244,6 +263,10 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		&columnize.ColumnSpecification{Alignment: columnize.AlignLeft},
 		&columnize.ColumnSpecification{Alignment: columnize.AlignLeft},
 		&columnize.ColumnSpecification{Alignment: columnize.AlignLeft},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
 		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
 		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
 		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},

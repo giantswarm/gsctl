@@ -72,10 +72,11 @@ func collectArguments(positionalArgs []string) (*Arguments, error) {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
 
-	if !strings.Contains(positionalArgs[0], "/") {
-		return nil, microerror.Mask(errors.InvalidNodePoolIDArgumentError)
-	}
 	parts := strings.Split(positionalArgs[0], "/")
+
+	if len(parts) < 2 {
+		return nil, microerror.Maskf(errors.InvalidNodePoolIDArgumentError, "Please specify the node pool as <cluster-name/cluster-id>/<nodepool-id>. Use --help for details.")
+	}
 
 	return &Arguments{
 		apiEndpoint:       endpoint,
@@ -106,8 +107,7 @@ func verifyPreconditions(args *Arguments) error {
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	args, err := collectArguments(positionalArgs)
-
-	if err != nil {
+	if err == nil {
 		err = verifyPreconditions(args)
 	}
 
@@ -122,8 +122,8 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	subtext := ""
 
 	if errors.IsInvalidNodePoolIDArgument(err) {
-		headline = "Bad cluster name/ID or nodepool ID"
-		subtext = "Please give the cluster name/ID, followed by /, followed by the node pool ID."
+		headline = "Invalid argument syntax"
+		subtext = "Please give the cluster name or ID, followed by /, followed by the node pool ID."
 	} else {
 		headline = err.Error()
 	}
@@ -194,15 +194,26 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		os.Exit(1)
 	}
 
+	var instanceTypes string
+	if len(data.nodePool.Status.InstanceTypes) > 0 {
+		instanceTypes = strings.Join(data.nodePool.Status.InstanceTypes, ",")
+	} else {
+		instanceTypes = data.nodePool.NodeSpec.Aws.InstanceType
+	}
+
 	table := []string{}
 
 	table = append(table, color.YellowString("ID:")+"|"+data.nodePool.ID)
 	table = append(table, color.YellowString("Name:")+"|"+data.nodePool.Name)
-	table = append(table, color.YellowString("Node instance type:")+"|"+formatInstanceType(data.nodePool.NodeSpec.Aws.InstanceType, data.instanceTypeDetails))
+	table = append(table, color.YellowString("Node instance types:")+"|"+formatInstanceType(instanceTypes, data.instanceTypeDetails))
+	table = append(table, color.YellowString("Alike instances types:")+fmt.Sprintf("|%t", data.nodePool.NodeSpec.Aws.UseAlikeInstanceTypes))
 	table = append(table, color.YellowString("Availability zones:")+"|"+formatting.AvailabilityZonesList(data.nodePool.AvailabilityZones))
+	table = append(table, color.YellowString("On-demand base capacity:")+fmt.Sprintf("|%d", data.nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandBaseCapacity))
+	table = append(table, color.YellowString("Spot percentage above base capacity:")+fmt.Sprintf("|%d", 100-data.nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandPercentageAboveBaseCapacity))
 	table = append(table, color.YellowString("Node scaling:")+"|"+formatNodeScaling(data.nodePool.Scaling))
 	table = append(table, color.YellowString("Nodes desired:")+fmt.Sprintf("|%d", data.nodePool.Status.Nodes))
 	table = append(table, color.YellowString("Nodes in state Ready:")+fmt.Sprintf("|%d", data.nodePool.Status.NodesReady))
+	table = append(table, color.YellowString("Spot instances:")+fmt.Sprintf("|%d", data.nodePool.Status.SpotInstances))
 	table = append(table, color.YellowString("CPUs:")+"|"+formatCPUs(data.nodePool.Status.NodesReady, data.instanceTypeDetails))
 	table = append(table, color.YellowString("RAM:")+"|"+formatRAM(data.nodePool.Status.NodesReady, data.instanceTypeDetails))
 
