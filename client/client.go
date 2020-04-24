@@ -191,6 +191,9 @@ func getCommandLine() string {
 // redactArgs replaces sensitive information in an arguments slice
 // with "REDACTED".
 func redactArgs(args []string) []string {
+	// The key represents which flag's value to redact
+	// The value represents the commands that this rule applies to
+	// "*" command rule means that it applies to all commands
 	argsToRedact := map[string]string{
 		"--password":   "*",
 		"--auth-token": "*",
