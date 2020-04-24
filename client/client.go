@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -183,24 +184,30 @@ func getCommandLine() string {
 	if os.Getenv("GSCTL_DISABLE_CMDLINE_TRACKING") != "" {
 		return ""
 	}
-	args := redactPasswordArgs(os.Args)
+	args := redactArgs(os.Args)
 	return strings.Join(args, " ")
 }
 
-// redactPasswordArgs replaces password in an arguments slice
+// redactArgs replaces sensitive information in an arguments slice
 // with "REDACTED".
-func redactPasswordArgs(args []string) []string {
+func redactArgs(args []string) []string {
+	// The key represents which flag's value to redact
+	// The value represents the commands that this rule applies to
+	// "*" command rule means that it applies to all commands
+	argsToRedact := map[string]string{
+		"--password":   "*",
+		"--auth-token": "*",
+		"-p":           "login",
+	}
+
 	for index, arg := range args {
-		if strings.HasPrefix(arg, "--password=") {
-			args[index] = "--password=REDACTED"
-		} else if arg == "--password" {
-			args[index+1] = "REDACTED"
-		} else if len(args) > 1 && args[1] == "login" {
-			// this will explicitly only apply to the login command
-			if strings.HasPrefix(arg, "-p=") {
-				args[index] = "-p=REDACTED"
-			} else if arg == "-p" {
-				args[index+1] = "REDACTED"
+		for name, cmd := range argsToRedact {
+			if cmd == "*" || len(args) > 1 && args[1] == cmd {
+				if strings.HasPrefix(arg, name+"=") {
+					args[index] = fmt.Sprintf("%s=REDACTED", name)
+				} else if arg == name {
+					args[index+1] = "REDACTED"
+				}
 			}
 		}
 	}
@@ -747,7 +754,7 @@ func (w *Wrapper) CreateApp(clusterID string, appName string, addAppRequest *mod
 	return response, nil
 }
 
-//GetApp fetches details on a cluster using the gsclientgen client.
+// GetApp fetches details on a cluster using the gsclientgen client.
 func (w *Wrapper) GetApp(clusterID string, appName string, p *AuxiliaryParams) (*models.V4GetClusterAppsResponseItems, error) {
 
 	params := apps.NewGetClusterAppsV4Params().WithClusterID(clusterID)
@@ -792,7 +799,7 @@ func (w *Wrapper) GetAppStatus(clusterID string, appName string, p *AuxiliaryPar
 		return "", clienterror.New(err)
 	}
 
-	//type V4GetClusterAppsResponse []*V4GetClusterAppsResponseItems
+	// type V4GetClusterAppsResponse []*V4GetClusterAppsResponseItems
 	apps := response.Payload
 
 	for _, app := range apps {
