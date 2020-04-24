@@ -15,13 +15,13 @@ import (
 	"github.com/giantswarm/gsctl/testutils"
 )
 
-// TestRedactPasswordArgs tests redactArgs().
-func TestRedactPasswordArgs(t *testing.T) {
+// TestRedactArgs tests redactArgs().
+func TestRedactArgs(t *testing.T) {
 	argtests := []struct {
 		in  string
 		out string
 	}{
-		// these remain unchangd
+		// these remain unchanged
 		{"foo", "foo"},
 		{"foo bar", "foo bar"},
 		{"foo bar blah", "foo bar blah"},
