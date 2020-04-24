@@ -15,7 +15,7 @@ import (
 	"github.com/giantswarm/gsctl/testutils"
 )
 
-// TestRedactPasswordArgs tests redactPasswordArgs().
+// TestRedactPasswordArgs tests redactArgs().
 func TestRedactPasswordArgs(t *testing.T) {
 	argtests := []struct {
 		in  string
@@ -30,13 +30,15 @@ func TestRedactPasswordArgs(t *testing.T) {
 		// these will be altered
 		{"foo bar blah --password mypass", "foo bar blah --password REDACTED"},
 		{"foo bar blah --password=mypass", "foo bar blah --password=REDACTED"},
+		{"foo bar blah --auth-token=some-token", "foo bar blah --auth-token=REDACTED"},
+		{"foo bar blah --auth-token some-token", "foo bar blah --auth-token REDACTED"},
 		{"foo login blah -p mypass", "foo login blah -p REDACTED"},
 		{"foo login blah -p=mypass", "foo login blah -p=REDACTED"},
 	}
 
 	for _, tt := range argtests {
 		in := strings.Split(tt.in, " ")
-		out := strings.Join(redactPasswordArgs(in), " ")
+		out := strings.Join(redactArgs(in), " ")
 		if out != tt.out {
 			t.Errorf("want '%q', have '%s'", tt.in, tt.out)
 		}
