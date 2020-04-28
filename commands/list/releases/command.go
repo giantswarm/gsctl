@@ -169,61 +169,16 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 		color.CyanString("CALICO"),
 	}, "|")}
 
-	var (
-		major  int64
-		status = "deprecated"
-
-		nextVersion *semver.Version
-	)
-
-	for i, release := range releases {
+	for _, release := range releases {
 		created := util.ShortDate(util.ParseDate(*release.Timestamp))
 		kubernetesVersion := "n/a"
 		containerLinuxVersion := "n/a"
 		coreDNSVersion := "n/a"
 		calicoVersion := "n/a"
 
-		// As long as the status information is not specific in the API
-		// we start with deprecated, find the active one and then switch
-		// to "wip" for each major version.
-		version, err := semver.NewVersion(*release.Version)
-
-		if err == nil {
-			if version.Major() > major {
-				// Found new major release.
-				major = version.Major()
-
-				// If this is a new major version and the last release
-				// likelihood is high that this is a wip release and
-				// not deprecated.
-				if i == len(releases)-1 {
-					status = "wip"
-				} else {
-					status = "deprecated"
-				}
-			}
-
-			if release.Active {
-				status = "active"
-			} else if status == "active" {
-				if i < len(releases)-1 {
-					// If the previous version is active, the next
-					// version is a major upgrade, and this one
-					// is inactive, then it is probably a wip.
-					nextVersion, err = semver.NewVersion(*releases[i+1].Version)
-					if err != nil && nextVersion.Major() > major {
-						status = "wip"
-					} else {
-						status = "deprecated"
-					}
-				} else {
-					status = "wip"
-				}
-			}
-		} else {
-			// release version couldn't be parsed
-			major = 0
-			status = "-"
+		status := "inactive"
+		if release.Active {
+			status = "active"
 		}
 
 		for _, component := range release.Components {
