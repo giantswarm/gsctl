@@ -245,6 +245,9 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 			if arguments.InputYAMLFile != "" {
 				subtext = "Please specify an owner organization for the cluster in your definition file or set one via the --owner flag."
 			}
+		case errors.IsClusterInstanceTypeNotFoundError(err):
+			headline = "Instance type not found"
+			subtext = "Please specify a valid instance type. You can run 'gsctl info' to get a list of all available ones."
 		case errors.IsYAMLNotParseable(err):
 			headline = "Could not parse YAML"
 			if arguments.InputYAMLFile == standardInputSpecialPath {
@@ -394,6 +397,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = createClusterActivityName
 
+	var instanceTypes []string
 	// Ensure provider information is there.
 	if config.Config.Provider == "" {
 		if flags.Verbose {
@@ -403,6 +407,12 @@ func addCluster(args Arguments) (*creationResult, error) {
 		info, err := clientWrapper.GetInfo(auxParams)
 		if err != nil {
 			return nil, microerror.Mask(err)
+		}
+
+		if info.Payload.General.Provider == "azure" {
+			instanceTypes = info.Payload.Workers.VMSize.Options
+		} else if info.Payload.General.Provider == "aws" {
+			instanceTypes = info.Payload.Workers.InstanceType.Options
 		}
 
 		err = config.Config.SetProvider(info.Payload.General.Provider)
@@ -541,6 +551,15 @@ func addCluster(args Arguments) (*creationResult, error) {
 		}
 
 		updateDefinitionFromFlagsV4(result.DefinitionV4, args.ClusterName, args.ReleaseVersion, args.Owner)
+
+		// If instanceTypes is nil, it means that the provider is KVM,
+		// so we won't validate.
+		{
+			valid := validateInstanceTypes(result.DefinitionV4, instanceTypes, config.Config.Provider)
+			if !valid {
+				return nil, microerror.Mask(errors.ClusterInstanceTypeNotFoundError)
+			}
+		}
 
 		id, location, err := addClusterV4(result.DefinitionV4, args, clientWrapper, auxParams)
 		if err != nil {
