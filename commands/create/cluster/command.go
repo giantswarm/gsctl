@@ -397,16 +397,24 @@ func addCluster(args Arguments) (*creationResult, error) {
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = createClusterActivityName
 
+	info, err := clientWrapper.GetInfo(auxParams)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
 	var instanceTypes []string
+	{
+		if info.Payload.General.Provider == "azure" {
+			instanceTypes = info.Payload.Workers.VMSize.Options
+		} else if info.Payload.General.Provider == "aws" {
+			instanceTypes = info.Payload.Workers.InstanceType.Options
+		}
+	}
+
 	// Ensure provider information is there.
 	if config.Config.Provider == "" {
 		if flags.Verbose {
 			fmt.Println(color.WhiteString("Fetching installation information"))
-		}
-
-		info, err := clientWrapper.GetInfo(auxParams)
-		if err != nil {
-			return nil, microerror.Mask(err)
 		}
 
 		if info.Payload.General.Provider == "azure" {

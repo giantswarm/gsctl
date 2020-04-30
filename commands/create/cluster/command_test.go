@@ -325,6 +325,12 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					},
 					"features": {
 					  "nodepools": {"release_version_minimum": "9.0.0"}
+					},
+					"workers": {
+					  "instance_type": {
+					    "default": "standard",
+						"options": ["standard", "hiram", "hicpu"]
+					  }
 					}
 				  }`))
 			} else if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
@@ -440,6 +446,12 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 					},
 					"features": {
 					  "nodepools": {"release_version_minimum": "9.0.0"}
+					},
+					"workers": {
+					  "instance_type": {
+					    "default": "standard",
+						"options": ["standard", "hiram", "hicpu"]
+					  }
 					}
 				  }`))
 			} else {

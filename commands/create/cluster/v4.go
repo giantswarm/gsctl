@@ -120,6 +120,10 @@ func addClusterV4(def *types.ClusterDefinitionV4, args Arguments, clientWrapper 
 }
 
 func validateInstanceTypes(def *types.ClusterDefinitionV4, instanceTypes []string, provider string) bool {
+	if len(def.Workers) == 0 {
+		return true
+	}
+
 	var chosenInstance string
 	{
 		if provider == "aws" {
@@ -129,7 +133,7 @@ func validateInstanceTypes(def *types.ClusterDefinitionV4, instanceTypes []strin
 		}
 
 		if chosenInstance == "" {
-			return false
+			return true
 		}
 	}
 
