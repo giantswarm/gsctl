@@ -3,8 +3,9 @@
 package errors
 
 import (
-	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/microerror"
+
+	"github.com/giantswarm/gsctl/client/clienterror"
 )
 
 // UnknownError should be thrown if we have no idea what went wrong.
@@ -229,6 +230,17 @@ var ClusterOwnerMissingError = &microerror.Error{
 // IsClusterOwnerMissingError asserts ClusterOwnerMissingError.
 func IsClusterOwnerMissingError(err error) bool {
 	return microerror.Cause(err) == ClusterOwnerMissingError
+}
+
+// ClusterInstanceTypeNotFoundError means that the user has specified
+// an instance type that was not found.
+var ClusterInstanceTypeNotFoundError = &microerror.Error{
+	Kind: "ClusterInstanceTypeNotFoundError",
+}
+
+// IsClusterInstanceTypeNotFoundError asserts ClusterInstanceTypeNotFoundError.
+func IsClusterInstanceTypeNotFoundError(err error) bool {
+	return microerror.Cause(err) == ClusterInstanceTypeNotFoundError
 }
 
 // OrganizationNotFoundError means that the specified organization could not be found
