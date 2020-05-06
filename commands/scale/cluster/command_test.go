@@ -288,7 +288,8 @@ func TestScaleClusterNotLoggedIn(t *testing.T) {
 // user logged in.
 func TestScaleCluster(t *testing.T) {
 	testCases := []struct {
-		numWorkersBefore  int
+		numWorkersBefore int
+
 		initialMinScaling int
 		desiredMinScaling int
 		workersMinSet     bool
@@ -297,11 +298,13 @@ func TestScaleCluster(t *testing.T) {
 		initialMaxScaling int
 		desiredMaxScaling int
 		workersMaxSet     bool
-		numWorkersAfter   int
 		resultWorkersMax  int
+
+		numWorkersAfter int
 	}{
 		{
-			numWorkersBefore:  3,
+			numWorkersBefore: 3,
+
 			initialMinScaling: 3,
 			desiredMinScaling: 5,
 			workersMinSet:     true,
@@ -310,8 +313,54 @@ func TestScaleCluster(t *testing.T) {
 			initialMaxScaling: 3,
 			desiredMaxScaling: 5,
 			workersMaxSet:     true,
-			numWorkersAfter:   5,
 			resultWorkersMax:  5,
+
+			numWorkersAfter: 5,
+		},
+		{
+			numWorkersBefore: 4,
+
+			initialMinScaling: 3,
+			desiredMinScaling: 5,
+			workersMinSet:     true,
+			resultWorkersMin:  5,
+
+			initialMaxScaling: 6,
+			desiredMaxScaling: 10,
+			workersMaxSet:     true,
+			resultWorkersMax:  10,
+
+			numWorkersAfter: 4,
+		},
+		{
+			numWorkersBefore: 4,
+
+			initialMinScaling: 3,
+			desiredMinScaling: 5,
+			workersMinSet:     true,
+			resultWorkersMin:  5,
+
+			initialMaxScaling: 6,
+			desiredMaxScaling: 10,
+			workersMaxSet:     false,
+			resultWorkersMax:  6,
+
+			numWorkersAfter: 4,
+		},
+		{
+			numWorkersBefore: 10,
+
+			initialMinScaling: 8,
+			desiredMinScaling: 10,
+			workersMinSet:     false,
+			resultWorkersMin:  8,
+
+			initialMaxScaling: 8,
+			desiredMaxScaling: 10,
+			workersMaxSet:     true,
+			resultWorkersMax:  10,
+
+			numWorkersAfter: 8,
 		},
 	}
 
