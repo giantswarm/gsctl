@@ -356,7 +356,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 	// Preparing API call.
 	var reqBody *models.V4ModifyClusterRequest
 	{
-		minWorkers := int64(scalingResult.ScalingMaxBefore)
+		minWorkers := int64(scalingResult.ScalingMinBefore)
 		if args.WorkersMinSet {
 			minWorkers = args.WorkersMin
 		}
