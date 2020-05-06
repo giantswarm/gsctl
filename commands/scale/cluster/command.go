@@ -8,9 +8,10 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
-	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/clustercache"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
@@ -97,11 +98,11 @@ type Arguments struct {
 
 // Result is the resulting data we get from our business function.
 type Result struct {
-	numWorkersBefore int
-	scalingMinBefore int
-	scalingMinAfter  int
-	scalingMaxBefore int
-	scalingMaxAfter  int
+	NumWorkersBefore int
+	ScalingMinBefore int
+	ScalingMinAfter  int
+	ScalingMaxBefore int
+	ScalingMaxAfter  int
 }
 
 // getConfirmation asks the user for confirmation for scaling actions.
@@ -314,9 +315,9 @@ func scaleCluster(args Arguments) (*Result, error) {
 	}
 
 	scalingResult := &Result{
-		numWorkersBefore: int(len(clusterDetails.Payload.Workers)),
-		scalingMaxBefore: int(clusterDetails.Payload.Scaling.Max),
-		scalingMinBefore: int(clusterDetails.Payload.Scaling.Min),
+		NumWorkersBefore: int(len(clusterDetails.Payload.Workers)),
+		ScalingMaxBefore: int(clusterDetails.Payload.Scaling.Max),
+		ScalingMinBefore: int(clusterDetails.Payload.Scaling.Min),
 	}
 
 	var statusWorkers int
@@ -345,7 +346,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 	// Ask for confirmation for the scaling action.
 	if !args.OppressConfirmation {
 		// get confirmation and handle result
-		err = getConfirmation(args, scalingResult.scalingMaxBefore, scalingResult.scalingMinBefore, statusWorkers)
+		err = getConfirmation(args, scalingResult.ScalingMaxBefore, scalingResult.ScalingMinBefore, statusWorkers)
 		if err != nil {
 			fmt.Println(color.GreenString("Scaling cancelled"))
 			os.Exit(0)
@@ -353,11 +354,25 @@ func scaleCluster(args Arguments) (*Result, error) {
 	}
 
 	// Preparing API call.
-	reqBody := &models.V4ModifyClusterRequest{
-		Scaling: &models.V4ModifyClusterRequestScaling{
-			Max: args.WorkersMax,
-			Min: args.WorkersMin,
-		},
+	var reqBody *models.V4ModifyClusterRequest
+	{
+		minWorkers := int64(scalingResult.ScalingMaxBefore)
+		if args.WorkersMinSet {
+			minWorkers = args.WorkersMin
+		}
+
+		maxWorkers := int64(scalingResult.ScalingMaxBefore)
+		if args.WorkersMaxSet {
+			maxWorkers = args.WorkersMax
+		}
+
+		// Preparing API call.
+		reqBody = &models.V4ModifyClusterRequest{
+			Scaling: &models.V4ModifyClusterRequestScaling{
+				Max: maxWorkers,
+				Min: minWorkers,
+			},
+		}
 	}
 
 	// perform API call
@@ -369,8 +384,8 @@ func scaleCluster(args Arguments) (*Result, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	scalingResult.scalingMinAfter = int(args.WorkersMin)
-	scalingResult.scalingMaxAfter = int(args.WorkersMax)
+	scalingResult.ScalingMinAfter = int(reqBody.Scaling.Min)
+	scalingResult.ScalingMaxAfter = int(reqBody.Scaling.Max)
 
 	return scalingResult, nil
 }
@@ -422,5 +437,5 @@ func printResult(cmd *cobra.Command, commandLineArgs []string) {
 	}
 
 	fmt.Println(color.GreenString("The cluster is being scaled"))
-	fmt.Printf("The cluster limits have been changed from min=%d and max=%d to min=%d and max=%d workers.\n", result.scalingMinBefore, result.scalingMaxBefore, result.scalingMinAfter, result.scalingMaxAfter)
+	fmt.Printf("The cluster limits have been changed from min=%d and max=%d to min=%d and max=%d workers.\n", result.ScalingMinBefore, result.ScalingMaxBefore, result.ScalingMinAfter, result.ScalingMaxAfter)
 }
