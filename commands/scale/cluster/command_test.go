@@ -411,11 +411,19 @@ selected_endpoint: ` + mockServer.URL
 		t.Error(err)
 	}
 
-	_, scaleErr := scaleCluster(testArgs)
-
+	result, scaleErr := scaleCluster(testArgs)
 	if scaleErr != nil {
 		t.Error(scaleErr)
 	}
 
-	// TODO: check result
+	expectedResult := Result{
+		NumWorkersBefore: 3,
+		ScalingMinBefore: 3,
+		ScalingMinAfter:  5,
+		ScalingMaxBefore: 3,
+		ScalingMaxAfter:  5,
+	}
+	if diff := cmp.Diff(expectedResult, *result); diff != "" {
+		t.Errorf("Scaling result unequal. (-expected +got):\n%s", diff)
+	}
 }
