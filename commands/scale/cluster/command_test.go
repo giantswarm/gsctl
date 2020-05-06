@@ -292,20 +292,26 @@ func TestScaleCluster(t *testing.T) {
 		initialMinScaling int
 		desiredMinScaling int
 		workersMinSet     bool
+		resultWorkersMin  int
+
 		initialMaxScaling int
 		desiredMaxScaling int
 		workersMaxSet     bool
 		numWorkersAfter   int
+		resultWorkersMax  int
 	}{
 		{
 			numWorkersBefore:  3,
 			initialMinScaling: 3,
 			desiredMinScaling: 5,
 			workersMinSet:     true,
+			resultWorkersMin:  5,
+
 			initialMaxScaling: 3,
 			desiredMaxScaling: 5,
 			workersMaxSet:     true,
 			numWorkersAfter:   5,
+			resultWorkersMax:  5,
 		},
 	}
 
@@ -419,9 +425,9 @@ selected_endpoint: ` + mockServer.URL
 			expectedResult := Result{
 				NumWorkersBefore: tc.numWorkersBefore,
 				ScalingMinBefore: tc.initialMinScaling,
-				ScalingMinAfter:  tc.desiredMinScaling,
+				ScalingMinAfter:  tc.resultWorkersMin,
 				ScalingMaxBefore: tc.initialMaxScaling,
-				ScalingMaxAfter:  tc.desiredMaxScaling,
+				ScalingMaxAfter:  tc.resultWorkersMax,
 			}
 			if diff := cmp.Diff(expectedResult, *result); diff != "" {
 				t.Errorf("Case %d: Scaling result unequal. (-expected +got):\n%s", i, diff)
