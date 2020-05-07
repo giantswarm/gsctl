@@ -221,7 +221,7 @@ func getOutput(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 	}
 
 	// create combined output data structure.
-	rows := []*resultRow{}
+	rows := make([]*resultRow, 0, len(nps))
 
 	for _, np := range nps {
 		it, err := awsInfo.GetInstanceTypeDetails(np.NodeSpec.Aws.InstanceType)
@@ -235,7 +235,7 @@ func getOutput(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 		rows = append(rows, &resultRow{np, it, sumCPUs, sumMemory})
 	}
 
-	table := []string{}
+	table := make([]string, 0, len(rows)+1)
 
 	headers := []string{
 		color.CyanString("ID"),
