@@ -57,7 +57,7 @@ func init() {
 func initFlags() {
 	Command.ResetFlags()
 	Command.Flags().StringVarP(&flags.Name, "name", "n", "", "new cluster name")
-	Command.Flags().StringSliceVar(&flags.Label, "label", nil, "label")
+	Command.Flags().StringSliceVar(&flags.Label, "label", nil, "modification of a label in form of key=value. Can be specified multiple times. To delete a label set to key=")
 }
 
 // Arguments represents all the ways the user can influence the command.
