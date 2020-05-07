@@ -146,7 +146,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 
 // fetchNodePools collects all information we would want to display
 // on the node pools of a cluster.
-func fetchNodePools(args Arguments) ([]*resultRow, error) {
+func fetchNodePools(args Arguments) ([]*models.V5GetNodePoolsResponseItems, error) {
 	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -182,58 +182,57 @@ func fetchNodePools(args Arguments) ([]*resultRow, error) {
 		return response.Payload[i].ID < response.Payload[j].ID
 	})
 
-	awsInfo, err := nodespec.NewAWS()
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	// create combined output data structure.
-	rows := []*resultRow{}
-
-	for _, np := range response.Payload {
-		it, err := awsInfo.GetInstanceTypeDetails(np.NodeSpec.Aws.InstanceType)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-
-		sumCPUs := np.Status.NodesReady * int64(it.CPUCores)
-		sumMemory := float64(np.Status.NodesReady) * float64(it.MemorySizeGB)
-
-		rows = append(rows, &resultRow{np, it, sumCPUs, sumMemory})
-	}
-
-	return rows, nil
-
+	return response.Payload, nil
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
 	nodePools, err := fetchNodePools(arguments)
-
 	if err != nil {
-		client.HandleErrors(err)
-		errors.HandleCommonErrors(err)
-
-		headline := ""
-		subtext := ""
-
-		switch {
-		case errors.IsClusterDoesNotSupportNodePools(err):
-			headline = "This cluster does not support node pools."
-			subtext = "Node pools cannot be listed for this cluster. Please use 'gsctl show cluster' to get information on worker nodes."
-		default:
-			headline = err.Error()
-		}
-
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
+		handleError(err)
 		os.Exit(1)
 	}
 
 	if len(nodePools) == 0 {
 		fmt.Println(color.YellowString("This cluster has no node pools"))
 		return
+	}
+
+	output, err := getOutput(nodePools)
+	if err != nil {
+		handleError(err)
+		os.Exit(1)
+	}
+	// Display output.
+	fmt.Println(output)
+}
+
+func formatNodesReady(nodes, nodesReady int64) string {
+	if nodes == nodesReady {
+		return strconv.FormatInt(nodesReady, 10)
+	}
+
+	return color.YellowString(strconv.FormatInt(nodesReady, 10))
+}
+
+func getOutput(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
+	awsInfo, err := nodespec.NewAWS()
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	// create combined output data structure.
+	rows := []*resultRow{}
+
+	for _, np := range nps {
+		it, err := awsInfo.GetInstanceTypeDetails(np.NodeSpec.Aws.InstanceType)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+
+		sumCPUs := np.Status.NodesReady * int64(it.CPUCores)
+		sumMemory := float64(np.Status.NodesReady) * float64(it.MemorySizeGB)
+
+		rows = append(rows, &resultRow{np, it, sumCPUs, sumMemory})
 	}
 
 	table := []string{}
@@ -255,7 +254,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 	table = append(table, strings.Join(headers, "|"))
 
-	for _, row := range nodePools {
+	for _, row := range rows {
 		var instanceTypes string
 		if len(row.nodePool.Status.InstanceTypes) > 0 {
 			instanceTypes = strings.Join(row.nodePool.Status.InstanceTypes, ",")
@@ -297,13 +296,26 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
 	}
 
-	fmt.Println(columnize.Format(table, colConfig))
+	return columnize.Format(table, colConfig), nil
 }
 
-func formatNodesReady(nodes, nodesReady int64) string {
-	if nodes == nodesReady {
-		return strconv.FormatInt(nodesReady, 10)
+func handleError(err error) {
+	client.HandleErrors(err)
+	errors.HandleCommonErrors(err)
+
+	headline := ""
+	subtext := ""
+
+	switch {
+	case errors.IsClusterDoesNotSupportNodePools(err):
+		headline = "This cluster does not support node pools."
+		subtext = "Node pools cannot be listed for this cluster. Please use 'gsctl show cluster' to get information on worker nodes."
+	default:
+		headline = err.Error()
 	}
 
-	return color.YellowString(strconv.FormatInt(nodesReady, 10))
+	fmt.Println(color.RedString(headline))
+	if subtext != "" {
+		fmt.Println(subtext)
+	}
 }
