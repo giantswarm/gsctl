@@ -127,18 +127,10 @@ func verifyPreconditions(args Arguments, positionalArgs []string) error {
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	arguments = collectArguments(positionalArgs)
 	err := verifyPreconditions(arguments, positionalArgs)
-
-	if err == nil {
-		return
+	if err != nil {
+		handleError(err)
+		os.Exit(1)
 	}
-
-	client.HandleErrors(err)
-	errors.HandleCommonErrors(err)
-
-	// Display error
-	fmt.Println(color.RedString(err.Error()))
-
-	os.Exit(1)
 }
 
 // fetchNodePools collects all information we would want to display
