@@ -142,6 +142,11 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 
 	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
+
+	// Display error
+	fmt.Println(color.RedString(err.Error()))
+
+	os.Exit(1)
 }
 
 // fetchNodePools collects all information we would want to display
