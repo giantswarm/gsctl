@@ -214,8 +214,6 @@ func getOutput(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 		return "", microerror.Mask(err)
 	}
 
-	table := make([]string, 0, len(nps)+1)
-
 	headers := []string{
 		color.CyanString("ID"),
 		color.CyanString("NAME"),
@@ -231,6 +229,8 @@ func getOutput(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 		color.CyanString("CPUS"),
 		color.CyanString("RAM (GB)"),
 	}
+
+	table := make([]string, 0, len(nps)+1)
 	table = append(table, strings.Join(headers, "|"))
 
 	for _, np := range nps {
@@ -243,10 +243,12 @@ func getOutput(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 		sumMemory := float64(np.Status.NodesReady) * float64(it.MemorySizeGB)
 
 		var instanceTypes string
-		if len(np.Status.InstanceTypes) > 0 {
-			instanceTypes = strings.Join(np.Status.InstanceTypes, ",")
-		} else {
-			instanceTypes = np.NodeSpec.Aws.InstanceType
+		{
+			if len(np.Status.InstanceTypes) > 0 {
+				instanceTypes = strings.Join(np.Status.InstanceTypes, ",")
+			} else {
+				instanceTypes = np.NodeSpec.Aws.InstanceType
+			}
 		}
 
 		table = append(table, strings.Join([]string{
