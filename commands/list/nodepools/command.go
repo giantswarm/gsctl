@@ -92,16 +92,6 @@ type Arguments struct {
 	verbose           bool
 }
 
-// resultRow represents one nope pool row as returned by fetchNodePools.
-type resultRow struct {
-	// nodePool contains all the node pool details as returned from the API.
-	nodePool *models.V5GetNodePoolsResponseItems
-	// instanceTypeDetails contains details on the instance type.
-	instanceTypeDetails *nodespec.InstanceType
-	sumCPUs             int64
-	sumMemory           float64
-}
-
 // collectArguments creates arguments based on command line flags and config.
 func collectArguments(cmdLineArgs []string) Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
@@ -215,27 +205,16 @@ func formatNodesReady(nodes, nodesReady int64) string {
 }
 
 func getOutput(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
+	if len(nps) < 0 {
+		return "", nil
+	}
+
 	awsInfo, err := nodespec.NewAWS()
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
 
-	// create combined output data structure.
-	rows := make([]*resultRow, 0, len(nps))
-
-	for _, np := range nps {
-		it, err := awsInfo.GetInstanceTypeDetails(np.NodeSpec.Aws.InstanceType)
-		if err != nil {
-			return "", microerror.Mask(err)
-		}
-
-		sumCPUs := np.Status.NodesReady * int64(it.CPUCores)
-		sumMemory := float64(np.Status.NodesReady) * float64(it.MemorySizeGB)
-
-		rows = append(rows, &resultRow{np, it, sumCPUs, sumMemory})
-	}
-
-	table := make([]string, 0, len(rows)+1)
+	table := make([]string, 0, len(nps)+1)
 
 	headers := []string{
 		color.CyanString("ID"),
@@ -254,28 +233,36 @@ func getOutput(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 	}
 	table = append(table, strings.Join(headers, "|"))
 
-	for _, row := range rows {
+	for _, np := range nps {
+		it, err := awsInfo.GetInstanceTypeDetails(np.NodeSpec.Aws.InstanceType)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+
+		sumCPUs := np.Status.NodesReady * int64(it.CPUCores)
+		sumMemory := float64(np.Status.NodesReady) * float64(it.MemorySizeGB)
+
 		var instanceTypes string
-		if len(row.nodePool.Status.InstanceTypes) > 0 {
-			instanceTypes = strings.Join(row.nodePool.Status.InstanceTypes, ",")
+		if len(np.Status.InstanceTypes) > 0 {
+			instanceTypes = strings.Join(np.Status.InstanceTypes, ",")
 		} else {
-			instanceTypes = row.nodePool.NodeSpec.Aws.InstanceType
+			instanceTypes = np.NodeSpec.Aws.InstanceType
 		}
 
 		table = append(table, strings.Join([]string{
-			row.nodePool.ID,
-			row.nodePool.Name,
-			formatting.AvailabilityZonesList(row.nodePool.AvailabilityZones),
+			np.ID,
+			np.Name,
+			formatting.AvailabilityZonesList(np.AvailabilityZones),
 			instanceTypes,
-			fmt.Sprintf("%t", row.nodePool.NodeSpec.Aws.UseAlikeInstanceTypes),
-			strconv.FormatInt(row.nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandBaseCapacity, 10),
-			strconv.FormatInt(100-row.nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandPercentageAboveBaseCapacity, 10),
-			strconv.FormatInt(row.nodePool.Scaling.Min, 10) + "/" + strconv.FormatInt(row.nodePool.Scaling.Max, 10),
-			strconv.FormatInt(row.nodePool.Status.Nodes, 10),
-			formatNodesReady(row.nodePool.Status.Nodes, row.nodePool.Status.NodesReady),
-			strconv.FormatInt(row.nodePool.Status.SpotInstances, 10),
-			strconv.FormatInt(row.sumCPUs, 10),
-			strconv.FormatFloat(row.sumMemory, 'f', 1, 64),
+			fmt.Sprintf("%t", np.NodeSpec.Aws.UseAlikeInstanceTypes),
+			strconv.FormatInt(np.NodeSpec.Aws.InstanceDistribution.OnDemandBaseCapacity, 10),
+			strconv.FormatInt(100-np.NodeSpec.Aws.InstanceDistribution.OnDemandPercentageAboveBaseCapacity, 10),
+			strconv.FormatInt(np.Scaling.Min, 10) + "/" + strconv.FormatInt(np.Scaling.Max, 10),
+			strconv.FormatInt(np.Status.Nodes, 10),
+			formatNodesReady(np.Status.Nodes, np.Status.NodesReady),
+			strconv.FormatInt(np.Status.SpotInstances, 10),
+			strconv.FormatInt(sumCPUs, 10),
+			strconv.FormatFloat(sumMemory, 'f', 1, 64),
 		}, "|"))
 	}
 
