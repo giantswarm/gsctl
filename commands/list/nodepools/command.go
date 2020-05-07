@@ -2,6 +2,7 @@
 package nodepools
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -187,7 +188,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		return
 	}
 
-	output, err := getOutput(nodePools)
+	output, err := getOutput(nodePools, arguments.outputFormat)
 	if err != nil {
 		handleError(err)
 		os.Exit(1)
@@ -204,7 +205,7 @@ func formatNodesReady(nodes, nodesReady int64) string {
 	return color.YellowString(strconv.FormatInt(nodesReady, 10))
 }
 
-func getOutput(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
+func getOutput(nps []*models.V5GetNodePoolsResponseItems, outputFormat string) (string, error) {
 	if len(nps) < 0 {
 		return "", nil
 	}
@@ -212,6 +213,15 @@ func getOutput(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 	awsInfo, err := nodespec.NewAWS()
 	if err != nil {
 		return "", microerror.Mask(err)
+	}
+
+	if outputFormat == "json" {
+		outputBytes, err := json.MarshalIndent(nps, outputJSONPrefix, outputJSONIndent)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+
+		return string(outputBytes), nil
 	}
 
 	headers := []string{
