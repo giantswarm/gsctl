@@ -17,12 +17,14 @@ import (
 	gsclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/gsclientgen/client/apps"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
+	"github.com/giantswarm/gsclientgen/client/cluster_labels"
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/client/info"
 	"github.com/giantswarm/gsclientgen/client/key_pairs"
 	"github.com/giantswarm/gsclientgen/client/node_pools"
 	"github.com/giantswarm/gsclientgen/client/organizations"
 	"github.com/giantswarm/gsclientgen/client/releases"
+
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/go-openapi/runtime"
@@ -841,6 +843,25 @@ func (w *Wrapper) ModifyApp(clusterID string, appName string, body *models.V4Mod
 	}
 
 	response, err := w.gsclient.Apps.ModifyClusterAppV4(params, authWriter)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+// UpdateClusterLabels updates labels of a cluster
+func (w *Wrapper) UpdateClusterLabels(clusterID string, body *models.V5SetClusterLabelsRequest, p *AuxiliaryParams) (*cluster_labels.SetClusterLabelsOK, error) {
+	params := cluster_labels.NewSetClusterLabelsParams().WithClusterID(clusterID).WithBody(body)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	// response, err := w.gsclient.Apps.ModifyClusterAppV4(params, authWriter)
+	response, err := w.gsclient.ClusterLabels.SetClusterLabels(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
 	}

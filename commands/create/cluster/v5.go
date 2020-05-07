@@ -127,6 +127,18 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 		}
 	}
 
+	// Create labels
+	if def.Labels != nil && len(def.Labels) > 0 {
+		labelsRequest := models.V5SetClusterLabelsRequest{Labels: def.Labels}
+		_, err := clientWrapper.UpdateClusterLabels(response.Payload.ID, &labelsRequest, auxParams)
+		if err != nil {
+			fmt.Println(color.RedString("Error attaching labels %s", err.Error()))
+			hasErrors = true
+		} else if args.Verbose {
+			fmt.Println(color.WhiteString("Attached labels to cluster with ID %s named '%s'", response.Payload.ID, response.Payload.Name))
+		}
+	}
+
 	return response.Payload.ID, hasErrors, nil
 
 }

@@ -25,13 +25,14 @@ var (
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
 		Args:  cobra.ExactArgs(1),
 		Short: "Modify cluster details",
-		Long: `Change the name of a cluster
+		Long: `Change the name and labels of a cluster
 
 Examples:
 
   gsctl update cluster f01r4 --name "Precious Production Cluster"
-  gsctl update cluster "Cluster name" --name "Precious Production Cluster"
+	gsctl update cluster "Cluster name" --name "Precious Production Cluster"
 
+	gsctl update cluster f01r --label environment=testing --label labeltodelete=
 `,
 
 		// PreRun checks a few general things, like authentication.
@@ -56,6 +57,7 @@ func init() {
 func initFlags() {
 	Command.ResetFlags()
 	Command.Flags().StringVarP(&flags.Name, "name", "n", "", "new cluster name")
+	Command.Flags().StringSliceVar(&flags.Label, "label", nil, "label")
 }
 
 // Arguments represents all the ways the user can influence the command.
@@ -63,6 +65,7 @@ type Arguments struct {
 	APIEndpoint       string
 	AuthToken         string
 	ClusterNameOrID   string
+	Labels            []string
 	Name              string
 	UserProvidedToken string
 	Verbose           bool
@@ -76,6 +79,7 @@ func collectArguments(positionalArgs []string) Arguments {
 		APIEndpoint:       endpoint,
 		AuthToken:         token,
 		ClusterNameOrID:   strings.TrimSpace(positionalArgs[0]),
+		Labels:            flags.Label,
 		Name:              flags.Name,
 		UserProvidedToken: flags.Token,
 		Verbose:           flags.Verbose,
@@ -85,6 +89,7 @@ func collectArguments(positionalArgs []string) Arguments {
 // result represents all information we get back from modifying a cluster.
 type result struct {
 	ClusterName string
+	Labels      map[string]string
 }
 
 func verifyPreconditions(args Arguments) error {
@@ -95,8 +100,10 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Mask(errors.NotLoggedInError)
 	} else if args.ClusterNameOrID == "" {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
-	} else if args.Name == "" {
+	} else if args.Name == "" && (args.Labels == nil || len(args.Labels) == 0) {
 		return microerror.Mask(errors.NoOpError)
+	} else if args.Name != "" && args.Labels != nil && len(args.Labels) != 0 {
+		return microerror.Mask(errors.ConflictingFlagsError)
 	}
 
 	return nil
@@ -118,6 +125,11 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 
 	switch {
 	// If there are specific errors to handle, add them here.
+	case errors.IsConflictingFlagsError(err):
+		headline = "Conflicting flags used"
+		subtext = "--name/-n and --label are exclusive."
+	case errors.IsNoOpError(err):
+		headline = "No flags specified"
 	default:
 		headline = err.Error()
 	}
@@ -130,9 +142,21 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	os.Exit(1)
 }
 
-// updateCluster updates the cluster.
-// It determines whether it is a v5 or v4 cluster and uses the appropriate mechanism.
 func updateCluster(args Arguments) (*result, error) {
+	if args.Labels == nil || len(args.Labels) == 0 {
+		return updateName(args)
+	}
+
+	if args.Name == "" {
+		return updateLabels(args)
+	}
+
+	return nil, microerror.Mask(errors.NoOpError)
+}
+
+// updateName updates the cluster.
+// It determines whether it is a v5 or v4 cluster and uses the appropriate mechanism.
+func updateName(args Arguments) (*result, error) {
 	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -202,8 +226,42 @@ func updateCluster(args Arguments) (*result, error) {
 	return nil, microerror.Mask(errV4)
 }
 
+func updateLabels(args Arguments) (*result, error) {
+	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	clusterID, err := clustercache.GetID(args.APIEndpoint, args.ClusterNameOrID, clientWrapper)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
+	auxParams.ActivityName = activityName
+
+	requestBody, err := modifyClusterLabelsRequestFromArguments(args.Labels)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	if args.Verbose {
+		fmt.Println(color.WhiteString("Sending cluster modification request to setClusterLabels endpoint."))
+	}
+	response, err := clientWrapper.UpdateClusterLabels(clusterID, requestBody, auxParams)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	r := &result{
+		Labels: response.Payload.Labels,
+	}
+
+	return r, nil
+}
+
 func printResult(cmd *cobra.Command, positionalArgs []string) {
-	_, err := updateCluster(arguments)
+	result, err := updateCluster(arguments)
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -226,4 +284,15 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 
 	fmt.Println(color.GreenString("Cluster '%s' has been modified.", arguments.ClusterNameOrID))
+	if result.ClusterName != "" {
+		fmt.Printf("New cluster name: '%s'\n", result.ClusterName)
+	}
+	if len(result.Labels) > 0 {
+		fmt.Println("New cluster labels:")
+		for key, label := range result.Labels {
+			if strings.Contains(key, "giantswarm.io") == false {
+				fmt.Printf("%s=%s\n", key, label)
+			}
+		}
+	}
 }
