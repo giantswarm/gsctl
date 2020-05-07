@@ -866,3 +866,26 @@ func (w *Wrapper) UpdateClusterLabels(clusterID string, body *models.V5SetCluste
 
 	return response, nil
 }
+
+// GetClustersByLabel fetches a list of clusters based on a label selector using the gsclientgen client.
+func (w *Wrapper) GetClustersByLabel(body *models.V5ListClustersByLabelRequest, p *AuxiliaryParams) (*clusters.GetClustersOK, error) {
+	params := clusters.NewGetV5ClustersByLabelParams().WithBody(body)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Clusters.GetV5ClustersByLabel(params, authWriter)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	// wrap this into a GetClustersOK to be compatible with GetClusters
+	wrappeddResponse := &clusters.GetClustersOK{
+		Payload: response.Payload,
+	}
+
+	return wrappeddResponse, nil
+}
