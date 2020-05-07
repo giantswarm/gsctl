@@ -24,7 +24,6 @@ import (
 	"github.com/giantswarm/gsclientgen/client/node_pools"
 	"github.com/giantswarm/gsclientgen/client/organizations"
 	"github.com/giantswarm/gsclientgen/client/releases"
-
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/go-openapi/runtime"
@@ -860,7 +859,6 @@ func (w *Wrapper) UpdateClusterLabels(clusterID string, body *models.V5SetCluste
 		return nil, microerror.Mask(err)
 	}
 
-	// response, err := w.gsclient.Apps.ModifyClusterAppV4(params, authWriter)
 	response, err := w.gsclient.ClusterLabels.SetClusterLabels(params, authWriter)
 	if err != nil {
 		return nil, clienterror.New(err)
