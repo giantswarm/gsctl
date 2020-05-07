@@ -10,6 +10,7 @@ import (
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/gsctl/clustercache"
+	"github.com/giantswarm/gsctl/util"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -17,8 +18,6 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
 )
-
-const labelFilterKeySubstring = "giantswarm.io"
 
 var (
 	// Command is the cobra command for 'gsctl update cluster'
@@ -292,7 +291,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	if len(result.Labels) > 0 {
 		fmt.Println("New cluster labels:")
 		for key, label := range result.Labels {
-			if strings.Contains(key, labelFilterKeySubstring) == false {
+			if strings.Contains(key, util.LabelFilterKeySubstring) == false {
 				fmt.Printf("%s=%s\n", key, label)
 			}
 		}
