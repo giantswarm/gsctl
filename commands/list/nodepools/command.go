@@ -12,9 +12,10 @@ import (
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
-	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/clustercache"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
@@ -58,15 +59,34 @@ To list all clusters you have access to, use 'gsctl list clusters'.`,
 		Run:    printResult,
 	}
 
+	cmdOutput string
+
 	arguments Arguments
 )
 
-const activityName = "list-nodepools"
+const (
+	activityName = "list-nodepools"
+
+	outputFormatJSON  = "json"
+	outputFormatTable = "table"
+
+	outputJSONPrefix = ""
+	outputJSONIndent = "  "
+)
+
+func init() {
+	initFlags()
+}
+
+func initFlags() {
+	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output. Defaults to human-friendly table output.")
+}
 
 type Arguments struct {
 	apiEndpoint       string
 	authToken         string
 	clusterNameOrID   string
+	outputFormat      string
 	scheme            string
 	userProvidedToken string
 	verbose           bool
@@ -92,6 +112,7 @@ func collectArguments(cmdLineArgs []string) Arguments {
 		apiEndpoint:       endpoint,
 		authToken:         token,
 		clusterNameOrID:   cmdLineArgs[0],
+		outputFormat:      cmdOutput,
 		scheme:            scheme,
 		userProvidedToken: flags.Token,
 		verbose:           flags.Verbose,
@@ -104,6 +125,9 @@ func verifyPreconditions(args Arguments, positionalArgs []string) error {
 	}
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
+	}
+	if args.outputFormat != outputFormatJSON && args.outputFormat != outputFormatTable {
+		return microerror.Maskf(errors.OutputFormatInvalidError, "Output format '%s' is unknown", args.outputFormat)
 	}
 
 	return nil
