@@ -25,6 +25,8 @@ import (
 	"github.com/giantswarm/gsctl/webui"
 )
 
+const labelFilterKeySubstring = "giantswarm.io"
+
 var (
 
 	// ShowClusterCommand performs the "show cluster" function
@@ -616,7 +618,7 @@ func formatClusterLabels(labels map[string]string) []string {
 	isFirstLine := true
 
 	for key, value := range labels {
-		if strings.Contains(key, "giantswarm.io") == false {
+		if strings.Contains(key, labelFilterKeySubstring) == false {
 			if isFirstLine {
 				isFirstLine = false
 				formattedClusterLabels = []string{fmt.Sprintf("%s|%s=%s", color.YellowString("Labels:"), key, value)}

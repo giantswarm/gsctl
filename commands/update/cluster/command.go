@@ -18,6 +18,8 @@ import (
 	"github.com/giantswarm/gsctl/flags"
 )
 
+const labelFilterKeySubstring = "giantswarm.io"
+
 var (
 	// Command is the cobra command for 'gsctl update cluster'
 	Command = &cobra.Command{
@@ -290,7 +292,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	if len(result.Labels) > 0 {
 		fmt.Println("New cluster labels:")
 		for key, label := range result.Labels {
-			if strings.Contains(key, "giantswarm.io") == false {
+			if strings.Contains(key, labelFilterKeySubstring) == false {
 				fmt.Printf("%s=%s\n", key, label)
 			}
 		}
