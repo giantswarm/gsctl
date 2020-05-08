@@ -150,6 +150,26 @@ func TestSuccess(t *testing.T) {
 				ClusterName: "New name",
 			},
 		},
+		// Label change
+		{
+			args: Arguments{
+				ClusterNameOrID: "clusterid",
+				AuthToken:       "token",
+				Labels: []string{
+					"newlabelkey=newlabelvalue",
+				},
+			},
+			responseBody: `{
+				"labels": {
+					"newlabelkey": "newlabelvalue"
+				}
+			}`,
+			expectedResult: &result{
+				Labels: map[string]string{
+					"newlabelkey": "newlabelvalue",
+				},
+			},
+		},
 	}
 
 	fs := afero.NewMemMapFs()
@@ -179,6 +199,9 @@ func TestSuccess(t *testing.T) {
 							"owner": "acme"
 						}
 					]`))
+				} else if r.Method == "PUT" && r.URL.Path == "/v5/clusters/clusterid/labels/" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(tc.responseBody))
 				} else {
 					t.Errorf("Case %d - Unsupported operation %s %s called in mock server", i, r.Method, r.URL.Path)
 				}
