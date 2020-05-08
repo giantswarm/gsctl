@@ -108,6 +108,17 @@ func Test_verifyPreconditions(t *testing.T) {
 			},
 			errors.IsNoOpError,
 		},
+		// name and label arguments given at same time
+		{
+			Arguments{
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
+				Name:            "newname",
+				Labels:          []string{"labelchange=one", "labelchange=two"},
+			},
+			errors.IsConflictingFlagsError,
+		},
 	}
 
 	fs := afero.NewMemMapFs()
