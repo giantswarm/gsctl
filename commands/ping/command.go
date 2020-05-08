@@ -36,10 +36,10 @@ type Arguments struct {
 }
 
 // collectArguments fills arguments from user input, config, and environment.
-func collectArguments() *Arguments {
+func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 
-	return &Arguments{
+	return Arguments{
 		apiEndpoint: endpoint,
 		verbose:     flags.Verbose,
 	}
