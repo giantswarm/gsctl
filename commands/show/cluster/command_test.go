@@ -505,3 +505,37 @@ func TestShowAWSBYOCClusterV4(t *testing.T) {
 	}
 
 }
+
+func TestFormatClusterLabels(t *testing.T) {
+	mockLabels := map[string]string{
+		"shouldbeignored.giantswarm.io": "imhidden",
+		"release.giantswarm.io":         "0.0.0",
+	}
+
+	result := formatClusterLabels(mockLabels)
+
+	if len(result) != 1 {
+		t.Errorf("formatted cluster labels result has invalid length. Expected %d got %d", 1, len(result))
+	}
+
+	if result[0] != "Labels:|-" {
+		t.Errorf("formatted cluster labels result expected '%s' got '%s'", "Labels:|-", result[0])
+	}
+
+	mockLabels["testkey"] = "testvalue"
+	mockLabels["veryvalidkey"] = "veryvalidvalue"
+
+	result = formatClusterLabels(mockLabels)
+
+	if len(result) != 2 {
+		t.Errorf("formatted cluster labels result has invalid length. Expected %d got %d", 2, len(result))
+	}
+
+	if result[0] != "Labels:|testkey=testvalue" {
+		t.Errorf("formatted cluster labels result expected '%s' got '%s'", "Labels:|testkey=testvalue", result[0])
+	}
+
+	if result[1] != "|veryvalidkey=veryvalidvalue" {
+		t.Errorf("formatted cluster labels result expected '%s' got '%s'", "|veryvalidkey=veryvalidvalue", result[1])
+	}
+}
