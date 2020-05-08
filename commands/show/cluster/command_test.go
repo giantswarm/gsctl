@@ -531,11 +531,11 @@ func TestFormatClusterLabels(t *testing.T) {
 		t.Errorf("formatted cluster labels result has invalid length. Expected %d got %d", 2, len(result))
 	}
 
-	if result[0] != "Labels:|testkey=testvalue" {
-		t.Errorf("formatted cluster labels result expected '%s' got '%s'", "Labels:|testkey=testvalue", result[0])
+	if !strings.HasPrefix(result[0], "Labels:|") {
+		t.Errorf("formatted cluster labels result expected '%s' to start with '%s'", result[0], "Labels:|")
 	}
 
-	if result[1] != "|veryvalidkey=veryvalidvalue" {
-		t.Errorf("formatted cluster labels result expected '%s' got '%s'", "|veryvalidkey=veryvalidvalue", result[1])
+	if !strings.HasPrefix(result[1], "|") {
+		t.Errorf("formatted cluster labels result expected '%s' to start with '%s'", result[1], "|")
 	}
 }
