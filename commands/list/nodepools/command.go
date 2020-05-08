@@ -213,7 +213,7 @@ func getOutput(nps []*models.V5GetNodePoolsResponseItems, outputFormat string) (
 		return "", microerror.Mask(err)
 	}
 
-	if outputFormat == "json" {
+	if outputFormat == outputFormatJSON {
 		outputBytes, err := json.MarshalIndent(nps, outputJSONPrefix, outputJSONIndent)
 		if err != nil {
 			return "", microerror.Mask(err)
