@@ -302,3 +302,43 @@ func TestExecuteWithError(t *testing.T) {
 		})
 	}
 }
+
+func Test_modifyClusterLabelsRequestFromArguments(t *testing.T) {
+	mockLabels := []string{"this=works", "workstoo="}
+
+	request, err := modifyClusterLabelsRequestFromArguments(mockLabels)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(request.Labels) != 2 {
+		t.Errorf("Invalid labels map length. Expected %d, got %d", 2, len(request.Labels))
+	}
+
+	mockLabels = []string{"missingequalsign", "perfectly=valid"}
+
+	request, err = modifyClusterLabelsRequestFromArguments(mockLabels)
+	if err == nil {
+		t.Errorf("Expected error")
+	}
+
+	expectedErrorStr := "no op error: malformed label change 'missingequalsign' (single = required)"
+
+	if err.Error() != expectedErrorStr {
+		t.Errorf("Expected error to be '%s' got '%s'", expectedErrorStr, err.Error())
+	}
+
+	mockLabels = []string{"=invalid"}
+
+	request, err = modifyClusterLabelsRequestFromArguments(mockLabels)
+	if err == nil {
+		t.Errorf("Expected error")
+	}
+
+	expectedErrorStr = "no op error: malformed label change '=invalid' (empty key)"
+
+	if err.Error() != expectedErrorStr {
+		t.Errorf("Expected error to be '%s' got '%s'", expectedErrorStr, err.Error())
+	}
+
+}
