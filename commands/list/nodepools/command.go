@@ -2,6 +2,7 @@
 package nodepools
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -12,9 +13,10 @@ import (
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
-	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/clustercache"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
@@ -58,28 +60,37 @@ To list all clusters you have access to, use 'gsctl list clusters'.`,
 		Run:    printResult,
 	}
 
+	cmdOutput string
+
 	arguments Arguments
 )
 
-const activityName = "list-nodepools"
+const (
+	activityName = "list-nodepools"
+
+	outputFormatJSON  = "json"
+	outputFormatTable = "table"
+
+	outputJSONPrefix = ""
+	outputJSONIndent = "  "
+)
+
+func init() {
+	initFlags()
+}
+
+func initFlags() {
+	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output. Defaults to human-friendly table output.")
+}
 
 type Arguments struct {
 	apiEndpoint       string
 	authToken         string
 	clusterNameOrID   string
+	outputFormat      string
 	scheme            string
 	userProvidedToken string
 	verbose           bool
-}
-
-// resultRow represents one nope pool row as returned by fetchNodePools.
-type resultRow struct {
-	// nodePool contains all the node pool details as returned from the API.
-	nodePool *models.V5GetNodePoolsResponseItems
-	// instanceTypeDetails contains details on the instance type.
-	instanceTypeDetails *nodespec.InstanceType
-	sumCPUs             int64
-	sumMemory           float64
 }
 
 // collectArguments creates arguments based on command line flags and config.
@@ -92,6 +103,7 @@ func collectArguments(cmdLineArgs []string) Arguments {
 		apiEndpoint:       endpoint,
 		authToken:         token,
 		clusterNameOrID:   cmdLineArgs[0],
+		outputFormat:      cmdOutput,
 		scheme:            scheme,
 		userProvidedToken: flags.Token,
 		verbose:           flags.Verbose,
@@ -105,6 +117,9 @@ func verifyPreconditions(args Arguments, positionalArgs []string) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
+	if args.outputFormat != outputFormatJSON && args.outputFormat != outputFormatTable {
+		return microerror.Maskf(errors.OutputFormatInvalidError, "Output format '%s' is unknown", args.outputFormat)
+	}
 
 	return nil
 }
@@ -112,17 +127,15 @@ func verifyPreconditions(args Arguments, positionalArgs []string) error {
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	arguments = collectArguments(positionalArgs)
 	err := verifyPreconditions(arguments, positionalArgs)
-	if err == nil {
-		return
+	if err != nil {
+		handleError(err)
+		os.Exit(1)
 	}
-
-	client.HandleErrors(err)
-	errors.HandleCommonErrors(err)
 }
 
 // fetchNodePools collects all information we would want to display
 // on the node pools of a cluster.
-func fetchNodePools(args Arguments) ([]*resultRow, error) {
+func fetchNodePools(args Arguments) ([]*models.V5GetNodePoolsResponseItems, error) {
 	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -158,52 +171,13 @@ func fetchNodePools(args Arguments) ([]*resultRow, error) {
 		return response.Payload[i].ID < response.Payload[j].ID
 	})
 
-	awsInfo, err := nodespec.NewAWS()
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	// create combined output data structure.
-	rows := []*resultRow{}
-
-	for _, np := range response.Payload {
-		it, err := awsInfo.GetInstanceTypeDetails(np.NodeSpec.Aws.InstanceType)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-
-		sumCPUs := np.Status.NodesReady * int64(it.CPUCores)
-		sumMemory := float64(np.Status.NodesReady) * float64(it.MemorySizeGB)
-
-		rows = append(rows, &resultRow{np, it, sumCPUs, sumMemory})
-	}
-
-	return rows, nil
-
+	return response.Payload, nil
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
 	nodePools, err := fetchNodePools(arguments)
-
 	if err != nil {
-		client.HandleErrors(err)
-		errors.HandleCommonErrors(err)
-
-		headline := ""
-		subtext := ""
-
-		switch {
-		case errors.IsClusterDoesNotSupportNodePools(err):
-			headline = "This cluster does not support node pools."
-			subtext = "Node pools cannot be listed for this cluster. Please use 'gsctl show cluster' to get information on worker nodes."
-		default:
-			headline = err.Error()
-		}
-
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
+		handleError(err)
 		os.Exit(1)
 	}
 
@@ -212,7 +186,41 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		return
 	}
 
-	table := []string{}
+	output, err := getOutput(nodePools, arguments.outputFormat)
+	if err != nil {
+		handleError(err)
+		os.Exit(1)
+	}
+	// Display output.
+	fmt.Println(output)
+}
+
+func formatNodesReady(nodes, nodesReady int64) string {
+	if nodes == nodesReady {
+		return strconv.FormatInt(nodesReady, 10)
+	}
+
+	return color.YellowString(strconv.FormatInt(nodesReady, 10))
+}
+
+func getOutput(nps []*models.V5GetNodePoolsResponseItems, outputFormat string) (string, error) {
+	if len(nps) < 0 {
+		return "", nil
+	}
+
+	awsInfo, err := nodespec.NewAWS()
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	if outputFormat == outputFormatJSON {
+		outputBytes, err := json.MarshalIndent(nps, outputJSONPrefix, outputJSONIndent)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+
+		return string(outputBytes), nil
+	}
 
 	headers := []string{
 		color.CyanString("ID"),
@@ -229,30 +237,42 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		color.CyanString("CPUS"),
 		color.CyanString("RAM (GB)"),
 	}
+
+	table := make([]string, 0, len(nps)+1)
 	table = append(table, strings.Join(headers, "|"))
 
-	for _, row := range nodePools {
+	for _, np := range nps {
+		it, err := awsInfo.GetInstanceTypeDetails(np.NodeSpec.Aws.InstanceType)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+
+		sumCPUs := np.Status.NodesReady * int64(it.CPUCores)
+		sumMemory := float64(np.Status.NodesReady) * float64(it.MemorySizeGB)
+
 		var instanceTypes string
-		if len(row.nodePool.Status.InstanceTypes) > 0 {
-			instanceTypes = strings.Join(row.nodePool.Status.InstanceTypes, ",")
-		} else {
-			instanceTypes = row.nodePool.NodeSpec.Aws.InstanceType
+		{
+			if len(np.Status.InstanceTypes) > 0 {
+				instanceTypes = strings.Join(np.Status.InstanceTypes, ",")
+			} else {
+				instanceTypes = np.NodeSpec.Aws.InstanceType
+			}
 		}
 
 		table = append(table, strings.Join([]string{
-			row.nodePool.ID,
-			row.nodePool.Name,
-			formatting.AvailabilityZonesList(row.nodePool.AvailabilityZones),
+			np.ID,
+			np.Name,
+			formatting.AvailabilityZonesList(np.AvailabilityZones),
 			instanceTypes,
-			fmt.Sprintf("%t", row.nodePool.NodeSpec.Aws.UseAlikeInstanceTypes),
-			strconv.FormatInt(row.nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandBaseCapacity, 10),
-			strconv.FormatInt(100-row.nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandPercentageAboveBaseCapacity, 10),
-			strconv.FormatInt(row.nodePool.Scaling.Min, 10) + "/" + strconv.FormatInt(row.nodePool.Scaling.Max, 10),
-			strconv.FormatInt(row.nodePool.Status.Nodes, 10),
-			formatNodesReady(row.nodePool.Status.Nodes, row.nodePool.Status.NodesReady),
-			strconv.FormatInt(row.nodePool.Status.SpotInstances, 10),
-			strconv.FormatInt(row.sumCPUs, 10),
-			strconv.FormatFloat(row.sumMemory, 'f', 1, 64),
+			fmt.Sprintf("%t", np.NodeSpec.Aws.UseAlikeInstanceTypes),
+			strconv.FormatInt(np.NodeSpec.Aws.InstanceDistribution.OnDemandBaseCapacity, 10),
+			strconv.FormatInt(100-np.NodeSpec.Aws.InstanceDistribution.OnDemandPercentageAboveBaseCapacity, 10),
+			strconv.FormatInt(np.Scaling.Min, 10) + "/" + strconv.FormatInt(np.Scaling.Max, 10),
+			strconv.FormatInt(np.Status.Nodes, 10),
+			formatNodesReady(np.Status.Nodes, np.Status.NodesReady),
+			strconv.FormatInt(np.Status.SpotInstances, 10),
+			strconv.FormatInt(sumCPUs, 10),
+			strconv.FormatFloat(sumMemory, 'f', 1, 64),
 		}, "|"))
 	}
 
@@ -273,13 +293,26 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
 	}
 
-	fmt.Println(columnize.Format(table, colConfig))
+	return columnize.Format(table, colConfig), nil
 }
 
-func formatNodesReady(nodes, nodesReady int64) string {
-	if nodes == nodesReady {
-		return strconv.FormatInt(nodesReady, 10)
+func handleError(err error) {
+	client.HandleErrors(err)
+	errors.HandleCommonErrors(err)
+
+	headline := ""
+	subtext := ""
+
+	switch {
+	case errors.IsClusterDoesNotSupportNodePools(err):
+		headline = "This cluster does not support node pools."
+		subtext = "Node pools cannot be listed for this cluster. Please use 'gsctl show cluster' to get information on worker nodes."
+	default:
+		headline = err.Error()
 	}
 
-	return color.YellowString(strconv.FormatInt(nodesReady, 10))
+	fmt.Println(color.RedString(headline))
+	if subtext != "" {
+		fmt.Println(subtext)
+	}
 }

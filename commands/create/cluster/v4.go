@@ -118,30 +118,3 @@ func addClusterV4(def *types.ClusterDefinitionV4, args Arguments, clientWrapper 
 
 	return id, location, nil
 }
-
-func validateInstanceTypes(def *types.ClusterDefinitionV4, instanceTypes []string, provider string) bool {
-	if len(def.Workers) == 0 {
-		return true
-	}
-
-	var chosenInstance string
-	{
-		if provider == "aws" {
-			chosenInstance = def.Workers[0].AWS.InstanceType
-		} else if provider == "azure" {
-			chosenInstance = def.Workers[0].Azure.VMSize
-		}
-
-		if chosenInstance == "" {
-			return true
-		}
-	}
-
-	for _, instance := range instanceTypes {
-		if instance == chosenInstance {
-			return true
-		}
-	}
-
-	return false
-}

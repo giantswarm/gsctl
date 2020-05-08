@@ -354,12 +354,6 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					},
 					"features": {
 					  "nodepools": {"release_version_minimum": "9.0.0"}
-					},
-					"workers": {
-					  "instance_type": {
-					    "default": "standard",
-						"options": ["standard", "hiram", "hicpu"]
-					  }
 					}
 				  }`))
 			} else if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
@@ -465,7 +459,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 
 		// mock server
 		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// t.Log("mockServer request: ", r.Method, r.URL)
+			//t.Log("mockServer request: ", r.Method, r.URL)
 			if r.Method == "GET" && r.URL.String() == "/v4/info/" {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
@@ -475,12 +469,6 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 					},
 					"features": {
 					  "nodepools": {"release_version_minimum": "9.0.0"}
-					},
-					"workers": {
-					  "instance_type": {
-					    "default": "standard",
-						"options": ["standard", "hiram", "hicpu"]
-					  }
 					}
 				  }`))
 			} else {
@@ -601,7 +589,7 @@ func Test_getLatestActiveReleaseVersion(t *testing.T) {
 
 		// mock server
 		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// t.Log("mockServer request: ", r.Method, r.URL)
+			//t.Log("mockServer request: ", r.Method, r.URL)
 			if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
@@ -634,85 +622,6 @@ func Test_getLatestActiveReleaseVersion(t *testing.T) {
 
 		if latest != tc.latestRelease {
 			t.Errorf("Test case %d: Expected '%s' but got '%s'", i, tc.latestRelease, latest)
-		}
-	}
-}
-
-// Test_validateInstanceTypes checks that the instance type validation is working as expected.
-func Test_validateInstanceTypes(t *testing.T) {
-	var testCases = []struct {
-		clusterDefinition *types.ClusterDefinitionV4
-		instanceTypes     []string
-		provider          string
-		result            bool
-	}{
-		{
-			clusterDefinition: &types.ClusterDefinitionV4{
-				Name:           "UnitTestCluster",
-				Owner:          "acme",
-				ReleaseVersion: "0.3.0",
-			},
-			instanceTypes: []string{"small", "med", "large"},
-			provider:      "aws",
-			result:        true,
-		},
-		{
-			clusterDefinition: &types.ClusterDefinitionV4{
-				Name:           "UnitTestCluster",
-				Owner:          "acme",
-				ReleaseVersion: "0.3.0",
-				Workers: []types.NodeDefinition{
-					{
-						AWS: types.AWSSpecificDefinition{
-							InstanceType: "med",
-						},
-					},
-				},
-			},
-			instanceTypes: []string{"small", "med", "large"},
-			provider:      "aws",
-			result:        true,
-		},
-		{
-			clusterDefinition: &types.ClusterDefinitionV4{
-				Name:           "UnitTestCluster",
-				Owner:          "acme",
-				ReleaseVersion: "0.3.0",
-				Workers: []types.NodeDefinition{
-					{
-						AWS: types.AWSSpecificDefinition{
-							InstanceType: "someother",
-						},
-					},
-				},
-			},
-			instanceTypes: []string{"small", "med", "large"},
-			provider:      "aws",
-			result:        false,
-		},
-		{
-			clusterDefinition: &types.ClusterDefinitionV4{
-				Name:           "UnitTestCluster",
-				Owner:          "acme",
-				ReleaseVersion: "0.3.0",
-				Workers: []types.NodeDefinition{
-					{
-						Azure: types.AzureSpecificDefinition{
-							VMSize: "small",
-						},
-					},
-				},
-			},
-			instanceTypes: []string{"small", "med", "large"},
-			provider:      "azure",
-			result:        true,
-		},
-	}
-
-	for i, tc := range testCases {
-		result := validateInstanceTypes(tc.clusterDefinition, tc.instanceTypes, tc.provider)
-		if result != tc.result {
-			t.Errorf("Test case %d: Expected '%t', got '%t'", i, tc.result, result)
 		}
 	}
 }
