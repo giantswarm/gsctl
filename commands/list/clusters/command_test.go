@@ -164,3 +164,69 @@ func Test_ListClustersUnauthorized(t *testing.T) {
 		t.Errorf("Expected NotAuthorizedError, got %#v", err)
 	}
 }
+
+func Test_ListClustersBySelector(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		// return clusters for the organization
+		w.Write([]byte(`[
+			{
+				"create_date": "2020-05-01T09:45:43Z",
+				"id": "eq9ar",
+				"labels": {
+					"cluster-operator.giantswarm.io/version": "2.1.10",
+					"giantswarm.io/cluster": "eq9ar",
+					"giantswarm.io/organization": "acme",
+					"release.giantswarm.io/version": "11.2.1",
+					"environment": "testing"
+				},
+				"name": "cluster1",
+				"owner": "acme",
+				"path": "/v5/clusters/eq9ar/",
+				"release_version": "11.2.1"
+			},
+			{
+				"create_date": "2020-05-06T10:07:28Z",
+				"id": "kr3pb",
+				"labels": {
+					"cluster-operator.giantswarm.io/version": "2.1.10",
+					"giantswarm.io/cluster": "kr3pb",
+					"giantswarm.io/organization": "acme",
+					"release.giantswarm.io/version": "11.2.1",
+					"environment": "testing"
+				},
+				"name": "cluster2",
+				"owner": "acme",
+				"path": "/v5/clusters/kr3pb/",
+				"release_version": "11.2.1"
+			}
+		]`))
+	}))
+	defer mockServer.Close()
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
+	if err != nil {
+		t.Error(err)
+	}
+
+	args := Arguments{
+		apiEndpoint:  mockServer.URL,
+		authToken:    "testtoken",
+		outputFormat: "json",
+		selector:     "environment=testing",
+	}
+
+	err = verifyListClusterPreconditions(args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	jsonRepresentation, err := getClustersOutput(args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(jsonRepresentation)
+}
