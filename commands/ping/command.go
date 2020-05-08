@@ -29,12 +29,28 @@ var (
 	}
 )
 
+// Arguments specifies all the arguments to be used for our business function.
+type Arguments struct {
+	apiEndpoint string
+	verbose     bool
+}
+
+// collectArguments fills arguments from user input, config, and environment.
+func collectArguments() *Arguments {
+	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+
+	return &Arguments{
+		apiEndpoint: endpoint,
+		verbose:     flags.Verbose,
+	}
+}
+
 // runCommand executes the ping() function
 // and prints output in a user-friendly way
 func runCommand(cmd *cobra.Command, args []string) {
-	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	arguments := collectArguments()
 
-	duration, err := ping(endpoint)
+	duration, err := ping(arguments.apiEndpoint)
 	if err != nil {
 
 		errors.HandleCommonErrors(err)
