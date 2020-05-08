@@ -22,19 +22,59 @@ import (
 var (
 	// Command is the "ping" CLI command
 	Command = &cobra.Command{
-		Use:   "ping",
-		Short: "Check API connection",
-		Long:  `Tests the connection to the API`,
-		Run:   runCommand,
+		Use:    "ping",
+		Short:  "Check API connection",
+		Long:   `Tests the connection to the API`,
+		PreRun: printValidation,
+		Run:    runCommand,
 	}
 )
 
-// runCommand executes the ping() function
-// and prints output in a user-friendly way
-func runCommand(cmd *cobra.Command, args []string) {
+// Arguments specifies all the arguments to be used for our business function.
+type Arguments struct {
+	apiEndpoint string
+	verbose     bool
+}
+
+// collectArguments fills arguments from user input, config, and environment.
+func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 
-	duration, err := ping(endpoint)
+	return Arguments{
+		apiEndpoint: endpoint,
+		verbose:     flags.Verbose,
+	}
+}
+
+func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
+	args := collectArguments()
+	err := verifyPreconditions(args, cmdLineArgs)
+
+	if err == nil {
+		return
+	}
+
+	errors.HandleCommonErrors(err)
+
+	// handle non-common errors
+	fmt.Println(color.RedString(err.Error()))
+	os.Exit(1)
+}
+
+func verifyPreconditions(args Arguments, cmdLineArgs []string) error {
+	if args.apiEndpoint == "" {
+		return microerror.Mask(errors.EndpointMissingError)
+	}
+
+	return nil
+}
+
+// runCommand executes the ping() function
+// and prints output in a user-friendly way
+func runCommand(cmd *cobra.Command, cmdLineArgs []string) {
+	args := collectArguments()
+
+	duration, err := ping(args.apiEndpoint)
 	if err != nil {
 
 		errors.HandleCommonErrors(err)
