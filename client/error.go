@@ -101,6 +101,9 @@ func HandleErrors(err error) {
 	} else if httpStatusCode == http.StatusServiceUnavailable {
 		headline = message
 		subtext = details
+	} else if httpStatusCode == http.StatusBadRequest {
+		headline = message
+		subtext = details
 	} else if message != "" {
 		headline = message
 	}
