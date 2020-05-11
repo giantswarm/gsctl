@@ -61,6 +61,7 @@ build/bin/$(BIN)-darwin-amd64: $(SOURCE)
 	rm -rf go-build-cache
 
 # platform-specific build for linux-amd64
+# CGO disabled on purpose, to enable support for Docker containers, specifically those based on Alpine.
 build/bin/$(BIN)-linux-amd64: $(SOURCE)
 	@mkdir -p build/bin
 	@mkdir -p go-build-cache
