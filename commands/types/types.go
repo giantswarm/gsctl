@@ -54,6 +54,7 @@ type ClusterDefinitionV5 struct {
 	ReleaseVersion string                `yaml:"release_version,omitempty"`
 	Master         *MasterDefinition     `yaml:"master,omitempty"`
 	NodePools      []*NodePoolDefinition `yaml:"nodepools,omitempty"`
+	Labels         map[string]*string    `yaml:"labels,omitempty"`
 }
 
 // ScalingDefinition defines how a tenant cluster can scale.

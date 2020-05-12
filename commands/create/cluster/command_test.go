@@ -119,6 +119,10 @@ func Test_verifyPreconditions(t *testing.T) {
 	}
 }
 
+func stringP(v string) *string {
+	return &v
+}
+
 // Test_CreateClusterSuccessfully tests cluster creations that should succeed.
 func Test_CreateClusterSuccessfully(t *testing.T) {
 	var testCases = []struct {
@@ -282,6 +286,27 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 				},
 			},
 		},
+		{
+			description: "Definition from v5 YAML file with labels",
+			inputArgs: &Arguments{
+				ClusterName:           "Cluster Name from Args with Labels",
+				CreateDefaultNodePool: false,
+				FileSystem:            afero.NewOsFs(), // needed for YAML file access
+				InputYAMLFile:         "testdata/v5_with_labels.yaml",
+				Owner:                 "acme",
+				AuthToken:             "fake token",
+				Verbose:               true,
+			},
+			expectedResult: &creationResult{
+				ID: "f6e8r",
+				DefinitionV5: &types.ClusterDefinitionV5{
+					APIVersion: "v5",
+					Name:       "Cluster Name from Args with Labels",
+					Owner:      "acme",
+					Labels:     map[string]*string{"key": stringP("value"), "labelkey": stringP("labelvalue")},
+				},
+			},
+		},
 	}
 
 	for i, tc := range testCases {
@@ -315,7 +340,11 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					"master": {
 						"availability_zone": "eu-central-1c"
 					},
-					"nodepools": []
+					"nodepools": [],
+					"labels": {
+						"key": "value",
+						"labelkey": "labelvalue"
+					}
 				}`))
 			} else if r.Method == "GET" && r.URL.String() == "/v4/info/" {
 				w.WriteHeader(http.StatusOK)

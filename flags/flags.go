@@ -56,6 +56,9 @@ var (
 	// InputYAMLFile is the path to the input file used optionally as cluster definition
 	InputYAMLFile string
 
+	// Label contains label changes passed as multiple flags.
+	Label []string
+
 	// Name is the name of a cluster or node pool.
 	Name string
 

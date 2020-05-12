@@ -17,6 +17,7 @@ import (
 	gsclient "github.com/giantswarm/gsclientgen/client"
 	"github.com/giantswarm/gsclientgen/client/apps"
 	"github.com/giantswarm/gsclientgen/client/auth_tokens"
+	"github.com/giantswarm/gsclientgen/client/cluster_labels"
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/client/info"
 	"github.com/giantswarm/gsclientgen/client/key_pairs"
@@ -846,4 +847,45 @@ func (w *Wrapper) ModifyApp(clusterID string, appName string, body *models.V4Mod
 	}
 
 	return response, nil
+}
+
+// UpdateClusterLabels updates labels of a cluster
+func (w *Wrapper) UpdateClusterLabels(clusterID string, body *models.V5SetClusterLabelsRequest, p *AuxiliaryParams) (*cluster_labels.SetClusterLabelsOK, error) {
+	params := cluster_labels.NewSetClusterLabelsParams().WithClusterID(clusterID).WithBody(body)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.ClusterLabels.SetClusterLabels(params, authWriter)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	return response, nil
+}
+
+// GetClustersByLabel fetches a list of clusters based on a label selector using the gsclientgen client.
+func (w *Wrapper) GetClustersByLabel(body *models.V5ListClustersByLabelRequest, p *AuxiliaryParams) (*clusters.GetClustersOK, error) {
+	params := clusters.NewGetV5ClustersByLabelParams().WithBody(body)
+	setParams(p, w, params)
+
+	authWriter, err := getAuthorization(w)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	response, err := w.gsclient.Clusters.GetV5ClustersByLabel(params, authWriter)
+	if err != nil {
+		return nil, clienterror.New(err)
+	}
+
+	// wrap this into a GetClustersOK to be compatible with GetClusters
+	wrappeddResponse := &clusters.GetClustersOK{
+		Payload: response.Payload,
+	}
+
+	return wrappeddResponse, nil
 }

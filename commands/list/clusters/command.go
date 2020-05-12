@@ -12,6 +12,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
+	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
@@ -40,6 +41,8 @@ var (
 
 	cmdShowDeleted bool
 
+	cmdSelector string
+
 	arguments Arguments
 )
 
@@ -61,6 +64,7 @@ func initFlags() {
 	Command.ResetFlags()
 	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output. Defaults to human-friendly table output.")
 	Command.Flags().BoolVarP(&cmdShowDeleted, "show-deleting", "", false, "Show clusters which are currently being deleted (only with cluster release > 10.0.0).")
+	Command.Flags().StringVarP(&cmdSelector, "selector", "l", "", "Label selector query to filter clusters on.")
 }
 
 type Arguments struct {
@@ -68,6 +72,7 @@ type Arguments struct {
 	authToken         string
 	outputFormat      string
 	scheme            string
+	selector          string
 	showDeleting      bool
 	userProvidedToken string
 }
@@ -82,6 +87,7 @@ func collectArguments() Arguments {
 		authToken:         token,
 		outputFormat:      cmdOutput,
 		scheme:            scheme,
+		selector:          cmdSelector,
 		showDeleting:      cmdShowDeleted,
 		userProvidedToken: flags.Token,
 	}
@@ -143,6 +149,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 
 // getClustersOutput returns a table of clusters the user has access to
 func getClustersOutput(args Arguments) (string, error) {
+	var err error
 	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return "", microerror.Mask(err)
@@ -151,7 +158,17 @@ func getClustersOutput(args Arguments) (string, error) {
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = listClustersActivityName
 
-	response, err := clientWrapper.GetClusters(auxParams)
+	var response *clusters.GetClustersOK
+
+	if args.selector != "" {
+		params := &models.V5ListClustersByLabelRequest{
+			Labels: &args.selector,
+		}
+		response, err = clientWrapper.GetClustersByLabel(params, auxParams)
+	} else {
+		response, err = clientWrapper.GetClusters(auxParams)
+	}
+
 	if err != nil {
 		if clienterror.IsUnauthorizedError(err) {
 			return "", microerror.Mask(errors.NotAuthorizedError)

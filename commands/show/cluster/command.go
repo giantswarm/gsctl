@@ -492,6 +492,7 @@ func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 	clusterTable = append(clusterTable, color.YellowString("Kubernetes API endpoint:")+"|"+details.APIEndpoint)
 	clusterTable = append(clusterTable, color.YellowString("Master availability zone:")+"|"+details.Master.AvailabilityZone)
 	clusterTable = append(clusterTable, color.YellowString("Release version:")+"|"+details.ReleaseVersion)
+	clusterTable = append(clusterTable, formatClusterLabels(details.Labels)...)
 
 	// BYOC credentials.
 	if credentialDetails != nil && credentialDetails.ID != "" {
@@ -607,4 +608,23 @@ func formatNodePoolDetails(nodePools *models.V5GetNodePoolsResponse) []string {
 	rows = append(rows, color.YellowString("RAM in nodes (GB):")+fmt.Sprintf("|%d", ramGB))
 
 	return rows
+}
+
+func formatClusterLabels(labels map[string]string) []string {
+	formattedClusterLabels := []string{color.YellowString("Labels:|") + "-"}
+
+	isFirstLine := true
+
+	for key, value := range labels {
+		if strings.Contains(key, util.LabelFilterKeySubstring) == false {
+			if isFirstLine {
+				isFirstLine = false
+				formattedClusterLabels = []string{fmt.Sprintf("%s|%s=%s", color.YellowString("Labels:"), key, value)}
+			} else {
+				formattedClusterLabels = append(formattedClusterLabels, fmt.Sprintf("|%s=%s", key, value))
+			}
+		}
+	}
+
+	return formattedClusterLabels
 }
