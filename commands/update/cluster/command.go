@@ -227,6 +227,7 @@ func updateName(args Arguments) (*result, error) {
 	return nil, microerror.Mask(errV4)
 }
 
+// updateLabels applies label changes to v5 clusters. v5 only!
 func updateLabels(args Arguments) (*result, error) {
 	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
 	if err != nil {
@@ -240,6 +241,12 @@ func updateLabels(args Arguments) (*result, error) {
 
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
+
+	// verify this cluster exists and is a v5 cluster
+	_, err = clientWrapper.GetClusterV5(clusterID, auxParams)
+	if err != nil {
+		return nil, microerror.Maskf(errors.ClusterNotFoundError, "cluster with id '%s' not found or not a v5 cluster", clusterID)
+	}
 
 	requestBody, err := modifyClusterLabelsRequestFromArguments(args.Labels)
 	if err != nil {
