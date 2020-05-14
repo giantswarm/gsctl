@@ -6,11 +6,9 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/models"
@@ -18,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/clustercache"
+	"github.com/giantswarm/gsctl/pkg/table"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
@@ -205,24 +204,44 @@ func getClustersOutput(args Arguments) (string, error) {
 		return string(outputBytes), nil
 	}
 
-	headers := []string{
-		color.CyanString("ID"),
-		color.CyanString("ORGANIZATION"),
-		color.CyanString("NAME"),
-		color.CyanString("RELEASE"),
-		color.CyanString("CREATED"),
+	headers := []table.Column{
+		table.Column{
+			Name:        "id",
+			DisplayName: "ID",
+		},
+		table.Column{
+			Name:        "organization",
+			DisplayName: "ORGANIZATION",
+		},
+		table.Column{
+			Name:        "name",
+			DisplayName: "NAME",
+		},
+		table.Column{
+			Name:        "release",
+			DisplayName: "RELEASE",
+		},
+		table.Column{
+			Name:        "created",
+			DisplayName: "CREATED",
+		},
 	}
 
 	if args.showDeleting {
-		headers = append(headers, color.CyanString("DELETING SINCE"))
+		headers = append(headers, table.Column{
+			Name:        "deleting-since",
+			DisplayName: "DELETING SINCE",
+		})
 	}
 
-	table := []string{strings.Join(headers, "|")}
+	cTable := table.New()
+	cTable.SetColumns(headers)
 
 	numDeletedClusters := 0
 	numOtherClusters := 0
 	clusterIDs := make([]string, 0, len(response.Payload))
 
+	rows := make([][]string, 0, len(response.Payload))
 	for _, cluster := range response.Payload {
 		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
 		deleted := "n/a"
@@ -268,8 +287,9 @@ func getClustersOutput(args Arguments) (string, error) {
 			}
 		}
 
-		table = append(table, strings.Join(fields, "|"))
+		rows = append(rows, fields)
 	}
+	cTable.SetRows(rows)
 
 	clustercache.CacheIDs(args.apiEndpoint, clusterIDs)
 
@@ -277,8 +297,8 @@ func getClustersOutput(args Arguments) (string, error) {
 	output := ""
 
 	// Only show table when there is content.
-	if len(table) > 1 {
-		output += columnize.SimpleFormat(table)
+	if len(rows) > 1 {
+		output += cTable.String()
 	} else {
 		output += color.YellowString("No clusters")
 	}
