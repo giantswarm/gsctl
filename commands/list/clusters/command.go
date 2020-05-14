@@ -303,6 +303,9 @@ func getClustersOutput(args Arguments) (string, error) {
 	}
 	cTable.SetRows(rows)
 	err = sortTable(&cTable, args)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
 
 	clustercache.CacheIDs(args.apiEndpoint, clusterIDs)
 
