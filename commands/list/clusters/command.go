@@ -220,10 +220,16 @@ func getClustersOutput(args Arguments) (string, error) {
 		table.Column{
 			Name:        "release",
 			DisplayName: "RELEASE",
+			Sortable: table.Sortable{
+				SortType: table.SortableTypes.Semver,
+			},
 		},
 		table.Column{
 			Name:        "created",
 			DisplayName: "CREATED",
+			Sortable: table.Sortable{
+				SortType: table.SortableTypes.Date,
+			},
 		},
 	}
 

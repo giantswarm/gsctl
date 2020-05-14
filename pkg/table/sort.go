@@ -61,10 +61,10 @@ func CompareDates(a string, b string, direction string) bool {
 
 	cmp := dateA.After(dateB)
 	if direction == SortableDirections.DESC {
-		return cmp == false
+		return cmp
 	}
 
-	return cmp
+	return cmp == false
 }
 
 func GetCompareFunc(t string) func(string, string, string) bool {
