@@ -186,11 +186,6 @@ func getClustersOutput(args Arguments) (string, error) {
 	}
 
 	if args.outputFormat == "json" {
-		// sort clusters by ID
-		sort.Slice(response.Payload[:], func(i, j int) bool {
-			return response.Payload[i].ID < response.Payload[j].ID
-		})
-
 		var clusters []*models.V4ClusterListItem
 		{
 			for _, cluster := range response.Payload {
@@ -202,12 +197,13 @@ func getClustersOutput(args Arguments) (string, error) {
 			}
 		}
 
-		outputBytes, err := json.MarshalIndent(clusters, outputJSONPrefix, outputJSONIndent)
+		var output string
+		output, err = getJSONOutput(clusters, arguments)
 		if err != nil {
 			return "", microerror.Mask(err)
 		}
 
-		return string(outputBytes), nil
+		return output, nil
 	}
 
 	headers := []table.Column{
@@ -302,6 +298,7 @@ func getClustersOutput(args Arguments) (string, error) {
 		rows = append(rows, fields)
 	}
 	cTable.SetRows(rows)
+
 	err = sortTable(&cTable, args)
 	if err != nil {
 		return "", microerror.Mask(err)
@@ -348,4 +345,18 @@ func sortTable(cTable *table.Table, args Arguments) error {
 	}
 
 	return nil
+}
+
+func getJSONOutput(clusterList []*models.V4ClusterListItem, args Arguments) (string, error) {
+	// sort clusters by ID
+	sort.Slice(clusterList[:], func(i, j int) bool {
+		return clusterList[i].ID < clusterList[j].ID
+	})
+
+	outputBytes, err := json.MarshalIndent(clusterList, outputJSONPrefix, outputJSONIndent)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	return string(outputBytes), nil
 }
