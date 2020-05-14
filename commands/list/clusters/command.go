@@ -185,27 +185,6 @@ func getClustersOutput(args Arguments) (string, error) {
 		return "", microerror.Mask(err)
 	}
 
-	if args.outputFormat == "json" {
-		var clusters []*models.V4ClusterListItem
-		{
-			for _, cluster := range response.Payload {
-				if cluster.DeleteDate != nil && !args.showDeleting {
-					continue
-				}
-
-				clusters = append(clusters, cluster)
-			}
-		}
-
-		var output string
-		output, err = getJSONOutput(clusters, arguments)
-		if err != nil {
-			return "", microerror.Mask(err)
-		}
-
-		return output, nil
-	}
-
 	headers := []table.Column{
 		table.Column{
 			Name:        "id",
@@ -244,6 +223,27 @@ func getClustersOutput(args Arguments) (string, error) {
 
 	cTable := table.New()
 	cTable.SetColumns(headers)
+
+	if args.outputFormat == "json" {
+		var clusters []*models.V4ClusterListItem
+		{
+			for _, cluster := range response.Payload {
+				if cluster.DeleteDate != nil && !args.showDeleting {
+					continue
+				}
+
+				clusters = append(clusters, cluster)
+			}
+		}
+
+		var output string
+		output, err = getJSONOutput(clusters, &cTable, arguments)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+
+		return output, nil
+	}
 
 	numDeletedClusters := 0
 	numOtherClusters := 0
@@ -347,16 +347,83 @@ func sortTable(cTable *table.Table, args Arguments) error {
 	return nil
 }
 
-func getJSONOutput(clusterList []*models.V4ClusterListItem, args Arguments) (string, error) {
-	// sort clusters by ID
-	sort.Slice(clusterList[:], func(i, j int) bool {
-		return clusterList[i].ID < clusterList[j].ID
+func getJSONOutput(clusterList []*models.V4ClusterListItem, cTable *table.Table, args Arguments) (string, error) {
+	var (
+		err    error
+		output []byte
+	)
+
+	var sortByColumn table.Column
+	if args.sortBy != "" {
+		var colName string
+
+		colName, err = cTable.GetColumnNameFromInitials(args.sortBy)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+
+		_, sortByColumn, err = cTable.GetColumnByName(colName)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+	}
+
+	if args.sortBy == "" || len(clusterList) < 2 {
+		output, err = json.MarshalIndent(clusterList, outputJSONPrefix, outputJSONIndent)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+
+		return string(output), nil
+	}
+
+	fieldMapping := map[string]string{
+		"created":        "create_date",
+		"id":             "id",
+		"name":           "name",
+		"organization":   "owner",
+		"release":        "release_version",
+		"deleting-since": "delete_date",
+	}
+
+	var clustersAsMapList []map[string]interface{}
+	{
+		var j []byte
+		j, err = json.Marshal(clusterList)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+		err = json.Unmarshal(j, &clustersAsMapList)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+	}
+
+	compareFunc := sortable.GetCompareFunc(sortByColumn.SortType)
+	sort.Slice(clustersAsMapList, func(i, j int) bool {
+		iField := "n/a"
+		{
+			iValue, ok := clustersAsMapList[i][fieldMapping[sortByColumn.Name]]
+			if ok {
+				iField = iValue.(string)
+			}
+		}
+
+		jField := "n/a"
+		{
+			jValue, ok := clustersAsMapList[j][fieldMapping[sortByColumn.Name]]
+			if ok {
+				jField = jValue.(string)
+			}
+		}
+
+		return compareFunc(iField, jField, sortable.Directions.ASC)
 	})
 
-	outputBytes, err := json.MarshalIndent(clusterList, outputJSONPrefix, outputJSONIndent)
+	output, err = json.MarshalIndent(clustersAsMapList, outputJSONPrefix, outputJSONIndent)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
 
-	return string(outputBytes), nil
+	return string(output), nil
 }
