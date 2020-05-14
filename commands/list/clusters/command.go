@@ -43,6 +43,8 @@ var (
 
 	cmdSelector string
 
+	cmdSort string
+
 	arguments Arguments
 )
 
@@ -65,6 +67,7 @@ func initFlags() {
 	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output. Defaults to human-friendly table output.")
 	Command.Flags().BoolVarP(&cmdShowDeleted, "show-deleting", "", false, "Show clusters which are currently being deleted (only with cluster release > 10.0.0).")
 	Command.Flags().StringVarP(&cmdSelector, "selector", "l", "", "Label selector query to filter clusters on.")
+	Command.Flags().StringVarP(&cmdSort, "sort", "s", "", "Sort by the given field.")
 }
 
 type Arguments struct {
@@ -297,10 +300,7 @@ func getClustersOutput(args Arguments) (string, error) {
 		rows = append(rows, fields)
 	}
 	cTable.SetRows(rows)
-	err = cTable.SortByColumnName("id", sortable.Directions.ASC)
-	if err != nil {
-		return "", microerror.Mask(err)
-	}
+	err = sortTable(&cTable, args)
 
 	clustercache.CacheIDs(args.apiEndpoint, clusterIDs)
 
@@ -324,4 +324,13 @@ func getClustersOutput(args Arguments) (string, error) {
 	}
 
 	return output, nil
+}
+
+func sortTable(cTable *table.Table, args Arguments) error {
+	err := cTable.SortByColumnName("id", sortable.Directions.ASC)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	return nil
 }
