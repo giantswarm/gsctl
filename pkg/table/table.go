@@ -86,14 +86,12 @@ func (t *Table) GetColumnNameFromInitials(i string) (string, error) {
 		columnNames   = make([]string, 0, len(t.columns))
 		matchingNames []string
 	)
-	{
-		for _, col := range t.columns {
-			if col.Name != "" {
-				columnNames = append(columnNames, col.Name)
+	for _, col := range t.columns {
+		if col.Name != "" {
+			columnNames = append(columnNames, col.Name)
 
-				if strings.HasPrefix(strings.ToLower(col.Name), i) {
-					matchingNames = append(matchingNames, col.Name)
-				}
+			if strings.HasPrefix(strings.ToLower(col.Name), i) {
+				matchingNames = append(matchingNames, col.Name)
 			}
 		}
 	}
