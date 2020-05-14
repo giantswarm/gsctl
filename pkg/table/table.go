@@ -90,9 +90,9 @@ func (t *Table) GetColumnNameFromInitials(i string) (string, error) {
 	}
 
 	if len(matchingNames) == 0 {
-		return "", microerror.Mask(fieldNotFoundError)
+		return "", microerror.Maskf(fieldNotFoundError, "available fields for sorting: %v", strings.Join(columnNames, ", "))
 	} else if len(matchingNames) > 1 {
-		return "", microerror.Mask(multipleFieldsMatchingError)
+		return "", microerror.Maskf(multipleFieldsMatchingError, "%v", strings.Join(matchingNames, ", "))
 	}
 
 	return matchingNames[0], nil
