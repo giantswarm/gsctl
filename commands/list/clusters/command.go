@@ -351,13 +351,19 @@ func getJSONOutput(clusterList []*models.V4ClusterListItem, cTable *table.Table,
 	var (
 		err    error
 		output []byte
+
+		sortByColumnName = "id"
+		sortByColumn     table.Column
 	)
 
-	var sortByColumn table.Column
 	if args.sortBy != "" {
+		sortByColumnName = args.sortBy
+	}
+
+	if sortByColumnName != "" {
 		var colName string
 
-		colName, err = cTable.GetColumnNameFromInitials(args.sortBy)
+		colName, err = cTable.GetColumnNameFromInitials(sortByColumnName)
 		if err != nil {
 			return "", microerror.Mask(err)
 		}
@@ -368,7 +374,7 @@ func getJSONOutput(clusterList []*models.V4ClusterListItem, cTable *table.Table,
 		}
 	}
 
-	if args.sortBy == "" || len(clusterList) < 2 {
+	if len(clusterList) < 2 {
 		output, err = json.MarshalIndent(clusterList, outputJSONPrefix, outputJSONIndent)
 		if err != nil {
 			return "", microerror.Mask(err)
