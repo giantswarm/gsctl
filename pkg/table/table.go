@@ -35,7 +35,7 @@ func (t *Table) SetRows(r [][]string) {
 }
 
 func (t *Table) SortByColumnName(n string, direction string) error {
-	if len(t.rows) < 2 {
+	if len(t.rows) < 2 || n == "" {
 		return nil
 	}
 
