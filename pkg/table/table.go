@@ -34,28 +34,6 @@ func (t *Table) SetRows(r [][]string) {
 	t.rows = r[:][:]
 }
 
-func (t *Table) String() string {
-	rows := make([]string, 0, len(t.rows)+1)
-
-	{
-		columns := make([]string, 0, len(t.columns))
-		for _, col := range t.columns {
-			columns = append(columns, col.GetHeader())
-		}
-		rows = append(rows, strings.Join(columns, "|"))
-	}
-
-	{
-		for _, row := range t.rows {
-			rows = append(rows, strings.Join(row, "|"))
-		}
-	}
-
-	formattedTable := columnize.Format(rows, t.columnizeConfig)
-
-	return formattedTable
-}
-
 func (t *Table) SortByColumnName(n string, direction string) error {
 	var (
 		colIndex int
@@ -86,4 +64,26 @@ func (t *Table) SortByColumnName(n string, direction string) error {
 	})
 
 	return nil
+}
+
+func (t *Table) String() string {
+	rows := make([]string, 0, len(t.rows)+1)
+
+	{
+		columns := make([]string, 0, len(t.columns))
+		for _, col := range t.columns {
+			columns = append(columns, col.GetHeader())
+		}
+		rows = append(rows, strings.Join(columns, "|"))
+	}
+
+	{
+		for _, row := range t.rows {
+			rows = append(rows, strings.Join(row, "|"))
+		}
+	}
+
+	formattedTable := columnize.Format(rows, t.columnizeConfig)
+
+	return formattedTable
 }
