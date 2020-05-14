@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sort"
 	"time"
 
 	"github.com/fatih/color"
@@ -405,26 +404,7 @@ func getJSONOutput(clusterList []*models.V4ClusterListItem, cTable *table.Table,
 		}
 	}
 
-	compareFunc := sortable.GetCompareFunc(sortByColumn.SortType)
-	sort.Slice(clustersAsMapList, func(i, j int) bool {
-		iField := "n/a"
-		{
-			iValue, ok := clustersAsMapList[i][fieldMapping[sortByColumn.Name]]
-			if ok {
-				iField = iValue.(string)
-			}
-		}
-
-		jField := "n/a"
-		{
-			jValue, ok := clustersAsMapList[j][fieldMapping[sortByColumn.Name]]
-			if ok {
-				jField = jValue.(string)
-			}
-		}
-
-		return compareFunc(iField, jField, sortable.Directions.ASC)
-	})
+	table.SortMapSliceUsingColumnData(clustersAsMapList, sortByColumn, fieldMapping)
 
 	output, err = json.MarshalIndent(clustersAsMapList, outputJSONPrefix, outputJSONIndent)
 	if err != nil {
