@@ -10,13 +10,16 @@ import (
 	"github.com/giantswarm/gsctl/pkg/sortable"
 )
 
+// Table represents a data structure that can hold and display the contents of a table.
 type Table struct {
 	columns []Column
 	rows    [][]string
 
+	// columnizeConfig represents the configuration of the table formatter.
 	columnizeConfig *columnize.Config
 }
 
+// New creates a new Table.
 func New() Table {
 	t := Table{}
 
@@ -26,15 +29,19 @@ func New() Table {
 	return t
 }
 
+// SetColumns sets the table's columns.
 func (t *Table) SetColumns(c []Column) {
 	t.columns = c[:]
 }
 
+// SetRows sets the table's rows.
 func (t *Table) SetRows(r [][]string) {
 	t.rows = r[:][:]
 }
 
+// SortByColumnName sorts the table by a column name, in the given direction.
 func (t *Table) SortByColumnName(n string, direction string) error {
+	// Skip if there is nothing to sort, or if there's no column name provided.
 	if len(t.rows) < 2 || n == "" {
 		return nil
 	}
@@ -44,11 +51,13 @@ func (t *Table) SortByColumnName(n string, direction string) error {
 		return microerror.Mask(err)
 	}
 
+	// Default to Ascending direction sorting.
 	sortDir := direction
 	if sortDir != sortable.Directions.ASC && sortDir != sortable.Directions.DESC {
 		sortDir = sortable.Directions.ASC
 	}
 
+	// Get the comparison algorithm for the current sorting type.
 	compareFunc := sortable.GetCompareFunc(column.SortType)
 	sort.Slice(t.rows, func(i, j int) bool {
 		return compareFunc(t.rows[i][colIndex], t.rows[j][colIndex], direction)
@@ -57,6 +66,7 @@ func (t *Table) SortByColumnName(n string, direction string) error {
 	return nil
 }
 
+// GetColumnByName fetches the index and data structure of a column, by knowing its name.
 func (t *Table) GetColumnByName(n string) (int, Column, error) {
 	var (
 		colIndex int
@@ -79,6 +89,8 @@ func (t *Table) GetColumnByName(n string) (int, Column, error) {
 	return colIndex, column, nil
 }
 
+// GetColumnNameFromInitials matches a given input with a name of an existent column,
+// without caring about casing, or if the given input is the complete name of the column.
 func (t *Table) GetColumnNameFromInitials(i string) (string, error) {
 	i = strings.ToLower(i)
 
@@ -105,6 +117,8 @@ func (t *Table) GetColumnNameFromInitials(i string) (string, error) {
 	return matchingNames[0], nil
 }
 
+// String makes the Table data structure implement the Stringer interface,
+// so we can easily pretty-print it.
 func (t *Table) String() string {
 	rows := make([]string, 0, len(t.rows)+1)
 

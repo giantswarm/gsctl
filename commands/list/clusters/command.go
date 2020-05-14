@@ -184,6 +184,9 @@ func getClustersOutput(args Arguments) (string, error) {
 		return "", microerror.Mask(err)
 	}
 
+	// Create the cluster list table.
+	cTable := table.New()
+
 	headers := []table.Column{
 		table.Column{
 			Name:        "id",
@@ -213,17 +216,17 @@ func getClustersOutput(args Arguments) (string, error) {
 		},
 	}
 
+	// Add the 'Deleting since' column if seeing deleted clusters is desired.
 	if args.showDeleting {
 		headers = append(headers, table.Column{
 			Name:        "deleting-since",
 			DisplayName: "DELETING SINCE",
 		})
 	}
-
-	cTable := table.New()
 	cTable.SetColumns(headers)
 
 	if args.outputFormat == "json" {
+		// Filter deleted clusters if seeing them is not desired.
 		var clusters []*models.V4ClusterListItem
 		{
 			for _, cluster := range response.Payload {
@@ -330,6 +333,7 @@ func getClustersOutput(args Arguments) (string, error) {
 func sortTable(cTable *table.Table, args Arguments) error {
 	var err error
 
+	// Use the 'id' column by default.
 	sortByColName := "id"
 	if args.sortBy != "" {
 		sortByColName, err = cTable.GetColumnNameFromInitials(args.sortBy)
@@ -355,6 +359,16 @@ func getJSONOutput(clusterList []*models.V4ClusterListItem, cTable *table.Table,
 		sortByColumn     table.Column
 	)
 
+	// If there is nothing to sort, let's get this over with.
+	if len(clusterList) < 2 {
+		output, err = json.MarshalIndent(clusterList, outputJSONPrefix, outputJSONIndent)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+
+		return string(output), nil
+	}
+
 	if args.sortBy != "" {
 		sortByColumnName = args.sortBy
 	}
@@ -373,15 +387,7 @@ func getJSONOutput(clusterList []*models.V4ClusterListItem, cTable *table.Table,
 		}
 	}
 
-	if len(clusterList) < 2 {
-		output, err = json.MarshalIndent(clusterList, outputJSONPrefix, outputJSONIndent)
-		if err != nil {
-			return "", microerror.Mask(err)
-		}
-
-		return string(output), nil
-	}
-
+	// The table column names, mapped to the json field names in the cluster data structure.
 	fieldMapping := map[string]string{
 		"created":        "create_date",
 		"id":             "id",
@@ -391,6 +397,8 @@ func getJSONOutput(clusterList []*models.V4ClusterListItem, cTable *table.Table,
 		"deleting-since": "delete_date",
 	}
 
+	// Convert cluster list to map, with the json field names as keys,
+	// to be able to use same sorting logic as in the table.
 	var clustersAsMapList []map[string]interface{}
 	{
 		var j []byte
