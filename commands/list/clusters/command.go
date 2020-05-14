@@ -179,12 +179,12 @@ func getClustersOutput(args Arguments) (string, error) {
 		return "", microerror.Mask(err)
 	}
 
-	// sort clusters by ID
-	sort.Slice(response.Payload[:], func(i, j int) bool {
-		return response.Payload[i].ID < response.Payload[j].ID
-	})
-
 	if args.outputFormat == "json" {
+		// sort clusters by ID
+		sort.Slice(response.Payload[:], func(i, j int) bool {
+			return response.Payload[i].ID < response.Payload[j].ID
+		})
+
 		var clusters []*models.V4ClusterListItem
 		{
 			for _, cluster := range response.Payload {
@@ -290,6 +290,10 @@ func getClustersOutput(args Arguments) (string, error) {
 		rows = append(rows, fields)
 	}
 	cTable.SetRows(rows)
+	err = cTable.SortByColumnName("id", table.SortableDirections.ASC)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
 
 	clustercache.CacheIDs(args.apiEndpoint, clusterIDs)
 
