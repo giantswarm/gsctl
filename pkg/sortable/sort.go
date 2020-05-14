@@ -6,7 +6,7 @@ import (
 	"github.com/giantswarm/gsctl/util"
 )
 
-var SortableTypes = struct {
+var Types = struct {
 	String string
 	Semver string
 	Date   string
@@ -16,7 +16,7 @@ var SortableTypes = struct {
 	Date:   "date",
 }
 
-var SortableDirections = struct {
+var Directions = struct {
 	ASC  string
 	DESC string
 }{
@@ -29,7 +29,7 @@ type Sortable struct {
 }
 
 func CompareStrings(a string, b string, direction string) bool {
-	if direction == SortableDirections.DESC {
+	if direction == Directions.DESC {
 		return a > b
 	}
 
@@ -48,7 +48,7 @@ func CompareSemvers(a string, b string, direction string) bool {
 	}
 
 	cmp := verA.Compare(verB)
-	if direction == SortableDirections.DESC {
+	if direction == Directions.DESC {
 		return cmp > 0
 	}
 
@@ -60,7 +60,7 @@ func CompareDates(a string, b string, direction string) bool {
 	dateB := util.ParseDate(b)
 
 	cmp := dateA.After(dateB)
-	if direction == SortableDirections.DESC {
+	if direction == Directions.DESC {
 		return cmp
 	}
 
@@ -69,13 +69,13 @@ func CompareDates(a string, b string, direction string) bool {
 
 func GetCompareFunc(t string) func(string, string, string) bool {
 	switch t {
-	case SortableTypes.String:
+	case Types.String:
 		return CompareStrings
 
-	case SortableTypes.Date:
+	case Types.Date:
 		return CompareDates
 
-	case SortableTypes.Semver:
+	case Types.Semver:
 		return CompareSemvers
 
 	default:

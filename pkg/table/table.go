@@ -76,8 +76,8 @@ func (t *Table) SortByColumnName(n string, direction string) error {
 	}
 
 	sortDir := direction
-	if sortDir != sortable.SortableDirections.ASC && sortDir != sortable.SortableDirections.DESC {
-		sortDir = sortable.SortableDirections.ASC
+	if sortDir != sortable.Directions.ASC && sortDir != sortable.Directions.DESC {
+		sortDir = sortable.Directions.ASC
 	}
 
 	compareFunc := sortable.GetCompareFunc(column.SortType)

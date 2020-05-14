@@ -222,14 +222,14 @@ func getClustersOutput(args Arguments) (string, error) {
 			Name:        "release",
 			DisplayName: "RELEASE",
 			Sortable: sortable.Sortable{
-				SortType: sortable.SortableTypes.Semver,
+				SortType: sortable.Types.Semver,
 			},
 		},
 		table.Column{
 			Name:        "created",
 			DisplayName: "CREATED",
 			Sortable: sortable.Sortable{
-				SortType: sortable.SortableTypes.Date,
+				SortType: sortable.Types.Date,
 			},
 		},
 	}
@@ -297,7 +297,7 @@ func getClustersOutput(args Arguments) (string, error) {
 		rows = append(rows, fields)
 	}
 	cTable.SetRows(rows)
-	err = cTable.SortByColumnName("id", sortable.SortableDirections.ASC)
+	err = cTable.SortByColumnName("id", sortable.Directions.ASC)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
