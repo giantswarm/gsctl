@@ -2,10 +2,12 @@ package table
 
 import (
 	"github.com/fatih/color"
+
+	"github.com/giantswarm/gsctl/pkg/sortable"
 )
 
 type Column struct {
-	Sortable
+	sortable.Sortable
 	Name        string
 	DisplayName string
 }

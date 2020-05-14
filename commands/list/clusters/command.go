@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/clustercache"
+	"github.com/giantswarm/gsctl/pkg/sortable"
 	"github.com/giantswarm/gsctl/pkg/table"
 
 	"github.com/giantswarm/gsctl/client"
@@ -220,15 +221,15 @@ func getClustersOutput(args Arguments) (string, error) {
 		table.Column{
 			Name:        "release",
 			DisplayName: "RELEASE",
-			Sortable: table.Sortable{
-				SortType: table.SortableTypes.Semver,
+			Sortable: sortable.Sortable{
+				SortType: sortable.SortableTypes.Semver,
 			},
 		},
 		table.Column{
 			Name:        "created",
 			DisplayName: "CREATED",
-			Sortable: table.Sortable{
-				SortType: table.SortableTypes.Date,
+			Sortable: sortable.Sortable{
+				SortType: sortable.SortableTypes.Date,
 			},
 		},
 	}
@@ -296,7 +297,7 @@ func getClustersOutput(args Arguments) (string, error) {
 		rows = append(rows, fields)
 	}
 	cTable.SetRows(rows)
-	err = cTable.SortByColumnName("id", table.SortableDirections.ASC)
+	err = cTable.SortByColumnName("id", sortable.SortableDirections.ASC)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}

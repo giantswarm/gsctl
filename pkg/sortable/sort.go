@@ -1,4 +1,4 @@
-package table
+package sortable
 
 import (
 	"github.com/Masterminds/semver"

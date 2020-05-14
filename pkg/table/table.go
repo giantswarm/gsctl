@@ -6,6 +6,8 @@ import (
 
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/microerror"
+
+	"github.com/giantswarm/gsctl/pkg/sortable"
 )
 
 type Table struct {
@@ -74,11 +76,11 @@ func (t *Table) SortByColumnName(n string, direction string) error {
 	}
 
 	sortDir := direction
-	if sortDir != SortableDirections.ASC && sortDir != SortableDirections.DESC {
-		sortDir = SortableDirections.ASC
+	if sortDir != sortable.SortableDirections.ASC && sortDir != sortable.SortableDirections.DESC {
+		sortDir = sortable.SortableDirections.ASC
 	}
 
-	compareFunc := GetCompareFunc(column.SortType)
+	compareFunc := sortable.GetCompareFunc(column.SortType)
 	sort.Slice(t.rows, func(i, j int) bool {
 		return compareFunc(t.rows[i][colIndex], t.rows[j][colIndex], direction)
 	})
