@@ -39,6 +39,25 @@ func (t *Table) SortByColumnName(n string, direction string) error {
 		return nil
 	}
 
+	colIndex, column, err := t.GetColumnByName(n)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	sortDir := direction
+	if sortDir != sortable.Directions.ASC && sortDir != sortable.Directions.DESC {
+		sortDir = sortable.Directions.ASC
+	}
+
+	compareFunc := sortable.GetCompareFunc(column.SortType)
+	sort.Slice(t.rows, func(i, j int) bool {
+		return compareFunc(t.rows[i][colIndex], t.rows[j][colIndex], direction)
+	})
+
+	return nil
+}
+
+func (t *Table) GetColumnByName(n string) (int, Column, error) {
 	var (
 		colIndex int
 		column   Column
@@ -53,21 +72,11 @@ func (t *Table) SortByColumnName(n string, direction string) error {
 			}
 		}
 		if column.Name == "" {
-			return microerror.Mask(fieldNotFoundError)
+			return 0, Column{}, microerror.Mask(fieldNotFoundError)
 		}
 	}
 
-	sortDir := direction
-	if sortDir != sortable.Directions.ASC && sortDir != sortable.Directions.DESC {
-		sortDir = sortable.Directions.ASC
-	}
-
-	compareFunc := sortable.GetCompareFunc(column.SortType)
-	sort.Slice(t.rows, func(i, j int) bool {
-		return compareFunc(t.rows[i][colIndex], t.rows[j][colIndex], direction)
-	})
-
-	return nil
+	return colIndex, column, nil
 }
 
 func (t *Table) GetColumnNameFromInitials(i string) (string, error) {
