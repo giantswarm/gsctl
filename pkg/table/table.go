@@ -1,9 +1,11 @@
 package table
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/giantswarm/columnize"
+	"github.com/giantswarm/microerror"
 )
 
 type Table struct {
@@ -50,4 +52,36 @@ func (t *Table) String() string {
 	formattedTable := columnize.Format(rows, t.columnizeConfig)
 
 	return formattedTable
+}
+
+func (t *Table) SortByColumnName(n string, direction string) error {
+	var (
+		colIndex int
+		column   Column
+	)
+	{
+		for i, col := range t.columns {
+			if col.Name == n {
+				colIndex = i
+				column = col
+
+				break
+			}
+		}
+		if column.Name == "" {
+			return microerror.Mask(columnNotFoundError)
+		}
+	}
+
+	sortDir := direction
+	if sortDir != SortableDirections.ASC && sortDir != SortableDirections.DESC {
+		sortDir = SortableDirections.ASC
+	}
+
+	compareFunc := GetCompareFunc(column.SortType)
+	sort.Slice(t.rows, func(i, j int) bool {
+		return compareFunc(t.rows[i][colIndex], t.rows[j][colIndex], direction)
+	})
+
+	return nil
 }

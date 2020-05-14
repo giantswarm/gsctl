@@ -5,6 +5,7 @@ import (
 )
 
 type Column struct {
+	Sortable
 	Name        string
 	DisplayName string
 }
