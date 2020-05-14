@@ -308,7 +308,7 @@ func getClustersOutput(args Arguments) (string, error) {
 	output := ""
 
 	// Only show table when there is content.
-	if len(rows) > 1 {
+	if len(rows) > 0 {
 		output += cTable.String()
 	} else {
 		output += color.YellowString("No clusters")
