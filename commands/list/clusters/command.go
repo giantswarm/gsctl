@@ -77,6 +77,7 @@ type Arguments struct {
 	scheme            string
 	selector          string
 	showDeleting      bool
+	sortBy            string
 	userProvidedToken string
 }
 
@@ -92,6 +93,7 @@ func collectArguments() Arguments {
 		scheme:            scheme,
 		selector:          cmdSelector,
 		showDeleting:      cmdShowDeleted,
+		sortBy:            cmdSort,
 		userProvidedToken: flags.Token,
 	}
 }
@@ -327,7 +329,17 @@ func getClustersOutput(args Arguments) (string, error) {
 }
 
 func sortTable(cTable *table.Table, args Arguments) error {
-	err := cTable.SortByColumnName("id", sortable.Directions.ASC)
+	var err error
+
+	sortByColName := "id"
+	if args.sortBy != "" {
+		sortByColName, err = cTable.GetColumnNameFromInitials(args.sortBy)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+	}
+
+	err = cTable.SortByColumnName(sortByColName, sortable.Directions.ASC)
 	if err != nil {
 		return microerror.Mask(err)
 	}
