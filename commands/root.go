@@ -44,6 +44,7 @@ var RootCommand = &cobra.Command{
 	Use: config.ProgramName,
 	// this is inherited by all child commands
 	PersistentPreRunE: initConfig,
+	Run:               printResult,
 }
 
 func init() {
@@ -56,6 +57,7 @@ func init() {
 	RootCommand.PersistentFlags().StringVarP(&flags.Token, "auth-token", "", tokenFromEnv, "Authorization token to use")
 	RootCommand.PersistentFlags().StringVarP(&flags.ConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
 	RootCommand.PersistentFlags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Print more information")
+	RootCommand.Flags().Bool("version", false, version.Command.Short)
 
 	// add subcommands
 	RootCommand.AddCommand(CompletionCommand)
@@ -97,4 +99,14 @@ func initConfig(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func printResult(cmd *cobra.Command, args []string) {
+	isVersion, _ := cmd.Flags().GetBool("version")
+	if isVersion {
+		version.Command.Run(version.Command, nil)
+		return
+	}
+
+	_ = cmd.Help()
 }

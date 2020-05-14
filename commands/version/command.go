@@ -30,8 +30,9 @@ const (
 var (
 	// Command is the "version" go command
 	Command = &cobra.Command{
-		Use:   "version",
-		Short: "Print version number",
+		Use:        "version",
+		Deprecated: "please use 'gsctl --version' instead.",
+		Short:      "Print version number",
 		Long: `Prints the gsctl version number.
 
 When executed with the -v/--verbose flag, the build date is printed in addition.`,
