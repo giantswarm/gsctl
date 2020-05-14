@@ -49,7 +49,7 @@ func (t *Table) SortByColumnName(n string, direction string) error {
 			}
 		}
 		if column.Name == "" {
-			return microerror.Mask(columnNotFoundError)
+			return microerror.Mask(fieldNotFoundError)
 		}
 	}
 
@@ -64,6 +64,34 @@ func (t *Table) SortByColumnName(n string, direction string) error {
 	})
 
 	return nil
+}
+
+func (t *Table) GetColumnNameFromInitials(i string) (string, error) {
+	i = strings.ToLower(i)
+
+	var (
+		columnNames   = make([]string, 0, len(t.columns))
+		matchingNames []string
+	)
+	{
+		for _, col := range t.columns {
+			if col.Name != "" {
+				columnNames = append(columnNames, col.Name)
+
+				if strings.HasPrefix(strings.ToLower(col.Name), i) {
+					matchingNames = append(matchingNames, col.Name)
+				}
+			}
+		}
+	}
+
+	if len(matchingNames) == 0 {
+		return "", microerror.Mask(fieldNotFoundError)
+	} else if len(matchingNames) > 1 {
+		return "", microerror.Mask(multipleFieldsMatchingError)
+	}
+
+	return matchingNames[0], nil
 }
 
 func (t *Table) String() string {

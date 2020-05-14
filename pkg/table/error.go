@@ -13,11 +13,20 @@ func IsObjectNotSliceError(err error) bool {
 	return microerror.Cause(err) == objectNotSliceError
 }
 
-var columnNotFoundError = &microerror.Error{
-	Kind: "columnNotFoundError",
+var fieldNotFoundError = &microerror.Error{
+	Kind: "fieldNotFoundError",
 }
 
-// IsColumnNotFoundError asserts columnNotFoundError.
-func IsColumnNotFoundError(err error) bool {
-	return microerror.Cause(err) == columnNotFoundError
+// IsFieldNotFoundError asserts fieldNotFoundError.
+func IsFieldNotFoundError(err error) bool {
+	return microerror.Cause(err) == fieldNotFoundError
+}
+
+var multipleFieldsMatchingError = &microerror.Error{
+	Kind: "multipleFieldsMatchingError",
+}
+
+// IsMultipleFieldsMatchingError asserts multipleFieldsMatchingError.
+func IsMultipleFieldsMatchingError(err error) bool {
+	return microerror.Cause(err) == multipleFieldsMatchingError
 }
