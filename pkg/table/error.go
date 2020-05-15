@@ -4,15 +4,6 @@ import (
 	"github.com/giantswarm/microerror"
 )
 
-var objectNotSliceError = &microerror.Error{
-	Kind: "objectNotSliceError",
-}
-
-// IsObjectNotSliceError asserts objectNotSliceError.
-func IsObjectNotSliceError(err error) bool {
-	return microerror.Cause(err) == objectNotSliceError
-}
-
 var fieldNotFoundError = &microerror.Error{
 	Kind: "fieldNotFoundError",
 }
