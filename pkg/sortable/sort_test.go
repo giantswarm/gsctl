@@ -127,6 +127,18 @@ func Test_CompareSemvers(t *testing.T) {
 			direction:      Directions.DESC,
 			expectedResult: false,
 		},
+		{
+			a:              "clearly-not-semver",
+			b:              "1.0.1",
+			direction:      Directions.ASC,
+			expectedResult: false,
+		},
+		{
+			a:              "1.0.1",
+			b:              "clearly-not-semver",
+			direction:      Directions.ASC,
+			expectedResult: false,
+		},
 	}
 
 	for i, tc := range testCases {
