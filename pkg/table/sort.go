@@ -3,6 +3,8 @@ package table
 import (
 	"sort"
 
+	"github.com/acarl005/stripansi"
+
 	"github.com/giantswarm/gsctl/pkg/sortable"
 )
 
@@ -29,4 +31,10 @@ func SortMapSliceUsingColumnData(mapSlice []map[string]interface{}, byCol Column
 
 		return compareFunc(iField, jField, sortable.Directions.ASC)
 	})
+}
+
+func RemoveColor(s string) string {
+	t := stripansi.Strip(s)
+
+	return t
 }

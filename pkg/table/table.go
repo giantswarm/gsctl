@@ -60,7 +60,10 @@ func (t *Table) SortByColumnName(n string, direction string) error {
 	// Get the comparison algorithm for the current sorting type.
 	compareFunc := sortable.GetCompareFunc(column.SortType)
 	sort.Slice(t.rows, func(i, j int) bool {
-		return compareFunc(t.rows[i][colIndex], t.rows[j][colIndex], direction)
+		iVal := RemoveColor(t.rows[i][colIndex])
+		jVal := RemoveColor(t.rows[j][colIndex])
+
+		return compareFunc(iVal, jVal, direction)
 	})
 
 	return nil

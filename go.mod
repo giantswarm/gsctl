@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/Jeffail/gabs v1.4.0
 	github.com/Masterminds/semver v1.5.0
+	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
 	github.com/fatih/color v1.9.0
 	github.com/giantswarm/apiextensions v0.0.0-20191213075442-71155aa0f5b7
