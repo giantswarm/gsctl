@@ -46,6 +46,7 @@ func ShortDate(date time.Time) string {
 	return date.Format(shortFormat)
 }
 
+// parseShortDate parses a date encoded with the 'shortFormat' format.
 func parseShortDate(dateStr string) time.Time {
 	// 'YYYY MMM DD HH:MM LOC'
 	if len(dateStr) < 18 {
