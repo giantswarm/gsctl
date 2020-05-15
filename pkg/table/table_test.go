@@ -208,6 +208,67 @@ func Test_SortByColumnName(t *testing.T) {
 				},
 			},
 			sortBy:    "some-col",
+			direction: "",
+			expectedResult: [][]string{
+				{
+					"Good cat",
+					"2016 Dec 25, 14:41 UTC",
+					"12.0.1",
+				},
+				{
+					"Good dog",
+					"2016 Dec 05, 14:41 UTC",
+					"12.0.1",
+				},
+				{
+					"Good parrot",
+					"2016 Dec 25, 15:41 UTC",
+					"9.0.1",
+				},
+			},
+			errorMatcher: nil,
+		},
+		{
+			columns: []Column{
+				{
+					Name:        "some-col",
+					DisplayName: "SOME COLUMN",
+					Sortable: sortable.Sortable{
+						SortType: sortable.Types.String,
+					},
+				},
+				{
+					Name: "some-other-col",
+					Sortable: sortable.Sortable{
+						SortType: sortable.Types.Date,
+					},
+				},
+				{
+					Name:        "some-random-col",
+					DisplayName: "Some Random Column",
+					Sortable: sortable.Sortable{
+						SortType: sortable.Types.Semver,
+					},
+				},
+			},
+			rows: [][]string{
+				{
+					"Good dog",
+					"2016 Dec 05, 14:41 UTC",
+					"12.0.1",
+				},
+				{
+					"Good cat",
+					"2016 Dec 25, 14:41 UTC",
+					"12.0.1",
+				},
+				{
+					"Good parrot",
+					"2016 Dec 25, 15:41 UTC",
+					"9.0.1",
+				},
+			},
+			sortBy:    "some-col",
 			direction: sortable.Directions.DESC,
 			expectedResult: [][]string{
 				{
@@ -410,6 +471,47 @@ func Test_SortByColumnName(t *testing.T) {
 				},
 			},
 			errorMatcher: IsFieldNotFoundError,
+		},
+		{
+			columns: []Column{
+				{
+					Name:        "some-col",
+					DisplayName: "SOME COLUMN",
+					Sortable: sortable.Sortable{
+						SortType: sortable.Types.String,
+					},
+				},
+				{
+					Name: "some-other-col",
+					Sortable: sortable.Sortable{
+						SortType: sortable.Types.Date,
+					},
+				},
+				{
+					Name:        "some-random-col",
+					DisplayName: "Some Random Column",
+					Sortable: sortable.Sortable{
+						SortType: sortable.Types.Semver,
+					},
+				},
+			},
+			rows: [][]string{
+				{
+					"Good dog",
+					"2016 Dec 05, 14:41 UTC",
+					"12.0.1",
+				},
+			},
+			sortBy:    "some-other-col",
+			direction: sortable.Directions.ASC,
+			expectedResult: [][]string{
+				{
+					"Good dog",
+					"2016 Dec 05, 14:41 UTC",
+					"12.0.1",
+				},
+			},
+			errorMatcher: nil,
 		},
 	}
 
