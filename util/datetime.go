@@ -1,10 +1,8 @@
 package util
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -49,28 +47,18 @@ func ShortDate(date time.Time) string {
 }
 
 func parseShortDate(dateStr string) time.Time {
-	newDate := time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)
-
-	dateStr = strings.Replace(dateStr, ",", "", -1)
-	dateParts := strings.Split(dateStr, " ")
-
-	// [ YYYY MMM DD HH:MM UTC]
-	if len(dateParts) < 5 {
-		return newDate
+	// 'YYYY MMM DD HH:MM LOC'
+	if len(dateStr) < 18 {
+		return time.Time{}
 	}
 
-	// Only transform the last 4 digits of the year to int,
-	// as sometimes (if the string content is colored)
-	// there may be some random utf8 chars before.
-	yearDigitsToTransform := len(dateParts[0]) - 4
-	year, _ := strconv.Atoi(dateParts[0][yearDigitsToTransform:])
-	month, _ := time.Parse("Jan", dateParts[1])
-	days, _ := strconv.Atoi(dateParts[2])
-	newDate = newDate.AddDate(year, int(month.Month()), days)
+	year, _ := strconv.Atoi(dateStr[:4])
+	month, _ := time.Parse("Jan", dateStr[5:8])
+	days, _ := strconv.Atoi(dateStr[9:11])
+	hours, _ := strconv.Atoi(dateStr[13:15])
+	minutes, _ := strconv.Atoi(dateStr[16:18])
 
-	timeDigits := strings.Split(dateParts[3], ":")
-	timeDuration, _ := time.ParseDuration(fmt.Sprintf("%sh%sm", timeDigits[0], timeDigits[1]))
-	newDate = newDate.Add(timeDuration)
+	newDate := time.Date(year, month.Month(), days, hours, minutes, 0, 0, time.UTC)
 
 	return newDate
 }
