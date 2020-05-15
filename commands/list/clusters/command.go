@@ -64,6 +64,15 @@ const (
 	tableColDeletingSince = "deleting-since"
 )
 
+var tableCols = [...]string{
+	tableColID,
+	tableColCreateDate,
+	tableColName,
+	tableColOrg,
+	tableColRelease,
+	tableColDeletingSince,
+}
+
 func init() {
 	initFlags()
 }
