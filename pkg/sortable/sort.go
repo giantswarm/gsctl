@@ -62,8 +62,8 @@ func CompareSemvers(a string, b string, direction string) bool {
 
 // CompareDates represents the comparison algorithm for string-encoded dates.
 func CompareDates(a string, b string, direction string) bool {
-	dateA := util.ParseDate(a)
-	dateB := util.ParseDate(b)
+	dateA := util.ParseShortDate(a)
+	dateB := util.ParseShortDate(b)
 
 	cmp := dateA.After(dateB)
 	if direction == Directions.DESC {

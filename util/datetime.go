@@ -1,7 +1,10 @@
 package util
 
 import (
+	"fmt"
 	"regexp"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -40,4 +43,30 @@ func ParseDate(dateString string) time.Time {
 // ShortDate reformats a time.Time to a short date
 func ShortDate(date time.Time) string {
 	return date.Format(shortFormat)
+}
+
+func ParseShortDate(dateStr string) time.Time {
+	newDate := time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)
+
+	dateStr = strings.Replace(dateStr, ",", "", -1)
+	dateParts := strings.Split(dateStr, " ")
+
+	// [ YYYY MMM DD HH:MM UTC]
+	if len(dateParts) < 5 {
+		return newDate
+	}
+
+	// Only transform the last 4 digits of the year to int,
+	// as sometimes there may be some random utf8 chars before.
+	yearDigitsToTransform := len(dateParts[0]) - 4
+	year, _ := strconv.Atoi(dateParts[0][yearDigitsToTransform:])
+	month, _ := time.Parse("Jan", dateParts[1])
+	days, _ := strconv.Atoi(dateParts[2])
+	newDate = newDate.AddDate(year, int(month.Month()), days)
+
+	timeDigits := strings.Split(dateParts[3], ":")
+	timeDuration, _ := time.ParseDuration(fmt.Sprintf("%sh%sm", timeDigits[0], timeDigits[1]))
+	newDate = newDate.Add(timeDuration)
+
+	return newDate
 }
