@@ -306,14 +306,23 @@ func createTable(args Arguments) *table.Table {
 		{
 			Name:        tableColID,
 			DisplayName: "ID",
+			Sortable: sortable.Sortable{
+				SortType: sortable.Types.String,
+			},
 		},
 		{
 			Name:        tableColOrg,
 			DisplayName: "ORGANIZATION",
+			Sortable: sortable.Sortable{
+				SortType: sortable.Types.String,
+			},
 		},
 		{
 			Name:        tableColName,
 			DisplayName: "NAME",
+			Sortable: sortable.Sortable{
+				SortType: sortable.Types.String,
+			},
 		},
 		{
 			Name:        tableColRelease,
@@ -336,6 +345,9 @@ func createTable(args Arguments) *table.Table {
 		headers = append(headers, table.Column{
 			Name:        tableColDeletingSince,
 			DisplayName: "DELETING SINCE",
+			Sortable: sortable.Sortable{
+				SortType: sortable.Types.Date,
+			},
 		})
 	}
 	t.SetColumns(headers)
