@@ -33,7 +33,7 @@ func SortMapSliceUsingColumnData(mapSlice []map[string]interface{}, byCol Column
 	})
 }
 
-func RemoveColor(s string) string {
+func RemoveColors(s string) string {
 	t := stripansi.Strip(s)
 
 	return t
