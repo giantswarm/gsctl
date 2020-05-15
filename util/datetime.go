@@ -34,6 +34,8 @@ func ParseDate(dateString string) time.Time {
 	if err == nil {
 		l, _ := time.LoadLocation("UTC")
 		t = t.In(l)
+
+		return t
 	}
 
 	t = parseShortDate(dateString)
