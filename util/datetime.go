@@ -37,6 +37,9 @@ func ParseDate(dateString string) time.Time {
 		l, _ := time.LoadLocation("UTC")
 		t = t.In(l)
 	}
+
+	t = parseShortDate(dateString)
+
 	return t
 }
 
@@ -45,7 +48,7 @@ func ShortDate(date time.Time) string {
 	return date.Format(shortFormat)
 }
 
-func ParseShortDate(dateStr string) time.Time {
+func parseShortDate(dateStr string) time.Time {
 	newDate := time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)
 
 	dateStr = strings.Replace(dateStr, ",", "", -1)
@@ -57,7 +60,8 @@ func ParseShortDate(dateStr string) time.Time {
 	}
 
 	// Only transform the last 4 digits of the year to int,
-	// as sometimes there may be some random utf8 chars before.
+	// as sometimes (if the string content is colored)
+	// there may be some random utf8 chars before.
 	yearDigitsToTransform := len(dateParts[0]) - 4
 	year, _ := strconv.Atoi(dateParts[0][yearDigitsToTransform:])
 	month, _ := time.Parse("Jan", dateParts[1])
