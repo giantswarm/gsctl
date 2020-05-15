@@ -108,7 +108,7 @@ func (t *Table) GetColumnNameFromInitials(i string) (string, error) {
 				matchingNames = append(matchingNames, col.Name)
 
 				if nameLowerCased == i {
-					break
+					return matchingNames[0], nil
 				}
 			}
 		}
