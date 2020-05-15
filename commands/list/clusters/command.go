@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/fatih/color"
@@ -151,13 +152,43 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
 
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			fmt.Println(color.RedString(clientErr.ErrorMessage))
+		var (
+			headline string
+			subtext  string
+		)
+
+		clientErr, isClientErr := err.(*clienterror.APIError)
+
+		switch {
+		case isClientErr:
+			headline = clientErr.ErrorMessage
 			if clientErr.ErrorDetails != "" {
-				fmt.Println(clientErr.ErrorDetails)
+				subtext = clientErr.ErrorDetails
 			}
-		} else {
-			fmt.Println(color.RedString("Error: %s", err.Error()))
+
+		case table.IsFieldNotFoundError(err):
+			headline = fmt.Sprintf("Cannot sort by attribute '%s'.", arguments.sortBy)
+			subtext = fmt.Sprintf(
+				"The attribute '%s' does not exist.\nYou can sort by any of these attributes: %v",
+				arguments.sortBy,
+				strings.Join(tableCols[:], ", "),
+			)
+
+		case table.IsMultipleFieldsMatchingError(err):
+			headline = fmt.Sprintf("Multiple attributes found for token '%s'.", arguments.sortBy)
+			subtext = fmt.Sprintf(
+				"Please provide the complete attribute.\nYou can sort by any of these attributes: %v",
+				strings.Join(tableCols[:], ", "),
+			)
+
+		default:
+			headline = fmt.Sprintf("Error: %s", err.Error())
+		}
+
+		// print output
+		fmt.Println(color.RedString(headline))
+		if subtext != "" {
+			fmt.Println(subtext)
 		}
 		os.Exit(1)
 	}
