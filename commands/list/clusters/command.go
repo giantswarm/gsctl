@@ -55,6 +55,13 @@ const (
 
 	outputJSONPrefix = ""
 	outputJSONIndent = "  "
+
+	tableColID            = "id"
+	tableColCreateDate    = "created"
+	tableColName          = "name"
+	tableColOrg           = "organization"
+	tableColRelease       = "release"
+	tableColDeletingSince = "deleting-since"
 )
 
 func init() {
@@ -185,61 +192,23 @@ func getClustersOutput(args Arguments) (string, error) {
 	}
 
 	// Create the cluster list table.
-	cTable := table.New()
-
-	headers := []table.Column{
-		table.Column{
-			Name:        "id",
-			DisplayName: "ID",
-		},
-		table.Column{
-			Name:        "organization",
-			DisplayName: "ORGANIZATION",
-		},
-		table.Column{
-			Name:        "name",
-			DisplayName: "NAME",
-		},
-		table.Column{
-			Name:        "release",
-			DisplayName: "RELEASE",
-			Sortable: sortable.Sortable{
-				SortType: sortable.Types.Semver,
-			},
-		},
-		table.Column{
-			Name:        "created",
-			DisplayName: "CREATED",
-			Sortable: sortable.Sortable{
-				SortType: sortable.Types.Date,
-			},
-		},
-	}
-
-	// Add the 'Deleting since' column if seeing deleted clusters is desired.
-	if args.showDeleting {
-		headers = append(headers, table.Column{
-			Name:        "deleting-since",
-			DisplayName: "DELETING SINCE",
-		})
-	}
-	cTable.SetColumns(headers)
+	cTable := createTable(args)
 
 	if args.outputFormat == "json" {
 		// Filter deleted clusters if seeing them is not desired.
-		var clusters []*models.V4ClusterListItem
+		var clusterList []*models.V4ClusterListItem
 		{
 			for _, cluster := range response.Payload {
 				if cluster.DeleteDate != nil && !args.showDeleting {
 					continue
 				}
 
-				clusters = append(clusters, cluster)
+				clusterList = append(clusterList, cluster)
 			}
 		}
 
 		var output string
-		output, err = getJSONOutput(clusters, &cTable, arguments)
+		output, err = getJSONOutput(clusterList, cTable, arguments)
 		if err != nil {
 			return "", microerror.Mask(err)
 		}
@@ -301,7 +270,7 @@ func getClustersOutput(args Arguments) (string, error) {
 	}
 	cTable.SetRows(rows)
 
-	err = sortTable(&cTable, args)
+	err = sortTable(cTable, args)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
@@ -330,11 +299,55 @@ func getClustersOutput(args Arguments) (string, error) {
 	return output, nil
 }
 
+func createTable(args Arguments) *table.Table {
+	t := table.New()
+
+	headers := []table.Column{
+		{
+			Name:        tableColID,
+			DisplayName: "ID",
+		},
+		{
+			Name:        tableColOrg,
+			DisplayName: "ORGANIZATION",
+		},
+		{
+			Name:        tableColName,
+			DisplayName: "NAME",
+		},
+		{
+			Name:        tableColRelease,
+			DisplayName: "RELEASE",
+			Sortable: sortable.Sortable{
+				SortType: sortable.Types.Semver,
+			},
+		},
+		{
+			Name:        tableColCreateDate,
+			DisplayName: "CREATED",
+			Sortable: sortable.Sortable{
+				SortType: sortable.Types.Date,
+			},
+		},
+	}
+
+	// Add the 'Deleting since' column if seeing deleted clusters is desired.
+	if args.showDeleting {
+		headers = append(headers, table.Column{
+			Name:        tableColDeletingSince,
+			DisplayName: "DELETING SINCE",
+		})
+	}
+	t.SetColumns(headers)
+
+	return &t
+}
+
 func sortTable(cTable *table.Table, args Arguments) error {
 	var err error
 
 	// Use the 'id' column by default.
-	sortByColName := "id"
+	sortByColName := tableColID
 	if args.sortBy != "" {
 		sortByColName, err = cTable.GetColumnNameFromInitials(args.sortBy)
 		if err != nil {
@@ -354,9 +367,6 @@ func getJSONOutput(clusterList []*models.V4ClusterListItem, cTable *table.Table,
 	var (
 		err    error
 		output []byte
-
-		sortByColumnName = "id"
-		sortByColumn     table.Column
 	)
 
 	// If there is nothing to sort, let's get this over with.
@@ -369,6 +379,8 @@ func getJSONOutput(clusterList []*models.V4ClusterListItem, cTable *table.Table,
 		return string(output), nil
 	}
 
+	sortByColumnName := tableColID
+	var sortByColumn table.Column
 	if args.sortBy != "" {
 		sortByColumnName = args.sortBy
 	}
@@ -389,12 +401,12 @@ func getJSONOutput(clusterList []*models.V4ClusterListItem, cTable *table.Table,
 
 	// The table column names, mapped to the json field names in the cluster data structure.
 	fieldMapping := map[string]string{
-		"created":        "create_date",
-		"id":             "id",
-		"name":           "name",
-		"organization":   "owner",
-		"release":        "release_version",
-		"deleting-since": "delete_date",
+		tableColCreateDate:    "create_date",
+		tableColID:            "id",
+		tableColName:          "name",
+		tableColOrg:           "owner",
+		tableColRelease:       "release_version",
+		tableColDeletingSince: "delete_date",
 	}
 
 	// Convert cluster list to map, with the json field names as keys,
