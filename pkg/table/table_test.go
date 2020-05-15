@@ -112,20 +112,20 @@ func Test_SortByColumnName(t *testing.T) {
 					Name:        "some-col",
 					DisplayName: "SOME COLUMN",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.String,
+						SortType: sortable.String,
 					},
 				},
 				{
 					Name: "some-other-col",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.Date,
+						SortType: sortable.Date,
 					},
 				},
 				{
 					Name:        "some-random-col",
 					DisplayName: "Some Random Column",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.Semver,
+						SortType: sortable.Semver,
 					},
 				},
 			},
@@ -147,7 +147,7 @@ func Test_SortByColumnName(t *testing.T) {
 				},
 			},
 			sortBy:    "some-col",
-			direction: sortable.Directions.ASC,
+			direction: sortable.ASC,
 			expectedResult: [][]string{
 				{
 					"Good cat",
@@ -173,20 +173,20 @@ func Test_SortByColumnName(t *testing.T) {
 					Name:        "some-col",
 					DisplayName: "SOME COLUMN",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.String,
+						SortType: sortable.String,
 					},
 				},
 				{
 					Name: "some-other-col",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.Date,
+						SortType: sortable.Date,
 					},
 				},
 				{
 					Name:        "some-random-col",
 					DisplayName: "Some Random Column",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.Semver,
+						SortType: sortable.Semver,
 					},
 				},
 			},
@@ -234,20 +234,20 @@ func Test_SortByColumnName(t *testing.T) {
 					Name:        "some-col",
 					DisplayName: "SOME COLUMN",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.String,
+						SortType: sortable.String,
 					},
 				},
 				{
 					Name: "some-other-col",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.Date,
+						SortType: sortable.Date,
 					},
 				},
 				{
 					Name:        "some-random-col",
 					DisplayName: "Some Random Column",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.Semver,
+						SortType: sortable.Semver,
 					},
 				},
 			},
@@ -269,7 +269,7 @@ func Test_SortByColumnName(t *testing.T) {
 				},
 			},
 			sortBy:    "some-col",
-			direction: sortable.Directions.DESC,
+			direction: sortable.DESC,
 			expectedResult: [][]string{
 				{
 					"Good parrot",
@@ -295,20 +295,20 @@ func Test_SortByColumnName(t *testing.T) {
 					Name:        "some-col",
 					DisplayName: "SOME COLUMN",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.String,
+						SortType: sortable.String,
 					},
 				},
 				{
 					Name: "some-other-col",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.Date,
+						SortType: sortable.Date,
 					},
 				},
 				{
 					Name:        "some-random-col",
 					DisplayName: "Some Random Column",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.Semver,
+						SortType: sortable.Semver,
 					},
 				},
 			},
@@ -330,7 +330,7 @@ func Test_SortByColumnName(t *testing.T) {
 				},
 			},
 			sortBy:    "some-other-col",
-			direction: sortable.Directions.ASC,
+			direction: sortable.ASC,
 			expectedResult: [][]string{
 				{
 					"Good dog",
@@ -356,20 +356,20 @@ func Test_SortByColumnName(t *testing.T) {
 					Name:        "some-col",
 					DisplayName: "SOME COLUMN",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.String,
+						SortType: sortable.String,
 					},
 				},
 				{
 					Name: "some-other-col",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.Date,
+						SortType: sortable.Date,
 					},
 				},
 				{
 					Name:        "some-random-col",
 					DisplayName: "Some Random Column",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.Semver,
+						SortType: sortable.Semver,
 					},
 				},
 			},
@@ -391,7 +391,7 @@ func Test_SortByColumnName(t *testing.T) {
 				},
 			},
 			sortBy:    "some-random-col",
-			direction: sortable.Directions.ASC,
+			direction: sortable.ASC,
 			expectedResult: [][]string{
 				{
 					"Good parrot",
@@ -417,20 +417,20 @@ func Test_SortByColumnName(t *testing.T) {
 					Name:        "some-col",
 					DisplayName: "SOME COLUMN",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.String,
+						SortType: sortable.String,
 					},
 				},
 				{
 					Name: "some-other-col",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.Date,
+						SortType: sortable.Date,
 					},
 				},
 				{
 					Name:        "some-random-col",
 					DisplayName: "Some Random Column",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.Semver,
+						SortType: sortable.Semver,
 					},
 				},
 			},
@@ -452,7 +452,7 @@ func Test_SortByColumnName(t *testing.T) {
 				},
 			},
 			sortBy:    "naaah",
-			direction: sortable.Directions.ASC,
+			direction: sortable.ASC,
 			expectedResult: [][]string{
 				{
 					"Good parrot",
@@ -478,20 +478,20 @@ func Test_SortByColumnName(t *testing.T) {
 					Name:        "some-col",
 					DisplayName: "SOME COLUMN",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.String,
+						SortType: sortable.String,
 					},
 				},
 				{
 					Name: "some-other-col",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.Date,
+						SortType: sortable.Date,
 					},
 				},
 				{
 					Name:        "some-random-col",
 					DisplayName: "Some Random Column",
 					Sortable: sortable.Sortable{
-						SortType: sortable.Types.Semver,
+						SortType: sortable.Semver,
 					},
 				},
 			},
@@ -503,7 +503,7 @@ func Test_SortByColumnName(t *testing.T) {
 				},
 			},
 			sortBy:    "some-other-col",
-			direction: sortable.Directions.ASC,
+			direction: sortable.ASC,
 			expectedResult: [][]string{
 				{
 					"Good dog",

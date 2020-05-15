@@ -6,25 +6,18 @@ import (
 	"github.com/giantswarm/gsctl/util"
 )
 
-// Types represent the kinds of data that can be in a string field.
-var Types = struct {
-	String string
-	Semver string
-	Date   string
-}{
-	String: "string",
-	Semver: "semver",
-	Date:   "date",
-}
+// The kinds of data that can be in a string field.
+const (
+	String = "string"
+	Semver = "semver"
+	Date   = "date"
+)
 
-// Directions represent the sorting direction possibilities.
-var Directions = struct {
-	ASC  string
-	DESC string
-}{
-	ASC:  "asc",
-	DESC: "desc",
-}
+// The sorting direction possibilities.
+const (
+	ASC  = "asc"
+	DESC = "desc"
+)
 
 // Sortable makes the data type that embeds it, sortable.
 type Sortable struct {
@@ -33,7 +26,7 @@ type Sortable struct {
 
 // CompareStrings represents the comparison algorithm for regular strings.
 func CompareStrings(a string, b string, direction string) bool {
-	if direction == Directions.DESC {
+	if direction == DESC {
 		return a > b
 	}
 
@@ -53,7 +46,7 @@ func CompareSemvers(a string, b string, direction string) bool {
 	}
 
 	cmp := verA.Compare(verB)
-	if direction == Directions.DESC {
+	if direction == DESC {
 		return cmp > 0
 	}
 
@@ -66,7 +59,7 @@ func CompareDates(a string, b string, direction string) bool {
 	dateB := util.ParseDate(b)
 
 	cmp := dateA.After(dateB)
-	if direction == Directions.DESC {
+	if direction == DESC {
 		return cmp
 	}
 
@@ -76,13 +69,13 @@ func CompareDates(a string, b string, direction string) bool {
 // GetCompareFunc gets the right comparison algorithm for the provided type.
 func GetCompareFunc(t string) func(string, string, string) bool {
 	switch t {
-	case Types.String:
+	case String:
 		return CompareStrings
 
-	case Types.Date:
+	case Date:
 		return CompareDates
 
-	case Types.Semver:
+	case Semver:
 		return CompareSemvers
 
 	default:

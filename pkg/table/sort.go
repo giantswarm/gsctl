@@ -29,7 +29,7 @@ func SortMapSliceUsingColumnData(mapSlice []map[string]interface{}, byCol Column
 			}
 		}
 
-		return compareFunc(iField, jField, sortable.Directions.ASC)
+		return compareFunc(iField, jField, sortable.ASC)
 	})
 }
 

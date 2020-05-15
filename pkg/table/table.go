@@ -53,8 +53,8 @@ func (t *Table) SortByColumnName(n string, direction string) error {
 
 	// Default to Ascending direction sorting.
 	sortDir := direction
-	if sortDir != sortable.Directions.ASC && sortDir != sortable.Directions.DESC {
-		sortDir = sortable.Directions.ASC
+	if sortDir != sortable.ASC && sortDir != sortable.DESC {
+		sortDir = sortable.ASC
 	}
 
 	// Get the comparison algorithm for the current sorting type.

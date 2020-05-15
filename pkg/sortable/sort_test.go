@@ -12,14 +12,14 @@ func Test_GetCompareFunc(t *testing.T) {
 		fn           func(string, string, string) bool
 	}{
 		{
-			sortableType: Types.String,
+			sortableType: String,
 			fn:           CompareStrings,
 		}, {
-			sortableType: Types.Date,
+			sortableType: Date,
 			fn:           CompareDates,
 		},
 		{
-			sortableType: Types.Semver,
+			sortableType: Semver,
 			fn:           CompareSemvers,
 		},
 		{
@@ -50,37 +50,37 @@ func Test_CompareStrings(t *testing.T) {
 		{
 			a:              "some-string",
 			b:              "some-other-string",
-			direction:      Directions.ASC,
+			direction:      ASC,
 			expectedResult: false,
 		},
 		{
 			a:              "some-string",
 			b:              "some-other-string",
-			direction:      Directions.DESC,
+			direction:      DESC,
 			expectedResult: true,
 		},
 		{
 			a:              "12312assdaads",
 			b:              "some-string",
-			direction:      Directions.ASC,
+			direction:      ASC,
 			expectedResult: true,
 		},
 		{
 			a:              "12312assdaads",
 			b:              "some-string",
-			direction:      Directions.DESC,
+			direction:      DESC,
 			expectedResult: false,
 		},
 		{
 			a:              "_!ldsanl",
 			b:              "some-string",
-			direction:      Directions.ASC,
+			direction:      ASC,
 			expectedResult: true,
 		},
 		{
 			a:              "_!ldsanl",
 			b:              "some-string",
-			direction:      Directions.DESC,
+			direction:      DESC,
 			expectedResult: false,
 		},
 	}
@@ -106,37 +106,37 @@ func Test_CompareSemvers(t *testing.T) {
 		{
 			a:              "1.0.0",
 			b:              "1.0.1",
-			direction:      Directions.ASC,
+			direction:      ASC,
 			expectedResult: true,
 		},
 		{
 			a:              "1.0.0",
 			b:              "1.0.1",
-			direction:      Directions.DESC,
+			direction:      DESC,
 			expectedResult: false,
 		},
 		{
 			a:              "0.0.9",
 			b:              "1.0.1",
-			direction:      Directions.ASC,
+			direction:      ASC,
 			expectedResult: true,
 		},
 		{
 			a:              "0.0.9",
 			b:              "1.0.1",
-			direction:      Directions.DESC,
+			direction:      DESC,
 			expectedResult: false,
 		},
 		{
 			a:              "clearly-not-semver",
 			b:              "1.0.1",
-			direction:      Directions.ASC,
+			direction:      ASC,
 			expectedResult: false,
 		},
 		{
 			a:              "1.0.1",
 			b:              "clearly-not-semver",
-			direction:      Directions.ASC,
+			direction:      ASC,
 			expectedResult: false,
 		},
 	}
@@ -162,25 +162,25 @@ func Test_CompareDates(t *testing.T) {
 		{
 			a:              "1999 Nov 24, 00:57 UTC",
 			b:              "2016 Dec 05, 14:41 UTC",
-			direction:      Directions.ASC,
+			direction:      ASC,
 			expectedResult: true,
 		},
 		{
 			a:              "1999 Nov 24, 00:57 UTC",
 			b:              "2016 Dec 05, 14:41 UTC",
-			direction:      Directions.DESC,
+			direction:      DESC,
 			expectedResult: false,
 		},
 		{
 			a:              "1999-11-24T00:57:28.999999Z",
 			b:              "2006-01-02T15:04:05.000Z",
-			direction:      Directions.ASC,
+			direction:      ASC,
 			expectedResult: true,
 		},
 		{
 			a:              "1999-11-24T00:57:28.999999Z",
 			b:              "2006-01-02T15:04:05.000Z",
-			direction:      Directions.DESC,
+			direction:      DESC,
 			expectedResult: false,
 		},
 	}

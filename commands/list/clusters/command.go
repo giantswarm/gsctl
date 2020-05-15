@@ -316,35 +316,35 @@ func createTable(args Arguments) *table.Table {
 			Name:        tableColID,
 			DisplayName: "ID",
 			Sortable: sortable.Sortable{
-				SortType: sortable.Types.String,
+				SortType: sortable.String,
 			},
 		},
 		{
 			Name:        tableColOrg,
 			DisplayName: "ORGANIZATION",
 			Sortable: sortable.Sortable{
-				SortType: sortable.Types.String,
+				SortType: sortable.String,
 			},
 		},
 		{
 			Name:        tableColName,
 			DisplayName: "NAME",
 			Sortable: sortable.Sortable{
-				SortType: sortable.Types.String,
+				SortType: sortable.String,
 			},
 		},
 		{
 			Name:        tableColRelease,
 			DisplayName: "RELEASE",
 			Sortable: sortable.Sortable{
-				SortType: sortable.Types.Semver,
+				SortType: sortable.Semver,
 			},
 		},
 		{
 			Name:        tableColCreateDate,
 			DisplayName: "CREATED",
 			Sortable: sortable.Sortable{
-				SortType: sortable.Types.Date,
+				SortType: sortable.Date,
 			},
 		},
 	}
@@ -355,7 +355,7 @@ func createTable(args Arguments) *table.Table {
 			Name:        tableColDeletingSince,
 			DisplayName: "DELETING SINCE",
 			Sortable: sortable.Sortable{
-				SortType: sortable.Types.Date,
+				SortType: sortable.Date,
 			},
 		})
 	}
@@ -376,7 +376,7 @@ func sortTable(cTable *table.Table, args Arguments) error {
 		}
 	}
 
-	err = cTable.SortByColumnName(sortByColName, sortable.Directions.ASC)
+	err = cTable.SortByColumnName(sortByColName, sortable.ASC)
 	if err != nil {
 		return microerror.Mask(err)
 	}

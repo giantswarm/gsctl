@@ -41,7 +41,7 @@ func Test_SortMapSliceUsingColumnData(t *testing.T) {
 			column: Column{
 				Name: "name",
 				Sortable: sortable.Sortable{
-					SortType: sortable.Types.String,
+					SortType: sortable.String,
 				},
 			},
 			fieldMapping: map[string]string{
@@ -95,7 +95,7 @@ func Test_SortMapSliceUsingColumnData(t *testing.T) {
 			column: Column{
 				Name: "created",
 				Sortable: sortable.Sortable{
-					SortType: sortable.Types.Date,
+					SortType: sortable.Date,
 				},
 			},
 			fieldMapping: map[string]string{
@@ -149,7 +149,7 @@ func Test_SortMapSliceUsingColumnData(t *testing.T) {
 			column: Column{
 				Name: "release",
 				Sortable: sortable.Sortable{
-					SortType: sortable.Types.Date,
+					SortType: sortable.Date,
 				},
 			},
 			fieldMapping: map[string]string{
