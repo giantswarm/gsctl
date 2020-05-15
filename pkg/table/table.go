@@ -75,18 +75,16 @@ func (t *Table) GetColumnByName(n string) (int, Column, error) {
 		colIndex int
 		column   Column
 	)
-	{
-		for i, col := range t.columns {
-			if col.Name == n {
-				colIndex = i
-				column = col
+	for i, col := range t.columns {
+		if col.Name == n {
+			colIndex = i
+			column = col
 
-				break
-			}
+			break
 		}
-		if column.Name == "" {
-			return 0, Column{}, microerror.Mask(fieldNotFoundError)
-		}
+	}
+	if column.Name == "" {
+		return 0, Column{}, microerror.Mask(fieldNotFoundError)
 	}
 
 	return colIndex, column, nil
@@ -105,8 +103,13 @@ func (t *Table) GetColumnNameFromInitials(i string) (string, error) {
 		if col.Name != "" {
 			columnNames = append(columnNames, col.Name)
 
-			if strings.HasPrefix(strings.ToLower(col.Name), i) {
+			nameLowerCased := strings.ToLower(col.Name)
+			if strings.HasPrefix(nameLowerCased, i) {
 				matchingNames = append(matchingNames, col.Name)
+
+				if nameLowerCased == i {
+					break
+				}
 			}
 		}
 	}

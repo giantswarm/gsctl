@@ -726,6 +726,25 @@ func Test_GetColumnNameFromInitials(t *testing.T) {
 			expectedResult: "",
 			errorMatcher:   IsMultipleFieldsMatchingError,
 		},
+		{
+			columns: []Column{
+				{
+					Name: "name",
+				},
+				{
+					Name: "dAtE",
+				},
+				{
+					Name: "Release",
+				},
+				{
+					Name: "release-date",
+				},
+			},
+			initials:       "release",
+			expectedResult: "Release",
+			errorMatcher:   nil,
+		},
 	}
 
 	for i, tc := range testCases {
