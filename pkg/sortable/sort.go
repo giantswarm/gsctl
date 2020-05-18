@@ -3,6 +3,8 @@ package sortable
 import (
 	"github.com/Masterminds/semver"
 
+	stringsort "github.com/facette/natsort"
+
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -26,11 +28,13 @@ type Sortable struct {
 
 // CompareStrings represents the comparison algorithm for regular strings.
 func CompareStrings(a string, b string, direction string) bool {
+	result := stringsort.Compare(a, b)
+
 	if direction == DESC {
-		return a > b
+		return !result
 	}
 
-	return a < b
+	return result
 }
 
 // CompareSemvers represents the comparison algorithm for string-encoded versions, in semver format.
