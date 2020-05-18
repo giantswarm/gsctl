@@ -513,6 +513,124 @@ func Test_SortByColumnName(t *testing.T) {
 			},
 			errorMatcher: nil,
 		},
+		{
+			columns: []Column{
+				{
+					Name:        "some-col",
+					DisplayName: "SOME COLUMN",
+					Sortable: sortable.Sortable{
+						SortType: sortable.String,
+					},
+				},
+				{
+					Name: "some-other-col",
+					Sortable: sortable.Sortable{
+						SortType: sortable.Date,
+					},
+				},
+				{
+					Name:        "some-random-col",
+					DisplayName: "Some Random Column",
+					Sortable: sortable.Sortable{
+						SortType: sortable.Semver,
+					},
+					Hidden: true,
+				},
+			},
+			rows: [][]string{
+				{
+					"Good dog",
+					"2016 Dec 05, 14:41 UTC",
+				},
+				{
+					"Good cat",
+					"2016 Dec 25, 14:41 UTC",
+				},
+				{
+					"Good parrot",
+					"2016 Dec 25, 15:41 UTC",
+				},
+			},
+			sortBy:    "some-random-col",
+			direction: sortable.ASC,
+			expectedResult: [][]string{
+				{
+					"Good dog",
+					"2016 Dec 05, 14:41 UTC",
+				},
+				{
+					"Good cat",
+					"2016 Dec 25, 14:41 UTC",
+				},
+				{
+					"Good parrot",
+					"2016 Dec 25, 15:41 UTC",
+				},
+			},
+			errorMatcher: nil,
+		},
+		{
+			columns: []Column{
+				{
+					Name:        "some-col",
+					DisplayName: "SOME COLUMN",
+					Sortable: sortable.Sortable{
+						SortType: sortable.String,
+					},
+				},
+				{
+					Name: "some-other-col",
+					Sortable: sortable.Sortable{
+						SortType: sortable.Date,
+					},
+				},
+				{
+					Name:        "some-random-col",
+					DisplayName: "Some Random Column",
+					Sortable: sortable.Sortable{
+						SortType: sortable.Semver,
+					},
+					Hidden: true,
+				},
+			},
+			rows: [][]string{
+				{
+					"Good dog",
+					"2016 Dec 05, 14:41 UTC",
+					"12.0.1",
+				},
+				{
+					"Good cat",
+					"2016 Dec 25, 14:41 UTC",
+					"12.0.1",
+				},
+				{
+					"Good parrot",
+					"2016 Dec 25, 15:41 UTC",
+					"12.0.1",
+				},
+			},
+			sortBy:    "some-random-col",
+			direction: sortable.DESC,
+			expectedResult: [][]string{
+				{
+					"Good dog",
+					"2016 Dec 05, 14:41 UTC",
+					"12.0.1",
+				},
+				{
+					"Good cat",
+					"2016 Dec 25, 14:41 UTC",
+					"12.0.1",
+				},
+				{
+					"Good parrot",
+					"2016 Dec 25, 15:41 UTC",
+					"12.0.1",
+				},
+			},
+			errorMatcher: nil,
+		},
 	}
 
 	for i, tc := range testCases {
