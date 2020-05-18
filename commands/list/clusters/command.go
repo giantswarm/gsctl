@@ -32,9 +32,22 @@ var (
 		Use:     "clusters",
 		Aliases: []string{"cluster"},
 		Short:   "List clusters",
-		Long:    `Prints a list of all clusters you have access to.`,
-		PreRun:  printValidation,
-		Run:     printResult,
+		Long: `Prints a list of all clusters you have access to.
+
+Examples:
+
+  gsctl list clusters
+
+  gsctl list clusters --output json
+
+  gsctl list clusters --show-deleting
+
+  gsctl list clusters --selector environment=testing
+
+  gsctl list clusters --sort organization
+`,
+		PreRun: printValidation,
+		Run:    printResult,
 	}
 
 	cmdOutput string
@@ -83,7 +96,7 @@ func initFlags() {
 	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output. Defaults to human-friendly table output.")
 	Command.Flags().BoolVarP(&cmdShowDeleted, "show-deleting", "", false, "Show clusters which are currently being deleted (only with cluster release > 10.0.0).")
 	Command.Flags().StringVarP(&cmdSelector, "selector", "l", "", "Label selector query to filter clusters on.")
-	Command.Flags().StringVarP(&cmdSort, "sort", "s", "", fmt.Sprintf("Sort by one of the fields %s", getFormattedFilterFields(tableCols[:])))
+	Command.Flags().StringVarP(&cmdSort, "sort", "s", "id", fmt.Sprintf("Sort by one of the fields %s", getFormattedFilterFields(tableCols[:])))
 }
 
 type Arguments struct {
