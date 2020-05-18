@@ -60,8 +60,23 @@ func (t *Table) SortByColumnName(n string, direction string) error {
 	// Get the comparison algorithm for the current sorting type.
 	compareFunc := sortable.GetCompareFunc(column.SortType)
 	sort.Slice(t.rows, func(i, j int) bool {
-		iVal := RemoveColors(t.rows[i][colIndex])
-		jVal := RemoveColors(t.rows[j][colIndex])
+		var iVal string
+		{
+			if colIndex >= len(t.rows[i]) {
+				iVal = "n/a"
+			} else {
+				iVal = RemoveColors(t.rows[i][colIndex])
+			}
+		}
+
+		var jVal string
+		{
+			if colIndex >= len(t.rows[j]) {
+				jVal = "n/a"
+			} else {
+				jVal = RemoveColors(t.rows[j][colIndex])
+			}
+		}
 
 		return compareFunc(iVal, jVal, direction)
 	})
@@ -131,7 +146,9 @@ func (t *Table) String() string {
 	{
 		columns := make([]string, 0, len(t.columns))
 		for _, col := range t.columns {
-			columns = append(columns, col.GetHeader())
+			if !col.Hidden {
+				columns = append(columns, col.GetHeader())
+			}
 		}
 		rows = append(rows, strings.Join(columns, "|"))
 	}

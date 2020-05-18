@@ -378,17 +378,15 @@ func createTable(args Arguments) *table.Table {
 				SortType: sortable.Date,
 			},
 		},
-	}
-
-	// Add the 'Deleting since' column if seeing deleted clusters is desired.
-	if args.showDeleting {
-		headers = append(headers, table.Column{
+		{
 			Name:        tableColDeletingSince,
 			DisplayName: "DELETING SINCE",
 			Sortable: sortable.Sortable{
 				SortType: sortable.Date,
 			},
-		})
+			// Only display the 'Deleting since' column if seeing deleted clusters is desired.
+			Hidden: !args.showDeleting,
+		},
 	}
 	t.SetColumns(headers)
 

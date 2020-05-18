@@ -14,6 +14,7 @@ type Column struct {
 	Name string
 	// DisplayName represents the table header visible in the printed table.
 	DisplayName string
+	Hidden      bool
 }
 
 // GetHeader gets the table header for the current column.
