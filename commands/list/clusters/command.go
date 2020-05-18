@@ -83,7 +83,7 @@ func initFlags() {
 	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output. Defaults to human-friendly table output.")
 	Command.Flags().BoolVarP(&cmdShowDeleted, "show-deleting", "", false, "Show clusters which are currently being deleted (only with cluster release > 10.0.0).")
 	Command.Flags().StringVarP(&cmdSelector, "selector", "l", "", "Label selector query to filter clusters on.")
-	Command.Flags().StringVarP(&cmdSort, "sort", "s", "", "Sort by the given field.")
+	Command.Flags().StringVarP(&cmdSort, "sort", "s", "", fmt.Sprintf("Sort by one of the fields %s", getFormattedFilterFields(tableCols[:])))
 }
 
 type Arguments struct {
@@ -196,6 +196,20 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	if output != "" {
 		fmt.Println(output)
 	}
+}
+
+func getFormattedFilterFields(colNames []string) string {
+	var result string
+	for _, col := range colNames {
+		if result != "" {
+			result += ", "
+		}
+
+		nameAsRuneSlice := []rune(col)
+		result += fmt.Sprintf("%v(%v)", string(nameAsRuneSlice[:1]), string(nameAsRuneSlice[1:]))
+	}
+
+	return result
 }
 
 // getClustersOutput returns a table of clusters the user has access to
