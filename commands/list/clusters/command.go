@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/client/clusters"
 	"github.com/giantswarm/gsclientgen/models"
@@ -18,6 +16,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/clustercache"
+	"github.com/giantswarm/gsctl/pkg/sortable"
+	"github.com/giantswarm/gsctl/pkg/table"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
@@ -32,9 +32,22 @@ var (
 		Use:     "clusters",
 		Aliases: []string{"cluster"},
 		Short:   "List clusters",
-		Long:    `Prints a list of all clusters you have access to.`,
-		PreRun:  printValidation,
-		Run:     printResult,
+		Long: `Prints a list of all clusters you have access to.
+
+Examples:
+
+  gsctl list clusters
+
+  gsctl list clusters --output json
+
+  gsctl list clusters --show-deleting
+
+  gsctl list clusters --selector environment=testing
+
+  gsctl list clusters --sort org
+`,
+		PreRun: printValidation,
+		Run:    printResult,
 	}
 
 	cmdOutput string
@@ -42,6 +55,8 @@ var (
 	cmdShowDeleted bool
 
 	cmdSelector string
+
+	cmdSort string
 
 	arguments Arguments
 )
@@ -54,7 +69,23 @@ const (
 
 	outputJSONPrefix = ""
 	outputJSONIndent = "  "
+
+	tableColID            = "id"
+	tableColCreateDate    = "created"
+	tableColName          = "name"
+	tableColOrg           = "organization"
+	tableColRelease       = "release"
+	tableColDeletingSince = "deleting-since"
 )
+
+var tableCols = [...]string{
+	tableColID,
+	tableColCreateDate,
+	tableColName,
+	tableColOrg,
+	tableColRelease,
+	tableColDeletingSince,
+}
 
 func init() {
 	initFlags()
@@ -65,6 +96,7 @@ func initFlags() {
 	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output. Defaults to human-friendly table output.")
 	Command.Flags().BoolVarP(&cmdShowDeleted, "show-deleting", "", false, "Show clusters which are currently being deleted (only with cluster release > 10.0.0).")
 	Command.Flags().StringVarP(&cmdSelector, "selector", "l", "", "Label selector query to filter clusters on.")
+	Command.Flags().StringVarP(&cmdSort, "sort", "s", "id", fmt.Sprintf("Sort by one of the fields %s", getFormattedFilterFields(tableCols[:])))
 }
 
 type Arguments struct {
@@ -74,6 +106,7 @@ type Arguments struct {
 	scheme            string
 	selector          string
 	showDeleting      bool
+	sortBy            string
 	userProvidedToken string
 }
 
@@ -89,6 +122,7 @@ func collectArguments() Arguments {
 		scheme:            scheme,
 		selector:          cmdSelector,
 		showDeleting:      cmdShowDeleted,
+		sortBy:            cmdSort,
 		userProvidedToken: flags.Token,
 	}
 }
@@ -131,13 +165,43 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
 
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			fmt.Println(color.RedString(clientErr.ErrorMessage))
+		var (
+			headline string
+			subtext  string
+		)
+
+		clientErr, isClientErr := err.(*clienterror.APIError)
+
+		switch {
+		case isClientErr:
+			headline = clientErr.ErrorMessage
 			if clientErr.ErrorDetails != "" {
-				fmt.Println(clientErr.ErrorDetails)
+				subtext = clientErr.ErrorDetails
 			}
-		} else {
-			fmt.Println(color.RedString("Error: %s", err.Error()))
+
+		case table.IsFieldNotFoundError(err):
+			headline = fmt.Sprintf("Cannot sort by attribute '%s'.", arguments.sortBy)
+			subtext = fmt.Sprintf(
+				"The attribute '%s' does not exist.\nYou can sort by any of these attributes: %v",
+				arguments.sortBy,
+				strings.Join(tableCols[:], ", "),
+			)
+
+		case table.IsMultipleFieldsMatchingError(err):
+			headline = fmt.Sprintf("Multiple attributes found for token '%s'.", arguments.sortBy)
+			subtext = fmt.Sprintf(
+				"Please provide the complete attribute.\nYou can sort by any of these attributes: %v",
+				strings.Join(tableCols[:], ", "),
+			)
+
+		default:
+			headline = fmt.Sprintf("Error: %s", err.Error())
+		}
+
+		// print output
+		fmt.Println(color.RedString(headline))
+		if subtext != "" {
+			fmt.Println(subtext)
 		}
 		os.Exit(1)
 	}
@@ -145,6 +209,20 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	if output != "" {
 		fmt.Println(output)
 	}
+}
+
+func getFormattedFilterFields(colNames []string) string {
+	var result string
+	for _, col := range colNames {
+		if result != "" {
+			result += ", "
+		}
+
+		nameAsRuneSlice := []rune(col)
+		result += fmt.Sprintf("%v(%v)", string(nameAsRuneSlice[:1]), string(nameAsRuneSlice[1:]))
+	}
+
+	return result
 }
 
 // getClustersOutput returns a table of clusters the user has access to
@@ -180,49 +258,36 @@ func getClustersOutput(args Arguments) (string, error) {
 		return "", microerror.Mask(err)
 	}
 
-	// sort clusters by ID
-	sort.Slice(response.Payload[:], func(i, j int) bool {
-		return response.Payload[i].ID < response.Payload[j].ID
-	})
+	// Create the cluster list table.
+	cTable := createTable(args)
 
 	if args.outputFormat == "json" {
-		var clusters []*models.V4ClusterListItem
+		// Filter deleted clusters if seeing them is not desired.
+		var clusterList []*models.V4ClusterListItem
 		{
 			for _, cluster := range response.Payload {
 				if cluster.DeleteDate != nil && !args.showDeleting {
 					continue
 				}
 
-				clusters = append(clusters, cluster)
+				clusterList = append(clusterList, cluster)
 			}
 		}
 
-		outputBytes, err := json.MarshalIndent(clusters, outputJSONPrefix, outputJSONIndent)
+		var output string
+		output, err = getJSONOutput(clusterList, cTable, arguments)
 		if err != nil {
 			return "", microerror.Mask(err)
 		}
 
-		return string(outputBytes), nil
+		return output, nil
 	}
-
-	headers := []string{
-		color.CyanString("ID"),
-		color.CyanString("ORGANIZATION"),
-		color.CyanString("NAME"),
-		color.CyanString("RELEASE"),
-		color.CyanString("CREATED"),
-	}
-
-	if args.showDeleting {
-		headers = append(headers, color.CyanString("DELETING SINCE"))
-	}
-
-	table := []string{strings.Join(headers, "|")}
 
 	numDeletedClusters := 0
 	numOtherClusters := 0
 	clusterIDs := make([]string, 0, len(response.Payload))
 
+	rows := make([][]string, 0, len(response.Payload))
 	for _, cluster := range response.Payload {
 		created := util.ShortDate(util.ParseDate(cluster.CreateDate))
 		deleted := "n/a"
@@ -268,7 +333,13 @@ func getClustersOutput(args Arguments) (string, error) {
 			}
 		}
 
-		table = append(table, strings.Join(fields, "|"))
+		rows = append(rows, fields)
+	}
+	cTable.SetRows(rows)
+
+	err = sortTable(cTable, args)
+	if err != nil {
+		return "", microerror.Mask(err)
 	}
 
 	clustercache.CacheIDs(args.apiEndpoint, clusterIDs)
@@ -277,8 +348,8 @@ func getClustersOutput(args Arguments) (string, error) {
 	output := ""
 
 	// Only show table when there is content.
-	if len(table) > 1 {
-		output += columnize.SimpleFormat(table)
+	if len(rows) > 0 {
+		output += cTable.String()
 	} else {
 		output += color.YellowString("No clusters")
 	}
@@ -293,4 +364,149 @@ func getClustersOutput(args Arguments) (string, error) {
 	}
 
 	return output, nil
+}
+
+func createTable(args Arguments) *table.Table {
+	t := table.New()
+
+	headers := []table.Column{
+		{
+			Name:        tableColID,
+			DisplayName: "ID",
+			Sortable: sortable.Sortable{
+				SortType: sortable.String,
+			},
+		},
+		{
+			Name:        tableColOrg,
+			DisplayName: "ORGANIZATION",
+			Sortable: sortable.Sortable{
+				SortType: sortable.String,
+			},
+		},
+		{
+			Name:        tableColName,
+			DisplayName: "NAME",
+			Sortable: sortable.Sortable{
+				SortType: sortable.String,
+			},
+		},
+		{
+			Name:        tableColRelease,
+			DisplayName: "RELEASE",
+			Sortable: sortable.Sortable{
+				SortType: sortable.Semver,
+			},
+		},
+		{
+			Name:        tableColCreateDate,
+			DisplayName: "CREATED",
+			Sortable: sortable.Sortable{
+				SortType: sortable.Date,
+			},
+		},
+		{
+			Name:        tableColDeletingSince,
+			DisplayName: "DELETING SINCE",
+			Sortable: sortable.Sortable{
+				SortType: sortable.Date,
+			},
+			// Only display the 'Deleting since' column if seeing deleted clusters is desired.
+			Hidden: !args.showDeleting,
+		},
+	}
+	t.SetColumns(headers)
+
+	return &t
+}
+
+func sortTable(cTable *table.Table, args Arguments) error {
+	var err error
+
+	// Use the 'id' column by default.
+	sortByColName := tableColID
+	if args.sortBy != "" {
+		sortByColName, err = cTable.GetColumnNameFromInitials(args.sortBy)
+		if err != nil {
+			return microerror.Mask(err)
+		}
+	}
+
+	err = cTable.SortByColumnName(sortByColName, sortable.ASC)
+	if err != nil {
+		return microerror.Mask(err)
+	}
+
+	return nil
+}
+
+func getJSONOutput(clusterList []*models.V4ClusterListItem, cTable *table.Table, args Arguments) (string, error) {
+	var (
+		err    error
+		output []byte
+	)
+
+	// If there is nothing to sort, let's get this over with.
+	if len(clusterList) < 2 {
+		output, err = json.MarshalIndent(clusterList, outputJSONPrefix, outputJSONIndent)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+
+		return string(output), nil
+	}
+
+	sortByColumnName := tableColID
+	var sortByColumn table.Column
+	if args.sortBy != "" {
+		sortByColumnName = args.sortBy
+	}
+
+	if sortByColumnName != "" {
+		var colName string
+
+		colName, err = cTable.GetColumnNameFromInitials(sortByColumnName)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+
+		_, sortByColumn, err = cTable.GetColumnByName(colName)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+	}
+
+	// The table column names, mapped to the json field names in the cluster data structure.
+	fieldMapping := map[string]string{
+		tableColCreateDate:    "create_date",
+		tableColID:            "id",
+		tableColName:          "name",
+		tableColOrg:           "owner",
+		tableColRelease:       "release_version",
+		tableColDeletingSince: "delete_date",
+	}
+
+	// Convert cluster list to map, with the json field names as keys,
+	// to be able to use same sorting logic as in the table.
+	var clustersAsMapList []map[string]interface{}
+	{
+		var j []byte
+		j, err = json.Marshal(clusterList)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+		err = json.Unmarshal(j, &clustersAsMapList)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+	}
+
+	table.SortMapSliceUsingColumnData(clustersAsMapList, sortByColumn, fieldMapping)
+
+	output, err = json.MarshalIndent(clustersAsMapList, outputJSONPrefix, outputJSONIndent)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	return string(output), nil
 }

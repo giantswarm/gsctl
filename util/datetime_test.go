@@ -38,6 +38,16 @@ var tests = []Test{
 		time.Date(2016, time.December, 5, 14, 41, 46, 0, time.UTC),
 		"2016 Dec 05, 14:41 UTC",
 	},
+	{
+		"1999 Nov 24, 00:57 UTC",
+		time.Date(1999, time.November, 24, 0, 57, 00, 0, time.UTC),
+		"1999 Nov 24, 00:57 UTC",
+	},
+	{
+		"2016 Dec 05, 14:41 UTC",
+		time.Date(2016, time.December, 5, 14, 41, 00, 0, time.UTC),
+		"2016 Dec 05, 14:41 UTC",
+	},
 }
 
 func TestParseDate(t *testing.T) {

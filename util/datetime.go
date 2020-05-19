@@ -2,6 +2,7 @@ package util
 
 import (
 	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -33,11 +34,34 @@ func ParseDate(dateString string) time.Time {
 	if err == nil {
 		l, _ := time.LoadLocation("UTC")
 		t = t.In(l)
+
+		return t
 	}
+
+	t = parseShortDate(dateString)
+
 	return t
 }
 
 // ShortDate reformats a time.Time to a short date
 func ShortDate(date time.Time) string {
 	return date.Format(shortFormat)
+}
+
+// parseShortDate parses a date encoded with the 'shortFormat' format.
+func parseShortDate(dateStr string) time.Time {
+	// 'YYYY MMM DD HH:MM LOC'
+	if len(dateStr) < 18 {
+		return time.Time{}
+	}
+
+	year, _ := strconv.Atoi(dateStr[:4])
+	month, _ := time.Parse("Jan", dateStr[5:8])
+	days, _ := strconv.Atoi(dateStr[9:11])
+	hours, _ := strconv.Atoi(dateStr[13:15])
+	minutes, _ := strconv.Atoi(dateStr[16:18])
+
+	newDate := time.Date(year, month.Month(), days, hours, minutes, 0, 0, time.UTC)
+
+	return newDate
 }
