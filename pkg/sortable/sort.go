@@ -1,6 +1,8 @@
 package sortable
 
 import (
+	"strings"
+
 	"github.com/Masterminds/semver"
 
 	stringsort "github.com/facette/natsort"
@@ -28,7 +30,7 @@ type Sortable struct {
 
 // CompareStrings represents the comparison algorithm for regular strings.
 func CompareStrings(a string, b string, direction string) bool {
-	result := stringsort.Compare(a, b)
+	result := stringsort.Compare(strings.ToLower(a), strings.ToLower(b))
 
 	if direction == DESC {
 		return !result
