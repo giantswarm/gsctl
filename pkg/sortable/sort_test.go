@@ -55,7 +55,7 @@ func Test_CompareStrings(t *testing.T) {
 		},
 		{
 			a:              "some-string",
-			b:              "some-other-string",
+			b:              "Some-other-string",
 			direction:      DESC,
 			expectedResult: true,
 		},
