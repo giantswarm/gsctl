@@ -44,7 +44,7 @@ Examples:
 
   gsctl list clusters --selector environment=testing
 
-  gsctl list clusters --sort organization
+  gsctl list clusters --sort org
 `,
 		PreRun: printValidation,
 		Run:    printResult,
