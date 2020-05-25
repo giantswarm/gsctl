@@ -27,7 +27,7 @@ func (f *Feature) IsSupported(provider string, version string) bool {
 		return false
 	}
 
-	return requiredVersion.Compare(v) >= 0
+	return v.Compare(requiredVersion) >= 0
 }
 
 func (f *Feature) getProviderWithName(p string) *Provider {
