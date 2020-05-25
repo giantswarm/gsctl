@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,7 +13,10 @@ import (
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
+
 	"github.com/giantswarm/gsctl/clustercache"
+	haMastersFeature "github.com/giantswarm/gsctl/pkg/featuresupport/hamasters"
+
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -490,7 +494,6 @@ func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 	clusterTable = append(clusterTable, color.YellowString("Created:")+"|"+formatDate(details.CreateDate))
 	clusterTable = append(clusterTable, color.YellowString("Organization:")+"|"+details.Owner)
 	clusterTable = append(clusterTable, color.YellowString("Kubernetes API endpoint:")+"|"+details.APIEndpoint)
-	clusterTable = append(clusterTable, color.YellowString("Master availability zone:")+"|"+details.Master.AvailabilityZone)
 	clusterTable = append(clusterTable, color.YellowString("Release version:")+"|"+details.ReleaseVersion)
 	clusterTable = append(clusterTable, formatClusterLabels(details.Labels)...)
 
@@ -501,6 +504,22 @@ func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 
 	if webUIURL != "" {
 		clusterTable = append(clusterTable, color.YellowString("Web UI:")+"|"+webUIURL)
+	}
+
+	// Check for HA Masters support and print the correct entry.
+	// Only support 'aws' for now.
+	if haMastersFeature.HAMasters.IsSupported("aws", details.ReleaseVersion) {
+		availabilityZones, numOfReadyNodes := formatHAMasters(details.MasterNodes)
+		masterNodeCount := 1
+		if details.MasterNodes != nil && details.MasterNodes.HighAvailability {
+			masterNodeCount = 3
+		}
+
+		clusterTable = append(clusterTable, color.YellowString("Master availability zones:")+"|"+availabilityZones)
+		clusterTable = append(clusterTable, color.YellowString("Masters:")+"|"+strconv.Itoa(masterNodeCount))
+		clusterTable = append(clusterTable, color.YellowString("Masters ready:")+"|"+numOfReadyNodes)
+	} else {
+		clusterTable = append(clusterTable, color.YellowString("Master availability zone:")+"|"+details.Master.AvailabilityZone)
 	}
 
 	// TODO: Add KVM ingress port mappings here
@@ -627,4 +646,25 @@ func formatClusterLabels(labels map[string]string) []string {
 	}
 
 	return formattedClusterLabels
+}
+
+func formatHAMasters(masterNodes *models.V5ClusterDetailsResponseMasterNodes) (azs string, numOfReadyNodes string) {
+	azs = "n/a"
+	numOfReadyNodes = "n/a"
+
+	if masterNodes == nil {
+		return
+	}
+
+	if len(masterNodes.AvailabilityZones) > 0 {
+		azs = strings.Join(masterNodes.AvailabilityZones, ", ")
+	}
+
+	if masterNodes.NumReady >= 0 {
+		numOfReadyNodes = strconv.Itoa(int(masterNodes.NumReady))
+	}
+
+	// TODO(axbarsan): Address nil pointer NumReady values.
+
+	return
 }
