@@ -19,6 +19,7 @@ endpoints:
   https://foo:
     email: email@example.com
     token: some-token
+    provider: aws
 selected_endpoint: https://foo
 updated: 2017-09-29T11:23:15+02:00
 `
@@ -250,7 +251,7 @@ func TestSuccess(t *testing.T) {
 	}
 
 	fs := afero.NewMemMapFs()
-	_, err := testutils.TempConfig(fs, "")
+	_, err := testutils.TempConfig(fs, configYAML)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -266,14 +267,15 @@ func TestSuccess(t *testing.T) {
 					w.Write([]byte(tc.responseBody))
 				} else if r.Method == "GET" && r.URL.Path == "/v5/clusters/clusterid/" {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(`{"id": "clusterid", "name": "old cluster name"}`))
+					w.Write([]byte(`{"id": "clusterid", "name": "old cluster name", "release_version": "11.5.0"}`))
 				} else if r.Method == "GET" && r.URL.Path == "/v4/clusters/" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(`[
 						{
 							"id": "clusterid",
 							"name": "Name of the cluster",
-							"owner": "acme"
+							"owner": "acme",
+							"release_version": "11.5.0"
 						}
 					]`))
 				} else if r.Method == "PUT" && r.URL.Path == "/v5/clusters/clusterid/labels/" {
