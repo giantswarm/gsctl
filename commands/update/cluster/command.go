@@ -204,7 +204,11 @@ func updateClusterSpec(args Arguments) (*result, error) {
 				requestBody.Name = args.Name
 			}
 
-			if haMastersFeature.HAMasters.IsSupported(config.Config.Provider, clusterV5.Payload.ReleaseVersion) && args.MasterHA {
+			if args.MasterHA {
+				if !haMastersFeature.HAMasters.IsSupported(config.Config.Provider, clusterV5.Payload.ReleaseVersion) {
+					return nil, microerror.Mask(haMastersNotSupportedError)
+				}
+
 				requestBody.MasterNodes = &models.V5ModifyClusterRequestMasterNodes{
 					HighAvailability: true,
 				}
@@ -230,10 +234,6 @@ func updateClusterSpec(args Arguments) (*result, error) {
 		}
 
 		return r, nil
-	} else {
-		if args.MasterHA {
-			return nil, microerror.Mask(haMastersNotSupportedError)
-		}
 	}
 
 	// Fallback: try v4.
