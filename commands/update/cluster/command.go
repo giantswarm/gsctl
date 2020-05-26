@@ -97,22 +97,20 @@ func collectArguments(positionalArgs []string) Arguments {
 // result represents all information we get back from modifying a cluster.
 type result struct {
 	ClusterName string
+	HasHAMaster bool
 	Labels      map[string]string
 }
 
 func verifyPreconditions(cmd *cobra.Command, args Arguments) error {
 	if args.APIEndpoint == "" {
 		return microerror.Mask(errors.EndpointMissingError)
-	}
-	if args.AuthToken == "" && args.UserProvidedToken == "" {
+	} else if args.AuthToken == "" && args.UserProvidedToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	} else if args.ClusterNameOrID == "" {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	} else if cmd.Flag("master-ha").Changed && !args.MasterHA {
 		return microerror.Mask(revertHAMasterNotAllowedError)
-	} else if args.Name == "" && (args.Labels == nil || len(args.Labels) == 0) {
-		return microerror.Mask(errors.NoOpError)
-	} else if args.Name != "" && args.Labels != nil && len(args.Labels) != 0 {
+	} else if args.Name != "" && len(args.Labels) > 0 {
 		return microerror.Mask(errors.ConflictingFlagsError)
 	}
 
@@ -143,9 +141,6 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		headline = "Conflicting flags used"
 		subtext = "--name/-n and --label are exclusive."
 
-	case errors.IsNoOpError(err):
-		headline = "No flags specified"
-
 	default:
 		headline = err.Error()
 	}
@@ -160,12 +155,12 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 }
 
 func updateCluster(args Arguments) (*result, error) {
-	if args.Labels == nil || len(args.Labels) == 0 {
-		return updateName(args)
+	if len(args.Labels) > 0 {
+		return updateLabels(args)
 	}
 
-	if args.Name == "" {
-		return updateLabels(args)
+	if args.Name != "" || args.MasterHA {
+		return updateName(args)
 	}
 
 	return nil, microerror.Mask(errors.NoOpError)
@@ -284,6 +279,47 @@ func updateLabels(args Arguments) (*result, error) {
 	return r, nil
 }
 
+// switchToHAMaster switches a cluster's master type to HA. v5 only!
+func switchToHAMaster(args Arguments) (*result, error) {
+	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	clusterID, err := clustercache.GetID(args.APIEndpoint, args.ClusterNameOrID, clientWrapper)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
+	auxParams.ActivityName = activityName
+
+	// Verify this cluster exists and is a v5 cluster.
+	_, err = clientWrapper.GetClusterV5(clusterID, auxParams)
+	if err != nil {
+		return nil, microerror.Maskf(errors.ClusterNotFoundError, "cluster with id '%s' not found or not a v5 cluster", clusterID)
+	}
+
+	requestBody := &models.V5ModifyClusterRequest{}
+	requestBody.MasterNodes = &models.V5ModifyClusterRequestMasterNodes{
+		HighAvailability: true,
+	}
+
+	if args.Verbose {
+		fmt.Println(color.WhiteString("Sending cluster modification request to v5 endpoint."))
+	}
+	response, err := clientWrapper.ModifyClusterV5(clusterID, requestBody, auxParams)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	r := &result{
+		HasHAMaster: response.Payload.MasterNodes.HighAvailability,
+	}
+
+	return r, nil
+}
+
 func printResult(cmd *cobra.Command, positionalArgs []string) {
 	result, err := updateCluster(arguments)
 	if err != nil {
@@ -294,6 +330,9 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		subtext := ""
 
 		switch {
+		case errors.IsNoOpError(err):
+			headline = "No flags specified"
+
 		// If there are specific errors to handle, add them here.
 		default:
 			headline = err.Error()
