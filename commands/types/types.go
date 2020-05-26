@@ -53,6 +53,7 @@ type ClusterDefinitionV5 struct {
 	Owner          string                `yaml:"owner,omitempty"`
 	ReleaseVersion string                `yaml:"release_version,omitempty"`
 	Master         *MasterDefinition     `yaml:"master,omitempty"`
+	MasterNodes    *MasterNodes          `yaml:"master_nodes,omitempty"`
 	NodePools      []*NodePoolDefinition `yaml:"nodepools,omitempty"`
 	Labels         map[string]*string    `yaml:"labels,omitempty"`
 }
@@ -66,6 +67,11 @@ type ScalingDefinition struct {
 // MasterDefinition defines a master in cluster creation, as introduced by the V5 API.
 type MasterDefinition struct {
 	AvailabilityZone string `yaml:"availability_zone,omitempty"`
+}
+
+// MasterDefinition defines an interface for configuring HA master nodes.
+type MasterNodes struct {
+	HighAvailability bool `yaml:"high_availability,omitempty"`
 }
 
 // AvailabilityZonesDefinition defines the availability zones for a node pool, as intgroduc ed in the V5 API.

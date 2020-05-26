@@ -1,0 +1,4 @@
+api_version: v5
+owner: acme
+master_nodes:
+  high_availability: true
