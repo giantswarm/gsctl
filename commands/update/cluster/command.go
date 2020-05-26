@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/clustercache"
+	haMastersFeature "github.com/giantswarm/gsctl/pkg/featuresupport/hamasters"
 	"github.com/giantswarm/gsctl/util"
 
 	"github.com/giantswarm/gsctl/client"
@@ -195,7 +196,7 @@ func updateClusterSpec(args Arguments) (*result, error) {
 	if args.Verbose {
 		fmt.Println(color.WhiteString("Fetching details for cluster via v5 API endpoint."))
 	}
-	_, errV5 := clientWrapper.GetClusterV5(clusterID, auxParams)
+	clusterV5, errV5 := clientWrapper.GetClusterV5(clusterID, auxParams)
 	if errV5 == nil {
 		requestBody := &models.V5ModifyClusterRequest{}
 		{
@@ -203,7 +204,7 @@ func updateClusterSpec(args Arguments) (*result, error) {
 				requestBody.Name = args.Name
 			}
 
-			if args.MasterHA {
+			if haMastersFeature.HAMasters.IsSupported(config.Config.Provider, clusterV5.Payload.ReleaseVersion) && args.MasterHA {
 				requestBody.MasterNodes = &models.V5ModifyClusterRequestMasterNodes{
 					HighAvailability: true,
 				}
@@ -231,7 +232,8 @@ func updateClusterSpec(args Arguments) (*result, error) {
 		return r, nil
 	} else {
 		if args.MasterHA {
-			return nil, microerror.Mask(onlyV5SupportedError)
+			// TODO(axbarsan): Convert to ha specific error
+			return nil, microerror.Mask(haMastersNotSupportedError)
 		}
 	}
 
@@ -316,9 +318,9 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		subtext := ""
 
 		switch {
-		case IsOnlyV5Supported(err):
+		case IsHAMastersNotSupported(err):
 			headline = "Flag not supported"
-			subtext = "You are trying to use a flag that is only supported by V5 clusters."
+			subtext = fmt.Sprintf("HA Masters is only supported by releases newer than %s.", haMastersFeature.HAMasters.RequiredVersion(config.Config.Provider))
 
 		case errors.IsNoOpError(err):
 			headline = "No flags specified"
