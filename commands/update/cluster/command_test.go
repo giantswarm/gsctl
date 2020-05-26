@@ -120,6 +120,26 @@ func Test_verifyPreconditions(t *testing.T) {
 			},
 			errors.IsConflictingFlagsError,
 		},
+		{
+			Arguments{
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
+				Name:            "newname",
+				MasterHA:        true,
+			},
+			nil,
+		},
+		// HA Master has it's default value.
+		{
+			Arguments{
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
+				MasterHA:        false,
+			},
+			nil,
+		},
 	}
 
 	fs := afero.NewMemMapFs()
