@@ -539,6 +539,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 			// client
 			flags.APIEndpoint = mockServer.URL // required to make InitClient() work
 			testCase.inputArgs.APIEndpoint = mockServer.URL
+			testCase.inputArgs.FileSystem = fs
 
 			err := verifyPreconditions(*testCase.inputArgs)
 			if err != nil {
