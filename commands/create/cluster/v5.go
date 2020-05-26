@@ -18,7 +18,7 @@ type definitionFromFlagsV5 struct {
 	clusterName    string
 	releaseVersion string
 	owner          string
-	isHAMaster     bool
+	isHAMaster     *bool
 }
 
 // updateDefinitionFromFlagsV5 extend/overwrites a clusterDefinition based on the
@@ -40,10 +40,16 @@ func updateDefinitionFromFlagsV5(def *types.ClusterDefinitionV5, flags definitio
 		def.Owner = flags.owner
 	}
 
-	// Since HA Masters are enabled by default, we only change the value if it's disabled.
-	if !flags.isHAMaster {
-		def.MasterNodes = &types.MasterNodes{
-			HighAvailability: false,
+	if haMastersFeature.HAMasters.IsSupported(config.Config.Provider, def.ReleaseVersion) || def.ReleaseVersion == "" {
+		if flags.isHAMaster != nil {
+			def.MasterNodes = &types.MasterNodes{
+				HighAvailability: *flags.isHAMaster,
+			}
+		} else {
+			// Default to true if there was no value set.
+			def.MasterNodes = &types.MasterNodes{
+				HighAvailability: true,
+			}
 		}
 	}
 }
@@ -116,6 +122,10 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 	}
 
 	clusterRequestBody := createAddClusterBodyV5(def)
+
+	if def.Master != nil && def.MasterNodes != nil {
+		return "", true, microerror.Mask(mustProvideSingleMasterTypeError)
+	}
 
 	fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(def.Owner))
 

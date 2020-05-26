@@ -41,3 +41,12 @@ var haMastersNotSupportedError = &microerror.Error{
 func IsHAMastersNotSupported(err error) bool {
 	return microerror.Cause(err) == haMastersNotSupportedError
 }
+
+var mustProvideSingleMasterTypeError = &microerror.Error{
+	Kind: "mustProvideSingleMasterTypeError",
+}
+
+// IsMustProvideSingleMasterType asserts mustProvideSingleMasterTypeError.
+func IsMustProvideSingleMasterType(err error) bool {
+	return microerror.Cause(err) == mustProvideSingleMasterTypeError
+}

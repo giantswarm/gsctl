@@ -147,6 +147,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			inputArgs: &Arguments{
 				Owner:     "acme",
 				AuthToken: "fake token",
+				MasterHA:  true,
 			},
 			expectedResult: &creationResult{
 				ID:           "f6e8r",
@@ -242,6 +243,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 				InputYAMLFile:         "testdata/v5_minimal.yaml",
 				Owner:                 "acme",
 				AuthToken:             "fake token",
+				MasterHA:              true,
 				Verbose:               true,
 			},
 			expectedResult: &creationResult{
@@ -261,6 +263,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 				InputYAMLFile:         "testdata/v5_three_nodepools.yaml",
 				Owner:                 "acme",
 				AuthToken:             "fake token",
+				MasterHA:              true,
 				Verbose:               true,
 			},
 			expectedResult: &creationResult{

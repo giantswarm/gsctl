@@ -52,16 +52,21 @@ type Arguments struct {
 	Owner                 string
 	ReleaseVersion        string
 	Scheme                string
-	MasterHA              bool
+	MasterHA              *bool
 	UserProvidedToken     string
 	Verbose               bool
 }
 
 // collectArguments gets arguments from flags and returns an Arguments object.
-func collectArguments() Arguments {
+func collectArguments(cmd *cobra.Command) Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
 	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
+
+	var haMasters *bool
+	if cmd.Flag("master-ha").Changed {
+		haMasters = &cmdMasterHA
+	}
 
 	return Arguments{
 		APIEndpoint:           endpoint,
@@ -70,7 +75,7 @@ func collectArguments() Arguments {
 		CreateDefaultNodePool: flags.CreateDefaultNodePool,
 		FileSystem:            config.FileSystem,
 		InputYAMLFile:         flags.InputYAMLFile,
-		MasterHA:              cmdMasterHA,
+		MasterHA:              haMasters,
 		Owner:                 flags.Owner,
 		ReleaseVersion:        flags.Release,
 		Scheme:                scheme,
@@ -206,7 +211,7 @@ func initFlags() {
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	arguments = collectArguments()
+	arguments = collectArguments(cmd)
 
 	headline := ""
 	subtext := ""
@@ -248,6 +253,9 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		case IsHAMastersNotSupported(err):
 			headline = "Feature not supported"
 			subtext = fmt.Sprintf("HA Masters is only supported by releases newer than %s.", haMastersFeature.HAMasters.RequiredVersion(config.Config.Provider))
+		case IsMustProvideSingleMasterType(err):
+			headline = "Conflicting master node configuration"
+			subtext = "The release version you're trying to use supports HA Masters.\nPlease remove the 'master' field from your cluster definition and use the '--master-ha' flag."
 		case errors.IsClusterOwnerMissingError(err):
 			headline = "No owner organization set"
 			subtext = "Please specify an owner organization for the cluster via the --owner flag."
