@@ -355,6 +355,30 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 				},
 			},
 		},
+		{
+			description: "Definition from v5 YAML file with ha masters, overridden by flag",
+			inputArgs: &Arguments{
+				ClusterName:           "Cluster Name from Args with Labels",
+				CreateDefaultNodePool: false,
+				FileSystem:            afero.NewOsFs(), // needed for YAML file access
+				InputYAMLFile:         "testdata/v5_with_ha_master.yaml",
+				MasterHA:              toBoolPtr(false),
+				Owner:                 "acme",
+				AuthToken:             "fake token",
+				Verbose:               true,
+			},
+			expectedResult: &creationResult{
+				ID: "f6e8r",
+				DefinitionV5: &types.ClusterDefinitionV5{
+					APIVersion: "v5",
+					Name:       "Cluster Name from Args with Labels",
+					Owner:      "acme",
+					MasterNodes: &types.MasterNodes{
+						HighAvailability: false,
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range testCases {
