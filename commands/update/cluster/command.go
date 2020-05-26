@@ -234,6 +234,10 @@ func updateClusterSpec(args Arguments) (*result, error) {
 		}
 
 		return r, nil
+	} else {
+		if args.MasterHA {
+			return nil, microerror.Mask(haMastersNotSupportedError)
+		}
 	}
 
 	// Fallback: try v4.
