@@ -30,6 +30,16 @@ func (f *Feature) IsSupported(provider string, version string) bool {
 	return v.Compare(requiredVersion) >= 0
 }
 
+// RequiredVersion returns a feature's required version for a specific provider.
+func (f *Feature) RequiredVersion(provider string) string {
+	p := f.getProviderWithName(provider)
+	if p == nil {
+		return "0.0.1"
+	}
+
+	return p.RequiredVersion
+}
+
 func (f *Feature) getProviderWithName(p string) *Provider {
 	p = strings.ToLower(p)
 
