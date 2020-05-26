@@ -4,30 +4,47 @@ import (
 	"fmt"
 
 	"github.com/fatih/color"
+	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/microerror"
+
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
-	"github.com/giantswarm/microerror"
+	haMastersFeature "github.com/giantswarm/gsctl/pkg/featuresupport/hamasters"
 )
+
+type definitionFromFlagsV5 struct {
+	clusterName    string
+	releaseVersion string
+	owner          string
+	isHAMaster     bool
+}
 
 // updateDefinitionFromFlagsV5 extend/overwrites a clusterDefinition based on the
 // flags/arguments the user has given.
-func updateDefinitionFromFlagsV5(def *types.ClusterDefinitionV5, clusterName, releaseVersion, owner string) {
+func updateDefinitionFromFlagsV5(def *types.ClusterDefinitionV5, flags definitionFromFlagsV5) {
 	if def == nil {
 		return
 	}
 
-	if clusterName != "" {
-		def.Name = clusterName
+	if flags.clusterName != "" {
+		def.Name = flags.clusterName
 	}
 
-	if releaseVersion != "" {
-		def.ReleaseVersion = releaseVersion
+	if flags.releaseVersion != "" {
+		def.ReleaseVersion = flags.releaseVersion
 	}
 
-	if owner != "" {
-		def.Owner = owner
+	if flags.owner != "" {
+		def.Owner = flags.owner
+	}
+
+	// Since HA Masters are enabled by default, we only change the value if it's disabled.
+	if !flags.isHAMaster {
+		def.MasterNodes = &types.MasterNodes{
+			HighAvailability: false,
+		}
 	}
 }
 
@@ -41,6 +58,12 @@ func createAddClusterBodyV5(def *types.ClusterDefinitionV5) *models.V5AddCluster
 	if def.Master != nil {
 		b.Master = &models.V5AddClusterRequestMaster{
 			AvailabilityZone: def.Master.AvailabilityZone,
+		}
+	}
+
+	if def.MasterNodes != nil {
+		b.MasterNodes = &models.V5AddClusterRequestMasterNodes{
+			HighAvailability: &def.MasterNodes.HighAvailability,
 		}
 	}
 
@@ -86,6 +109,10 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 	// Validate definition
 	if def.Owner == "" {
 		return "", true, microerror.Mask(errors.ClusterOwnerMissingError)
+	}
+
+	if !haMastersFeature.HAMasters.IsSupported(config.Config.Provider, def.ReleaseVersion) && def.MasterNodes != nil {
+		return "", true, microerror.Mask(haMastersNotSupportedError)
 	}
 
 	clusterRequestBody := createAddClusterBodyV5(def)

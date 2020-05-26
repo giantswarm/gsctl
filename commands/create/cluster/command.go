@@ -37,6 +37,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
 	"github.com/giantswarm/gsctl/flags"
+	haMastersFeature "github.com/giantswarm/gsctl/pkg/featuresupport/hamasters"
 )
 
 // Arguments contains all possible input parameter needed
@@ -51,6 +52,7 @@ type Arguments struct {
 	Owner                 string
 	ReleaseVersion        string
 	Scheme                string
+	MasterHA              bool
 	UserProvidedToken     string
 	Verbose               bool
 }
@@ -179,6 +181,8 @@ flag --create-default-nodepool to false. Example:
 	// the client wrapper we will use in this command.
 	clientWrapper *client.Wrapper
 
+	cmdMasterHA bool
+
 	arguments Arguments
 )
 
@@ -193,6 +197,7 @@ func initFlags() {
 	Command.Flags().StringVarP(&flags.ClusterName, "name", "n", "", "Cluster name")
 	Command.Flags().StringVarP(&flags.Owner, "owner", "o", "", "Organization to own the cluster")
 	Command.Flags().StringVarP(&flags.Release, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
+	Command.Flags().BoolVar(&cmdMasterHA, "master-ha", true, "This means the cluster will have three master nodes. Requires High-Availability Master support.")
 	Command.Flags().BoolVarP(&flags.CreateDefaultNodePool, "create-default-nodepool", "", true, "Whether a default node pool should be created if none is specified in the definition. Requires node pool support.")
 }
 
@@ -239,6 +244,9 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		richError, richErrorOK := err.(*errgo.Err)
 
 		switch {
+		case IsHAMastersNotSupported(err):
+			headline = "Feature not supported"
+			subtext = fmt.Sprintf("HA Masters is only supported by releases newer than %s.", haMastersFeature.HAMasters.RequiredVersion(config.Config.Provider))
 		case errors.IsClusterOwnerMissingError(err):
 			headline = "No owner organization set"
 			subtext = "Please specify an owner organization for the cluster via the --owner flag."
@@ -521,7 +529,12 @@ func addCluster(args Arguments) (*creationResult, error) {
 			result.DefinitionV5 = &types.ClusterDefinitionV5{}
 		}
 
-		updateDefinitionFromFlagsV5(result.DefinitionV5, args.ClusterName, args.ReleaseVersion, args.Owner)
+		updateDefinitionFromFlagsV5(result.DefinitionV5, definitionFromFlagsV5{
+			clusterName:    args.ClusterName,
+			releaseVersion: args.ReleaseVersion,
+			owner:          args.Owner,
+			isHAMaster:     args.MasterHA,
+		})
 
 		id, hasErrors, err := addClusterV5(result.DefinitionV5, args, clientWrapper, auxParams)
 		if err != nil {
