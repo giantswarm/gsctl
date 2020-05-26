@@ -9,10 +9,11 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
-	"github.com/giantswarm/gsctl/clustercache"
-	"github.com/giantswarm/gsctl/util"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/clustercache"
+	"github.com/giantswarm/gsctl/util"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
@@ -26,14 +27,15 @@ var (
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
 		Args:  cobra.ExactArgs(1),
 		Short: "Modify cluster details",
-		Long: `Change the name and labels of a cluster
+		Long: `Change the details of a cluster
 
 Examples:
 
   gsctl update cluster f01r4 --name "Precious Production Cluster"
-	gsctl update cluster "Cluster name" --name "Precious Production Cluster"
+  gsctl update cluster "Cluster name" --name "Precious Production Cluster"
 
-	gsctl update cluster f01r --label environment=testing --label labeltodelete=
+  gsctl update cluster f01r4 --label environment=testing --label labeltodelete=
+  gsctl update cluster f01r4 --master-ha true
 `,
 
 		// PreRun checks a few general things, like authentication.
@@ -42,6 +44,8 @@ Examples:
 		// Run calls the business function and prints results and errors.
 		Run: printResult,
 	}
+
+	cmdMasterHA bool
 
 	arguments Arguments
 )
@@ -58,6 +62,7 @@ func init() {
 func initFlags() {
 	Command.ResetFlags()
 	Command.Flags().StringVarP(&flags.Name, "name", "n", "", "new cluster name")
+	Command.Flags().BoolVar(&cmdMasterHA, "master-ha", false, "switch to high-availability master")
 	Command.Flags().StringSliceVar(&flags.Label, "label", nil, "modification of a label in form of 'key=value'. Can be specified multiple times. To delete a label set to 'key='")
 }
 
@@ -66,6 +71,7 @@ type Arguments struct {
 	APIEndpoint       string
 	AuthToken         string
 	ClusterNameOrID   string
+	MasterHA          bool
 	Labels            []string
 	Name              string
 	UserProvidedToken string
@@ -80,6 +86,7 @@ func collectArguments(positionalArgs []string) Arguments {
 		APIEndpoint:       endpoint,
 		AuthToken:         token,
 		ClusterNameOrID:   strings.TrimSpace(positionalArgs[0]),
+		MasterHA:          cmdMasterHA,
 		Labels:            flags.Label,
 		Name:              flags.Name,
 		UserProvidedToken: flags.Token,
@@ -93,7 +100,7 @@ type result struct {
 	Labels      map[string]string
 }
 
-func verifyPreconditions(args Arguments) error {
+func verifyPreconditions(cmd *cobra.Command, args Arguments) error {
 	if args.APIEndpoint == "" {
 		return microerror.Mask(errors.EndpointMissingError)
 	}
@@ -101,6 +108,8 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Mask(errors.NotLoggedInError)
 	} else if args.ClusterNameOrID == "" {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
+	} else if cmd.Flag("master-ha").Changed && !args.MasterHA {
+		return microerror.Mask(revertHAMasterNotAllowedError)
 	} else if args.Name == "" && (args.Labels == nil || len(args.Labels) == 0) {
 		return microerror.Mask(errors.NoOpError)
 	} else if args.Name != "" && args.Labels != nil && len(args.Labels) != 0 {
@@ -112,7 +121,7 @@ func verifyPreconditions(args Arguments) error {
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	arguments = collectArguments(positionalArgs)
-	err := verifyPreconditions(arguments)
+	err := verifyPreconditions(cmd, arguments)
 
 	if err == nil {
 		return
@@ -126,11 +135,17 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 
 	switch {
 	// If there are specific errors to handle, add them here.
+	case IsRevertHAMasterNotAllowed(err):
+		headline = "Operation not permitted"
+		subtext = "It is not possible to change from multiple master nodes to a single master."
+
 	case errors.IsConflictingFlagsError(err):
 		headline = "Conflicting flags used"
 		subtext = "--name/-n and --label are exclusive."
+
 	case errors.IsNoOpError(err):
 		headline = "No flags specified"
+
 	default:
 		headline = err.Error()
 	}
@@ -140,6 +155,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	if subtext != "" {
 		fmt.Println(subtext)
 	}
+
 	os.Exit(1)
 }
 
