@@ -232,7 +232,6 @@ func updateClusterSpec(args Arguments) (*result, error) {
 		return r, nil
 	} else {
 		if args.MasterHA {
-			// TODO(axbarsan): Convert to ha specific error
 			return nil, microerror.Mask(haMastersNotSupportedError)
 		}
 	}
