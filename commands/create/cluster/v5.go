@@ -111,7 +111,7 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 		return "", true, microerror.Mask(errors.ClusterOwnerMissingError)
 	}
 
-	if !haMastersFeature.HAMasters.IsSupported(config.Config.Provider, def.ReleaseVersion) && def.MasterNodes != nil {
+	if def.MasterNodes != nil && !haMastersFeature.HAMasters.IsSupported(config.Config.Provider, def.ReleaseVersion) {
 		return "", true, microerror.Mask(haMastersNotSupportedError)
 	}
 

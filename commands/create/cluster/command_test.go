@@ -44,6 +44,17 @@ func Test_CollectArgs(t *testing.T) {
 				AuthToken:             "some-token",
 				CreateDefaultNodePool: true,
 				Scheme:                "giantswarm",
+				MasterHA:              true,
+			},
+		},
+		{
+			[]string{"--master-ha=false"},
+			Arguments{
+				APIEndpoint:           "https://foo",
+				AuthToken:             "some-token",
+				CreateDefaultNodePool: true,
+				Scheme:                "giantswarm",
+				MasterHA:              false,
 			},
 		},
 		{
@@ -60,6 +71,7 @@ func Test_CollectArgs(t *testing.T) {
 				Owner:                 "acme",
 				ReleaseVersion:        "1.2.3",
 				Scheme:                "giantswarm",
+				MasterHA:              true,
 			},
 		},
 	}
@@ -459,7 +471,7 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 
 		// mock server
 		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			//t.Log("mockServer request: ", r.Method, r.URL)
+			// t.Log("mockServer request: ", r.Method, r.URL)
 			if r.Method == "GET" && r.URL.String() == "/v4/info/" {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
@@ -589,7 +601,7 @@ func Test_getLatestActiveReleaseVersion(t *testing.T) {
 
 		// mock server
 		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			//t.Log("mockServer request: ", r.Method, r.URL)
+			// t.Log("mockServer request: ", r.Method, r.URL)
 			if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)

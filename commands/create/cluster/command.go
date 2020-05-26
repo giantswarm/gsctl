@@ -70,6 +70,7 @@ func collectArguments() Arguments {
 		CreateDefaultNodePool: flags.CreateDefaultNodePool,
 		FileSystem:            config.FileSystem,
 		InputYAMLFile:         flags.InputYAMLFile,
+		MasterHA:              cmdMasterHA,
 		Owner:                 flags.Owner,
 		ReleaseVersion:        flags.Release,
 		Scheme:                scheme,
