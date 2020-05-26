@@ -110,7 +110,7 @@ func verifyPreconditions(cmd *cobra.Command, args Arguments) error {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	} else if cmd.Flag("master-ha").Changed && !args.MasterHA {
 		return microerror.Mask(revertHAMasterNotAllowedError)
-	} else if args.Name != "" && len(args.Labels) > 0 {
+	} else if args.Name != "" && args.MasterHA && len(args.Labels) > 0 {
 		return microerror.Mask(errors.ConflictingFlagsError)
 	}
 
@@ -155,20 +155,29 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 }
 
 func updateCluster(args Arguments) (*result, error) {
+	var (
+		result *result
+		err    error
+	)
+
 	if len(args.Labels) > 0 {
-		return updateLabels(args)
+		result, err = updateLabels(args)
+
+		return result, microerror.Mask(err)
 	}
 
 	if args.Name != "" || args.MasterHA {
-		return updateName(args)
+		result, err = updateClusterSpec(args)
+
+		return result, microerror.Mask(err)
 	}
 
 	return nil, microerror.Mask(errors.NoOpError)
 }
 
-// updateName updates the cluster.
+// updateClusterSpec updates the cluster.
 // It determines whether it is a v5 or v4 cluster and uses the appropriate mechanism.
-func updateName(args Arguments) (*result, error) {
+func updateClusterSpec(args Arguments) (*result, error) {
 	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -189,8 +198,16 @@ func updateName(args Arguments) (*result, error) {
 	_, errV5 := clientWrapper.GetClusterV5(clusterID, auxParams)
 	if errV5 == nil {
 		requestBody := &models.V5ModifyClusterRequest{}
-		if args.Name != "" {
-			requestBody.Name = args.Name
+		{
+			if args.Name != "" {
+				requestBody.Name = args.Name
+			}
+
+			if args.MasterHA {
+				requestBody.MasterNodes = &models.V5ModifyClusterRequestMasterNodes{
+					HighAvailability: true,
+				}
+			}
 		}
 
 		if args.Verbose {
@@ -201,11 +218,21 @@ func updateName(args Arguments) (*result, error) {
 			return nil, microerror.Mask(err)
 		}
 
-		r := &result{
-			ClusterName: response.Payload.Name,
+		r := &result{}
+		{
+			if args.Name != "" {
+				r.ClusterName = response.Payload.Name
+			}
+			if args.MasterHA {
+				r.HasHAMaster = response.Payload.MasterNodes.HighAvailability
+			}
 		}
 
 		return r, nil
+	} else {
+		if args.MasterHA {
+			return nil, microerror.Mask(onlyV5SupportedError)
+		}
 	}
 
 	// Fallback: try v4.
@@ -279,47 +306,6 @@ func updateLabels(args Arguments) (*result, error) {
 	return r, nil
 }
 
-// switchToHAMaster switches a cluster's master type to HA. v5 only!
-func switchToHAMaster(args Arguments) (*result, error) {
-	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	clusterID, err := clustercache.GetID(args.APIEndpoint, args.ClusterNameOrID, clientWrapper)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	auxParams := clientWrapper.DefaultAuxiliaryParams()
-	auxParams.ActivityName = activityName
-
-	// Verify this cluster exists and is a v5 cluster.
-	_, err = clientWrapper.GetClusterV5(clusterID, auxParams)
-	if err != nil {
-		return nil, microerror.Maskf(errors.ClusterNotFoundError, "cluster with id '%s' not found or not a v5 cluster", clusterID)
-	}
-
-	requestBody := &models.V5ModifyClusterRequest{}
-	requestBody.MasterNodes = &models.V5ModifyClusterRequestMasterNodes{
-		HighAvailability: true,
-	}
-
-	if args.Verbose {
-		fmt.Println(color.WhiteString("Sending cluster modification request to v5 endpoint."))
-	}
-	response, err := clientWrapper.ModifyClusterV5(clusterID, requestBody, auxParams)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	r := &result{
-		HasHAMaster: response.Payload.MasterNodes.HighAvailability,
-	}
-
-	return r, nil
-}
-
 func printResult(cmd *cobra.Command, positionalArgs []string) {
 	result, err := updateCluster(arguments)
 	if err != nil {
@@ -330,6 +316,10 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		subtext := ""
 
 		switch {
+		case IsOnlyV5Supported(err):
+			headline = "Flag not supported"
+			subtext = "You are trying to use a flag that is only supported by V5 clusters."
+
 		case errors.IsNoOpError(err):
 			headline = "No flags specified"
 

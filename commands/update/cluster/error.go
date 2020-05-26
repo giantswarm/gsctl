@@ -12,3 +12,12 @@ var revertHAMasterNotAllowedError = &microerror.Error{
 func IsRevertHAMasterNotAllowed(err error) bool {
 	return microerror.Cause(err) == revertHAMasterNotAllowedError
 }
+
+var onlyV5SupportedError = &microerror.Error{
+	Kind: "onlyV5SupportedError",
+}
+
+// IsOnlyV5Supported asserts onlyV5SupportedError.
+func IsOnlyV5Supported(err error) bool {
+	return microerror.Cause(err) == onlyV5SupportedError
+}
