@@ -35,7 +35,7 @@ Examples:
   gsctl update cluster "Cluster name" --name "Precious Production Cluster"
 
   gsctl update cluster f01r4 --label environment=testing --label labeltodelete=
-  gsctl update cluster f01r4 --master-ha true
+  gsctl update cluster f01r4 --master-ha=true
 `,
 
 		// PreRun checks a few general things, like authentication.
