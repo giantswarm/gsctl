@@ -110,7 +110,7 @@ func verifyPreconditions(cmd *cobra.Command, args Arguments) error {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	} else if cmd.Flag("master-ha").Changed && !args.MasterHA {
 		return microerror.Mask(revertHAMasterNotAllowedError)
-	} else if args.Name != "" && args.MasterHA && len(args.Labels) > 0 {
+	} else if (args.Name != "" || args.MasterHA) && len(args.Labels) > 0 {
 		return microerror.Mask(errors.ConflictingFlagsError)
 	}
 

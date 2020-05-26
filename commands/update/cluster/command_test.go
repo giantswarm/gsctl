@@ -6,10 +6,11 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/giantswarm/gsctl/commands/errors"
-	"github.com/giantswarm/gsctl/testutils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
+
+	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
 // configYAML is a mock configuration used by some of the tests.
@@ -106,7 +107,7 @@ func Test_verifyPreconditions(t *testing.T) {
 				APIEndpoint:     "https://mock-url",
 				ClusterNameOrID: "cluster-id",
 			},
-			errors.IsNoOpError,
+			nil,
 		},
 		// name and label arguments given at same time
 		{
@@ -129,11 +130,15 @@ func Test_verifyPreconditions(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			err := verifyPreconditions(tc.args)
-			if err == nil {
-				t.Errorf("Case %d - Expected error, got nil", i)
-			} else if !tc.errorMatcher(err) {
-				t.Errorf("Case %d - Error did not match expectec type. Got '%s'", i, err)
+			err := verifyPreconditions(Command, tc.args)
+			if tc.errorMatcher == nil {
+				if err != nil {
+					t.Errorf("Case %d - Error did not match expected type. Got '%s'", i, err)
+				}
+			} else {
+				if !tc.errorMatcher(err) {
+					t.Errorf("Case %d - Error did not match expected type. Got '%s'", i, err)
+				}
 			}
 		})
 	}
@@ -159,6 +164,47 @@ func TestSuccess(t *testing.T) {
 			}`,
 			expectedResult: &result{
 				ClusterName: "New name",
+			},
+		},
+		// Switch to HA masters.
+		{
+			args: Arguments{
+				ClusterNameOrID: "clusterid",
+				AuthToken:       "token",
+				MasterHA:        true,
+			},
+			responseBody: `{
+				"id": "clusterid",
+				"master_nodes": {
+                    "availability_zones": ["a", "b", "c"],
+                    "high_availability": true,
+                    "num_ready": 1
+                }
+			}`,
+			expectedResult: &result{
+				HasHAMaster: true,
+			},
+		},
+		// Change name and switch to HA masters.
+		{
+			args: Arguments{
+				ClusterNameOrID: "clusterid",
+				AuthToken:       "token",
+				Name:            "New name",
+				MasterHA:        true,
+			},
+			responseBody: `{
+				"id": "clusterid",
+                "name": "New name",
+				"master_nodes": {
+                    "availability_zones": ["a", "b", "c"],
+                    "high_availability": true,
+                    "num_ready": 1
+                }
+			}`,
+			expectedResult: &result{
+				ClusterName: "New name",
+				HasHAMaster: true,
 			},
 		},
 		// Label change
@@ -221,7 +267,7 @@ func TestSuccess(t *testing.T) {
 
 			tc.args.APIEndpoint = mockServer.URL
 
-			err := verifyPreconditions(tc.args)
+			err := verifyPreconditions(Command, tc.args)
 			if err != nil {
 				t.Fatalf("Case %d - Unxpected error '%s'", i, err)
 			}
