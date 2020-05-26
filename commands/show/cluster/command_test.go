@@ -677,7 +677,7 @@ func TestFormatHAMasters(t *testing.T) {
 			model: &models.V5ClusterDetailsResponseMasterNodes{
 				AvailabilityZones: []string{},
 				HighAvailability:  false,
-				NumReady:          0,
+				NumReady:          toInt64Ptr(0),
 			},
 			expectedAvailabilityZones: "n/a",
 			expectedNumOfReadyNodes:   "0",
@@ -686,7 +686,7 @@ func TestFormatHAMasters(t *testing.T) {
 			model: &models.V5ClusterDetailsResponseMasterNodes{
 				AvailabilityZones: []string{"some-zone"},
 				HighAvailability:  false,
-				NumReady:          1,
+				NumReady:          toInt64Ptr(1),
 			},
 			expectedAvailabilityZones: "some-zone",
 			expectedNumOfReadyNodes:   "1",
@@ -695,7 +695,7 @@ func TestFormatHAMasters(t *testing.T) {
 			model: &models.V5ClusterDetailsResponseMasterNodes{
 				AvailabilityZones: []string{"some-zone-a, some-zone-b, some-zone-c"},
 				HighAvailability:  false,
-				NumReady:          3,
+				NumReady:          toInt64Ptr(3),
 			},
 			expectedAvailabilityZones: "some-zone-a, some-zone-b, some-zone-c",
 			expectedNumOfReadyNodes:   "3",
@@ -704,10 +704,19 @@ func TestFormatHAMasters(t *testing.T) {
 			model: &models.V5ClusterDetailsResponseMasterNodes{
 				AvailabilityZones: []string{"some-zone-a, some-zone-b, some-zone-c"},
 				HighAvailability:  false,
-				NumReady:          0,
+				NumReady:          toInt64Ptr(0),
 			},
 			expectedAvailabilityZones: "some-zone-a, some-zone-b, some-zone-c",
 			expectedNumOfReadyNodes:   "0",
+		},
+		{
+			model: &models.V5ClusterDetailsResponseMasterNodes{
+				AvailabilityZones: []string{"some-zone-a, some-zone-b, some-zone-c"},
+				HighAvailability:  false,
+				NumReady:          nil,
+			},
+			expectedAvailabilityZones: "some-zone-a, some-zone-b, some-zone-c",
+			expectedNumOfReadyNodes:   "n/a",
 		},
 	}
 
@@ -722,4 +731,10 @@ func TestFormatHAMasters(t *testing.T) {
 			}
 		})
 	}
+}
+
+func toInt64Ptr(i int) *int64 {
+	c := int64(i)
+
+	return &c
 }

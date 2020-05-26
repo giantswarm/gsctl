@@ -660,11 +660,9 @@ func formatHAMasters(masterNodes *models.V5ClusterDetailsResponseMasterNodes) (a
 		azs = strings.Join(masterNodes.AvailabilityZones, ", ")
 	}
 
-	if masterNodes.NumReady >= 0 {
-		numOfReadyNodes = strconv.Itoa(int(masterNodes.NumReady))
+	if masterNodes.NumReady != nil && *masterNodes.NumReady >= 0 {
+		numOfReadyNodes = strconv.Itoa(int(*masterNodes.NumReady))
 	}
-
-	// TODO(axbarsan): Address nil pointer NumReady values.
 
 	return
 }
