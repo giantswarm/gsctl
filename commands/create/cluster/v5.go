@@ -41,15 +41,21 @@ func updateDefinitionFromFlagsV5(def *types.ClusterDefinitionV5, flags definitio
 	}
 
 	if haMastersFeature.HAMasters.IsSupported(config.Config.Provider, def.ReleaseVersion) || def.ReleaseVersion == "" {
+		var isHA bool
+
 		if flags.isHAMaster != nil {
-			def.MasterNodes = &types.MasterNodes{
-				HighAvailability: *flags.isHAMaster,
-			}
+			isHA = *flags.isHAMaster
 		} else {
-			// Default to true if there was no value set.
-			def.MasterNodes = &types.MasterNodes{
-				HighAvailability: true,
+			if def.MasterNodes != nil {
+				isHA = def.MasterNodes.HighAvailability
+			} else {
+				// Default to true if there was no value set.
+				isHA = true
 			}
+		}
+
+		def.MasterNodes = &types.MasterNodes{
+			HighAvailability: isHA,
 		}
 	}
 }
@@ -117,7 +123,7 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 		return "", true, microerror.Mask(errors.ClusterOwnerMissingError)
 	}
 
-	if def.MasterNodes != nil && !haMastersFeature.HAMasters.IsSupported(config.Config.Provider, def.ReleaseVersion) {
+	if def.MasterNodes != nil && def.ReleaseVersion != "" && !haMastersFeature.HAMasters.IsSupported(config.Config.Provider, def.ReleaseVersion) {
 		return "", true, microerror.Mask(haMastersNotSupportedError)
 	}
 
