@@ -508,7 +508,7 @@ func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 
 	// Check for HA Masters support and print the correct entry.
 	// Only support 'aws' for now.
-	if haMastersFeature.HAMasters.IsSupported("aws", details.ReleaseVersion) {
+	if haMastersFeature.HAMasters.IsSupported(config.Config.Provider, details.ReleaseVersion) {
 		availabilityZones, numOfReadyNodes := formatHAMasters(details.MasterNodes)
 		masterNodeCount := 1
 		if details.MasterNodes != nil && details.MasterNodes.HighAvailability {
