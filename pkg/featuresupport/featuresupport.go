@@ -13,8 +13,8 @@ type Feature struct {
 // IsSupported checks to see if a feature is supported by a specific provider,
 // for a specific release version.
 func (f *Feature) IsSupported(provider string, version string) bool {
-	p := f.getProviderWithName(provider)
-	if p == nil {
+	pReqVersion := f.RequiredVersion(provider)
+	if pReqVersion == nil {
 		return false
 	}
 
@@ -22,7 +22,7 @@ func (f *Feature) IsSupported(provider string, version string) bool {
 	if err != nil {
 		return false
 	}
-	requiredVersion, err := semver.NewVersion(p.RequiredVersion)
+	requiredVersion, err := semver.NewVersion(*pReqVersion)
 	if err != nil {
 		return false
 	}
@@ -31,13 +31,13 @@ func (f *Feature) IsSupported(provider string, version string) bool {
 }
 
 // RequiredVersion returns a feature's required version for a specific provider.
-func (f *Feature) RequiredVersion(provider string) string {
+func (f *Feature) RequiredVersion(provider string) *string {
 	p := f.getProviderWithName(provider)
 	if p == nil {
-		return "0.0.1"
+		return nil
 	}
 
-	return p.RequiredVersion
+	return &p.RequiredVersion
 }
 
 func (f *Feature) getProviderWithName(p string) *Provider {

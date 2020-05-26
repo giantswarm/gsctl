@@ -252,7 +252,13 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		switch {
 		case IsHAMastersNotSupported(err):
 			headline = "Feature not supported"
-			subtext = fmt.Sprintf("HA Masters is only supported by releases newer than %s.", haMastersFeature.HAMasters.RequiredVersion(config.Config.Provider))
+
+			requiredVersion := haMastersFeature.HAMasters.RequiredVersion(config.Config.Provider)
+			if requiredVersion != nil {
+				subtext = fmt.Sprintf("HA Masters is only supported by releases newer than %s.", *requiredVersion)
+			} else {
+				subtext = "HA Masters is not supported by your provider."
+			}
 		case IsMustProvideSingleMasterType(err):
 			headline = "Conflicting master node configuration"
 			subtext = "The release version you're trying to use supports HA Masters.\nPlease remove the 'master' field from your cluster definition and use the '--master-ha' flag."

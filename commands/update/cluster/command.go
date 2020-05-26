@@ -323,7 +323,13 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		switch {
 		case IsHAMastersNotSupported(err):
 			headline = "Flag not supported"
-			subtext = fmt.Sprintf("HA Masters is only supported by releases newer than %s.", haMastersFeature.HAMasters.RequiredVersion(config.Config.Provider))
+
+			requiredVersion := haMastersFeature.HAMasters.RequiredVersion(config.Config.Provider)
+			if requiredVersion != nil {
+				subtext = fmt.Sprintf("HA Masters is only supported by releases newer than %s.", *requiredVersion)
+			} else {
+				subtext = "HA Masters is not supported by your provider."
+			}
 
 		case errors.IsNoOpError(err):
 			headline = "No flags specified"
