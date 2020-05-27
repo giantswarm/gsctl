@@ -554,12 +554,14 @@ func addCluster(args Arguments) (*creationResult, error) {
 			result.DefinitionV5 = &types.ClusterDefinitionV5{}
 		}
 
-		if result.DefinitionV5.MasterNodes != nil || args.MasterHA != nil {
-			if !haMastersEnabled {
-				return nil, microerror.Mask(haMastersNotSupportedError)
-			}
+		if haMastersEnabled && result.DefinitionV5.Master != nil && result.DefinitionV5.MasterNodes == nil {
+			fmt.Println(color.YellowString("The 'master' attribute is deprecated.\nPlease remove the 'master' attribute from your cluster definition and use the 'master_nodes' attribute instead."))
+		}
 
-			if result.DefinitionV5.Master != nil {
+		if result.DefinitionV5.MasterNodes != nil || args.MasterHA != nil {
+			if result.DefinitionV5.MasterNodes != nil && result.DefinitionV5.MasterNodes.HighAvailability && !haMastersEnabled {
+				return nil, microerror.Mask(haMastersNotSupportedError)
+			} else if result.DefinitionV5.Master != nil {
 				return nil, microerror.Mask(mustProvideSingleMasterTypeError)
 			}
 		} else {
