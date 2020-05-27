@@ -38,6 +38,7 @@ func New(provider string, clientWrapper *client.Wrapper) (*Service, error) {
 			Autoscaling,
 			AvailabilityZones,
 			NodePools,
+			HAMasters,
 		},
 	}
 
