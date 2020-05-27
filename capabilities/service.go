@@ -57,8 +57,12 @@ func (s *Service) initCapabilities() error {
 		return microerror.Maskf(couldNotFetchFeatures, err.Error())
 	}
 
+	if info.Payload.Features == nil {
+		return nil
+	}
+
 	// Enhance feature info for Node Pools, if available.
-	if info.Payload.Features != nil && info.Payload.Features.Nodepools != nil {
+	if info.Payload.Features.Nodepools != nil {
 		NodePools.RequiredReleasePerProvider = []ReleaseProviderPair{
 			{
 				Provider:       info.Payload.General.Provider,
@@ -68,7 +72,7 @@ func (s *Service) initCapabilities() error {
 	}
 
 	// Enhance feature info for HA Masters, if available.
-	if info.Payload.Features != nil && info.Payload.Features.HaMasters != nil {
+	if info.Payload.Features.HaMasters != nil {
 		HAMasters.RequiredReleasePerProvider = []ReleaseProviderPair{
 			{
 				Provider:       info.Payload.General.Provider,
