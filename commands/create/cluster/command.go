@@ -559,7 +559,11 @@ func addCluster(args Arguments) (*creationResult, error) {
 				return nil, microerror.Mask(haMastersNotSupportedError)
 			}
 		} else {
-			if haMastersEnabled {
+			// Check if 'master' field is set before defaulting to HA master.
+			if haMastersEnabled && result.DefinitionV5.Master == nil {
+				if args.Verbose {
+					fmt.Println(color.WhiteString("Using master node high availability by default."))
+				}
 				// Default to true if it is supported and not provided other value.
 				args.MasterHA = toBoolPtr(true)
 			}
