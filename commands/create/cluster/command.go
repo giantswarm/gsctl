@@ -65,7 +65,7 @@ func collectArguments(cmd *cobra.Command) Arguments {
 
 	var haMasters *bool
 	if cmd.Flag("master-ha").Changed {
-		haMasters = &cmdMasterHA
+		haMasters = &flags.MasterHA
 	}
 
 	return Arguments{
@@ -187,8 +187,6 @@ flag --create-default-nodepool to false. Example:
 	// the client wrapper we will use in this command.
 	clientWrapper *client.Wrapper
 
-	cmdMasterHA bool
-
 	arguments Arguments
 )
 
@@ -203,7 +201,7 @@ func initFlags() {
 	Command.Flags().StringVarP(&flags.ClusterName, "name", "n", "", "Cluster name")
 	Command.Flags().StringVarP(&flags.Owner, "owner", "o", "", "Organization to own the cluster")
 	Command.Flags().StringVarP(&flags.Release, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
-	Command.Flags().BoolVar(&cmdMasterHA, "master-ha", true, "This means the cluster will have three master nodes. Requires High-Availability Master support.")
+	Command.Flags().BoolVar(&flags.MasterHA, "master-ha", true, "This means the cluster will have three master nodes. Requires High-Availability Master support.")
 	Command.Flags().BoolVarP(&flags.CreateDefaultNodePool, "create-default-nodepool", "", true, "Whether a default node pool should be created if none is specified in the definition. Requires node pool support.")
 }
 

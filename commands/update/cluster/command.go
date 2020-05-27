@@ -46,8 +46,6 @@ Examples:
 		Run: printResult,
 	}
 
-	cmdMasterHA bool
-
 	arguments Arguments
 )
 
@@ -63,7 +61,7 @@ func init() {
 func initFlags() {
 	Command.ResetFlags()
 	Command.Flags().StringVarP(&flags.Name, "name", "n", "", "new cluster name")
-	Command.Flags().BoolVar(&cmdMasterHA, "master-ha", false, "switch to high-availability master")
+	Command.Flags().BoolVar(&flags.MasterHA, "master-ha", false, "switch to high-availability master")
 	Command.Flags().StringSliceVar(&flags.Label, "label", nil, "modification of a label in form of 'key=value'. Can be specified multiple times. To delete a label set to 'key='")
 }
 
@@ -87,7 +85,7 @@ func collectArguments(positionalArgs []string) Arguments {
 		APIEndpoint:       endpoint,
 		AuthToken:         token,
 		ClusterNameOrID:   strings.TrimSpace(positionalArgs[0]),
-		MasterHA:          cmdMasterHA,
+		MasterHA:          flags.MasterHA,
 		Labels:            flags.Label,
 		Name:              flags.Name,
 		UserProvidedToken: flags.Token,
