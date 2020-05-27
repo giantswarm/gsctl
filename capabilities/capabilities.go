@@ -31,4 +31,9 @@ var (
 	NodePools = CapabilityDefinition{
 		Name: "NodePools",
 	}
+
+	// HAMasters provides details about the high availability masters feature.
+	HAMasters = CapabilityDefinition{
+		Name: "HAMasters",
+	}
 )

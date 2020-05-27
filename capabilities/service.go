@@ -59,9 +59,19 @@ func (s *Service) initCapabilities() error {
 	// Enhance feature info for Node Pools, if available.
 	if info.Payload.Features != nil && info.Payload.Features.Nodepools != nil {
 		NodePools.RequiredReleasePerProvider = []ReleaseProviderPair{
-			ReleaseProviderPair{
+			{
 				Provider:       info.Payload.General.Provider,
 				ReleaseVersion: semver.MustParse(info.Payload.Features.Nodepools.ReleaseVersionMinimum),
+			},
+		}
+	}
+
+	// Enhance feature info for HA Masters, if available.
+	if info.Payload.Features != nil && info.Payload.Features.HaMasters != nil {
+		HAMasters.RequiredReleasePerProvider = []ReleaseProviderPair{
+			{
+				Provider:       info.Payload.General.Provider,
+				ReleaseVersion: semver.MustParse(info.Payload.Features.HaMasters.ReleaseVersionMinimum),
 			},
 		}
 	}
