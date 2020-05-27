@@ -4,14 +4,12 @@ import (
 	"fmt"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
-	haMastersFeature "github.com/giantswarm/gsctl/pkg/featuresupport/hamasters"
 )
 
 type definitionFromFlagsV5 struct {
@@ -40,22 +38,9 @@ func updateDefinitionFromFlagsV5(def *types.ClusterDefinitionV5, flags definitio
 		def.Owner = flags.owner
 	}
 
-	if haMastersFeature.HAMasters.IsSupported(config.Config.Provider, def.ReleaseVersion) || def.ReleaseVersion == "" {
-		var isHA bool
-
-		if flags.isHAMaster != nil {
-			isHA = *flags.isHAMaster
-		} else {
-			if def.MasterNodes != nil {
-				isHA = def.MasterNodes.HighAvailability
-			} else {
-				// Default to true if there was no value set.
-				isHA = true
-			}
-		}
-
+	if flags.isHAMaster != nil {
 		def.MasterNodes = &types.MasterNodes{
-			HighAvailability: isHA,
+			HighAvailability: *flags.isHAMaster,
 		}
 	}
 }
@@ -123,15 +108,11 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 		return "", true, microerror.Mask(errors.ClusterOwnerMissingError)
 	}
 
-	if def.MasterNodes != nil && def.ReleaseVersion != "" && !haMastersFeature.HAMasters.IsSupported(config.Config.Provider, def.ReleaseVersion) {
-		return "", true, microerror.Mask(haMastersNotSupportedError)
-	}
-
-	clusterRequestBody := createAddClusterBodyV5(def)
-
 	if def.Master != nil && def.MasterNodes != nil {
 		return "", true, microerror.Mask(mustProvideSingleMasterTypeError)
 	}
+
+	clusterRequestBody := createAddClusterBodyV5(def)
 
 	fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(def.Owner))
 

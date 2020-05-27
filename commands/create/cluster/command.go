@@ -463,7 +463,8 @@ func addCluster(args Arguments) (*creationResult, error) {
 	var wantedRelease string
 
 	// nodePoolsEnabled stores whether we can assume the v5 API (node pools) for this command execution.
-	var nodePoolsEnabled = false
+	var nodePoolsEnabled bool
+	var haMastersEnabled bool
 
 	var usesV4Definition, usesV5Definition bool
 	var defV4 types.ClusterDefinitionV4
@@ -518,7 +519,8 @@ func addCluster(args Arguments) (*creationResult, error) {
 		fmt.Println(color.WhiteString("Fetching installation capabilities"))
 	}
 
-	nodePoolsEnabled, err = capabilityService.HasCapability(wantedRelease, capabilities.NodePools)
+	nodePoolsEnabled, _ = capabilityService.HasCapability(wantedRelease, capabilities.NodePools)
+	haMastersEnabled, _ = capabilityService.HasCapability(wantedRelease, capabilities.HAMasters)
 
 	// Fail for edge cases:
 	// - User uses v5 definition, but the installation doesn't support node pools.
@@ -550,6 +552,17 @@ func addCluster(args Arguments) (*creationResult, error) {
 
 		if result.DefinitionV5 == nil {
 			result.DefinitionV5 = &types.ClusterDefinitionV5{}
+		}
+
+		if result.DefinitionV5.MasterNodes != nil || args.MasterHA != nil {
+			if !haMastersEnabled {
+				return nil, microerror.Mask(haMastersNotSupportedError)
+			}
+		} else {
+			if haMastersEnabled {
+				// Default to true if it is supported and not provided other value.
+				args.MasterHA = toBoolPtr(true)
+			}
 		}
 
 		updateDefinitionFromFlagsV5(result.DefinitionV5, definitionFromFlagsV5{
@@ -588,4 +601,8 @@ func addCluster(args Arguments) (*creationResult, error) {
 	}
 
 	return result, nil
+}
+
+func toBoolPtr(t bool) *bool {
+	return &t
 }

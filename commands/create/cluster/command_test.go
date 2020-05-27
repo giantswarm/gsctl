@@ -146,7 +146,6 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			inputArgs: &Arguments{
 				Owner:     "acme",
 				AuthToken: "fake token",
-				MasterHA:  nil,
 			},
 			expectedResult: &creationResult{
 				ID: "f6e8r",
@@ -247,7 +246,6 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 				InputYAMLFile:         "testdata/v5_minimal.yaml",
 				Owner:                 "acme",
 				AuthToken:             "fake token",
-				MasterHA:              nil,
 				Verbose:               true,
 			},
 			expectedResult: &creationResult{
@@ -270,7 +268,6 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 				InputYAMLFile:         "testdata/v5_three_nodepools.yaml",
 				Owner:                 "acme",
 				AuthToken:             "fake token",
-				MasterHA:              toBoolPtr(true),
 				Verbose:               true,
 			},
 			expectedResult: &creationResult{
@@ -325,15 +322,15 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					APIVersion: "v5",
 					Name:       "Cluster Name from Args with Labels",
 					Owner:      "acme",
-					Labels:     map[string]*string{"key": stringP("value"), "labelkey": stringP("labelvalue")},
 					MasterNodes: &types.MasterNodes{
 						HighAvailability: true,
 					},
+					Labels: map[string]*string{"key": stringP("value"), "labelkey": stringP("labelvalue")},
 				},
 			},
 		},
 		{
-			description: "Definition from v5 YAML file with ha masters",
+			description: "Definition from v5 YAML file with HA master",
 			inputArgs: &Arguments{
 				ClusterName:           "Cluster Name from Args with Labels",
 				CreateDefaultNodePool: false,
@@ -356,7 +353,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 			},
 		},
 		{
-			description: "Definition from v5 YAML file with ha masters, overridden by flag",
+			description: "Definition from v5 YAML file with HA master, overridden by flag",
 			inputArgs: &Arguments{
 				ClusterName:           "Cluster Name from Args with Labels",
 				CreateDefaultNodePool: false,
@@ -426,7 +423,8 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					  "provider": "aws"
 					},
 					"features": {
-					  "nodepools": {"release_version_minimum": "9.0.0"}
+					  "nodepools": {"release_version_minimum": "9.0.0"},
+					  "ha_masters": {"release_version_minimum": "11.5.0"}
 					}
 				  }`))
 				} else if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
@@ -442,6 +440,13 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					{
 						"timestamp": "2019-09-23T12:00:00Z",
 						"version": "9.0.0",
+						"active": true,
+						"changelog": [],
+						"components": []
+					},
+					{
+						"timestamp": "2019-10-23T12:00:00Z",
+						"version": "11.5.0",
 						"active": true,
 						"changelog": [],
 						"components": []
@@ -707,8 +712,4 @@ func Test_getLatestActiveReleaseVersion(t *testing.T) {
 			}
 		})
 	}
-}
-
-func toBoolPtr(t bool) *bool {
-	return &t
 }
