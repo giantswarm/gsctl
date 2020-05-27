@@ -281,6 +281,17 @@ func TestSuccess(t *testing.T) {
 				} else if r.Method == "PUT" && r.URL.Path == "/v5/clusters/clusterid/labels/" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(tc.responseBody))
+				} else if r.Method == "GET" && r.URL.String() == "/v4/info/" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{
+					"general": {
+					  "provider": "aws"
+					},
+					"features": {
+					  "nodepools": {"release_version_minimum": "9.0.0"},
+					  "ha_masters": {"release_version_minimum": "11.5.0"}
+					}
+				  }`))
 				} else {
 					t.Errorf("Case %d - Unsupported operation %s %s called in mock server", i, r.Method, r.URL.Path)
 				}
