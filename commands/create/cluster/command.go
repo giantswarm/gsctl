@@ -554,19 +554,27 @@ func addCluster(args Arguments) (*creationResult, error) {
 			result.DefinitionV5 = &types.ClusterDefinitionV5{}
 		}
 
-		if haMastersEnabled && result.DefinitionV5.Master != nil && result.DefinitionV5.MasterNodes == nil {
-			fmt.Println(color.YellowString("The 'master' attribute is deprecated.\nPlease remove the 'master' attribute from your cluster definition and use the 'master_nodes' attribute instead."))
-		}
-
-		if result.DefinitionV5.MasterNodes != nil || args.MasterHA != nil {
-			if result.DefinitionV5.MasterNodes != nil && result.DefinitionV5.MasterNodes.HighAvailability && !haMastersEnabled {
-				return nil, microerror.Mask(haMastersNotSupportedError)
+		{
+			if result.DefinitionV5.MasterNodes == nil && args.MasterHA == nil {
+				// User tries to use the 'master' field in a version that supports HA masters.
+				if haMastersEnabled && result.DefinitionV5.Master != nil {
+					fmt.Println(color.YellowString("The 'master' attribute is deprecated.\nPlease remove the 'master' attribute from your cluster definition and use the 'master_nodes' attribute instead."))
+				}
 			} else if result.DefinitionV5.Master != nil {
+				// User is trying to provide both 'master' and master nodes fields at the same time.
 				return nil, microerror.Mask(mustProvideSingleMasterTypeError)
 			}
-		} else {
-			// Check if 'master' field is set before defaulting to HA master.
-			if haMastersEnabled && result.DefinitionV5.Master == nil {
+		}
+
+		{
+			hasHAMaster := result.DefinitionV5.MasterNodes != nil && result.DefinitionV5.MasterNodes.HighAvailability
+			hasHAMasterFromFlag := args.MasterHA != nil && *args.MasterHA
+			if hasHAMaster || hasHAMasterFromFlag {
+				if !haMastersEnabled {
+					return nil, microerror.Mask(haMastersNotSupportedError)
+				}
+			} else if haMastersEnabled && result.DefinitionV5.Master == nil {
+				// Check if 'master' field is set before defaulting to HA master.
 				if args.Verbose {
 					fmt.Println(color.WhiteString("Using master node high availability by default."))
 				}
