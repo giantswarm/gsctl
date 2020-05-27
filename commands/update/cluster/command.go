@@ -12,8 +12,8 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/capabilities"
 	"github.com/giantswarm/gsctl/clustercache"
-	haMastersFeature "github.com/giantswarm/gsctl/pkg/featuresupport/hamasters"
 	"github.com/giantswarm/gsctl/util"
 
 	"github.com/giantswarm/gsctl/client"
@@ -203,7 +203,13 @@ func updateClusterSpec(args Arguments) (*result, error) {
 			}
 
 			if args.MasterHA {
-				if !haMastersFeature.HAMasters.IsSupported(config.Config.Provider, clusterV5.Payload.ReleaseVersion) {
+				capabilityService, err := capabilities.New(config.Config.Provider, clientWrapper)
+				if err != nil {
+					return nil, microerror.Mask(err)
+				}
+				haMastersEnabled, _ := capabilityService.HasCapability(clusterV5.Payload.ReleaseVersion, capabilities.HAMasters)
+
+				if !haMastersEnabled {
 					return nil, microerror.Mask(haMastersNotSupportedError)
 				}
 
@@ -320,13 +326,23 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 
 		switch {
 		case IsHAMastersNotSupported(err):
-			headline = "Flag not supported"
+			var haMastersRequiredVersion string
+			{
+				for _, requiredRelease := range capabilities.HAMasters.RequiredReleasePerProvider {
+					if requiredRelease.Provider == config.Config.Provider {
+						haMastersRequiredVersion = requiredRelease.ReleaseVersion.String()
 
-			requiredVersion := haMastersFeature.HAMasters.RequiredVersion(config.Config.Provider)
-			if requiredVersion != nil {
-				subtext = fmt.Sprintf("Master node high availability is only supported by releases %s and higher.", *requiredVersion)
-			} else {
+						break
+					}
+				}
+			}
+
+			headline = "Feature not supported"
+
+			if haMastersRequiredVersion == "" {
 				subtext = fmt.Sprintf("Master node high availability is not supported by your provider. (%s)", strings.ToUpper(config.Config.Provider))
+			} else {
+				subtext = fmt.Sprintf("Master node high availability is only supported by releases %s and higher.", haMastersRequiredVersion)
 			}
 
 		case errors.IsNoOpError(err):
