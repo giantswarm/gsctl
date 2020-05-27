@@ -554,6 +554,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 			result.DefinitionV5 = &types.ClusterDefinitionV5{}
 		}
 
+		// Validate inputs and set defaults.
 		err = validateHAMasters(haMastersEnabled, &args, result.DefinitionV5)
 		if err != nil {
 			return nil, microerror.Mask(err)
@@ -625,12 +626,14 @@ func validateHAMasters(featureEnabled bool, args *Arguments, v5Definition *types
 				return microerror.Mask(haMastersNotSupportedError)
 			}
 		} else if featureEnabled && v5Definition.Master == nil {
-			// Check if 'master' field is set before defaulting to HA master.
-			if args.Verbose {
-				fmt.Println(color.WhiteString("Using master node high availability by default."))
+			if args.MasterHA == nil && v5Definition.MasterNodes == nil {
+				// Check if 'master' field is set before defaulting to HA master.
+				if args.Verbose {
+					fmt.Println(color.WhiteString("Using master node high availability by default."))
+				}
+				// Default to true if it is supported and not provided other value.
+				args.MasterHA = toBoolPtr(true)
 			}
-			// Default to true if it is supported and not provided other value.
-			args.MasterHA = toBoolPtr(true)
 		}
 	}
 

@@ -713,3 +713,270 @@ func Test_getLatestActiveReleaseVersion(t *testing.T) {
 		})
 	}
 }
+
+func Test_validateHAMasters(t *testing.T) {
+	testCases := []struct {
+		name           string
+		featureEnabled bool
+		args           Arguments
+		v5Definition   types.ClusterDefinitionV5
+
+		errorMatcher       func(error) bool
+		expectedResultArgs Arguments
+	}{
+		{
+			name:           "Use default arguments, HA masters turned off",
+			featureEnabled: false,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master:      nil,
+				MasterNodes: nil,
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Use default arguments, HA masters turned on",
+			featureEnabled: true,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master:      nil,
+				MasterNodes: nil,
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: toBoolPtr(true),
+			},
+		},
+		{
+			name:           "Set specific availability zone, HA masters turned off",
+			featureEnabled: false,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: &types.MasterDefinition{
+					AvailabilityZone: "eu-something",
+				},
+				MasterNodes: nil,
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set specific availability zone, HA masters turned on",
+			featureEnabled: true,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: &types.MasterDefinition{
+					AvailabilityZone: "eu-something",
+				},
+				MasterNodes: nil,
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set HA master nodes, HA masters turned off",
+			featureEnabled: false,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: nil,
+				MasterNodes: &types.MasterNodes{
+					HighAvailability: true,
+				},
+			},
+			errorMatcher: IsHAMastersNotSupported,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set HA master nodes, HA masters turned on",
+			featureEnabled: true,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: nil,
+				MasterNodes: &types.MasterNodes{
+					HighAvailability: true,
+				},
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set master AZ, and HA master, HA masters turned off",
+			featureEnabled: false,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: &types.MasterDefinition{
+					AvailabilityZone: "eu-something",
+				},
+				MasterNodes: &types.MasterNodes{
+					HighAvailability: true,
+				},
+			},
+			errorMatcher: IsMustProvideSingleMasterType,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set master AZ, and HA master, HA masters turned on",
+			featureEnabled: true,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: &types.MasterDefinition{
+					AvailabilityZone: "eu-something",
+				},
+				MasterNodes: &types.MasterNodes{
+					HighAvailability: true,
+				},
+			},
+			errorMatcher: IsMustProvideSingleMasterType,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set master AZ, and HA master through flag, HA masters turned off",
+			featureEnabled: false,
+			args: Arguments{
+				MasterHA: toBoolPtr(true),
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: &types.MasterDefinition{
+					AvailabilityZone: "eu-something",
+				},
+				MasterNodes: nil,
+			},
+			errorMatcher: IsMustProvideSingleMasterType,
+			expectedResultArgs: Arguments{
+				MasterHA: toBoolPtr(true),
+			},
+		},
+		{
+			name:           "Set master AZ, and HA master through flag, HA masters turned on",
+			featureEnabled: true,
+			args: Arguments{
+				MasterHA: toBoolPtr(true),
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: &types.MasterDefinition{
+					AvailabilityZone: "eu-something",
+				},
+				MasterNodes: nil,
+			},
+			errorMatcher: IsMustProvideSingleMasterType,
+			expectedResultArgs: Arguments{
+				MasterHA: toBoolPtr(true),
+			},
+		},
+		{
+			name:           "Set HA master to false, HA masters turned off",
+			featureEnabled: false,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: nil,
+				MasterNodes: &types.MasterNodes{
+					HighAvailability: false,
+				},
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set HA master to false, HA masters turned on",
+			featureEnabled: true,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: nil,
+				MasterNodes: &types.MasterNodes{
+					HighAvailability: false,
+				},
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set HA master to false through flag, HA masters turned off",
+			featureEnabled: false,
+			args: Arguments{
+				MasterHA: toBoolPtr(false),
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master:      nil,
+				MasterNodes: nil,
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: toBoolPtr(false),
+			},
+		},
+		{
+			name:           "Set HA master to false through flag, HA masters turned on",
+			featureEnabled: true,
+			args: Arguments{
+				MasterHA: toBoolPtr(false),
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master:      nil,
+				MasterNodes: nil,
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: toBoolPtr(false),
+			},
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			t.Log(tc.name)
+
+			err := validateHAMasters(tc.featureEnabled, &tc.args, &tc.v5Definition)
+
+			if tc.errorMatcher != nil {
+				if !tc.errorMatcher(err) {
+					t.Errorf("Case %d - Unexpected error: %s", i, err)
+				}
+			} else if err != nil {
+				t.Errorf("Case %d - Unexpected error: %s", i, err)
+			}
+
+			if diff := cmp.Diff(tc.expectedResultArgs, tc.args); diff != "" {
+				t.Errorf("Case %d - Resulting args unequal. (-expected +got):\n%s", i, diff)
+			}
+		})
+	}
+}
