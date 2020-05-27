@@ -558,6 +558,10 @@ func addCluster(args Arguments) (*creationResult, error) {
 			if !haMastersEnabled {
 				return nil, microerror.Mask(haMastersNotSupportedError)
 			}
+
+			if result.DefinitionV5.Master != nil {
+				return nil, microerror.Mask(mustProvideSingleMasterTypeError)
+			}
 		} else {
 			// Check if 'master' field is set before defaulting to HA master.
 			if haMastersEnabled && result.DefinitionV5.Master == nil {

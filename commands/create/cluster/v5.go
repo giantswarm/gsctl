@@ -108,10 +108,6 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 		return "", true, microerror.Mask(errors.ClusterOwnerMissingError)
 	}
 
-	if def.Master != nil && def.MasterNodes != nil {
-		return "", true, microerror.Mask(mustProvideSingleMasterTypeError)
-	}
-
 	clusterRequestBody := createAddClusterBodyV5(def)
 
 	fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(def.Owner))
