@@ -324,7 +324,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 
 			requiredVersion := haMastersFeature.HAMasters.RequiredVersion(config.Config.Provider)
 			if requiredVersion != nil {
-				subtext = fmt.Sprintf("HA Masters is only supported by releases newer than %s.", *requiredVersion)
+				subtext = fmt.Sprintf("Master node high availability is only supported by releases %s and higher.", *requiredVersion)
 			} else {
 				subtext = fmt.Sprintf("Master node high availability is not supported by your provider. (%s)", strings.ToUpper(config.Config.Provider))
 			}

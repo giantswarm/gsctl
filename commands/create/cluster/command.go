@@ -254,13 +254,13 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 
 			requiredVersion := haMastersFeature.HAMasters.RequiredVersion(config.Config.Provider)
 			if requiredVersion != nil {
-				subtext = fmt.Sprintf("HA Masters is only supported by releases newer than %s.", *requiredVersion)
+				subtext = fmt.Sprintf("Master node high availability is only supported by releases %s and higher.", *requiredVersion)
 			} else {
 				subtext = fmt.Sprintf("Master node high availability is not supported by your provider. (%s)", strings.ToUpper(config.Config.Provider))
 			}
 		case IsMustProvideSingleMasterType(err):
 			headline = "Conflicting master node configuration"
-			subtext = "The release version you're trying to use supports HA Masters.\nPlease remove the 'master' field from your cluster definition and use the '--master-ha' flag."
+			subtext = "The release version you're trying to use supports master node high availability.\nPlease remove the 'master' attribute from your cluster definition and use the 'master_nodes' attribute instead."
 		case errors.IsClusterOwnerMissingError(err):
 			headline = "No owner organization set"
 			subtext = "Please specify an owner organization for the cluster via the --owner flag."
