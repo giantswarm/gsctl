@@ -38,7 +38,6 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
 	"github.com/giantswarm/gsctl/flags"
-	haMastersFeature "github.com/giantswarm/gsctl/pkg/featuresupport/hamasters"
 )
 
 // Arguments contains all possible input parameter needed
@@ -250,13 +249,23 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 
 		switch {
 		case IsHAMastersNotSupported(err):
+			var haMastersRequiredVersion string
+			{
+				for _, requiredRelease := range capabilities.HAMasters.RequiredReleasePerProvider {
+					if requiredRelease.Provider == config.Config.Provider {
+						haMastersRequiredVersion = requiredRelease.ReleaseVersion.String()
+
+						break
+					}
+				}
+			}
+
 			headline = "Feature not supported"
 
-			requiredVersion := haMastersFeature.HAMasters.RequiredVersion(config.Config.Provider)
-			if requiredVersion != nil {
-				subtext = fmt.Sprintf("Master node high availability is only supported by releases %s and higher.", *requiredVersion)
-			} else {
+			if haMastersRequiredVersion == "" {
 				subtext = fmt.Sprintf("Master node high availability is not supported by your provider. (%s)", strings.ToUpper(config.Config.Provider))
+			} else {
+				subtext = fmt.Sprintf("Master node high availability is only supported by releases %s and higher.", haMastersRequiredVersion)
 			}
 		case IsMustProvideSingleMasterType(err):
 			headline = "Conflicting master node configuration"
