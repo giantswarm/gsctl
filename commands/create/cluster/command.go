@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/Masterminds/semver"
 	"github.com/fatih/color"
@@ -255,7 +256,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 			if requiredVersion != nil {
 				subtext = fmt.Sprintf("HA Masters is only supported by releases newer than %s.", *requiredVersion)
 			} else {
-				subtext = "HA Masters is not supported by your provider."
+				subtext = fmt.Sprintf("Master node high availability is not supported by your provider. (%s)", strings.ToUpper(config.Config.Provider))
 			}
 		case IsMustProvideSingleMasterType(err):
 			headline = "Conflicting master node configuration"
