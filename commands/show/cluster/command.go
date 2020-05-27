@@ -14,11 +14,10 @@ import (
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
 
-	"github.com/giantswarm/gsctl/clustercache"
-	haMastersFeature "github.com/giantswarm/gsctl/pkg/featuresupport/hamasters"
-
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/clustercache"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
@@ -507,7 +506,7 @@ func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 	}
 
 	// Check for HA Masters support and print the correct entry.
-	if haMastersFeature.HAMasters.IsSupported(config.Config.Provider, details.ReleaseVersion) {
+	if details.MasterNodes != nil {
 		availabilityZones, numOfReadyNodes := formatHAMasters(details.MasterNodes)
 		masterNodeCount := 1
 		if details.MasterNodes != nil && details.MasterNodes.HighAvailability {
