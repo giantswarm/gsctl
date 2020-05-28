@@ -507,7 +507,7 @@ func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 
 	// Check for HA Masters support and print the correct entry.
 	if details.MasterNodes != nil {
-		availabilityZones, numOfReadyNodes := formatHAMasters(details.MasterNodes)
+		availabilityZones, numOfReadyNodes := formatMasterNodes(details.MasterNodes)
 		masterNodeCount := 1
 		if details.MasterNodes != nil && details.MasterNodes.HighAvailability {
 			masterNodeCount = 3
@@ -646,7 +646,7 @@ func formatClusterLabels(labels map[string]string) []string {
 	return formattedClusterLabels
 }
 
-func formatHAMasters(masterNodes *models.V5ClusterDetailsResponseMasterNodes) (azs string, numOfReadyNodes string) {
+func formatMasterNodes(masterNodes *models.V5ClusterDetailsResponseMasterNodes) (azs string, numOfReadyNodes string) {
 	azs = "n/a"
 	numOfReadyNodes = "n/a"
 

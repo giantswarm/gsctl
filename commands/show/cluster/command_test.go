@@ -662,7 +662,7 @@ func TestFormatClusterLabels(t *testing.T) {
 	}
 }
 
-func TestFormatHAMasters(t *testing.T) {
+func Test_FormatMasterNodes(t *testing.T) {
 	testCases := []struct {
 		model                     *models.V5ClusterDetailsResponseMasterNodes
 		expectedAvailabilityZones string
@@ -722,7 +722,7 @@ func TestFormatHAMasters(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			azs, numOfReadyNodes := formatHAMasters(tc.model)
+			azs, numOfReadyNodes := formatMasterNodes(tc.model)
 
 			if azs != tc.expectedAvailabilityZones {
 				t.Errorf("Case %d - Result did not match.\nExpected: %s, Got: %s", i, tc.expectedAvailabilityZones, azs)
