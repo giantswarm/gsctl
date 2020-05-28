@@ -17,10 +17,9 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/clustercache"
-
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/nodespec"
@@ -655,6 +654,7 @@ func formatMasterNodes(masterNodes *models.V5ClusterDetailsResponseMasterNodes) 
 	}
 
 	if len(masterNodes.AvailabilityZones) > 0 {
+		sort.Strings(masterNodes.AvailabilityZones)
 		azs = strings.Join(masterNodes.AvailabilityZones, ", ")
 	}
 

@@ -693,7 +693,7 @@ func Test_FormatMasterNodes(t *testing.T) {
 		},
 		{
 			model: &models.V5ClusterDetailsResponseMasterNodes{
-				AvailabilityZones: []string{"some-zone-a, some-zone-b, some-zone-c"},
+				AvailabilityZones: []string{"some-zone-a", "some-zone-b", "some-zone-c"},
 				HighAvailability:  false,
 				NumReady:          toInt8Ptr(3),
 			},
@@ -702,7 +702,7 @@ func Test_FormatMasterNodes(t *testing.T) {
 		},
 		{
 			model: &models.V5ClusterDetailsResponseMasterNodes{
-				AvailabilityZones: []string{"some-zone-a, some-zone-b, some-zone-c"},
+				AvailabilityZones: []string{"some-zone-a", "some-zone-b", "some-zone-c"},
 				HighAvailability:  false,
 				NumReady:          toInt8Ptr(0),
 			},
@@ -711,7 +711,16 @@ func Test_FormatMasterNodes(t *testing.T) {
 		},
 		{
 			model: &models.V5ClusterDetailsResponseMasterNodes{
-				AvailabilityZones: []string{"some-zone-a, some-zone-b, some-zone-c"},
+				AvailabilityZones: []string{"some-zone-a", "some-zone-b", "some-zone-c"},
+				HighAvailability:  false,
+				NumReady:          nil,
+			},
+			expectedAvailabilityZones: "some-zone-a, some-zone-b, some-zone-c",
+			expectedNumOfReadyNodes:   "n/a",
+		},
+		{
+			model: &models.V5ClusterDetailsResponseMasterNodes{
+				AvailabilityZones: []string{"some-zone-a", "some-zone-b", "some-zone-c"},
 				HighAvailability:  false,
 				NumReady:          nil,
 			},
