@@ -267,8 +267,8 @@ func getEnvironmentVariables() map[string]string {
 		"GSCTL_AUTH_TOKEN",
 		"HTTP_PROXY",
 		"HTTPS_PROXY",
-		"KUBECONFIG",
 		"NO_PROXY",
+		"KUBECONFIG",
 	}
 
 	out := make(map[string]string)
