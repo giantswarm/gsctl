@@ -274,8 +274,8 @@ func getEnvironmentVariables() map[string]string {
 	out := make(map[string]string)
 
 	for _, name := range vars {
-		val := os.Getenv(name)
-		if val != "" {
+		val, ok := os.LookupEnv(name)
+		if ok {
 			out[name] = val
 		}
 	}
