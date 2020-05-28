@@ -649,8 +649,8 @@ func formatClusterLabels(labels map[string]string) []string {
 }
 
 func formatMasterNodes(masterNodes *models.V5ClusterDetailsResponseMasterNodes) (azs string, numOfReadyNodes string) {
-	azs = "n/a"
-	numOfReadyNodes = "n/a"
+	azs = naString
+	numOfReadyNodes = naString
 
 	if masterNodes == nil {
 		return
