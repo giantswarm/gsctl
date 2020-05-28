@@ -56,6 +56,9 @@ Examples:
 
 const (
 	activityName = "show-cluster"
+
+	// A string we use to express "no information available here"
+	naString = "n/a"
 )
 
 // Arguments specifies all the arguments to be used for our business function.
@@ -554,7 +557,7 @@ func formatDate(dt string) string {
 // if string is empty, or the "n/a" placeholder.
 func stringOrPlaceholder(s string) string {
 	if s == "" {
-		return "n/a"
+		return naString
 	}
 	return s
 }
@@ -627,7 +630,7 @@ func formatNodePoolDetails(nodePools *models.V5GetNodePoolsResponse) []string {
 }
 
 func formatClusterLabels(labels map[string]string) []string {
-	formattedClusterLabels := []string{color.YellowString("Labels:|") + "-"}
+	formattedClusterLabels := []string{color.YellowString("Labels:|") + naString}
 
 	isFirstLine := true
 

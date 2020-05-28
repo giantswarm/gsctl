@@ -640,8 +640,8 @@ func TestFormatClusterLabels(t *testing.T) {
 		t.Errorf("formatted cluster labels result has invalid length. Expected %d got %d", 1, len(result))
 	}
 
-	if result[0] != "Labels:|-" {
-		t.Errorf("formatted cluster labels result expected '%s' got '%s'", "Labels:|-", result[0])
+	if result[0] != "Labels:|n/a" {
+		t.Errorf("formatted cluster labels result expected '%s' got '%s'", "Labels:|n/a", result[0])
 	}
 
 	mockLabels["testkey"] = "testvalue"
