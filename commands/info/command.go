@@ -214,6 +214,8 @@ func info(args Arguments) (infoResult, error) {
 		result.apiEndpoint = args.apiEndpoint
 	}
 
+	result.environmentVariables = getEnvironmentVariables()
+
 	result.email = config.Config.Email
 	result.token = config.Config.ChooseToken(result.apiEndpoint, args.userProvidedToken)
 	result.version = buildinfo.Version
@@ -250,8 +252,6 @@ func info(args Arguments) (infoResult, error) {
 
 		result.infoResponse = response
 	}
-
-	result.environmentVariables = getEnvironmentVariables()
 
 	return result, nil
 }
