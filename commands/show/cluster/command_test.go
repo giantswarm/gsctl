@@ -229,7 +229,7 @@ func TestShowAWSClusterV5(t *testing.T) {
 
 }
 
-// TestShowAWSClusterV5NoHAMasters tests fetching V4 cluster details for AWS,
+// TestShowAWSClusterV5NoHAMasters tests fetching V5 cluster details for AWS,
 // without HA Masters support.
 func TestShowAWSClusterV5NoHAMasters(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
