@@ -214,6 +214,8 @@ func info(args Arguments) (infoResult, error) {
 		result.apiEndpoint = args.apiEndpoint
 	}
 
+	result.environmentVariables = getEnvironmentVariables()
+
 	result.email = config.Config.Email
 	result.token = config.Config.ChooseToken(result.apiEndpoint, args.userProvidedToken)
 	result.version = buildinfo.Version
@@ -251,8 +253,6 @@ func info(args Arguments) (infoResult, error) {
 		result.infoResponse = response
 	}
 
-	result.environmentVariables = getEnvironmentVariables()
-
 	return result, nil
 }
 
@@ -266,14 +266,16 @@ func getEnvironmentVariables() map[string]string {
 		"GSCTL_ENDPOINT",
 		"GSCTL_AUTH_TOKEN",
 		"HTTP_PROXY",
+		"HTTPS_PROXY",
+		"NO_PROXY",
 		"KUBECONFIG",
 	}
 
 	out := make(map[string]string)
 
 	for _, name := range vars {
-		val := os.Getenv(name)
-		if val != "" {
+		val, ok := os.LookupEnv(name)
+		if ok {
 			out[name] = val
 		}
 	}
