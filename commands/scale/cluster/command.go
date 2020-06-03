@@ -343,27 +343,21 @@ func scaleCluster(args Arguments) (*Result, error) {
 		}
 	}
 
-	// Ask for confirmation for the scaling action.
-	if !args.OppressConfirmation {
-		// get confirmation and handle result
-		err = getConfirmation(args, scalingResult.ScalingMaxBefore, scalingResult.ScalingMinBefore, statusWorkers)
-		if err != nil {
-			fmt.Println(color.GreenString("Scaling cancelled"))
-			os.Exit(0)
-		}
-	}
-
 	// Preparing API call.
 	var reqBody *models.V4ModifyClusterRequest
 	{
 		minWorkers := int64(scalingResult.ScalingMinBefore)
 		if args.WorkersMinSet {
 			minWorkers = args.WorkersMin
+		} else if args.WorkersSet {
+			minWorkers = int64(args.Workers)
 		}
 
 		maxWorkers := int64(scalingResult.ScalingMaxBefore)
 		if args.WorkersMaxSet {
 			maxWorkers = args.WorkersMax
+		} else if args.WorkersSet {
+			maxWorkers = int64(args.Workers)
 		}
 
 		// Preparing API call.
@@ -372,6 +366,16 @@ func scaleCluster(args Arguments) (*Result, error) {
 				Max: maxWorkers,
 				Min: minWorkers,
 			},
+		}
+	}
+
+	// Ask for confirmation for the scaling action.
+	if !args.OppressConfirmation {
+		// get confirmation and handle result
+		err = getConfirmation(args, int(reqBody.Scaling.Max), int(reqBody.Scaling.Min), statusWorkers)
+		if err != nil {
+			fmt.Println(color.GreenString("Scaling cancelled"))
+			os.Exit(0)
 		}
 	}
 

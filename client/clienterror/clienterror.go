@@ -162,11 +162,6 @@ func New(err error) *APIError {
 			ae.ErrorDetails += "Details: " + modifyClusterFailedErr.Payload.Message
 		}
 
-		if modifyClusterFailedErr.Payload.Code == "INVALID_INPUT" {
-			ae.ErrorMessage = "Invalid parameters"
-			ae.ErrorDetails = "The cluster could not be updated. workers-min and workers-max must be equal without autoscaling."
-		}
-
 		return ae
 	}
 	if modifyClusterFailedErr, ok := err.(*clusters.ModifyClusterNotFound); ok {
