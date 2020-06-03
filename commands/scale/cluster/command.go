@@ -359,11 +359,15 @@ func scaleCluster(args Arguments) (*Result, error) {
 		minWorkers := int64(scalingResult.ScalingMinBefore)
 		if args.WorkersMinSet {
 			minWorkers = args.WorkersMin
+		} else if args.WorkersSet {
+			minWorkers = int64(args.Workers)
 		}
 
 		maxWorkers := int64(scalingResult.ScalingMaxBefore)
 		if args.WorkersMaxSet {
 			maxWorkers = args.WorkersMax
+		} else if args.WorkersSet {
+			maxWorkers = int64(args.Workers)
 		}
 
 		// Preparing API call.
