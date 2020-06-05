@@ -17,7 +17,6 @@ require (
 	github.com/giantswarm/kubeconfig v0.0.0-20191209121754-c5784ae65a49
 	github.com/giantswarm/microerror v0.2.0
 	github.com/giantswarm/micrologger v0.0.0-20190118112544-0926d9b7c541
-	github.com/go-kit/kit v0.6.0 // indirect
 	github.com/go-logfmt/logfmt v0.4.0 // indirect
 	github.com/go-openapi/analysis v0.19.4 // indirect
 	github.com/go-openapi/errors v0.19.3-0.20190617201723-9b273e805998 // indirect
@@ -36,7 +35,7 @@ require (
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/rogpeppe/go-internal v1.5.0 // indirect
 	github.com/spf13/afero v1.2.2
-	github.com/spf13/cobra v0.0.6-0.20190724161051-1c9c46d5c1cc
+	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
 	go.mongodb.org/mongo-driver v1.0.4 // indirect
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413 // indirect
