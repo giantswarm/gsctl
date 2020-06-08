@@ -17,7 +17,7 @@ var (
 		Use:                   "completion <bash|fish|zsh> [--stdout]",
 		Args:                  cobra.ExactArgs(1),
 		DisableFlagsInUseLine: true,
-		Short:                 "Create completion file for bash, fish, and for zsh",
+		Short:                 "Create completion file for bash, fish, or zsh",
 		Long: `Generates shell completion code to tab-complete gsctl's commands and
 some required flags.
 
@@ -27,20 +27,19 @@ or, when adding the --stdout flag, be written to the standard output.
 Bash
 ----
 
-To enable bash completion for gsctl:
+To enable bash completion for gsctl, add a line like this
+to your ~/.bash_profile
 
-1. Edit your ~/.bash_profile and add a line like this:
+    source <(gsctl completion bash --stdout)
 
-   source <(gsctl completion bash --stdout)
-
-2. Start a new terminal session
+Then start a new terminal session.
 
 Fish
 ----
 
 Run
 
-  gsctl completion fish --stdout > ~/.config/fish/completions/gsctl.fish
+    gsctl completion fish --stdout > ~/.config/fish/completions/gsctl.fish
 
 and then start a new terminal session.
 
