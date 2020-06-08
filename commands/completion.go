@@ -14,33 +14,15 @@ import (
 var (
 	// CompletionCommand is the command to create things
 	CompletionCommand = &cobra.Command{
-		Use:                   "completion <bash|zsh> [--stdout]",
+		Use:                   "completion <bash|fish|zsh> [--stdout]",
 		Args:                  cobra.ExactArgs(1),
 		DisableFlagsInUseLine: true,
-		Short:                 "Create completion file for bash, and (experimentally) for zsh",
+		Short:                 "Create completion file for bash, fish, and for zsh",
 		Long: `Generates shell completion code to tab-complete gsctl's commands and
 some required flags.
 
 The completion file will either be written to the current directory
 or, when adding the --stdout flag, be written to the standard output.
-
-Zsh
----
-
-Zsh support is purely experimental (not yet known to work). We would appreciate
-your feedback, whether it works for you or not, in this issue:
-https://github.com/giantswarm/gsctl/issues/152
-
-The generic installation procedure for zsh is:
-
-1. Decide for a target directory from your $FPATH, e. g. ~/.my_completion
-   and execute this:
-
-   gsctl completion zsh --stdout > ~/.my_completion/_gsctl
-
-2. Re-initialize your completion files:
-
-   rm -f ~/.zcompdump; compinit
 
 Bash
 ----
@@ -52,6 +34,29 @@ To enable bash completion for gsctl:
    source <(gsctl completion bash --stdout)
 
 2. Start a new terminal session
+
+Fish
+----
+
+Run
+
+  gsctl completion fish --stdout > ~/.config/fish/completions/gsctl.fish
+
+and then start a new terminal session.
+
+Zsh
+---
+
+The generic installation procedure for zsh is:
+
+1. Decide for a target directory from your $FPATH, e. g. ~/.my_completion
+   and execute this:
+
+   gsctl completion zsh --stdout > ~/.my_completion/_gsctl
+
+2. Re-initialize your completion files:
+
+   rm -f ~/.zcompdump; compinit
 `,
 		PreRun: validateCompletionPreconditions,
 		Run:    generateCompletionFile,
@@ -63,9 +68,11 @@ To enable bash completion for gsctl:
 
 const (
 	completionFileNameBash string = "gsctl-completion-bash.sh"
+	completionFileNameFish string = "gsctl-completion-fish.fish"
 	completionFileNameZsh  string = "gsctl-completion-zsh.sh"
 
 	shellBash = "bash"
+	shellFish = "fish"
 	shellZsh  = "zsh"
 )
 
@@ -76,9 +83,9 @@ func init() {
 // validateCompletionPreconditions validates user input.
 func validateCompletionPreconditions(cmd *cobra.Command, args []string) {
 	shell := args[0]
-	if shell != shellBash && shell != shellZsh {
+	if shell != shellBash && shell != shellFish && shell != shellZsh {
 		fmt.Println(color.RedString("Shell not supported"))
-		fmt.Println("We only provide shell completion support for bash and zsh at this time.")
+		fmt.Println("We only provide shell completion support for bash, fish, and zsh at this time.")
 		os.Exit(1)
 	}
 }
@@ -95,6 +102,14 @@ func generateCompletionFile(cmd *cobra.Command, args []string) {
 			RootCommand.GenBashCompletionFile(completionFileNameBash)
 			fmt.Printf("Created completion file for %s in %s\n", shell, completionFileNameBash)
 			os.Chmod(completionFileNameBash, 0777)
+		}
+	case shellFish:
+		if cmdStdOut {
+			RootCommand.GenFishCompletion(os.Stdout, true)
+		} else {
+			RootCommand.GenFishCompletionFile(completionFileNameFish, true)
+			fmt.Printf("Created completion file for %s in %s\n", shell, completionFileNameFish)
+			os.Chmod(completionFileNameFish, 0777)
 		}
 	case shellZsh:
 		if cmdStdOut {
