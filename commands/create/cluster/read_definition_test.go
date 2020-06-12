@@ -4,10 +4,11 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/giantswarm/gsctl/commands/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
 	yaml "gopkg.in/yaml.v2"
+
+	"github.com/giantswarm/gsctl/commands/types"
 )
 
 // Test_ReadDefinitionFiles tests the readDefinitionFromFile with all
@@ -42,6 +43,10 @@ func Test_readDefinitionFromFile(t *testing.T) {
 		},
 		{
 			fileName:     "v5_three_nodepools.yaml",
+			errorMatcher: nil,
+		},
+		{
+			fileName:     "v5_with_ha_master.yaml",
 			errorMatcher: nil,
 		},
 		{
@@ -225,6 +230,51 @@ nodepools:
 				APIVersion: "v5",
 				Owner:      "myorg",
 				Master:     &types.MasterDefinition{AvailabilityZone: "my-zone-1a"},
+				NodePools: []*types.NodePoolDefinition{
+					&types.NodePoolDefinition{
+						Name:              "General purpose",
+						AvailabilityZones: &types.AvailabilityZonesDefinition{Number: 2},
+					},
+					&types.NodePoolDefinition{
+						Name:              "Database",
+						AvailabilityZones: &types.AvailabilityZonesDefinition{Zones: []string{"my-zone-1a", "my-zone-1b", "my-zone-1c"}},
+						Scaling:           &types.ScalingDefinition{Min: 3, Max: 10},
+						NodeSpec:          &types.NodeSpec{AWS: &types.AWSSpecificDefinition{InstanceType: "m5.superlarge"}},
+					},
+					&types.NodePoolDefinition{
+						Name: "Batch",
+					},
+				},
+			},
+		},
+		// HA master.
+		{
+			[]byte(`api_version: v5
+owner: myorg
+master_nodes:
+  high_availability: true
+nodepools:
+- name: General purpose
+  availability_zones:
+    number: 2
+- name: Database
+  availability_zones:
+    zones:
+    - my-zone-1a
+    - my-zone-1b
+    - my-zone-1c
+  scaling:
+    min: 3
+    max: 10
+  node_spec:
+    aws:
+      instance_type: "m5.superlarge"
+- name: Batch
+`),
+			&types.ClusterDefinitionV5{
+				APIVersion:  "v5",
+				Owner:       "myorg",
+				MasterNodes: &types.MasterNodes{HighAvailability: true},
 				NodePools: []*types.NodePoolDefinition{
 					&types.NodePoolDefinition{
 						Name:              "General purpose",

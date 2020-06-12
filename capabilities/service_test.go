@@ -61,6 +61,20 @@ var capabilityTests = []struct {
 		},
 		[]string{},
 	},
+	{
+		testInput{
+			Provider:       "aws",
+			ReleaseVersion: "11.5.0",
+		},
+		[]string{Autoscaling.Name, AvailabilityZones.Name, NodePools.Name, HAMasters.Name},
+	},
+	{
+		testInput{
+			Provider:       "aws",
+			ReleaseVersion: "12.0.0",
+		},
+		[]string{Autoscaling.Name, AvailabilityZones.Name, NodePools.Name, HAMasters.Name},
+	},
 }
 
 var failingCapabilityTests = []struct {
@@ -86,7 +100,8 @@ func TestGetCapabilities(t *testing.T) {
 				  "provider": "aws"
 				},
 				"features": {
-				  "nodepools": {"release_version_minimum": "9.0.0"}
+				  "nodepools": {"release_version_minimum": "9.0.0"},
+				  "ha_masters": {"release_version_minimum": "11.5.0"}
 				}
 			  }`))
 		} else {
@@ -133,7 +148,8 @@ func TestFailingCapabilities(t *testing.T) {
 				  "provider": "aws"
 				},
 				"features": {
-				  "nodepools": {"release_version_minimum": "9.0.0"}
+				  "nodepools": {"release_version_minimum": "9.0.0"},
+				  "ha_masters": {"release_version_minimum": "11.5.0"}
 				}
 			  }`))
 		} else {

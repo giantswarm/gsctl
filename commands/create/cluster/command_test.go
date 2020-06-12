@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/giantswarm/microerror"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/spf13/afero"
@@ -44,6 +43,17 @@ func Test_CollectArgs(t *testing.T) {
 				AuthToken:             "some-token",
 				CreateDefaultNodePool: true,
 				Scheme:                "giantswarm",
+				MasterHA:              nil,
+			},
+		},
+		{
+			[]string{"--master-ha=false"},
+			Arguments{
+				APIEndpoint:           "https://foo",
+				AuthToken:             "some-token",
+				CreateDefaultNodePool: true,
+				Scheme:                "giantswarm",
+				MasterHA:              toBoolPtr(false),
 			},
 		},
 		{
@@ -60,6 +70,7 @@ func Test_CollectArgs(t *testing.T) {
 				Owner:                 "acme",
 				ReleaseVersion:        "1.2.3",
 				Scheme:                "giantswarm",
+				MasterHA:              nil,
 			},
 		},
 	}
@@ -75,7 +86,7 @@ func Test_CollectArgs(t *testing.T) {
 			initFlags()
 			Command.ParseFlags(tc.flags)
 
-			args := collectArguments()
+			args := collectArguments(Command)
 			if err != nil {
 				t.Errorf("Case %d - Unexpected error '%s'", i, err)
 			}
@@ -137,8 +148,13 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 				AuthToken: "fake token",
 			},
 			expectedResult: &creationResult{
-				ID:           "f6e8r",
-				DefinitionV5: &types.ClusterDefinitionV5{Owner: "acme"},
+				ID: "f6e8r",
+				DefinitionV5: &types.ClusterDefinitionV5{
+					Owner: "acme",
+					MasterNodes: &types.MasterNodes{
+						HighAvailability: true,
+					},
+				},
 			},
 		},
 		{
@@ -238,6 +254,9 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					APIVersion: "v5",
 					Name:       "Cluster Name from Args",
 					Owner:      "acme",
+					MasterNodes: &types.MasterNodes{
+						HighAvailability: true,
+					},
 				},
 			},
 		},
@@ -303,36 +322,87 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					APIVersion: "v5",
 					Name:       "Cluster Name from Args with Labels",
 					Owner:      "acme",
-					Labels:     map[string]*string{"key": stringP("value"), "labelkey": stringP("labelvalue")},
+					MasterNodes: &types.MasterNodes{
+						HighAvailability: true,
+					},
+					Labels: map[string]*string{"key": stringP("value"), "labelkey": stringP("labelvalue")},
+				},
+			},
+		},
+		{
+			description: "Definition from v5 YAML file with HA master",
+			inputArgs: &Arguments{
+				ClusterName:           "Cluster Name from Args with Labels",
+				CreateDefaultNodePool: false,
+				FileSystem:            afero.NewOsFs(), // needed for YAML file access
+				InputYAMLFile:         "testdata/v5_with_ha_master.yaml",
+				Owner:                 "acme",
+				AuthToken:             "fake token",
+				Verbose:               true,
+			},
+			expectedResult: &creationResult{
+				ID: "f6e8r",
+				DefinitionV5: &types.ClusterDefinitionV5{
+					APIVersion: "v5",
+					Name:       "Cluster Name from Args with Labels",
+					Owner:      "acme",
+					MasterNodes: &types.MasterNodes{
+						HighAvailability: true,
+					},
+				},
+			},
+		},
+		{
+			description: "Definition from v5 YAML file with HA master, overridden by flag",
+			inputArgs: &Arguments{
+				ClusterName:           "Cluster Name from Args with Labels",
+				CreateDefaultNodePool: false,
+				FileSystem:            afero.NewOsFs(), // needed for YAML file access
+				InputYAMLFile:         "testdata/v5_with_ha_master.yaml",
+				MasterHA:              toBoolPtr(false),
+				Owner:                 "acme",
+				AuthToken:             "fake token",
+				Verbose:               true,
+			},
+			expectedResult: &creationResult{
+				ID: "f6e8r",
+				DefinitionV5: &types.ClusterDefinitionV5{
+					APIVersion: "v5",
+					Name:       "Cluster Name from Args with Labels",
+					Owner:      "acme",
+					MasterNodes: &types.MasterNodes{
+						HighAvailability: false,
+					},
 				},
 			},
 		},
 	}
 
 	for i, tc := range testCases {
-		t.Logf("Case %d: %s", i, tc.description)
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			t.Logf("Case %d: %s", i, tc.description)
 
-		fs := afero.NewMemMapFs()
-		_, err := testutils.TempConfig(fs, configYAML)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		// mock server always responding positively
-		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			t.Log("mockServer request: ", r.Method, r.URL)
-			w.Header().Set("Content-Type", "application/json")
-			if !strings.Contains(r.Header.Get("Authorization"), tc.inputArgs.AuthToken) {
-				t.Errorf("Authorization header incomplete: '%s'", r.Header.Get("Authorization"))
+			fs := afero.NewMemMapFs()
+			_, err := testutils.TempConfig(fs, configYAML)
+			if err != nil {
+				t.Fatal(err)
 			}
-			if r.Method == "POST" && r.URL.String() == "/v4/clusters/" {
-				w.Header().Set("Location", "/v4/clusters/f6e8r/")
-				w.WriteHeader(http.StatusCreated)
-				w.Write([]byte(`{"code": "RESOURCE_CREATED", "message": "Yeah!"}`))
-			} else if r.Method == "POST" && r.URL.String() == "/v5/clusters/" {
-				w.Header().Set("Location", "/v5/clusters/f6e8r/")
-				w.WriteHeader(http.StatusCreated)
-				w.Write([]byte(`{
+
+			// mock server always responding positively
+			mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Log("mockServer request: ", r.Method, r.URL)
+				w.Header().Set("Content-Type", "application/json")
+				if !strings.Contains(r.Header.Get("Authorization"), tc.inputArgs.AuthToken) {
+					t.Errorf("Authorization header incomplete: '%s'", r.Header.Get("Authorization"))
+				}
+				if r.Method == "POST" && r.URL.String() == "/v4/clusters/" {
+					w.Header().Set("Location", "/v4/clusters/f6e8r/")
+					w.WriteHeader(http.StatusCreated)
+					w.Write([]byte(`{"code": "RESOURCE_CREATED", "message": "Yeah!"}`))
+				} else if r.Method == "POST" && r.URL.String() == "/v5/clusters/" {
+					w.Header().Set("Location", "/v5/clusters/f6e8r/")
+					w.WriteHeader(http.StatusCreated)
+					w.Write([]byte(`{
 					"id": "f6e8r",
 					"owner": "acme",
 					"release_version": "9.0.0",
@@ -346,19 +416,20 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 						"labelkey": "labelvalue"
 					}
 				}`))
-			} else if r.Method == "GET" && r.URL.String() == "/v4/info/" {
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`{
+				} else if r.Method == "GET" && r.URL.String() == "/v4/info/" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{
 					"general": {
 					  "provider": "aws"
 					},
 					"features": {
-					  "nodepools": {"release_version_minimum": "9.0.0"}
+					  "nodepools": {"release_version_minimum": "9.0.0"},
+					  "ha_masters": {"release_version_minimum": "11.5.0"}
 					}
 				  }`))
-			} else if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`[
+				} else if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`[
 					{
 						"timestamp": "2019-01-01T12:00:00Z",
 						"version": "1.0.0",
@@ -372,11 +443,18 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 						"active": true,
 						"changelog": [],
 						"components": []
+					},
+					{
+						"timestamp": "2019-10-23T12:00:00Z",
+						"version": "11.5.0",
+						"active": true,
+						"changelog": [],
+						"components": []
 					}
 				]`))
-			} else if r.Method == "POST" && r.URL.String() == "/v5/clusters/f6e8r/nodepools/" {
-				w.WriteHeader(http.StatusCreated)
-				w.Write([]byte(`{
+				} else if r.Method == "POST" && r.URL.String() == "/v5/clusters/f6e8r/nodepools/" {
+					w.WriteHeader(http.StatusCreated)
+					w.Write([]byte(`{
 					"id": "a1b2",
 					"name": "Default node pool name",
 					"availability_zones": ["eu-central-1a"],
@@ -387,26 +465,27 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					  }
 					}
 				  }`))
+				}
+			}))
+			defer mockServer.Close()
+
+			tc.inputArgs.APIEndpoint = mockServer.URL
+			tc.inputArgs.UserProvidedToken = tc.inputArgs.AuthToken
+
+			err = verifyPreconditions(*tc.inputArgs)
+			if err != nil {
+				t.Errorf("Case %d - Validation error: %s", i, err.Error())
 			}
-		}))
-		defer mockServer.Close()
 
-		tc.inputArgs.APIEndpoint = mockServer.URL
-		tc.inputArgs.UserProvidedToken = tc.inputArgs.AuthToken
+			result, err := addCluster(*tc.inputArgs)
+			if err != nil {
+				t.Errorf("Case %d - Execution error: %s", i, err.Error())
+			}
 
-		err = verifyPreconditions(*tc.inputArgs)
-		if err != nil {
-			t.Errorf("Case %d - Validation error: %s", i, err.Error())
-		}
-
-		result, err := addCluster(*tc.inputArgs)
-		if err != nil {
-			t.Errorf("Case %d - Execution error: %s", i, err.Error())
-		}
-
-		if diff := cmp.Diff(tc.expectedResult, result, nil); diff != "" {
-			t.Errorf("Case %d - Results unequal (-expected +got):\n%s", i, diff)
-		}
+			if diff := cmp.Diff(tc.expectedResult, result, nil); diff != "" {
+				t.Errorf("Case %d - Results unequal (-expected +got):\n%s", i, diff)
+			}
+		})
 	}
 }
 
@@ -454,16 +533,23 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 		},
 	}
 
-	for i, testCase := range testCases {
-		t.Logf("Case %d: %s", i, testCase.description)
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, configYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		// mock server
-		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			//t.Log("mockServer request: ", r.Method, r.URL)
-			if r.Method == "GET" && r.URL.String() == "/v4/info/" {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`{
+	for i, testCase := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			t.Logf("Case %d: %s", i, testCase.description)
+
+			// mock server
+			mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// t.Log("mockServer request: ", r.Method, r.URL)
+				if r.Method == "GET" && r.URL.String() == "/v4/info/" {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{
 					"general": {
 					  "provider": "aws"
 					},
@@ -471,31 +557,32 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 					  "nodepools": {"release_version_minimum": "9.0.0"}
 					}
 				  }`))
+				} else {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(testCase.responseStatus)
+					w.Write(testCase.serverResponseJSON)
+				}
+			}))
+			defer mockServer.Close()
+
+			// client
+			flags.APIEndpoint = mockServer.URL // required to make InitClient() work
+			testCase.inputArgs.APIEndpoint = mockServer.URL
+			testCase.inputArgs.FileSystem = fs
+
+			err := verifyPreconditions(*testCase.inputArgs)
+			if err != nil {
+				t.Errorf("Unexpected error in argument validation: %#v", err)
 			} else {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(testCase.responseStatus)
-				w.Write([]byte(testCase.serverResponseJSON))
+				_, err := addCluster(*testCase.inputArgs)
+				if err == nil {
+					t.Errorf("Test case %d did not yield an execution error.", i)
+				}
+				if testCase.errorMatcher(err) == false {
+					t.Errorf("Test case %d did not yield the expected execution error, instead: %#v", i, err)
+				}
 			}
-		}))
-		defer mockServer.Close()
-
-		// client
-		flags.APIEndpoint = mockServer.URL // required to make InitClient() work
-		testCase.inputArgs.APIEndpoint = mockServer.URL
-
-		err := verifyPreconditions(*testCase.inputArgs)
-		if err != nil {
-			t.Errorf("Unexpected error in argument validation: %#v", err)
-		} else {
-			_, err := addCluster(*testCase.inputArgs)
-			if err == nil {
-				t.Errorf("Test case %d did not yield an execution error.", i)
-			}
-			origErr := microerror.Cause(err)
-			if testCase.errorMatcher(origErr) == false {
-				t.Errorf("Test case %d did not yield the expected execution error, instead: %#v", i, err)
-			}
-		}
+		})
 	}
 }
 
@@ -586,42 +673,310 @@ func Test_getLatestActiveReleaseVersion(t *testing.T) {
 	}
 
 	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			// mock server
+			mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// t.Log("mockServer request: ", r.Method, r.URL)
+				if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(tc.responseBody))
+				} else {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Write([]byte(`{"code": "UNKNOWN_ERROR", "message": "Can't do this"}`))
+				}
+			}))
+			defer mockServer.Close()
 
-		// mock server
-		mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			//t.Log("mockServer request: ", r.Method, r.URL)
-			if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(tc.responseBody))
-			} else {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(`{"code": "UNKNOWN_ERROR", "message": "Can't do this"}`))
+			// client
+			flags.APIEndpoint = mockServer.URL // required to make InitClient() work
+
+			args := &Arguments{
+				APIEndpoint: mockServer.URL,
+				AuthToken:   "some-token",
 			}
-		}))
-		defer mockServer.Close()
 
-		// client
-		flags.APIEndpoint = mockServer.URL // required to make InitClient() work
+			clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
+			if err != nil {
+				t.Errorf("Test case %d: Error %s", i, err)
+			}
 
-		args := &Arguments{
-			APIEndpoint: mockServer.URL,
-			AuthToken:   "some-token",
-		}
+			latest, err := getLatestActiveReleaseVersion(clientWrapper, nil)
+			if err != nil {
+				t.Errorf("Test case %d: Error %s", i, err)
+			}
 
-		clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
-		if err != nil {
-			t.Errorf("Test case %d: Error %s", i, err)
-		}
+			if latest != tc.latestRelease {
+				t.Errorf("Test case %d: Expected '%s' but got '%s'", i, tc.latestRelease, latest)
+			}
+		})
+	}
+}
 
-		latest, err := getLatestActiveReleaseVersion(clientWrapper, nil)
-		if err != nil {
-			t.Errorf("Test case %d: Error %s", i, err)
-		}
+func Test_validateHAMasters(t *testing.T) {
+	testCases := []struct {
+		name           string
+		featureEnabled bool
+		args           Arguments
+		v5Definition   types.ClusterDefinitionV5
 
-		if latest != tc.latestRelease {
-			t.Errorf("Test case %d: Expected '%s' but got '%s'", i, tc.latestRelease, latest)
-		}
+		errorMatcher       func(error) bool
+		expectedResultArgs Arguments
+	}{
+		{
+			name:           "Use default arguments, HA masters turned off",
+			featureEnabled: false,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master:      nil,
+				MasterNodes: nil,
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Use default arguments, HA masters turned on",
+			featureEnabled: true,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master:      nil,
+				MasterNodes: nil,
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: toBoolPtr(true),
+			},
+		},
+		{
+			name:           "Set specific availability zone, HA masters turned off",
+			featureEnabled: false,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: &types.MasterDefinition{
+					AvailabilityZone: "eu-something",
+				},
+				MasterNodes: nil,
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set specific availability zone, HA masters turned on",
+			featureEnabled: true,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: &types.MasterDefinition{
+					AvailabilityZone: "eu-something",
+				},
+				MasterNodes: nil,
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set HA master nodes, HA masters turned off",
+			featureEnabled: false,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: nil,
+				MasterNodes: &types.MasterNodes{
+					HighAvailability: true,
+				},
+			},
+			errorMatcher: IsHAMastersNotSupported,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set HA master nodes, HA masters turned on",
+			featureEnabled: true,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: nil,
+				MasterNodes: &types.MasterNodes{
+					HighAvailability: true,
+				},
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set master AZ, and HA master, HA masters turned off",
+			featureEnabled: false,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: &types.MasterDefinition{
+					AvailabilityZone: "eu-something",
+				},
+				MasterNodes: &types.MasterNodes{
+					HighAvailability: true,
+				},
+			},
+			errorMatcher: IsMustProvideSingleMasterType,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set master AZ, and HA master, HA masters turned on",
+			featureEnabled: true,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: &types.MasterDefinition{
+					AvailabilityZone: "eu-something",
+				},
+				MasterNodes: &types.MasterNodes{
+					HighAvailability: true,
+				},
+			},
+			errorMatcher: IsMustProvideSingleMasterType,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set master AZ, and HA master through flag, HA masters turned off",
+			featureEnabled: false,
+			args: Arguments{
+				MasterHA: toBoolPtr(true),
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: &types.MasterDefinition{
+					AvailabilityZone: "eu-something",
+				},
+				MasterNodes: nil,
+			},
+			errorMatcher: IsMustProvideSingleMasterType,
+			expectedResultArgs: Arguments{
+				MasterHA: toBoolPtr(true),
+			},
+		},
+		{
+			name:           "Set master AZ, and HA master through flag, HA masters turned on",
+			featureEnabled: true,
+			args: Arguments{
+				MasterHA: toBoolPtr(true),
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: &types.MasterDefinition{
+					AvailabilityZone: "eu-something",
+				},
+				MasterNodes: nil,
+			},
+			errorMatcher: IsMustProvideSingleMasterType,
+			expectedResultArgs: Arguments{
+				MasterHA: toBoolPtr(true),
+			},
+		},
+		{
+			name:           "Set HA master to false, HA masters turned off",
+			featureEnabled: false,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: nil,
+				MasterNodes: &types.MasterNodes{
+					HighAvailability: false,
+				},
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set HA master to false, HA masters turned on",
+			featureEnabled: true,
+			args: Arguments{
+				MasterHA: nil,
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master: nil,
+				MasterNodes: &types.MasterNodes{
+					HighAvailability: false,
+				},
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: nil,
+			},
+		},
+		{
+			name:           "Set HA master to false through flag, HA masters turned off",
+			featureEnabled: false,
+			args: Arguments{
+				MasterHA: toBoolPtr(false),
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master:      nil,
+				MasterNodes: nil,
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: toBoolPtr(false),
+			},
+		},
+		{
+			name:           "Set HA master to false through flag, HA masters turned on",
+			featureEnabled: true,
+			args: Arguments{
+				MasterHA: toBoolPtr(false),
+			},
+			v5Definition: types.ClusterDefinitionV5{
+				Master:      nil,
+				MasterNodes: nil,
+			},
+			errorMatcher: nil,
+			expectedResultArgs: Arguments{
+				MasterHA: toBoolPtr(false),
+			},
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			t.Log(tc.name)
+
+			err := validateHAMasters(tc.featureEnabled, &tc.args, &tc.v5Definition)
+
+			if tc.errorMatcher != nil {
+				if !tc.errorMatcher(err) {
+					t.Errorf("Case %d - Unexpected error: %s", i, err)
+				}
+			} else if err != nil {
+				t.Errorf("Case %d - Unexpected error: %s", i, err)
+			}
+
+			if diff := cmp.Diff(tc.expectedResultArgs, tc.args); diff != "" {
+				t.Errorf("Case %d - Resulting args unequal. (-expected +got):\n%s", i, diff)
+			}
+		})
 	}
 }

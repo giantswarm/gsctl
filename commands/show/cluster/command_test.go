@@ -3,10 +3,12 @@ package cluster
 import (
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/giantswarm/gscliauth/config"
+	models "github.com/giantswarm/gsclientgen/models"
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/commands/errors"
@@ -110,6 +112,126 @@ func TestShowAWSClusterV4(t *testing.T) {
 // TestShowAWSClusterV5 tests fetching V4 cluster details for AWS,
 // for a cluster that does not have BYOC credentials.
 func TestShowAWSClusterV5(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == "GET" {
+			switch uri := r.URL.Path; uri {
+			case "/v4/clusters/":
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`[
+					{
+						"id": "cluster-id",
+						"name": "Name of the cluster",
+						"owner": "acme"
+					}
+				]`))
+
+			case "/v5/clusters/cluster-id/":
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{
+					"id": "cluster-id",
+					"name": "AWS v5 cluster",
+					"api_endpoint": "https://api.foo.bar",
+					"create_date": "2019-07-09T12:00:00.000000Z",
+					"owner": "acmeorg",
+					"release_version": "9.1.2",
+					"credential_id": "",
+					"master_nodes": {
+						"availability_zones": ["eu-west-1b", "eu-west-1c", "eu-west-1d"],
+						"high_availability": true,
+						"num_ready": 3
+					}
+				}`))
+
+			case "/v5/clusters/cluster-id/nodepools/":
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`[
+					{
+						"id": "a7r",
+						"name": "Node pool name",
+						"availability_zones": [
+							"eu-west-1d"
+						],
+						"scaling": {
+							"min": 2,
+							"max": 5
+						},
+						"node_spec": {
+							"aws": {
+								"instance_type": "p3.8xlarge"
+							},
+							"volume_sizes_gb": {
+								"docker": 100,
+								"kubelet": 100
+							}
+						},
+						"status": {
+							"nodes": 2,
+							"nodes_ready": 2
+						}
+					}
+				]`))
+
+			case "/v4/clusters/cluster-id/":
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte(`{"code": "RESOURCE_NOT_FOUND", "message": "Cluster does not exist or is not accessible."}`))
+
+			default:
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(`{"code": "INTERNAL_ERROR", "message": "We do this to notice any unexpected endpoint being called."}`))
+			}
+		}
+	}))
+	defer mockServer.Close()
+
+	// temp config
+	fs := afero.NewMemMapFs()
+	configDir := testutils.TempDir(fs)
+	config.Initialize(fs, configDir)
+
+	testArgs := Arguments{
+		apiEndpoint:     mockServer.URL,
+		clusterNameOrID: "cluster-id",
+		scheme:          "giantswarm",
+		authToken:       "my-token",
+		verbose:         true,
+	}
+
+	err := verifyPreconditions(testArgs, []string{testArgs.clusterNameOrID})
+	if err != nil {
+		t.Errorf("Unexpected error: %s", err)
+	}
+
+	detailsV4, detailsV5, _, statusV4, credentials, err := getClusterDetails(testArgs)
+	if err != nil {
+		t.Fatalf("Unexpected error: %s", err)
+	}
+
+	if detailsV4 != nil {
+		t.Errorf("Expected detailsV4 to be nil, got %#v", detailsV5)
+	}
+
+	if statusV4 != nil {
+		t.Errorf("Expected statusV4 to be nil, got %v", statusV4)
+	}
+
+	if credentials != nil {
+		t.Errorf("Expected credentials to be nil, got %v", credentials)
+	}
+
+	if detailsV5 == nil {
+		t.Fatal("Expected V5 cluster details, got nil")
+	}
+
+	if detailsV5.ID != testArgs.clusterNameOrID {
+		t.Errorf("Expected cluster ID '%s', got '%s'", testArgs.clusterNameOrID, detailsV5.ID)
+	}
+
+}
+
+// TestShowAWSClusterV5NoHAMasters tests fetching V5 cluster details for AWS,
+// without HA Masters support.
+func TestShowAWSClusterV5NoHAMasters(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method == "GET" {
@@ -538,4 +660,90 @@ func TestFormatClusterLabels(t *testing.T) {
 	if !strings.HasPrefix(result[1], "|") {
 		t.Errorf("formatted cluster labels result expected '%s' to start with '%s'", result[1], "|")
 	}
+}
+
+func Test_FormatMasterNodes(t *testing.T) {
+	testCases := []struct {
+		model                     *models.V5ClusterDetailsResponseMasterNodes
+		expectedAvailabilityZones string
+		expectedNumOfReadyNodes   string
+	}{
+		{
+			model:                     nil,
+			expectedAvailabilityZones: "n/a",
+			expectedNumOfReadyNodes:   "n/a",
+		},
+		{
+			model: &models.V5ClusterDetailsResponseMasterNodes{
+				AvailabilityZones: []string{},
+				HighAvailability:  false,
+				NumReady:          toInt8Ptr(0),
+			},
+			expectedAvailabilityZones: "n/a",
+			expectedNumOfReadyNodes:   "0",
+		},
+		{
+			model: &models.V5ClusterDetailsResponseMasterNodes{
+				AvailabilityZones: []string{"some-zone"},
+				HighAvailability:  false,
+				NumReady:          toInt8Ptr(1),
+			},
+			expectedAvailabilityZones: "some-zone",
+			expectedNumOfReadyNodes:   "1",
+		},
+		{
+			model: &models.V5ClusterDetailsResponseMasterNodes{
+				AvailabilityZones: []string{"some-zone-a", "some-zone-b", "some-zone-c"},
+				HighAvailability:  false,
+				NumReady:          toInt8Ptr(3),
+			},
+			expectedAvailabilityZones: "some-zone-a, some-zone-b, some-zone-c",
+			expectedNumOfReadyNodes:   "3",
+		},
+		{
+			model: &models.V5ClusterDetailsResponseMasterNodes{
+				AvailabilityZones: []string{"some-zone-a", "some-zone-b", "some-zone-c"},
+				HighAvailability:  false,
+				NumReady:          toInt8Ptr(0),
+			},
+			expectedAvailabilityZones: "some-zone-a, some-zone-b, some-zone-c",
+			expectedNumOfReadyNodes:   "0",
+		},
+		{
+			model: &models.V5ClusterDetailsResponseMasterNodes{
+				AvailabilityZones: []string{"some-zone-a", "some-zone-b", "some-zone-c"},
+				HighAvailability:  false,
+				NumReady:          nil,
+			},
+			expectedAvailabilityZones: "some-zone-a, some-zone-b, some-zone-c",
+			expectedNumOfReadyNodes:   "n/a",
+		},
+		{
+			model: &models.V5ClusterDetailsResponseMasterNodes{
+				AvailabilityZones: []string{"some-zone-a", "some-zone-b", "some-zone-c"},
+				HighAvailability:  false,
+				NumReady:          nil,
+			},
+			expectedAvailabilityZones: "some-zone-a, some-zone-b, some-zone-c",
+			expectedNumOfReadyNodes:   "n/a",
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			azs, numOfReadyNodes := formatMasterNodes(tc.model)
+
+			if azs != tc.expectedAvailabilityZones {
+				t.Errorf("Case %d - Result did not match.\nExpected: %s, Got: %s", i, tc.expectedAvailabilityZones, azs)
+			} else if numOfReadyNodes != tc.expectedNumOfReadyNodes {
+				t.Errorf("Case %d - Result did not match.\nExpected: %s, Got: %s", i, tc.expectedNumOfReadyNodes, numOfReadyNodes)
+			}
+		})
+	}
+}
+
+func toInt8Ptr(i int) *int8 {
+	c := int8(i)
+
+	return &c
 }

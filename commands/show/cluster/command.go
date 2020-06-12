@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,12 +13,14 @@ import (
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
-	"github.com/giantswarm/gsctl/clustercache"
+
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/gsctl/capabilities"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/nodespec"
@@ -252,7 +255,6 @@ func getClusterDetails(args Arguments) (
 			return nil, nil, nil, nil, nil, microerror.Mask(err)
 		}
 		nodePools = &response.Payload
-
 	} else {
 		// If this is a 404 error, we assume the cluster is not a V5 one.
 		// If it is 400, it's likely "not supported on this provider". We swallow this in order to test for v4 next.
@@ -357,6 +359,11 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	}
 
 	clusterDetailsV4, clusterDetailsV5, nodePools, clusterStatus, credentialDetails, err := getClusterDetails(arguments)
+
+	var capabilitiesService *capabilities.Service
+	if err == nil {
+		capabilitiesService, err = getCapabilitiesService(arguments)
+	}
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -384,7 +391,7 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	if clusterDetailsV4 != nil {
 		printV4Result(arguments, clusterDetailsV4, clusterStatus, credentialDetails)
 	} else if clusterDetailsV5 != nil {
-		printV5Result(arguments, clusterDetailsV5, credentialDetails, nodePools)
+		printV5Result(arguments, clusterDetailsV5, credentialDetails, nodePools, capabilitiesService)
 	}
 }
 
@@ -481,7 +488,7 @@ func printV4Result(args Arguments, clusterDetails *models.V4ClusterDetailsRespon
 // printV5Result prints details for a v5 clsuter.
 func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 	credentialDetails *models.V4GetCredentialResponse,
-	nodePools *models.V5GetNodePoolsResponse) {
+	nodePools *models.V5GetNodePoolsResponse, capabilitiesService *capabilities.Service) {
 
 	webUIURL, _ := webui.ClusterDetailsURL(args.apiEndpoint, details.ID, details.Owner)
 
@@ -493,7 +500,6 @@ func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 	clusterTable = append(clusterTable, color.YellowString("Created:")+"|"+formatDate(details.CreateDate))
 	clusterTable = append(clusterTable, color.YellowString("Organization:")+"|"+details.Owner)
 	clusterTable = append(clusterTable, color.YellowString("Kubernetes API endpoint:")+"|"+details.APIEndpoint)
-	clusterTable = append(clusterTable, color.YellowString("Master availability zone:")+"|"+details.Master.AvailabilityZone)
 	clusterTable = append(clusterTable, color.YellowString("Release version:")+"|"+details.ReleaseVersion)
 	clusterTable = append(clusterTable, formatClusterLabels(details.Labels)...)
 
@@ -504,6 +510,26 @@ func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 
 	if webUIURL != "" {
 		clusterTable = append(clusterTable, color.YellowString("Web UI:")+"|"+webUIURL)
+	}
+
+	// Check for HA Masters support and print the correct entry.
+	if details.MasterNodes != nil {
+		haMastersEnabled, _ := capabilitiesService.HasCapability(details.ReleaseVersion, capabilities.HAMasters)
+
+		availabilityZones, numOfReadyNodes := formatMasterNodes(details.MasterNodes)
+		masterNodeCount := 1
+		if details.MasterNodes != nil && details.MasterNodes.HighAvailability {
+			masterNodeCount = 3
+		}
+
+		clusterTable = append(clusterTable, color.YellowString("Master availability zones:")+"|"+availabilityZones)
+		clusterTable = append(clusterTable, color.YellowString("Masters:")+"|"+strconv.Itoa(masterNodeCount))
+
+		if haMastersEnabled {
+			clusterTable = append(clusterTable, color.YellowString("Masters ready:")+"|"+numOfReadyNodes)
+		}
+	} else {
+		clusterTable = append(clusterTable, color.YellowString("Master availability zone:")+"|"+details.Master.AvailabilityZone)
 	}
 
 	// TODO: Add KVM ingress port mappings here
@@ -630,4 +656,33 @@ func formatClusterLabels(labels map[string]string) []string {
 	}
 
 	return formattedClusterLabels
+}
+
+func formatMasterNodes(masterNodes *models.V5ClusterDetailsResponseMasterNodes) (azs string, numOfReadyNodes string) {
+	azs = naString
+	numOfReadyNodes = naString
+
+	if masterNodes == nil {
+		return
+	}
+
+	if len(masterNodes.AvailabilityZones) > 0 {
+		azs = strings.Join(masterNodes.AvailabilityZones, ", ")
+	}
+
+	if masterNodes.NumReady != nil && *masterNodes.NumReady >= 0 {
+		numOfReadyNodes = strconv.Itoa(int(*masterNodes.NumReady))
+	}
+
+	return
+}
+
+func getCapabilitiesService(args Arguments) (*capabilities.Service, error) {
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
+	capabilityService, err := capabilities.New(config.Config.Provider, clientWrapper)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return capabilityService, nil
 }

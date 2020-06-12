@@ -5,29 +5,43 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/microerror"
+
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
-	"github.com/giantswarm/microerror"
 )
+
+type definitionFromFlagsV5 struct {
+	clusterName    string
+	releaseVersion string
+	owner          string
+	isHAMaster     *bool
+}
 
 // updateDefinitionFromFlagsV5 extend/overwrites a clusterDefinition based on the
 // flags/arguments the user has given.
-func updateDefinitionFromFlagsV5(def *types.ClusterDefinitionV5, clusterName, releaseVersion, owner string) {
+func updateDefinitionFromFlagsV5(def *types.ClusterDefinitionV5, flags definitionFromFlagsV5) {
 	if def == nil {
 		return
 	}
 
-	if clusterName != "" {
-		def.Name = clusterName
+	if flags.clusterName != "" {
+		def.Name = flags.clusterName
 	}
 
-	if releaseVersion != "" {
-		def.ReleaseVersion = releaseVersion
+	if flags.releaseVersion != "" {
+		def.ReleaseVersion = flags.releaseVersion
 	}
 
-	if owner != "" {
-		def.Owner = owner
+	if flags.owner != "" {
+		def.Owner = flags.owner
+	}
+
+	if flags.isHAMaster != nil {
+		def.MasterNodes = &types.MasterNodes{
+			HighAvailability: *flags.isHAMaster,
+		}
 	}
 }
 
@@ -41,6 +55,12 @@ func createAddClusterBodyV5(def *types.ClusterDefinitionV5) *models.V5AddCluster
 	if def.Master != nil {
 		b.Master = &models.V5AddClusterRequestMaster{
 			AvailabilityZone: def.Master.AvailabilityZone,
+		}
+	}
+
+	if def.MasterNodes != nil {
+		b.MasterNodes = &models.V5AddClusterRequestMasterNodes{
+			HighAvailability: &def.MasterNodes.HighAvailability,
 		}
 	}
 

@@ -32,3 +32,21 @@ var invalidDefinitionYAMLError = &microerror.Error{
 func IsInvalidDefinitionYAML(err error) bool {
 	return microerror.Cause(err) == invalidDefinitionYAMLError
 }
+
+var haMastersNotSupportedError = &microerror.Error{
+	Kind: "haMastersNotSupportedError",
+}
+
+// IsHAMastersNotSupported asserts haMastersNotSupportedError.
+func IsHAMastersNotSupported(err error) bool {
+	return microerror.Cause(err) == haMastersNotSupportedError
+}
+
+var mustProvideSingleMasterTypeError = &microerror.Error{
+	Kind: "mustProvideSingleMasterTypeError",
+}
+
+// IsMustProvideSingleMasterType asserts mustProvideSingleMasterTypeError.
+func IsMustProvideSingleMasterType(err error) bool {
+	return microerror.Cause(err) == mustProvideSingleMasterTypeError
+}

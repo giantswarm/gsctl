@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/Masterminds/semver"
 	"github.com/fatih/color"
@@ -51,15 +52,21 @@ type Arguments struct {
 	Owner                 string
 	ReleaseVersion        string
 	Scheme                string
+	MasterHA              *bool
 	UserProvidedToken     string
 	Verbose               bool
 }
 
 // collectArguments gets arguments from flags and returns an Arguments object.
-func collectArguments() Arguments {
+func collectArguments(cmd *cobra.Command) Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
 	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
+
+	var haMasters *bool
+	if cmd.Flag("master-ha").Changed {
+		haMasters = &flags.MasterHA
+	}
 
 	return Arguments{
 		APIEndpoint:           endpoint,
@@ -68,6 +75,7 @@ func collectArguments() Arguments {
 		CreateDefaultNodePool: flags.CreateDefaultNodePool,
 		FileSystem:            config.FileSystem,
 		InputYAMLFile:         flags.InputYAMLFile,
+		MasterHA:              haMasters,
 		Owner:                 flags.Owner,
 		ReleaseVersion:        flags.Release,
 		Scheme:                scheme,
@@ -193,6 +201,7 @@ func initFlags() {
 	Command.Flags().StringVarP(&flags.ClusterName, "name", "n", "", "Cluster name")
 	Command.Flags().StringVarP(&flags.Owner, "owner", "o", "", "Organization to own the cluster")
 	Command.Flags().StringVarP(&flags.Release, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
+	Command.Flags().BoolVar(&flags.MasterHA, "master-ha", true, "This means the cluster will have three master nodes. Requires High-Availability Master support.")
 	Command.Flags().BoolVarP(&flags.CreateDefaultNodePool, "create-default-nodepool", "", true, "Whether a default node pool should be created if none is specified in the definition. Requires node pool support.")
 }
 
@@ -200,7 +209,7 @@ func initFlags() {
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	arguments = collectArguments()
+	arguments = collectArguments(cmd)
 
 	headline := ""
 	subtext := ""
@@ -239,6 +248,28 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		richError, richErrorOK := err.(*errgo.Err)
 
 		switch {
+		case IsHAMastersNotSupported(err):
+			var haMastersRequiredVersion string
+			{
+				for _, requiredRelease := range capabilities.HAMasters.RequiredReleasePerProvider {
+					if requiredRelease.Provider == config.Config.Provider {
+						haMastersRequiredVersion = requiredRelease.ReleaseVersion.String()
+
+						break
+					}
+				}
+			}
+
+			headline = "Feature not supported"
+
+			if haMastersRequiredVersion == "" {
+				subtext = fmt.Sprintf("Master node high availability is not supported by your provider. (%s)", strings.ToUpper(config.Config.Provider))
+			} else {
+				subtext = fmt.Sprintf("Master node high availability is only supported by releases %s and higher.", haMastersRequiredVersion)
+			}
+		case IsMustProvideSingleMasterType(err):
+			headline = "Conflicting master node configuration"
+			subtext = "The release version you're trying to use supports master node high availability.\nPlease remove the 'master' attribute from your cluster definition and use the 'master_nodes' attribute instead."
 		case errors.IsClusterOwnerMissingError(err):
 			headline = "No owner organization set"
 			subtext = "Please specify an owner organization for the cluster via the --owner flag."
@@ -432,7 +463,8 @@ func addCluster(args Arguments) (*creationResult, error) {
 	var wantedRelease string
 
 	// nodePoolsEnabled stores whether we can assume the v5 API (node pools) for this command execution.
-	var nodePoolsEnabled = false
+	var nodePoolsEnabled bool
+	var haMastersEnabled bool
 
 	var usesV4Definition, usesV5Definition bool
 	var defV4 types.ClusterDefinitionV4
@@ -487,7 +519,8 @@ func addCluster(args Arguments) (*creationResult, error) {
 		fmt.Println(color.WhiteString("Fetching installation capabilities"))
 	}
 
-	nodePoolsEnabled, err = capabilityService.HasCapability(wantedRelease, capabilities.NodePools)
+	nodePoolsEnabled, _ = capabilityService.HasCapability(wantedRelease, capabilities.NodePools)
+	haMastersEnabled, _ = capabilityService.HasCapability(wantedRelease, capabilities.HAMasters)
 
 	// Fail for edge cases:
 	// - User uses v5 definition, but the installation doesn't support node pools.
@@ -521,7 +554,18 @@ func addCluster(args Arguments) (*creationResult, error) {
 			result.DefinitionV5 = &types.ClusterDefinitionV5{}
 		}
 
-		updateDefinitionFromFlagsV5(result.DefinitionV5, args.ClusterName, args.ReleaseVersion, args.Owner)
+		// Validate inputs and set defaults.
+		err = validateHAMasters(haMastersEnabled, &args, result.DefinitionV5)
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		updateDefinitionFromFlagsV5(result.DefinitionV5, definitionFromFlagsV5{
+			clusterName:    args.ClusterName,
+			releaseVersion: args.ReleaseVersion,
+			owner:          args.Owner,
+			isHAMaster:     args.MasterHA,
+		})
 
 		id, hasErrors, err := addClusterV5(result.DefinitionV5, args, clientWrapper, auxParams)
 		if err != nil {
@@ -552,4 +596,46 @@ func addCluster(args Arguments) (*creationResult, error) {
 	}
 
 	return result, nil
+}
+
+func toBoolPtr(t bool) *bool {
+	return &t
+}
+
+func validateHAMasters(featureEnabled bool, args *Arguments, v5Definition *types.ClusterDefinitionV5) error {
+	{
+		if v5Definition.MasterNodes == nil && args.MasterHA == nil {
+			// User tries to use the 'master' field in a version that supports HA masters.
+			if featureEnabled && v5Definition.Master != nil {
+				fmt.Println(color.YellowString("The 'master' attribute is deprecated.\nPlease remove the 'master' attribute from your cluster definition and use the 'master_nodes' attribute instead."))
+			}
+		} else if v5Definition.Master != nil {
+			// User is trying to provide both 'master' and master nodes fields at the same time.
+			return microerror.Mask(mustProvideSingleMasterTypeError)
+		}
+	}
+
+	{
+		// HA master has been enabled by cluster definition.
+		hasHAMaster := v5Definition.MasterNodes != nil && v5Definition.MasterNodes.HighAvailability
+		// HA master has been enabled by command-line flag.
+		hasHAMasterFromFlag := args.MasterHA != nil && *args.MasterHA
+		if hasHAMaster || hasHAMasterFromFlag {
+			// User tries to use HA masters without it being supported.
+			if !featureEnabled {
+				return microerror.Mask(haMastersNotSupportedError)
+			}
+		} else if featureEnabled && v5Definition.Master == nil {
+			if args.MasterHA == nil && v5Definition.MasterNodes == nil {
+				// Check if 'master' field is set before defaulting to HA master.
+				if args.Verbose {
+					fmt.Println(color.WhiteString("Using master node high availability by default."))
+				}
+				// Default to true if it is supported and not provided other value.
+				args.MasterHA = toBoolPtr(true)
+			}
+		}
+	}
+
+	return nil
 }

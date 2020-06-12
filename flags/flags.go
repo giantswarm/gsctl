@@ -74,6 +74,9 @@ var (
 	// Release sets a release to use, provided as a command line flag.
 	Release string
 
+	// MasterHA enables or disabled master node high availability.
+	MasterHA bool
+
 	// TenantInternal represents the type of Kubernetes API endpoints
 	// used to generate kubeconfig
 	TenantInternal bool
