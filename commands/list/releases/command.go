@@ -176,11 +176,6 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 		coreDNSVersion := "n/a"
 		calicoVersion := "n/a"
 
-		status := "inactive"
-		if release.Active {
-			status = "active"
-		}
-
 		for _, component := range release.Components {
 			if *component.Name == "kubernetes" {
 				kubernetesVersion = *component.Version
@@ -196,10 +191,10 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 			}
 		}
 
-		if status == "active" {
+		if release.State == "active" {
 			output = append(output, strings.Join([]string{
 				color.YellowString(*release.Version),
-				color.YellowString(status),
+				color.YellowString(release.State),
 				color.YellowString(created),
 				color.YellowString(kubernetesVersion),
 				color.YellowString(containerLinuxVersion),
@@ -209,7 +204,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 		} else {
 			output = append(output, strings.Join([]string{
 				*release.Version,
-				status,
+				release.State,
 				created,
 				kubernetesVersion,
 				containerLinuxVersion,

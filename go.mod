@@ -12,12 +12,11 @@ require (
 	github.com/giantswarm/apiextensions v0.0.0-20191213075442-71155aa0f5b7
 	github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatible
 	github.com/giantswarm/gscliauth v0.2.1
-	github.com/giantswarm/gsclientgen v1.0.2-0.20200526081758-c95914441085
+	github.com/giantswarm/gsclientgen v1.0.2-0.20200612171731-f47728f4ce74
 	github.com/giantswarm/k8sclient v0.0.0-20191213144452-f75fead2ae06
 	github.com/giantswarm/kubeconfig v0.0.0-20191209121754-c5784ae65a49
 	github.com/giantswarm/microerror v0.2.0
 	github.com/giantswarm/micrologger v0.0.0-20190118112544-0926d9b7c541
-	github.com/go-logfmt/logfmt v0.4.0 // indirect
 	github.com/go-openapi/analysis v0.19.4 // indirect
 	github.com/go-openapi/errors v0.19.3-0.20190617201723-9b273e805998 // indirect
 	github.com/go-openapi/runtime v0.19.4-0.20190718232909-7a84b6517062
@@ -40,7 +39,6 @@ require (
 	go.mongodb.org/mongo-driver v1.0.4 // indirect
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413 // indirect
 	golang.org/x/sys v0.0.0-20191210023423-ac6580df4449 // indirect
-	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
