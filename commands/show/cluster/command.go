@@ -667,7 +667,6 @@ func formatMasterNodes(masterNodes *models.V5ClusterDetailsResponseMasterNodes) 
 	}
 
 	if len(masterNodes.AvailabilityZones) > 0 {
-		sort.Strings(masterNodes.AvailabilityZones)
 		azs = strings.Join(masterNodes.AvailabilityZones, ", ")
 	}
 
