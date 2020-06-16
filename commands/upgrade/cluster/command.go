@@ -34,7 +34,7 @@ var (
 		Short: "Upgrades a cluster to a newer release version",
 		Long: fmt.Sprintf(`Upgrades a cluster to a newer release version.
 
-Upgrades mean the stepwise replacement of the workers, the master and other
+Upgrades mean the stepwise replacement of the workers, the master nodes and other
 building blocks of a cluster with newer versions. See details at
 
     ` + upgradeDocsURL + `
