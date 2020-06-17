@@ -69,7 +69,7 @@ type MasterDefinition struct {
 	AvailabilityZone string `yaml:"availability_zone,omitempty"`
 }
 
-// MasterDefinition defines an interface for configuring HA master nodes.
+// MasterNodes defines an interface for configuring HA master nodes.
 type MasterNodes struct {
 	HighAvailability bool `yaml:"high_availability,omitempty"`
 }
