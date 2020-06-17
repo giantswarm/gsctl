@@ -50,6 +50,10 @@ func Test_readDefinitionFromFile(t *testing.T) {
 			errorMatcher: nil,
 		},
 		{
+			fileName:     "v5_instance_distribution.yaml",
+			errorMatcher: nil,
+		},
+		{
 			fileName:     "invalid01.yaml",
 			errorMatcher: IsInvalidDefinitionYAML,
 		},
