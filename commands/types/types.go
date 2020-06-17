@@ -18,15 +18,15 @@ type StorageDefinition struct {
 
 // AWSSpecificDefinition defines worker node specs for AWS.
 type AWSSpecificDefinition struct {
-	InstanceDistribution  AWSInstanceDistribution `yaml:"instance_distribution,omitempty"`
-	InstanceType          string                  `yaml:"instance_type,omitempty"`
-	UseAlikeInstanceTypes bool                    `yaml:"use_alike_instance_types,omitempty"`
+	InstanceDistribution  *AWSInstanceDistribution `yaml:"instance_distribution,omitempty"`
+	InstanceType          string                   `yaml:"instance_type,omitempty"`
+	UseAlikeInstanceTypes bool                     `yaml:"use_alike_instance_types,omitempty"`
 }
 
 // AWSInstanceDistribution defines the distribution between on-demand and spot instances.
 type AWSInstanceDistribution struct {
-	OnDemandBaseCapacity                int8 `yaml:"on_demand_base_capacity,omitempty"`
-	OnDemandPercentageAboveBaseCapacity int8 `yaml:"on_demand_percentage_above_base_capacity,omitempty"`
+	OnDemandBaseCapacity                int8 `yaml:"on_demand_base_capacity"`
+	OnDemandPercentageAboveBaseCapacity int8 `yaml:"on_demand_percentage_above_base_capacity"`
 }
 
 // AzureSpecificDefinition defines worker node specs for Azure.
