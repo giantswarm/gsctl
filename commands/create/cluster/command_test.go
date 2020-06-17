@@ -215,19 +215,19 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					ReleaseVersion:    "1.2.3",
 					AvailabilityZones: 1,
 					Workers: []types.NodeDefinition{
-						types.NodeDefinition{
+						{
 							Memory:  types.MemoryDefinition{SizeGB: 2},
 							CPU:     types.CPUDefinition{Cores: 2},
 							Storage: types.StorageDefinition{SizeGB: 20},
 							Labels:  map[string]string{"nodetype": "standard"},
 						},
-						types.NodeDefinition{
+						{
 							Memory:  types.MemoryDefinition{SizeGB: 8},
 							CPU:     types.CPUDefinition{Cores: 2},
 							Storage: types.StorageDefinition{SizeGB: 20},
 							Labels:  map[string]string{"nodetype": "hiram"},
 						},
-						types.NodeDefinition{
+						{
 							Memory:  types.MemoryDefinition{SizeGB: 2},
 							CPU:     types.CPUDefinition{Cores: 6},
 							Storage: types.StorageDefinition{SizeGB: 20},
@@ -279,11 +279,11 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					ReleaseVersion: "9.0.0",
 					Master:         &types.MasterDefinition{AvailabilityZone: "eu-central-1a"},
 					NodePools: []*types.NodePoolDefinition{
-						&types.NodePoolDefinition{
+						{
 							Name:              "Node pool with 2 random AZs",
 							AvailabilityZones: &types.AvailabilityZonesDefinition{Number: 2},
 						},
-						&types.NodePoolDefinition{
+						{
 							Name: "Node pool with 3 specific AZs A, B, C, scaling 3-10, m5.xlarge",
 							AvailabilityZones: &types.AvailabilityZonesDefinition{
 								Zones: []string{"eu-central-1a", "eu-central-1b", "eu-central-1c"},
@@ -298,7 +298,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 								},
 							},
 						},
-						&types.NodePoolDefinition{
+						{
 							Name: "Node pool using defaults only",
 						},
 					},

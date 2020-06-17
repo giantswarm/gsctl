@@ -138,12 +138,12 @@ workers:
 			expectedOutput: &types.ClusterDefinitionV4{
 				Owner: "myorg",
 				Workers: []types.NodeDefinition{
-					types.NodeDefinition{
+					{
 						Memory:  types.MemoryDefinition{SizeGB: 16.5},
 						CPU:     types.CPUDefinition{Cores: 4},
 						Storage: types.StorageDefinition{SizeGB: 100},
 					},
-					types.NodeDefinition{
+					{
 						Memory:  types.MemoryDefinition{SizeGB: 32},
 						CPU:     types.CPUDefinition{Cores: 8},
 						Storage: types.StorageDefinition{SizeGB: 50},
@@ -231,17 +231,17 @@ nodepools:
 				Owner:      "myorg",
 				Master:     &types.MasterDefinition{AvailabilityZone: "my-zone-1a"},
 				NodePools: []*types.NodePoolDefinition{
-					&types.NodePoolDefinition{
+					{
 						Name:              "General purpose",
 						AvailabilityZones: &types.AvailabilityZonesDefinition{Number: 2},
 					},
-					&types.NodePoolDefinition{
+					{
 						Name:              "Database",
 						AvailabilityZones: &types.AvailabilityZonesDefinition{Zones: []string{"my-zone-1a", "my-zone-1b", "my-zone-1c"}},
 						Scaling:           &types.ScalingDefinition{Min: 3, Max: 10},
 						NodeSpec:          &types.NodeSpec{AWS: &types.AWSSpecificDefinition{InstanceType: "m5.superlarge"}},
 					},
-					&types.NodePoolDefinition{
+					{
 						Name: "Batch",
 					},
 				},
@@ -276,17 +276,17 @@ nodepools:
 				Owner:       "myorg",
 				MasterNodes: &types.MasterNodes{HighAvailability: true},
 				NodePools: []*types.NodePoolDefinition{
-					&types.NodePoolDefinition{
+					{
 						Name:              "General purpose",
 						AvailabilityZones: &types.AvailabilityZonesDefinition{Number: 2},
 					},
-					&types.NodePoolDefinition{
+					{
 						Name:              "Database",
 						AvailabilityZones: &types.AvailabilityZonesDefinition{Zones: []string{"my-zone-1a", "my-zone-1b", "my-zone-1c"}},
 						Scaling:           &types.ScalingDefinition{Min: 3, Max: 10},
 						NodeSpec:          &types.NodeSpec{AWS: &types.AWSSpecificDefinition{InstanceType: "m5.superlarge"}},
 					},
-					&types.NodePoolDefinition{
+					{
 						Name: "Batch",
 					},
 				},
