@@ -284,7 +284,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 							AvailabilityZones: &types.AvailabilityZonesDefinition{Number: 2},
 						},
 						{
-							Name: "Node pool with 3 specific AZs A, B, C, scaling 3-10, m5.xlarge, spot",
+							Name: "Node pool with 3 specific AZs A, B, C, scaling 3-10, m5.xlarge",
 							AvailabilityZones: &types.AvailabilityZonesDefinition{
 								Zones: []string{"eu-central-1a", "eu-central-1b", "eu-central-1c"},
 							},
@@ -296,8 +296,8 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 								AWS: &types.AWSSpecificDefinition{
 									InstanceType: "m5.xlarge",
 									InstanceDistribution: &types.AWSInstanceDistribution{
-										OnDemandBaseCapacity:                1,
-										OnDemandPercentageAboveBaseCapacity: 10,
+										OnDemandBaseCapacity:                0,
+										OnDemandPercentageAboveBaseCapacity: 100,
 									},
 									UseAlikeInstanceTypes: true,
 								},
@@ -326,6 +326,9 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					Name:           "Cluster with several node pools testing various instance distribution combinations",
 					Owner:          "acme",
 					ReleaseVersion: "11.5.0",
+					MasterNodes: &types.MasterNodes{
+						HighAvailability: true,
+					},
 					NodePools: []*types.NodePoolDefinition{
 						{
 							Name: "Node pool with 0 on-demand, 100% spot, no alike instance types",
