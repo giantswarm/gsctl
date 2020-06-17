@@ -7,7 +7,7 @@ nodepools:
 - name: Node pool with 2 random AZs
   availability_zones:
     number: 2
-- name: Node pool with 3 specific AZs A, B, C, scaling 3-10, m5.xlarge
+- name: Node pool with 3 specific AZs A, B, C, scaling 3-10, m5.xlarge, spot
   availability_zones:
     zones:
     - eu-central-1a
@@ -19,4 +19,8 @@ nodepools:
   node_spec:
     aws:
       instance_type: m5.xlarge
+      instance_distribution:
+        on_demand_base_capacity: 0
+        on_demand_percentage_above_base_capacity: 0
+      use_alike_instance_types: true
 - name: Node pool using defaults only
