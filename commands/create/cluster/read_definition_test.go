@@ -308,14 +308,14 @@ nodepools:
     aws:
       instance_distribution:
         on_demand_base_capacity: 0
-        on_demand_percentage_above_base_capacity: 100
+        on_demand_percentage_above_base_capacity: 0
       use_alike_instance_types: false
 - name: Node pool with 3 on-demand, 100% spot, no alike instance types
   node_spec:
     aws:
       instance_distribution:
         on_demand_base_capacity: 3
-        on_demand_percentage_above_base_capacity: 100
+        on_demand_percentage_above_base_capacity: 0
       use_alike_instance_types: false
 - name: Node pool with 3 on-demand, 50% spot, no alike instance types
   node_spec:
@@ -329,14 +329,14 @@ nodepools:
     aws:
       instance_distribution:
         on_demand_base_capacity: 0
-        on_demand_percentage_above_base_capacity: 100
+        on_demand_percentage_above_base_capacity: 0
       use_alike_instance_types: true
 - name: Node pool with 3 on-demand, 100% spot, use alike instance types
   node_spec:
     aws:
       instance_distribution:
         on_demand_base_capacity: 3
-        on_demand_percentage_above_base_capacity: 100
+        on_demand_percentage_above_base_capacity: 0
       use_alike_instance_types: true
 - name: Node pool with 3 on-demand, 50% spot, use alike instance types
   node_spec:
@@ -360,7 +360,7 @@ nodepools:
 							AWS: &types.AWSSpecificDefinition{
 								InstanceDistribution: &types.AWSInstanceDistribution{
 									OnDemandBaseCapacity:                0,
-									OnDemandPercentageAboveBaseCapacity: 100,
+									OnDemandPercentageAboveBaseCapacity: 0,
 								},
 								UseAlikeInstanceTypes: false,
 							},
@@ -372,7 +372,7 @@ nodepools:
 							AWS: &types.AWSSpecificDefinition{
 								InstanceDistribution: &types.AWSInstanceDistribution{
 									OnDemandBaseCapacity:                3,
-									OnDemandPercentageAboveBaseCapacity: 100,
+									OnDemandPercentageAboveBaseCapacity: 0,
 								},
 								UseAlikeInstanceTypes: false,
 							},
@@ -396,7 +396,7 @@ nodepools:
 							AWS: &types.AWSSpecificDefinition{
 								InstanceDistribution: &types.AWSInstanceDistribution{
 									OnDemandBaseCapacity:                0,
-									OnDemandPercentageAboveBaseCapacity: 100,
+									OnDemandPercentageAboveBaseCapacity: 0,
 								},
 								UseAlikeInstanceTypes: true,
 							},
@@ -408,7 +408,7 @@ nodepools:
 							AWS: &types.AWSSpecificDefinition{
 								InstanceDistribution: &types.AWSInstanceDistribution{
 									OnDemandBaseCapacity:                3,
-									OnDemandPercentageAboveBaseCapacity: 100,
+									OnDemandPercentageAboveBaseCapacity: 0,
 								},
 								UseAlikeInstanceTypes: true,
 							},

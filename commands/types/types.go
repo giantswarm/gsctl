@@ -25,8 +25,8 @@ type AWSSpecificDefinition struct {
 
 // AWSInstanceDistribution defines the distribution between on-demand and spot instances.
 type AWSInstanceDistribution struct {
-	OnDemandBaseCapacity                int8 `yaml:"on_demand_base_capacity"`
-	OnDemandPercentageAboveBaseCapacity int8 `yaml:"on_demand_percentage_above_base_capacity"`
+	OnDemandBaseCapacity                int64 `yaml:"on_demand_base_capacity"`
+	OnDemandPercentageAboveBaseCapacity int64 `yaml:"on_demand_percentage_above_base_capacity"`
 }
 
 // AzureSpecificDefinition defines worker node specs for Azure.
