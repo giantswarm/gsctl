@@ -215,19 +215,19 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					ReleaseVersion:    "1.2.3",
 					AvailabilityZones: 1,
 					Workers: []types.NodeDefinition{
-						types.NodeDefinition{
+						{
 							Memory:  types.MemoryDefinition{SizeGB: 2},
 							CPU:     types.CPUDefinition{Cores: 2},
 							Storage: types.StorageDefinition{SizeGB: 20},
 							Labels:  map[string]string{"nodetype": "standard"},
 						},
-						types.NodeDefinition{
+						{
 							Memory:  types.MemoryDefinition{SizeGB: 8},
 							CPU:     types.CPUDefinition{Cores: 2},
 							Storage: types.StorageDefinition{SizeGB: 20},
 							Labels:  map[string]string{"nodetype": "hiram"},
 						},
-						types.NodeDefinition{
+						{
 							Memory:  types.MemoryDefinition{SizeGB: 2},
 							CPU:     types.CPUDefinition{Cores: 6},
 							Storage: types.StorageDefinition{SizeGB: 20},
@@ -279,11 +279,11 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					ReleaseVersion: "9.0.0",
 					Master:         &types.MasterDefinition{AvailabilityZone: "eu-central-1a"},
 					NodePools: []*types.NodePoolDefinition{
-						&types.NodePoolDefinition{
+						{
 							Name:              "Node pool with 2 random AZs",
 							AvailabilityZones: &types.AvailabilityZonesDefinition{Number: 2},
 						},
-						&types.NodePoolDefinition{
+						{
 							Name: "Node pool with 3 specific AZs A, B, C, scaling 3-10, m5.xlarge",
 							AvailabilityZones: &types.AvailabilityZonesDefinition{
 								Zones: []string{"eu-central-1a", "eu-central-1b", "eu-central-1c"},
@@ -295,11 +295,112 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 							NodeSpec: &types.NodeSpec{
 								AWS: &types.AWSSpecificDefinition{
 									InstanceType: "m5.xlarge",
+									InstanceDistribution: &types.AWSInstanceDistribution{
+										OnDemandBaseCapacity:                0,
+										OnDemandPercentageAboveBaseCapacity: 100,
+									},
+									UseAlikeInstanceTypes: true,
 								},
 							},
 						},
-						&types.NodePoolDefinition{
+						{
 							Name: "Node pool using defaults only",
+						},
+					},
+				},
+			},
+		},
+		{
+			description: "Definition with several spot-related node pool setups (v5_instance_distribution.yaml)",
+			inputArgs: &Arguments{
+				CreateDefaultNodePool: false,
+				FileSystem:            afero.NewOsFs(),
+				InputYAMLFile:         "testdata/v5_instance_distribution.yaml",
+				AuthToken:             "fake token",
+				Verbose:               true,
+			},
+			expectedResult: &creationResult{
+				ID: "f6e8r",
+				DefinitionV5: &types.ClusterDefinitionV5{
+					APIVersion:     "v5",
+					Name:           "Cluster with several node pools testing various instance distribution combinations",
+					Owner:          "acme",
+					ReleaseVersion: "11.5.0",
+					MasterNodes: &types.MasterNodes{
+						HighAvailability: true,
+					},
+					NodePools: []*types.NodePoolDefinition{
+						{
+							Name: "Node pool with 0 on-demand, 100% spot, no alike instance types",
+							NodeSpec: &types.NodeSpec{
+								AWS: &types.AWSSpecificDefinition{
+									InstanceDistribution: &types.AWSInstanceDistribution{
+										OnDemandBaseCapacity:                0,
+										OnDemandPercentageAboveBaseCapacity: 100,
+									},
+									UseAlikeInstanceTypes: false,
+								},
+							},
+						},
+						{
+							Name: "Node pool with 3 on-demand, 100% spot, no alike instance types",
+							NodeSpec: &types.NodeSpec{
+								AWS: &types.AWSSpecificDefinition{
+									InstanceDistribution: &types.AWSInstanceDistribution{
+										OnDemandBaseCapacity:                3,
+										OnDemandPercentageAboveBaseCapacity: 100,
+									},
+									UseAlikeInstanceTypes: false,
+								},
+							},
+						},
+						{
+							Name: "Node pool with 3 on-demand, 50% spot, no alike instance types",
+							NodeSpec: &types.NodeSpec{
+								AWS: &types.AWSSpecificDefinition{
+									InstanceDistribution: &types.AWSInstanceDistribution{
+										OnDemandBaseCapacity:                3,
+										OnDemandPercentageAboveBaseCapacity: 50,
+									},
+									UseAlikeInstanceTypes: false,
+								},
+							},
+						},
+						{
+							Name: "Node pool with 0 on-demand, 100% spot, use alike instance types",
+							NodeSpec: &types.NodeSpec{
+								AWS: &types.AWSSpecificDefinition{
+									InstanceDistribution: &types.AWSInstanceDistribution{
+										OnDemandBaseCapacity:                0,
+										OnDemandPercentageAboveBaseCapacity: 100,
+									},
+									UseAlikeInstanceTypes: true,
+								},
+							},
+						},
+						{
+							Name: "Node pool with 3 on-demand, 100% spot, use alike instance types",
+							NodeSpec: &types.NodeSpec{
+								AWS: &types.AWSSpecificDefinition{
+									InstanceDistribution: &types.AWSInstanceDistribution{
+										OnDemandBaseCapacity:                3,
+										OnDemandPercentageAboveBaseCapacity: 100,
+									},
+									UseAlikeInstanceTypes: true,
+								},
+							},
+						},
+						{
+							Name: "Node pool with 3 on-demand, 50% spot, use alike instance types",
+							NodeSpec: &types.NodeSpec{
+								AWS: &types.AWSSpecificDefinition{
+									InstanceDistribution: &types.AWSInstanceDistribution{
+										OnDemandBaseCapacity:                3,
+										OnDemandPercentageAboveBaseCapacity: 50,
+									},
+									UseAlikeInstanceTypes: true,
+								},
+							},
 						},
 					},
 				},

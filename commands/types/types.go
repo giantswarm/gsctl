@@ -18,7 +18,15 @@ type StorageDefinition struct {
 
 // AWSSpecificDefinition defines worker node specs for AWS.
 type AWSSpecificDefinition struct {
-	InstanceType string `yaml:"instance_type,omitempty"`
+	InstanceDistribution  *AWSInstanceDistribution `yaml:"instance_distribution,omitempty"`
+	InstanceType          string                   `yaml:"instance_type,omitempty"`
+	UseAlikeInstanceTypes bool                     `yaml:"use_alike_instance_types,omitempty"`
+}
+
+// AWSInstanceDistribution defines the distribution between on-demand and spot instances.
+type AWSInstanceDistribution struct {
+	OnDemandBaseCapacity                int8 `yaml:"on_demand_base_capacity"`
+	OnDemandPercentageAboveBaseCapacity int8 `yaml:"on_demand_percentage_above_base_capacity"`
 }
 
 // AzureSpecificDefinition defines worker node specs for Azure.
@@ -69,7 +77,7 @@ type MasterDefinition struct {
 	AvailabilityZone string `yaml:"availability_zone,omitempty"`
 }
 
-// MasterDefinition defines an interface for configuring HA master nodes.
+// MasterNodes defines an interface for configuring HA master nodes.
 type MasterNodes struct {
 	HighAvailability bool `yaml:"high_availability,omitempty"`
 }

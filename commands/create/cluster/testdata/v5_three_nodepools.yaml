@@ -19,4 +19,8 @@ nodepools:
   node_spec:
     aws:
       instance_type: m5.xlarge
+      instance_distribution:
+        on_demand_base_capacity: 0
+        on_demand_percentage_above_base_capacity: 100
+      use_alike_instance_types: true
 - name: Node pool using defaults only
