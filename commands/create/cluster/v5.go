@@ -93,9 +93,22 @@ func createAddNodePoolBody(def *types.NodePoolDefinition) *models.V5AddNodePoolR
 		}
 	}
 
-	if def.NodeSpec != nil && def.NodeSpec.AWS != nil {
-		b.NodeSpec.Aws = &models.V5AddNodePoolRequestNodeSpecAws{
-			InstanceType: def.NodeSpec.AWS.InstanceType,
+	if def.NodeSpec != nil {
+		if def.NodeSpec.AWS != nil {
+			b.NodeSpec.Aws = &models.V5AddNodePoolRequestNodeSpecAws{}
+
+			if def.NodeSpec.AWS.InstanceDistribution != nil {
+				b.NodeSpec.Aws.InstanceDistribution = &models.V5AddNodePoolRequestNodeSpecAwsInstanceDistribution{
+					OnDemandBaseCapacity:                &def.NodeSpec.AWS.InstanceDistribution.OnDemandBaseCapacity,
+					OnDemandPercentageAboveBaseCapacity: &def.NodeSpec.AWS.InstanceDistribution.OnDemandPercentageAboveBaseCapacity,
+				}
+			}
+
+			if def.NodeSpec.AWS.InstanceType != "" {
+				b.NodeSpec.Aws.InstanceType = def.NodeSpec.AWS.InstanceType
+			}
+
+			b.NodeSpec.Aws.UseAlikeInstanceTypes = &def.NodeSpec.AWS.UseAlikeInstanceTypes
 		}
 	}
 

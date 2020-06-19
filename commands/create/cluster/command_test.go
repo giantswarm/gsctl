@@ -336,7 +336,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 								AWS: &types.AWSSpecificDefinition{
 									InstanceDistribution: &types.AWSInstanceDistribution{
 										OnDemandBaseCapacity:                0,
-										OnDemandPercentageAboveBaseCapacity: 100,
+										OnDemandPercentageAboveBaseCapacity: 0,
 									},
 									UseAlikeInstanceTypes: false,
 								},
@@ -348,7 +348,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 								AWS: &types.AWSSpecificDefinition{
 									InstanceDistribution: &types.AWSInstanceDistribution{
 										OnDemandBaseCapacity:                3,
-										OnDemandPercentageAboveBaseCapacity: 100,
+										OnDemandPercentageAboveBaseCapacity: 0,
 									},
 									UseAlikeInstanceTypes: false,
 								},
@@ -372,7 +372,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 								AWS: &types.AWSSpecificDefinition{
 									InstanceDistribution: &types.AWSInstanceDistribution{
 										OnDemandBaseCapacity:                0,
-										OnDemandPercentageAboveBaseCapacity: 100,
+										OnDemandPercentageAboveBaseCapacity: 0,
 									},
 									UseAlikeInstanceTypes: true,
 								},
@@ -384,7 +384,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 								AWS: &types.AWSSpecificDefinition{
 									InstanceDistribution: &types.AWSInstanceDistribution{
 										OnDemandBaseCapacity:                3,
-										OnDemandPercentageAboveBaseCapacity: 100,
+										OnDemandPercentageAboveBaseCapacity: 0,
 									},
 									UseAlikeInstanceTypes: true,
 								},
