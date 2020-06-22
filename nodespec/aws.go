@@ -142,6 +142,26 @@ m5.4xlarge:
   description: M5 General Purpose Quadruple Extra Large
   memory_size_gb: 64
   storage_size_gb: 0
+m5.8xlarge:
+  cpu_cores: 32
+  description: M5 General Purpose 8x Extra Large
+  memory_size_gb: 128
+  storage_size_gb: 0
+m5.12xlarge:
+  cpu_cores: 48
+  description: M5 General Purpose 12x Extra Large
+  memory_size_gb: 192
+  storage_size_gb: 0
+m5.16xlarge:
+  cpu_cores: 64
+  description: M5 General Purpose 16x Extra Large
+  memory_size_gb: 256
+  storage_size_gb: 0
+m5.24xlarge:
+  cpu_cores: 96
+  description: M5 General Purpose 24x Extra Large
+  memory_size_gb: 384
+  storage_size_gb: 0
 p2.xlarge:
   cpu_cores: 4
   description: P2 Extra Large providing GPUs
