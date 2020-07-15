@@ -221,12 +221,12 @@ func getOutput(nps []*models.V5GetNodePoolsResponseItems, outputFormat string) (
 	var err error
 	np := nps[0]
 
-	if np.NodeSpec.Aws != nil && (np.NodeSpec.Azure == nil || *np.NodeSpec.Azure == models.V5GetNodePoolsResponseItemsNodeSpecAzure{}) {
+	if np.NodeSpec.Aws != nil && np.NodeSpec.Azure == nil {
 		output, err = getOutputAWS(nps)
 		if err != nil {
 			return "", microerror.Mask(err)
 		}
-	} else if np.NodeSpec.Azure != nil && (np.NodeSpec.Aws == nil || *np.NodeSpec.Aws == models.V5GetNodePoolsResponseItemsNodeSpecAws{}) {
+	} else if np.NodeSpec.Azure != nil && np.NodeSpec.Aws == nil {
 		output, err = getOutputAzure(nps)
 		if err != nil {
 			return "", microerror.Mask(err)
