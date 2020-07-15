@@ -12,7 +12,7 @@ var (
 	// https://github.com/giantswarm/installations/blob/master/default-draughtsman-configmap-values.yaml
 	// Warning: YAML in Golang is super fragile. There must not be any tabs in this string, otherwise
 	// the marshalling will fail. However we will likely detect this in CI when running tests.
-	azureInstanceTypesYAML = `
+	azureVMSizesYAML = `
 Standard_A2_v2:
   description: Av2-series, general purpose, 100 ACU, no premium storage
   additionalProperties: {}
@@ -242,7 +242,7 @@ type VMSize struct {
 func NewAzureProvider() (*ProviderAzure, error) {
 	p := &ProviderAzure{}
 
-	err := yaml.Unmarshal([]byte(azureInstanceTypesYAML), &p.vmSizes)
+	err := yaml.Unmarshal([]byte(azureVMSizesYAML), &p.vmSizes)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -250,7 +250,7 @@ func NewAzureProvider() (*ProviderAzure, error) {
 	return p, nil
 }
 
-// GetInstanceTypeDetails returns info on a certain instance type
+// GetVMSizeDetails returns info on a certain VM size
 func (p *ProviderAzure) GetVMSizeDetails(name string) (*VMSize, error) {
 	vmSize, ok := p.vmSizes[name]
 	if ok {
