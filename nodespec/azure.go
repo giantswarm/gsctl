@@ -1,8 +1,6 @@
 package nodespec
 
 import (
-	"fmt"
-
 	"github.com/giantswarm/microerror"
 	"gopkg.in/yaml.v2"
 )
@@ -256,8 +254,6 @@ func (p *ProviderAzure) GetVMSizeDetails(name string) (*VMSize, error) {
 	if ok {
 		return &vmSize, nil
 	}
-
-	fmt.Printf("VM size not found %q", name)
 
 	return nil, microerror.Mask(vmSizeNotFoundErr)
 }
