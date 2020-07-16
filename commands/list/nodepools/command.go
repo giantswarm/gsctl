@@ -208,11 +208,6 @@ func getOutput(nps []*models.V5GetNodePoolsResponseItems, outputFormat string) (
 		return "", nil
 	}
 
-	awsInfo, err := nodespec.NewAWS()
-	if err != nil {
-		return "", microerror.Mask(err)
-	}
-
 	if outputFormat == outputFormatJSON {
 		outputBytes, err := json.MarshalIndent(nps, outputJSONPrefix, outputJSONIndent)
 		if err != nil {
@@ -220,6 +215,33 @@ func getOutput(nps []*models.V5GetNodePoolsResponseItems, outputFormat string) (
 		}
 
 		return string(outputBytes), nil
+	}
+
+	var output string
+	var err error
+	np := nps[0]
+
+	if np.NodeSpec.Aws != nil && np.NodeSpec.Azure == nil {
+		output, err = getOutputAWS(nps)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+	} else if np.NodeSpec.Azure != nil && np.NodeSpec.Aws == nil {
+		output, err = getOutputAzure(nps)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+	} else {
+		return "", microerror.Mask(errors.ClusterDoesNotSupportNodePoolsError)
+	}
+
+	return output, nil
+}
+
+func getOutputAWS(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
+	awsInfo, err := nodespec.NewAWS()
+	if err != nil {
+		return "", microerror.Mask(err)
 	}
 
 	headers := []string{
@@ -287,6 +309,71 @@ func getOutput(nps []*models.V5GetNodePoolsResponseItems, outputFormat string) (
 		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
 		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
 		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
+	}
+
+	return columnize.Format(table, colConfig), nil
+}
+
+func getOutputAzure(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
+	azureInfo, err := nodespec.NewAzureProvider()
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	headers := []string{
+		color.CyanString("ID"),
+		color.CyanString("NAME"),
+		color.CyanString("AZ"),
+		color.CyanString("VM SIZE"),
+		color.CyanString("NODES DESIRED"),
+		color.CyanString("NODES READY"),
+		color.CyanString("CPUS"),
+		color.CyanString("RAM (GB)"),
+	}
+
+	table := make([]string, 0, len(nps)+1)
+	table = append(table, strings.Join(headers, "|"))
+
+	for _, np := range nps {
+		vmSize, err := azureInfo.GetVMSizeDetails(np.NodeSpec.Azure.VMSize)
+		if err != nil {
+			return "", microerror.Mask(err)
+		}
+
+		sumCPUs := np.Status.NodesReady * vmSize.NumberOfCores
+		sumMemory := float64(np.Status.NodesReady) * vmSize.MemoryInMB / 1000
+
+		var vmSizes string
+		{
+			if len(np.Status.InstanceTypes) > 0 {
+				vmSizes = strings.Join(np.Status.InstanceTypes, ",")
+			} else {
+				vmSizes = np.NodeSpec.Azure.VMSize
+			}
+		}
+
+		table = append(table, strings.Join([]string{
+			np.ID,
+			np.Name,
+			formatting.AvailabilityZonesList(np.AvailabilityZones),
+			vmSizes,
+			strconv.FormatInt(np.Status.Nodes, 10),
+			formatNodesReady(np.Status.Nodes, np.Status.NodesReady),
+			strconv.FormatInt(sumCPUs, 10),
+			strconv.FormatFloat(sumMemory, 'f', 1, 64),
+		}, "|"))
+	}
+
+	colConfig := columnize.DefaultConfig()
+	colConfig.ColumnSpec = []*columnize.ColumnSpecification{
+		&columnize.ColumnSpecification{Alignment: columnize.AlignLeft},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignLeft},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignLeft},
+		&columnize.ColumnSpecification{Alignment: columnize.AlignLeft},
 		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
 		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
 		&columnize.ColumnSpecification{Alignment: columnize.AlignRight},
