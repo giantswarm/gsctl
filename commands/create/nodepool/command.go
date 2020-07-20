@@ -10,9 +10,10 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
-	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/clustercache"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
@@ -69,10 +70,15 @@ Examples:
 
     gsctl create nodepool "Cluster name" --num-availability-zones 2
 
-  To set one or several specific zones to use, give a list of zone names
-  or letters.
+  To set one or several specific zones to use, give a list of zone names / letters (AWS), or a list of zone numbers (Azure).
+
+  # AWS
 
     gsctl create nodepool f01r4 --availability-zones b,c,d
+
+  # Azure
+
+    gsctl create nodepool f01r4 --availability-zones 1,2,3
 
   Here is how you specify the instance type (AWS) to use:
 
@@ -136,12 +142,13 @@ func initFlags() {
 	Command.Flags().StringVarP(&flags.Name, "name", "n", "", "name or purpose description of the node pool")
 	Command.Flags().IntVarP(&cmdAvailabilityZonesNum, "num-availability-zones", "", 0, "Number of availability zones to use. Default is 1.")
 	Command.Flags().StringSliceVarP(&cmdAvailabilityZones, "availability-zones", "", nil, "List of availability zones to use, instead of setting a number. Use comma to separate values.")
-	Command.Flags().StringVarP(&flags.WorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers, e. g. 'm5.2xlarge'")
-	Command.Flags().Int64VarP(&flags.WorkersMin, "nodes-min", "", 0, "Minimum number of worker nodes for the node pool.")
-	Command.Flags().Int64VarP(&flags.WorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool.")
-	Command.Flags().BoolVarP(&flags.AWSUseAlikeInstanceTypes, "aws-use-alike-instance-types", "", false, "Use similar instance type in your node pool. This list is maintained by Giant Swarm at the moment. Eg if you select m5.xlarge then the node pool can fall back on m4.xlarge too.")
-	Command.Flags().Int64VarP(&flags.AWSOnDemandBaseCapacity, "aws-on-demand-base-capacity", "", 0, "Number of on-demand instances that this node pool needs to have until spot instances are used. Default is 0")
-	Command.Flags().Int64VarP(&flags.AWSSpotPercentage, "aws-spot-percentage", "", 0, "Percentage of spot instances used once the on-demand base capacity is fullfilled. A number of 40 would mean that 60% will be on-demand and 40% will be spot instances.")
+	Command.Flags().StringVarP(&flags.WorkerAwsEc2InstanceType, "aws-instance-type", "", "", "AWS EC2 instance type to use for workers, e. g. 'm5.2xlarge'")
+	Command.Flags().StringVarP(&flags.WorkerAzureVMSize, "azure-vm-size", "", "", "Azure VM Size to use for workers, e. g. 'Standard_D4_v3'")
+	Command.Flags().Int64VarP(&flags.WorkersMin, "nodes-min", "", 0, "Minimum number of worker nodes for the node pool (AWS only).")
+	Command.Flags().Int64VarP(&flags.WorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool (AWS only).")
+	Command.Flags().BoolVarP(&flags.AWSUseAlikeInstanceTypes, "aws-use-alike-instance-types", "", false, "Use similar instance type in your node pool (AWS only). This list is maintained by Giant Swarm at the moment. Eg if you select m5.xlarge then the node pool can fall back on m4.xlarge too.")
+	Command.Flags().Int64VarP(&flags.AWSOnDemandBaseCapacity, "aws-on-demand-base-capacity", "", 0, "Number of on-demand instances that this node pool needs to have until spot instances are used (AWS only). Default is 0")
+	Command.Flags().Int64VarP(&flags.AWSSpotPercentage, "aws-spot-percentage", "", 0, "Percentage of spot instances used once the on-demand base capacity is fullfilled (AWS only). A number of 40 would mean that 60% will be on-demand and 40% will be spot instances.")
 }
 
 // Arguments defines the arguments this command can take into consideration.
@@ -151,6 +158,7 @@ type Arguments struct {
 	AvailabilityZonesList []string
 	AvailabilityZonesNum  int
 	ClusterNameOrID       string
+	VmSize                string
 	InstanceType          string
 	UseAlikeInstanceTypes bool
 	OnDemandBaseCapacity  int64
@@ -193,6 +201,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		AvailabilityZonesNum:  cmdAvailabilityZonesNum,
 		ClusterNameOrID:       positionalArgs[0],
 		InstanceType:          flags.WorkerAwsEc2InstanceType,
+		VmSize:                flags.WorkerAzureVMSize,
 		UseAlikeInstanceTypes: flags.AWSUseAlikeInstanceTypes,
 		OnDemandBaseCapacity:  flags.AWSOnDemandBaseCapacity,
 		SpotPercentage:        flags.AWSSpotPercentage,
@@ -225,7 +234,7 @@ func expandZones(zones []string, endpoint, userProvidedToken string, verbose boo
 		return []string{}, microerror.Mask(err)
 	}
 
-	out := []string{}
+	var out []string
 	for _, letter := range zones {
 		if len(letter) == 1 {
 			letter = info.Payload.General.Datacenter + strings.ToLower(letter)
