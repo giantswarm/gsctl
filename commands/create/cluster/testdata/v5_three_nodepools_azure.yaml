@@ -1,0 +1,19 @@
+api_version: v5
+release_version: "12.1.0"
+name: Cluster with three node pools
+master:
+  availability_zone: eu-central-1a
+nodepools:
+  - name: Node pool with 2 random AZs
+    availability_zones:
+      number: 2
+  - name: Node pool with 3 specific AZs 1, 2, 3, Standard_D2s_v3
+    availability_zones:
+      zones:
+        - 1
+        - 2
+        - 3
+    node_spec:
+      azure:
+        vm_size: Standard_D2s_v3
+  - name: Node pool using defaults only

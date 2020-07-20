@@ -46,6 +46,10 @@ func Test_readDefinitionFromFile(t *testing.T) {
 			errorMatcher: nil,
 		},
 		{
+			fileName:     "v5_three_nodepools_azure.yaml",
+			errorMatcher: nil,
+		},
+		{
 			fileName:     "v5_with_ha_master.yaml",
 			errorMatcher: nil,
 		},
@@ -425,6 +429,47 @@ nodepools:
 								UseAlikeInstanceTypes: true,
 							},
 						},
+					},
+				},
+			},
+		},
+		// Azure Node pools.
+		{
+			[]byte(`api_version: v5
+owner: myorg
+master:
+  availability_zone: 2
+nodepools:
+- name: General purpose
+  availability_zones:
+    number: 2
+- name: Database
+  availability_zones:
+    zones:
+    - 1
+    - 2
+    - 3
+  node_spec:
+    azure:
+      vm_size: "Standard_D2s_v3"
+- name: Batch
+`),
+			&types.ClusterDefinitionV5{
+				APIVersion: "v5",
+				Owner:      "myorg",
+				Master:     &types.MasterDefinition{AvailabilityZone: "2"},
+				NodePools: []*types.NodePoolDefinition{
+					{
+						Name:              "General purpose",
+						AvailabilityZones: &types.AvailabilityZonesDefinition{Number: 2},
+					},
+					{
+						Name:              "Database",
+						AvailabilityZones: &types.AvailabilityZonesDefinition{Zones: []string{"1", "2", "3"}},
+						NodeSpec:          &types.NodeSpec{Azure: &types.AzureSpecificDefinition{VMSize: "Standard_D2s_v3"}},
+					},
+					{
+						Name: "Batch",
 					},
 				},
 			},
