@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/fatih/color"
@@ -13,12 +14,12 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/clustercache"
-
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/pkg/provider"
 )
 
 var (
@@ -164,6 +165,7 @@ type Arguments struct {
 	OnDemandBaseCapacity  int64
 	SpotPercentage        int64
 	Name                  string
+	Provider              string
 	ScalingMax            int64
 	ScalingMin            int64
 	Scheme                string
@@ -186,9 +188,21 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 
 	var err error
 
+	var info *models.V4InfoResponse
+	{
+		if flags.Verbose {
+			fmt.Println(color.WhiteString("Fetching installation info to validate input"))
+		}
+
+		info, err = getInstallationInfo(endpoint, flags.Token)
+		if err != nil {
+			return Arguments{}, microerror.Mask(err)
+		}
+	}
+
 	zones := cmdAvailabilityZones
 	if zones != nil && len(zones) > 0 {
-		zones, err = expandZones(zones, endpoint, flags.Token, flags.Verbose)
+		zones, err = expandAndValidateZones(zones, info.General.Provider, info.General.Datacenter)
 		if err != nil {
 			return Arguments{}, microerror.Mask(err)
 		}
@@ -206,6 +220,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		OnDemandBaseCapacity:  flags.AWSOnDemandBaseCapacity,
 		SpotPercentage:        flags.AWSSpotPercentage,
 		Name:                  flags.Name,
+		Provider:              info.General.Provider,
 		ScalingMax:            flags.WorkersMax,
 		ScalingMin:            flags.WorkersMin,
 		Scheme:                scheme,
@@ -214,35 +229,35 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 	}, nil
 }
 
-// expandZones takes a list of alphabetical letters and returns a list of
-// availability zones. Example:
+// expandAndValidateZones takes a list of alphabetical letters and returns a list of
+// availability zones (for AWS). Example:
 //
 // ["a", "b"] -> ["eu-central-1a", "eu-central-1b"]
 //
-func expandZones(zones []string, endpoint, userProvidedToken string, verbose bool) ([]string, error) {
-	clientWrapper, err := client.NewWithConfig(endpoint, userProvidedToken)
-	if err != nil {
-		return []string{}, microerror.Mask(err)
-	}
-
-	if verbose {
-		fmt.Println(color.WhiteString("Fetching installation info to validate availability zones"))
-	}
-
-	info, err := clientWrapper.GetInfo(nil)
-	if err != nil {
-		return []string{}, microerror.Mask(err)
-	}
-
-	var out []string
-	for _, letter := range zones {
-		if len(letter) == 1 {
-			letter = info.Payload.General.Datacenter + strings.ToLower(letter)
+// For Azure, it validates that the availability zones are actually numbers.
+//
+func expandAndValidateZones(zones []string, p, dataCenter string) ([]string, error) {
+	if p == provider.AWS {
+		var out []string
+		for _, letter := range zones {
+			if len(letter) == 1 {
+				letter = dataCenter + strings.ToLower(letter)
+			}
+			out = append(out, letter)
 		}
-		out = append(out, letter)
+
+		return out, nil
 	}
 
-	return out, nil
+	if p == provider.Azure {
+		for _, zone := range zones {
+			if _, err := strconv.Atoi(zone); err != nil {
+				return nil, microerror.Mask(invalidAvailabilityZones)
+			}
+		}
+	}
+
+	return zones, nil
 }
 
 func verifyPreconditions(args Arguments) error {
@@ -262,16 +277,23 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Maskf(errors.ConflictingFlagsError, "the flags --availability-zones and --num-availability-zones cannot be combined.")
 	}
 
-	// Scaling flags plausibility
-	if args.ScalingMin > 0 && args.ScalingMax > 0 {
-		if args.ScalingMin > args.ScalingMax {
-			return microerror.Mask(errors.WorkersMinMaxInvalidError)
-		}
+	// Check if not using both instance types (AWS-specific) and vm sizes (Azure-specific).
+	if args.InstanceType != "" && args.VmSize != "" {
+		return microerror.Maskf(errors.ConflictingFlagsError, "the flags --aws-instance-type and --azure-vm-size cannot be combined.")
 	}
 
-	// SpotPercentage check percentage
-	if args.SpotPercentage < 0 || args.SpotPercentage > 100 {
-		return microerror.Mask(errors.NotPercentage)
+	if args.Provider == provider.AWS {
+		// Scaling flags plausibility
+		if args.ScalingMin > 0 && args.ScalingMax > 0 {
+			if args.ScalingMin > args.ScalingMax {
+				return microerror.Mask(errors.WorkersMinMaxInvalidError)
+			}
+		}
+
+		// SpotPercentage check percentage
+		if args.SpotPercentage < 0 || args.SpotPercentage > 100 {
+			return microerror.Mask(errors.NotPercentage)
+		}
 	}
 
 	return nil
@@ -296,9 +318,14 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	subtext := ""
 
 	switch {
+	case IsInvalidAvailabilityZones(err):
+		headline = "Invalid availability zones"
+		subtext = "The provided availability zones have an incorrect format"
 	case errors.IsConflictingFlagsError(err):
 		headline = "Conflicting flags used"
-		subtext = "The flags --availability-zones and --num-availability-zones must not be used together."
+		// Removing the 'conflicting flags error:' from the beginning
+		// of the error and capitalizing the first letter.
+		subtext = strings.Replace(err.Error(), "conflicting flags error: t", "T", 1)
 	default:
 		headline = err.Error()
 	}
@@ -320,20 +347,38 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 		Name: args.Name,
 	}
 
-	onDemandPercentageAboveBaseCapacity := 100 - args.SpotPercentage
+	requestBody.NodeSpec = &models.V5AddNodePoolRequestNodeSpec{}
+	{
+		if args.Provider == provider.AWS {
+			onDemandPercentageAboveBaseCapacity := 100 - args.SpotPercentage
+			requestBody.NodeSpec.Aws = &models.V5AddNodePoolRequestNodeSpecAws{
+				UseAlikeInstanceTypes: &args.UseAlikeInstanceTypes,
+				InstanceDistribution: &models.V5AddNodePoolRequestNodeSpecAwsInstanceDistribution{
+					OnDemandBaseCapacity:                &args.OnDemandBaseCapacity,
+					OnDemandPercentageAboveBaseCapacity: &onDemandPercentageAboveBaseCapacity,
+				},
+			}
+			if args.InstanceType != "" {
+				requestBody.NodeSpec.Aws.InstanceType = args.InstanceType
+			}
+			if args.ScalingMin != 0 || args.ScalingMax != 0 {
+				requestBody.Scaling = &models.V5AddNodePoolRequestScaling{}
+				if args.ScalingMin != 0 {
+					requestBody.Scaling.Min = args.ScalingMin
+				}
+				if args.ScalingMax != 0 {
+					requestBody.Scaling.Max = args.ScalingMax
+				}
+			}
+		}
 
-	requestBody.NodeSpec = &models.V5AddNodePoolRequestNodeSpec{
-		Aws: &models.V5AddNodePoolRequestNodeSpecAws{
-			UseAlikeInstanceTypes: &args.UseAlikeInstanceTypes,
-			InstanceDistribution: &models.V5AddNodePoolRequestNodeSpecAwsInstanceDistribution{
-				OnDemandBaseCapacity:                &args.OnDemandBaseCapacity,
-				OnDemandPercentageAboveBaseCapacity: &onDemandPercentageAboveBaseCapacity,
-			},
-		},
+		if args.Provider == provider.Azure {
+			requestBody.NodeSpec.Azure = &models.V5AddNodePoolRequestNodeSpecAzure{
+				VMSize: args.VmSize,
+			}
+		}
 	}
-	if args.InstanceType != "" {
-		requestBody.NodeSpec.Aws.InstanceType = args.InstanceType
-	}
+
 	if args.AvailabilityZonesList != nil && len(args.AvailabilityZonesList) > 0 {
 		requestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
 			Zones: args.AvailabilityZonesList,
@@ -341,15 +386,6 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 	} else if args.AvailabilityZonesNum != 0 {
 		requestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
 			Number: int64(args.AvailabilityZonesNum),
-		}
-	}
-	if args.ScalingMin != 0 || args.ScalingMax != 0 {
-		requestBody.Scaling = &models.V5AddNodePoolRequestScaling{}
-		if args.ScalingMin != 0 {
-			requestBody.Scaling.Min = args.ScalingMin
-		}
-		if args.ScalingMax != 0 {
-			requestBody.Scaling.Max = args.ScalingMax
 		}
 	}
 
@@ -435,4 +471,18 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	fmt.Printf("Use this command to inspect details for the new node pool:\n\n")
 	fmt.Println(color.YellowString("    gsctl show nodepool %s/%s", clusterID, r.nodePoolID))
 	fmt.Printf("\n")
+}
+
+func getInstallationInfo(endpoint, userProvidedToken string) (*models.V4InfoResponse, error) {
+	clientWrapper, err := client.NewWithConfig(endpoint, userProvidedToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	installationInfo, err := clientWrapper.GetInfo(nil)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return installationInfo.Payload, nil
 }
