@@ -47,7 +47,7 @@ follows:
 
 - Name: will be "Unnamed node pool".
 - Availability zones: the node pool will use 1 zone selected randomly.
-- Instance type: the default instance type of the installation will be
+- Instance type (AWS) / VM Size (Azure): the default machine type of the installation will be
   used. Check 'gsctl info' to find out what that is.
 - Scaling settings: the minimum will be 3 and maximum 10 nodes.
 
@@ -63,7 +63,7 @@ Examples:
 
     gsctl create nodepool f01r4  --name "Batch jobs"
 
-  Assigning the node pool to availabilty zones can be done in several
+  Assigning the node pool to availability zones can be done in several
   ways. If you only want to ensure that several zones are used, specify
   a number liker like this:
 
@@ -74,9 +74,15 @@ Examples:
 
     gsctl create nodepool f01r4 --availability-zones b,c,d
 
-  Here is how you specify the instance type to use:
+  Here is how you specify the instance type (AWS) to use:
 
     gsctl create nodepool "Cluster name" --aws-instance-type m4.2xlarge
+
+  Here is how you specify the vm size (Azure) to use:
+
+    gsctl create nodepool "Cluster name" --azure-vm-size Standard_D4_v3
+
+  # Node pool scaling (AWS only):
 
   The initial node pool size is set by adjusting the lower and upper
   size limit like this:
@@ -89,6 +95,8 @@ Examples:
     gsctl create nodepool f01r4 --nodes-min 3 --nodes-max 10 \
 	  --aws-on-demand-base-capacity 3 \
 	  --aws-spot-percentage 50
+
+  # Spot instances (AWS only):
 
   To use similar instances in your node pool to the one that you defined
   you can create your node pool like this (the list is maintained by
