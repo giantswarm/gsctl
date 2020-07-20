@@ -6,9 +6,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/giantswarm/gsctl/client"
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
+
+	"github.com/giantswarm/gsctl/client"
 
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/testutils"
@@ -72,6 +73,7 @@ func TestCollectArgs(t *testing.T) {
 				ClusterNameOrID: "cluster-id",
 				Name:            "my-name",
 				Scheme:          "giantswarm",
+				Provider:        "aws",
 			},
 		},
 		{
@@ -97,6 +99,7 @@ func TestCollectArgs(t *testing.T) {
 				InstanceType:         "instance-type",
 				ScalingMin:           5,
 				ScalingMax:           10,
+				Provider:             "aws",
 			},
 		},
 		{
@@ -114,6 +117,7 @@ func TestCollectArgs(t *testing.T) {
 				ClusterNameOrID:       "a-cluster-id",
 				Scheme:                "giantswarm",
 				AvailabilityZonesList: []string{"myzonea", "myzoneb", "myzonec"},
+				Provider:              "aws",
 			},
 		},
 		// Only setting the --nodes-min, but not --nodes-max flag.
@@ -133,6 +137,7 @@ func TestCollectArgs(t *testing.T) {
 				ScalingMax:      0,
 				ScalingMin:      5,
 				Scheme:          "giantswarm",
+				Provider:        "aws",
 			},
 		},
 		// Only setting the --nodes-max, but not --nodes-min flag.
@@ -152,6 +157,26 @@ func TestCollectArgs(t *testing.T) {
 				ScalingMax:      5,
 				ScalingMin:      0,
 				Scheme:          "giantswarm",
+				Provider:        "aws",
+			},
+		},
+		// Setting the Azure VM size.
+		{
+			[]string{"another-cluster-id"},
+			func() {
+				initFlags()
+				Command.ParseFlags([]string{
+					"another-cluster-id",
+					"--azure-vm-size=something-large",
+				})
+			},
+			Arguments{
+				APIEndpoint:     mockServer.URL,
+				AuthToken:       "some-token",
+				ClusterNameOrID: "another-cluster-id",
+				VmSize:          "something-large",
+				Scheme:          "giantswarm",
+				Provider:        "aws",
 			},
 		},
 	}
@@ -195,6 +220,7 @@ func TestSuccess(t *testing.T) {
 			Arguments{
 				ClusterNameOrID: "cluster-id",
 				AuthToken:       "token",
+				Provider:        "aws",
 			},
 			`{
 				"id": "m0ckr",
@@ -216,6 +242,7 @@ func TestSuccess(t *testing.T) {
 				ScalingMax:            10,
 				InstanceType:          "my-big-type",
 				AvailabilityZonesList: []string{"my-region-1a", "my-region-1c"},
+				Provider:              "aws",
 			},
 			`{
 				"id": "m0ckr",
@@ -237,6 +264,7 @@ func TestSuccess(t *testing.T) {
 				ScalingMax:           50,
 				InstanceType:         "my-big-type",
 				AvailabilityZonesNum: 3,
+				Provider:             "aws",
 			},
 			`{
 				"id": "m0ckr",
@@ -244,6 +272,24 @@ func TestSuccess(t *testing.T) {
 				"availability_zones": ["my-region-1a", "my-region-1b", "my-region-1c"],
 				"scaling": {"min": 4, "max": 10},
 				"node_spec": {"aws": {"instance_type": "my-big-type"}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}},
+				"status": {"nodes": 0, "nodes_ready": 0},
+				"subnet": "10.1.0.0/24"
+			}`,
+		},
+		// Creation with Azure VM Size.
+		{
+			Arguments{
+				ClusterNameOrID: "cluster-id",
+				AuthToken:       "token",
+				Name:            "my node pool",
+				VmSize:          "my-big-type",
+				Provider:        "azure",
+			},
+			`{
+				"id": "m0ckr",
+				"name": "my node pool",
+				"availability_zones": ["my-region-1a", "my-region-1b", "my-region-1c"],
+				"node_spec": {"azure": {"vm_size": "my-big-type"}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}},
 				"status": {"nodes": 0, "nodes_ready": 0},
 				"subnet": "10.1.0.0/24"
 			}`,
@@ -311,6 +357,7 @@ func TestVerifyPreconditions(t *testing.T) {
 				AuthToken:       "token",
 				APIEndpoint:     "https://mock-url",
 				ClusterNameOrID: "",
+				Provider:        "aws",
 			},
 			errors.IsClusterNameOrIDMissingError,
 		},
@@ -322,6 +369,7 @@ func TestVerifyPreconditions(t *testing.T) {
 				AvailabilityZonesList: []string{"fooa", "foob"},
 				AvailabilityZonesNum:  3,
 				ClusterNameOrID:       "cluster-id",
+				Provider:              "aws",
 			},
 			errors.IsConflictingFlagsError,
 		},
@@ -333,8 +381,21 @@ func TestVerifyPreconditions(t *testing.T) {
 				ClusterNameOrID: "cluster-id",
 				ScalingMax:      3,
 				ScalingMin:      5,
+				Provider:        "aws",
 			},
 			errors.IsWorkersMinMaxInvalid,
+		},
+		// Using both instance type and VM size
+		{
+			Arguments{
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
+				InstanceType:    "something-big",
+				VmSize:          "something-also-big",
+				Provider:        "aws",
+			},
+			errors.IsConflictingFlagsError,
 		},
 	}
 
