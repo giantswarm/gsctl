@@ -2,7 +2,7 @@ api_version: v5
 release_version: "12.1.0"
 name: Cluster with three node pools
 master:
-  availability_zone: eu-central-1a
+  availability_zone: 1
 nodepools:
   - name: Node pool with 2 random AZs
     availability_zones:
