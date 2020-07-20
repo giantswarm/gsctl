@@ -6,10 +6,12 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/giantswarm/microerror"
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/pkg/provider"
 
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/testutils"
@@ -503,6 +505,67 @@ func TestExecuteWithError(t *testing.T) {
 				t.Errorf("Case %d - Expected error, got nil", i)
 			} else if !tc.errorMatcher(err) {
 				t.Errorf("Case %d - Error did not match expectec type. Got '%s'", i, err)
+			}
+		})
+	}
+}
+
+func Test_expandAndValidateZones(t *testing.T) {
+	testCases := []struct {
+		name           string
+		zones          []string
+		provider       string
+		dataCenterName string
+		expectedResult []string
+		errorMatcher   func(error) bool
+	}{
+		{
+			name:           "case 0: aws zones, initials",
+			zones:          []string{"a", "b", "c"},
+			provider:       provider.AWS,
+			dataCenterName: "eu-central-1",
+			expectedResult: []string{"eu-central-1a", "eu-central-1b", "eu-central-1c"},
+			errorMatcher:   nil,
+		},
+		{
+			name:           "case 1: aws zones, full names",
+			zones:          []string{"eu-central-1a", "eu-central-1b", "eu-central-1c"},
+			provider:       provider.AWS,
+			dataCenterName: "eu-central-1",
+			expectedResult: []string{"eu-central-1a", "eu-central-1b", "eu-central-1c"},
+			errorMatcher:   nil,
+		},
+		{
+			name:           "case 2: azure zones, valid numbers",
+			zones:          []string{"1", "2", "3"},
+			provider:       provider.Azure,
+			expectedResult: []string{"1", "2", "3"},
+			errorMatcher:   nil,
+		},
+		{
+			name:           "case 3: azure zones, not all valid numbers",
+			zones:          []string{"1", "asd2", "3"},
+			provider:       provider.Azure,
+			expectedResult: nil,
+			errorMatcher:   IsInvalidAvailabilityZones,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expandAndValidateZones(tc.zones, tc.provider, tc.dataCenterName)
+			if tc.errorMatcher != nil {
+				if !tc.errorMatcher(err) {
+					t.Fatalf("error not matching expected matcher, got: %s", microerror.Cause(err))
+				}
+
+				// All good. Fall through.
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err.Error())
+			}
+
+			if diff := cmp.Diff(result, tc.expectedResult); len(diff) > 0 {
+				t.Fatalf("result not expected, got:\n %s", diff)
 			}
 		})
 	}
