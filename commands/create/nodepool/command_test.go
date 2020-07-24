@@ -6,9 +6,12 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/microerror"
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
+
+	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/pkg/provider"
 
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/testutils"
@@ -72,6 +75,7 @@ func TestCollectArgs(t *testing.T) {
 				ClusterNameOrID: "cluster-id",
 				Name:            "my-name",
 				Scheme:          "giantswarm",
+				Provider:        "aws",
 			},
 		},
 		{
@@ -97,6 +101,7 @@ func TestCollectArgs(t *testing.T) {
 				InstanceType:         "instance-type",
 				ScalingMin:           5,
 				ScalingMax:           10,
+				Provider:             "aws",
 			},
 		},
 		{
@@ -114,6 +119,7 @@ func TestCollectArgs(t *testing.T) {
 				ClusterNameOrID:       "a-cluster-id",
 				Scheme:                "giantswarm",
 				AvailabilityZonesList: []string{"myzonea", "myzoneb", "myzonec"},
+				Provider:              "aws",
 			},
 		},
 		// Only setting the --nodes-min, but not --nodes-max flag.
@@ -133,6 +139,7 @@ func TestCollectArgs(t *testing.T) {
 				ScalingMax:      0,
 				ScalingMin:      5,
 				Scheme:          "giantswarm",
+				Provider:        "aws",
 			},
 		},
 		// Only setting the --nodes-max, but not --nodes-min flag.
@@ -152,6 +159,26 @@ func TestCollectArgs(t *testing.T) {
 				ScalingMax:      5,
 				ScalingMin:      0,
 				Scheme:          "giantswarm",
+				Provider:        "aws",
+			},
+		},
+		// Setting the Azure VM size.
+		{
+			[]string{"another-cluster-id"},
+			func() {
+				initFlags()
+				Command.ParseFlags([]string{
+					"another-cluster-id",
+					"--azure-vm-size=something-large",
+				})
+			},
+			Arguments{
+				APIEndpoint:     mockServer.URL,
+				AuthToken:       "some-token",
+				ClusterNameOrID: "another-cluster-id",
+				VmSize:          "something-large",
+				Scheme:          "giantswarm",
+				Provider:        "aws",
 			},
 		},
 	}
@@ -195,6 +222,7 @@ func TestSuccess(t *testing.T) {
 			Arguments{
 				ClusterNameOrID: "cluster-id",
 				AuthToken:       "token",
+				Provider:        "aws",
 			},
 			`{
 				"id": "m0ckr",
@@ -216,6 +244,7 @@ func TestSuccess(t *testing.T) {
 				ScalingMax:            10,
 				InstanceType:          "my-big-type",
 				AvailabilityZonesList: []string{"my-region-1a", "my-region-1c"},
+				Provider:              "aws",
 			},
 			`{
 				"id": "m0ckr",
@@ -237,6 +266,7 @@ func TestSuccess(t *testing.T) {
 				ScalingMax:           50,
 				InstanceType:         "my-big-type",
 				AvailabilityZonesNum: 3,
+				Provider:             "aws",
 			},
 			`{
 				"id": "m0ckr",
@@ -244,6 +274,24 @@ func TestSuccess(t *testing.T) {
 				"availability_zones": ["my-region-1a", "my-region-1b", "my-region-1c"],
 				"scaling": {"min": 4, "max": 10},
 				"node_spec": {"aws": {"instance_type": "my-big-type"}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}},
+				"status": {"nodes": 0, "nodes_ready": 0},
+				"subnet": "10.1.0.0/24"
+			}`,
+		},
+		// Creation with Azure VM Size.
+		{
+			Arguments{
+				ClusterNameOrID: "cluster-id",
+				AuthToken:       "token",
+				Name:            "my node pool",
+				VmSize:          "my-big-type",
+				Provider:        "azure",
+			},
+			`{
+				"id": "m0ckr",
+				"name": "my node pool",
+				"availability_zones": ["my-region-1a", "my-region-1b", "my-region-1c"],
+				"node_spec": {"azure": {"vm_size": "my-big-type"}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}},
 				"status": {"nodes": 0, "nodes_ready": 0},
 				"subnet": "10.1.0.0/24"
 			}`,
@@ -311,6 +359,7 @@ func TestVerifyPreconditions(t *testing.T) {
 				AuthToken:       "token",
 				APIEndpoint:     "https://mock-url",
 				ClusterNameOrID: "",
+				Provider:        "aws",
 			},
 			errors.IsClusterNameOrIDMissingError,
 		},
@@ -322,6 +371,7 @@ func TestVerifyPreconditions(t *testing.T) {
 				AvailabilityZonesList: []string{"fooa", "foob"},
 				AvailabilityZonesNum:  3,
 				ClusterNameOrID:       "cluster-id",
+				Provider:              "aws",
 			},
 			errors.IsConflictingFlagsError,
 		},
@@ -333,8 +383,21 @@ func TestVerifyPreconditions(t *testing.T) {
 				ClusterNameOrID: "cluster-id",
 				ScalingMax:      3,
 				ScalingMin:      5,
+				Provider:        "aws",
 			},
 			errors.IsWorkersMinMaxInvalid,
+		},
+		// Using both instance type and VM size
+		{
+			Arguments{
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
+				InstanceType:    "something-big",
+				VmSize:          "something-also-big",
+				Provider:        "aws",
+			},
+			errors.IsConflictingFlagsError,
 		},
 	}
 
@@ -442,6 +505,67 @@ func TestExecuteWithError(t *testing.T) {
 				t.Errorf("Case %d - Expected error, got nil", i)
 			} else if !tc.errorMatcher(err) {
 				t.Errorf("Case %d - Error did not match expectec type. Got '%s'", i, err)
+			}
+		})
+	}
+}
+
+func Test_expandAndValidateZones(t *testing.T) {
+	testCases := []struct {
+		name           string
+		zones          []string
+		provider       string
+		dataCenterName string
+		expectedResult []string
+		errorMatcher   func(error) bool
+	}{
+		{
+			name:           "case 0: aws zones, initials",
+			zones:          []string{"a", "b", "c"},
+			provider:       provider.AWS,
+			dataCenterName: "eu-central-1",
+			expectedResult: []string{"eu-central-1a", "eu-central-1b", "eu-central-1c"},
+			errorMatcher:   nil,
+		},
+		{
+			name:           "case 1: aws zones, full names",
+			zones:          []string{"eu-central-1a", "eu-central-1b", "eu-central-1c"},
+			provider:       provider.AWS,
+			dataCenterName: "eu-central-1",
+			expectedResult: []string{"eu-central-1a", "eu-central-1b", "eu-central-1c"},
+			errorMatcher:   nil,
+		},
+		{
+			name:           "case 2: azure zones, valid numbers",
+			zones:          []string{"1", "2", "3"},
+			provider:       provider.Azure,
+			expectedResult: []string{"1", "2", "3"},
+			errorMatcher:   nil,
+		},
+		{
+			name:           "case 3: azure zones, not all valid numbers",
+			zones:          []string{"1", "asd2", "3"},
+			provider:       provider.Azure,
+			expectedResult: nil,
+			errorMatcher:   IsInvalidAvailabilityZones,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := expandAndValidateZones(tc.zones, tc.provider, tc.dataCenterName)
+			if tc.errorMatcher != nil {
+				if !tc.errorMatcher(err) {
+					t.Fatalf("error not matching expected matcher, got: %s", microerror.Cause(err))
+				}
+
+				// All good. Fall through.
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err.Error())
+			}
+
+			if diff := cmp.Diff(result, tc.expectedResult); len(diff) > 0 {
+				t.Fatalf("result not expected, got:\n %s", diff)
 			}
 		})
 	}

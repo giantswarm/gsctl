@@ -5,19 +5,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
-	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/pkg/provider"
 )
 
 var (
@@ -47,7 +49,7 @@ follows:
 
 - Name: will be "Unnamed node pool".
 - Availability zones: the node pool will use 1 zone selected randomly.
-- Instance type: the default instance type of the installation will be
+- Instance type (AWS) / VM Size (Azure): the default machine type of the installation will be
   used. Check 'gsctl info' to find out what that is.
 - Scaling settings: the minimum will be 3 and maximum 10 nodes.
 
@@ -63,20 +65,31 @@ Examples:
 
     gsctl create nodepool f01r4  --name "Batch jobs"
 
-  Assigning the node pool to availabilty zones can be done in several
+  Assigning the node pool to availability zones can be done in several
   ways. If you only want to ensure that several zones are used, specify
   a number liker like this:
 
     gsctl create nodepool "Cluster name" --num-availability-zones 2
 
-  To set one or several specific zones to use, give a list of zone names
-  or letters.
+  To set one or several specific zones to use, give a list of zone names / letters (AWS), or a list of zone numbers (Azure).
+
+  # AWS
 
     gsctl create nodepool f01r4 --availability-zones b,c,d
 
-  Here is how you specify the instance type to use:
+  # Azure
+
+    gsctl create nodepool f01r4 --availability-zones 1,2,3
+
+  Here is how you specify the instance type (AWS) to use:
 
     gsctl create nodepool "Cluster name" --aws-instance-type m4.2xlarge
+
+  Here is how you specify the vm size (Azure) to use:
+
+    gsctl create nodepool "Cluster name" --azure-vm-size Standard_D4_v3
+
+  # Node pool scaling (AWS only):
 
   The initial node pool size is set by adjusting the lower and upper
   size limit like this:
@@ -89,6 +102,8 @@ Examples:
     gsctl create nodepool f01r4 --nodes-min 3 --nodes-max 10 \
 	  --aws-on-demand-base-capacity 3 \
 	  --aws-spot-percentage 50
+
+  # Spot instances (AWS only):
 
   To use similar instances in your node pool to the one that you defined
   you can create your node pool like this (the list is maintained by
@@ -128,12 +143,13 @@ func initFlags() {
 	Command.Flags().StringVarP(&flags.Name, "name", "n", "", "name or purpose description of the node pool")
 	Command.Flags().IntVarP(&cmdAvailabilityZonesNum, "num-availability-zones", "", 0, "Number of availability zones to use. Default is 1.")
 	Command.Flags().StringSliceVarP(&cmdAvailabilityZones, "availability-zones", "", nil, "List of availability zones to use, instead of setting a number. Use comma to separate values.")
-	Command.Flags().StringVarP(&flags.WorkerAwsEc2InstanceType, "aws-instance-type", "", "", "EC2 instance type to use for workers, e. g. 'm5.2xlarge'")
-	Command.Flags().Int64VarP(&flags.WorkersMin, "nodes-min", "", 0, "Minimum number of worker nodes for the node pool.")
-	Command.Flags().Int64VarP(&flags.WorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool.")
-	Command.Flags().BoolVarP(&flags.AWSUseAlikeInstanceTypes, "aws-use-alike-instance-types", "", false, "Use similar instance type in your node pool. This list is maintained by Giant Swarm at the moment. Eg if you select m5.xlarge then the node pool can fall back on m4.xlarge too.")
-	Command.Flags().Int64VarP(&flags.AWSOnDemandBaseCapacity, "aws-on-demand-base-capacity", "", 0, "Number of on-demand instances that this node pool needs to have until spot instances are used. Default is 0")
-	Command.Flags().Int64VarP(&flags.AWSSpotPercentage, "aws-spot-percentage", "", 0, "Percentage of spot instances used once the on-demand base capacity is fullfilled. A number of 40 would mean that 60% will be on-demand and 40% will be spot instances.")
+	Command.Flags().StringVarP(&flags.WorkerAwsEc2InstanceType, "aws-instance-type", "", "", "AWS EC2 instance type to use for workers, e. g. 'm5.2xlarge'")
+	Command.Flags().StringVarP(&flags.WorkerAzureVMSize, "azure-vm-size", "", "", "Azure VM Size to use for workers, e. g. 'Standard_D4_v3'")
+	Command.Flags().Int64VarP(&flags.WorkersMin, "nodes-min", "", 0, "Minimum number of worker nodes for the node pool (AWS only).")
+	Command.Flags().Int64VarP(&flags.WorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool (AWS only).")
+	Command.Flags().BoolVarP(&flags.AWSUseAlikeInstanceTypes, "aws-use-alike-instance-types", "", false, "Use similar instance type in your node pool (AWS only). This list is maintained by Giant Swarm at the moment. Eg if you select m5.xlarge then the node pool can fall back on m4.xlarge too.")
+	Command.Flags().Int64VarP(&flags.AWSOnDemandBaseCapacity, "aws-on-demand-base-capacity", "", 0, "Number of on-demand instances that this node pool needs to have until spot instances are used (AWS only). Default is 0")
+	Command.Flags().Int64VarP(&flags.AWSSpotPercentage, "aws-spot-percentage", "", 0, "Percentage of spot instances used once the on-demand base capacity is fullfilled (AWS only). A number of 40 would mean that 60% will be on-demand and 40% will be spot instances.")
 }
 
 // Arguments defines the arguments this command can take into consideration.
@@ -143,11 +159,13 @@ type Arguments struct {
 	AvailabilityZonesList []string
 	AvailabilityZonesNum  int
 	ClusterNameOrID       string
+	VmSize                string
 	InstanceType          string
 	UseAlikeInstanceTypes bool
 	OnDemandBaseCapacity  int64
 	SpotPercentage        int64
 	Name                  string
+	Provider              string
 	ScalingMax            int64
 	ScalingMin            int64
 	Scheme                string
@@ -170,9 +188,21 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 
 	var err error
 
+	var info *models.V4InfoResponse
+	{
+		if flags.Verbose {
+			fmt.Println(color.WhiteString("Fetching installation info to validate input"))
+		}
+
+		info, err = getInstallationInfo(endpoint, flags.Token)
+		if err != nil {
+			return Arguments{}, microerror.Mask(err)
+		}
+	}
+
 	zones := cmdAvailabilityZones
 	if zones != nil && len(zones) > 0 {
-		zones, err = expandZones(zones, endpoint, flags.Token, flags.Verbose)
+		zones, err = expandAndValidateZones(zones, info.General.Provider, info.General.Datacenter)
 		if err != nil {
 			return Arguments{}, microerror.Mask(err)
 		}
@@ -185,10 +215,12 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		AvailabilityZonesNum:  cmdAvailabilityZonesNum,
 		ClusterNameOrID:       positionalArgs[0],
 		InstanceType:          flags.WorkerAwsEc2InstanceType,
+		VmSize:                flags.WorkerAzureVMSize,
 		UseAlikeInstanceTypes: flags.AWSUseAlikeInstanceTypes,
 		OnDemandBaseCapacity:  flags.AWSOnDemandBaseCapacity,
 		SpotPercentage:        flags.AWSSpotPercentage,
 		Name:                  flags.Name,
+		Provider:              info.General.Provider,
 		ScalingMax:            flags.WorkersMax,
 		ScalingMin:            flags.WorkersMin,
 		Scheme:                scheme,
@@ -197,35 +229,35 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 	}, nil
 }
 
-// expandZones takes a list of alphabetical letters and returns a list of
-// availability zones. Example:
+// expandAndValidateZones takes a list of alphabetical letters and returns a list of
+// availability zones (for AWS). Example:
 //
 // ["a", "b"] -> ["eu-central-1a", "eu-central-1b"]
 //
-func expandZones(zones []string, endpoint, userProvidedToken string, verbose bool) ([]string, error) {
-	clientWrapper, err := client.NewWithConfig(endpoint, userProvidedToken)
-	if err != nil {
-		return []string{}, microerror.Mask(err)
-	}
-
-	if verbose {
-		fmt.Println(color.WhiteString("Fetching installation info to validate availability zones"))
-	}
-
-	info, err := clientWrapper.GetInfo(nil)
-	if err != nil {
-		return []string{}, microerror.Mask(err)
-	}
-
-	out := []string{}
-	for _, letter := range zones {
-		if len(letter) == 1 {
-			letter = info.Payload.General.Datacenter + strings.ToLower(letter)
+// For Azure, it validates that the availability zones are actually numbers.
+//
+func expandAndValidateZones(zones []string, p, dataCenter string) ([]string, error) {
+	if p == provider.AWS {
+		var out []string
+		for _, letter := range zones {
+			if len(letter) == 1 {
+				letter = dataCenter + strings.ToLower(letter)
+			}
+			out = append(out, letter)
 		}
-		out = append(out, letter)
+
+		return out, nil
 	}
 
-	return out, nil
+	if p == provider.Azure {
+		for _, zone := range zones {
+			if _, err := strconv.Atoi(zone); err != nil {
+				return nil, microerror.Mask(invalidAvailabilityZones)
+			}
+		}
+	}
+
+	return zones, nil
 }
 
 func verifyPreconditions(args Arguments) error {
@@ -245,16 +277,23 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Maskf(errors.ConflictingFlagsError, "the flags --availability-zones and --num-availability-zones cannot be combined.")
 	}
 
-	// Scaling flags plausibility
-	if args.ScalingMin > 0 && args.ScalingMax > 0 {
-		if args.ScalingMin > args.ScalingMax {
-			return microerror.Mask(errors.WorkersMinMaxInvalidError)
-		}
+	// Check if not using both instance types (AWS-specific) and vm sizes (Azure-specific).
+	if args.InstanceType != "" && args.VmSize != "" {
+		return microerror.Maskf(errors.ConflictingFlagsError, "the flags --aws-instance-type and --azure-vm-size cannot be combined.")
 	}
 
-	// SpotPercentage check percentage
-	if args.SpotPercentage < 0 || args.SpotPercentage > 100 {
-		return microerror.Mask(errors.NotPercentage)
+	if args.Provider == provider.AWS {
+		// Scaling flags plausibility
+		if args.ScalingMin > 0 && args.ScalingMax > 0 {
+			if args.ScalingMin > args.ScalingMax {
+				return microerror.Mask(errors.WorkersMinMaxInvalidError)
+			}
+		}
+
+		// SpotPercentage check percentage
+		if args.SpotPercentage < 0 || args.SpotPercentage > 100 {
+			return microerror.Mask(errors.NotPercentage)
+		}
 	}
 
 	return nil
@@ -279,9 +318,14 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	subtext := ""
 
 	switch {
+	case IsInvalidAvailabilityZones(err):
+		headline = "Invalid availability zones"
+		subtext = "The provided availability zones have an incorrect format"
 	case errors.IsConflictingFlagsError(err):
 		headline = "Conflicting flags used"
-		subtext = "The flags --availability-zones and --num-availability-zones must not be used together."
+		// Removing the 'conflicting flags error:' from the beginning
+		// of the error and capitalizing the first letter.
+		subtext = strings.Replace(err.Error(), "conflicting flags error: t", "T", 1)
 	default:
 		headline = err.Error()
 	}
@@ -303,20 +347,38 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 		Name: args.Name,
 	}
 
-	onDemandPercentageAboveBaseCapacity := 100 - args.SpotPercentage
+	requestBody.NodeSpec = &models.V5AddNodePoolRequestNodeSpec{}
+	{
+		if args.Provider == provider.AWS {
+			onDemandPercentageAboveBaseCapacity := 100 - args.SpotPercentage
+			requestBody.NodeSpec.Aws = &models.V5AddNodePoolRequestNodeSpecAws{
+				UseAlikeInstanceTypes: &args.UseAlikeInstanceTypes,
+				InstanceDistribution: &models.V5AddNodePoolRequestNodeSpecAwsInstanceDistribution{
+					OnDemandBaseCapacity:                &args.OnDemandBaseCapacity,
+					OnDemandPercentageAboveBaseCapacity: &onDemandPercentageAboveBaseCapacity,
+				},
+			}
+			if args.InstanceType != "" {
+				requestBody.NodeSpec.Aws.InstanceType = args.InstanceType
+			}
+			if args.ScalingMin != 0 || args.ScalingMax != 0 {
+				requestBody.Scaling = &models.V5AddNodePoolRequestScaling{}
+				if args.ScalingMin != 0 {
+					requestBody.Scaling.Min = args.ScalingMin
+				}
+				if args.ScalingMax != 0 {
+					requestBody.Scaling.Max = args.ScalingMax
+				}
+			}
+		}
 
-	requestBody.NodeSpec = &models.V5AddNodePoolRequestNodeSpec{
-		Aws: &models.V5AddNodePoolRequestNodeSpecAws{
-			UseAlikeInstanceTypes: &args.UseAlikeInstanceTypes,
-			InstanceDistribution: &models.V5AddNodePoolRequestNodeSpecAwsInstanceDistribution{
-				OnDemandBaseCapacity:                &args.OnDemandBaseCapacity,
-				OnDemandPercentageAboveBaseCapacity: &onDemandPercentageAboveBaseCapacity,
-			},
-		},
+		if args.Provider == provider.Azure {
+			requestBody.NodeSpec.Azure = &models.V5AddNodePoolRequestNodeSpecAzure{
+				VMSize: args.VmSize,
+			}
+		}
 	}
-	if args.InstanceType != "" {
-		requestBody.NodeSpec.Aws.InstanceType = args.InstanceType
-	}
+
 	if args.AvailabilityZonesList != nil && len(args.AvailabilityZonesList) > 0 {
 		requestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
 			Zones: args.AvailabilityZonesList,
@@ -324,15 +386,6 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 	} else if args.AvailabilityZonesNum != 0 {
 		requestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
 			Number: int64(args.AvailabilityZonesNum),
-		}
-	}
-	if args.ScalingMin != 0 || args.ScalingMax != 0 {
-		requestBody.Scaling = &models.V5AddNodePoolRequestScaling{}
-		if args.ScalingMin != 0 {
-			requestBody.Scaling.Min = args.ScalingMin
-		}
-		if args.ScalingMax != 0 {
-			requestBody.Scaling.Max = args.ScalingMax
 		}
 	}
 
@@ -418,4 +471,18 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	fmt.Printf("Use this command to inspect details for the new node pool:\n\n")
 	fmt.Println(color.YellowString("    gsctl show nodepool %s/%s", clusterID, r.nodePoolID))
 	fmt.Printf("\n")
+}
+
+func getInstallationInfo(endpoint, userProvidedToken string) (*models.V4InfoResponse, error) {
+	clientWrapper, err := client.NewWithConfig(endpoint, userProvidedToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	installationInfo, err := clientWrapper.GetInfo(nil)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return installationInfo.Payload, nil
 }

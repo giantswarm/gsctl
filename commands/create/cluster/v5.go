@@ -110,6 +110,13 @@ func createAddNodePoolBody(def *types.NodePoolDefinition) *models.V5AddNodePoolR
 
 			b.NodeSpec.Aws.UseAlikeInstanceTypes = &def.NodeSpec.AWS.UseAlikeInstanceTypes
 		}
+
+		if def.NodeSpec.Azure != nil {
+			b.NodeSpec.Azure = &models.V5AddNodePoolRequestNodeSpecAzure{}
+			if def.NodeSpec.Azure.VMSize != "" {
+				b.NodeSpec.Azure.VMSize = def.NodeSpec.Azure.VMSize
+			}
+		}
 	}
 
 	return b

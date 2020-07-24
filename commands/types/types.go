@@ -90,7 +90,8 @@ type AvailabilityZonesDefinition struct {
 
 // NodeSpec defines the specification of the nodes in a node pool, as intriduced with the V5 API.
 type NodeSpec struct {
-	AWS *AWSSpecificDefinition `yaml:"aws,omitempty"`
+	AWS   *AWSSpecificDefinition   `yaml:"aws,omitempty"`
+	Azure *AzureSpecificDefinition `yaml:"azure,omitempty"`
 }
 
 // NodePoolDefinition defines a node pool as introduces by the V5 API.
