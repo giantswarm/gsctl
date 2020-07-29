@@ -20,7 +20,9 @@ func getOutputAzure(nodePool *models.V5GetNodePoolResponse) (string, error) {
 	}
 
 	vmSizeDetails, err := azureInfo.GetVMSizeDetails(nodePool.NodeSpec.Azure.VMSize)
-	if err != nil {
+	if nodespec.IsVMSizeNotFoundErr(err) {
+		// We deliberately ignore "vm size not found", but respect all other errors.
+	} else if err != nil {
 		return "", microerror.Mask(err)
 	}
 
@@ -49,7 +51,6 @@ func getOutputAzure(nodePool *models.V5GetNodePoolResponse) (string, error) {
 }
 
 func formatVMSizeAzure(vmSize string, details *nodespec.VMSize) string {
-
 	if details != nil {
 		return fmt.Sprintf("%s - %.1f GB RAM, %d CPUs each",
 			vmSize,
