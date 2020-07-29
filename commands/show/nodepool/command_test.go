@@ -3,7 +3,6 @@ package nodepool
 import (
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -15,10 +14,12 @@ import (
 // Test_ShowNodePool tries cases where we don't expect any errors.
 func Test_ShowNodePool(t *testing.T) {
 	var testCases = []struct {
+		name         string
 		responseBody string
 	}{
 		{
-			`{
+			name: "aws",
+			responseBody: `{
 				"id": "nodepool-id",
 				"name": "Application servers",
 				"availability_zones": ["eu-west-1a", "eu-west-1c"],
@@ -29,8 +30,8 @@ func Test_ShowNodePool(t *testing.T) {
 			}`,
 		},
 		{
-			// Instance type "nonexisting" does not exist. That's on purpose.
-			`{
+			name: "aws, instance type non-existing",
+			responseBody: `{
 				"id":"nodepool-id",
 				"name":"awesome-nodepool",
 				"availability_zones":["europe-west-1b","europe-central-1a","europe-central-1b"],
@@ -40,10 +41,30 @@ func Test_ShowNodePool(t *testing.T) {
 				"subnet":"10.1.0.0/24"
 			}`,
 		},
+		{
+			name: "azure",
+			responseBody: `{
+				"id": "nodepool-id",
+				"name": "Application servers",
+				"availability_zones": ["1", "2"],
+				"node_spec": {"azure": {"vm_size": "Standard_D2s_v3"}},
+				"status": {"nodes": 3, "nodes_ready": 3}
+			}`,
+		},
+		{
+			name: "azure, non-existent vm size",
+			responseBody: `{
+				"id": "nodepool-id",
+				"name": "Application servers",
+				"availability_zones": ["1", "2"],
+				"node_spec": {"azure": {"vm_size": "weird_one"}},
+				"status": {"nodes": 3, "nodes_ready": 3}
+			}`,
+		},
 	}
 
 	for i, tc := range testCases {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				if r.Method == "GET" {
