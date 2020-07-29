@@ -38,7 +38,7 @@ func getOutputAzure(nodePool *models.V5GetNodePoolResponse) (string, error) {
 		table = append(table, color.YellowString("ID:")+"|"+nodePool.ID)
 		table = append(table, color.YellowString("Name:")+"|"+nodePool.Name)
 		table = append(table, color.YellowString("Node VM sizes:")+"|"+formatVMSizeAzure(vmSizes, vmSizeDetails))
-		table = append(table, color.YellowString("Availability zones:")+"|"+strings.Join(nodePool.AvailabilityZones, ","))
+		table = append(table, color.YellowString("Availability zones:")+"|"+formatAZsAzure(nodePool.AvailabilityZones))
 		table = append(table, color.YellowString("Nodes desired:")+fmt.Sprintf("|%d", nodePool.Status.Nodes))
 		table = append(table, color.YellowString("Nodes in state Ready:")+fmt.Sprintf("|%d", nodePool.Status.NodesReady))
 		table = append(table, color.YellowString("CPUs:")+"|"+formatCPUsAzure(nodePool.Status.NodesReady, vmSizeDetails))
@@ -51,7 +51,7 @@ func getOutputAzure(nodePool *models.V5GetNodePoolResponse) (string, error) {
 func formatVMSizeAzure(vmSize string, details *nodespec.VMSize) string {
 
 	if details != nil {
-		return fmt.Sprintf("%s - %f GB RAM, %d CPUs each",
+		return fmt.Sprintf("%s - %.1f GB RAM, %d CPUs each",
 			vmSize,
 			details.MemoryInMB/1000,
 			details.NumberOfCores)
@@ -71,6 +71,14 @@ func formatCPUsAzure(nodesReady int64, details *nodespec.VMSize) string {
 func formatRAMAzure(nodesReady int64, details *nodespec.VMSize) string {
 	if details != nil {
 		return strconv.FormatFloat(float64(nodesReady)*details.MemoryInMB/1000, 'f', 1, 64)
+	}
+
+	return "n/a"
+}
+
+func formatAZsAzure(azs []string) string {
+	if len(azs) > 0 {
+		return strings.Join(azs, ",")
 	}
 
 	return "n/a"
