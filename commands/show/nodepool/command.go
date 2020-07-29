@@ -10,9 +10,10 @@ import (
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
-	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/clustercache"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
@@ -135,9 +136,16 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	os.Exit(1)
 }
 
+func handleError(err error) {
+	client.HandleErrors(err)
+	errors.HandleCommonErrors(err)
+
+	fmt.Println(color.RedString(err.Error()))
+}
+
 // fetchNodePool collects all information we would want to display
 // on a node pools of a cluster.
-func fetchNodePool(args *Arguments) (*result, error) {
+func fetchNodePool(args *Arguments) (*models.V5GetNodePoolResponse, error) {
 	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -151,71 +159,63 @@ func fetchNodePool(args *Arguments) (*result, error) {
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	// create combined output data structure.
-	res := &result{}
-
 	response, err := clientWrapper.GetNodePool(clusterID, args.nodePoolID, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	res.nodePool = response.Payload
-
-	awsInfo, err := nodespec.NewAWS()
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	res.instanceTypeDetails, err = awsInfo.GetInstanceTypeDetails(res.nodePool.NodeSpec.Aws.InstanceType)
-	if nodespec.IsInstanceTypeNotFoundErr(err) {
-		// We deliberately ignore "instance type not found", but respect all other errors.
-	} else if err != nil {
-		return nil, microerror.Mask(err)
-	} else {
-		res.sumCPUs = res.nodePool.Status.NodesReady * int64(res.instanceTypeDetails.CPUCores)
-		res.sumMemory = float64(res.nodePool.Status.NodesReady) * float64(res.instanceTypeDetails.MemorySizeGB)
-	}
-
-	return res, nil
+	return response.Payload, nil
 }
 
 func printResult(cmd *cobra.Command, positionalArgs []string) {
-	var data *result
 	args, err := collectArguments(positionalArgs)
-	if err == nil {
-		data, err = fetchNodePool(args)
+	if err != nil {
+		handleError(microerror.Mask(err))
+		os.Exit(1)
 	}
 
+	nodePool, err := fetchNodePool(args)
 	if err != nil {
-		client.HandleErrors(err)
-		errors.HandleCommonErrors(err)
+		handleError(microerror.Mask(err))
+		os.Exit(1)
+	}
 
-		fmt.Println(color.RedString(err.Error()))
+	awsInfo, err := nodespec.NewAWS()
+	if err != nil {
+		handleError(microerror.Mask(err))
+		os.Exit(1)
+	}
+
+	instanceTypeDetails, err := awsInfo.GetInstanceTypeDetails(nodePool.NodeSpec.Aws.InstanceType)
+	if nodespec.IsInstanceTypeNotFoundErr(err) {
+		// We deliberately ignore "instance type not found", but respect all other errors.
+	} else if err != nil {
+		handleError(microerror.Mask(err))
 		os.Exit(1)
 	}
 
 	var instanceTypes string
-	if len(data.nodePool.Status.InstanceTypes) > 0 {
-		instanceTypes = strings.Join(data.nodePool.Status.InstanceTypes, ",")
+	if len(nodePool.Status.InstanceTypes) > 0 {
+		instanceTypes = strings.Join(nodePool.Status.InstanceTypes, ",")
 	} else {
-		instanceTypes = data.nodePool.NodeSpec.Aws.InstanceType
+		instanceTypes = nodePool.NodeSpec.Aws.InstanceType
 	}
 
-	table := []string{}
+	var table []string
 
-	table = append(table, color.YellowString("ID:")+"|"+data.nodePool.ID)
-	table = append(table, color.YellowString("Name:")+"|"+data.nodePool.Name)
-	table = append(table, color.YellowString("Node instance types:")+"|"+formatInstanceType(instanceTypes, data.instanceTypeDetails))
-	table = append(table, color.YellowString("Alike instances types:")+fmt.Sprintf("|%t", data.nodePool.NodeSpec.Aws.UseAlikeInstanceTypes))
-	table = append(table, color.YellowString("Availability zones:")+"|"+formatting.AvailabilityZonesList(data.nodePool.AvailabilityZones))
-	table = append(table, color.YellowString("On-demand base capacity:")+fmt.Sprintf("|%d", data.nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandBaseCapacity))
-	table = append(table, color.YellowString("Spot percentage above base capacity:")+fmt.Sprintf("|%d", 100-data.nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandPercentageAboveBaseCapacity))
-	table = append(table, color.YellowString("Node scaling:")+"|"+formatNodeScaling(data.nodePool.Scaling))
-	table = append(table, color.YellowString("Nodes desired:")+fmt.Sprintf("|%d", data.nodePool.Status.Nodes))
-	table = append(table, color.YellowString("Nodes in state Ready:")+fmt.Sprintf("|%d", data.nodePool.Status.NodesReady))
-	table = append(table, color.YellowString("Spot instances:")+fmt.Sprintf("|%d", data.nodePool.Status.SpotInstances))
-	table = append(table, color.YellowString("CPUs:")+"|"+formatCPUs(data.nodePool.Status.NodesReady, data.instanceTypeDetails))
-	table = append(table, color.YellowString("RAM:")+"|"+formatRAM(data.nodePool.Status.NodesReady, data.instanceTypeDetails))
+	table = append(table, color.YellowString("ID:")+"|"+nodePool.ID)
+	table = append(table, color.YellowString("Name:")+"|"+nodePool.Name)
+	table = append(table, color.YellowString("Node instance types:")+"|"+formatInstanceType(instanceTypes, instanceTypeDetails))
+	table = append(table, color.YellowString("Alike instances types:")+fmt.Sprintf("|%t", nodePool.NodeSpec.Aws.UseAlikeInstanceTypes))
+	table = append(table, color.YellowString("Availability zones:")+"|"+formatting.AvailabilityZonesList(nodePool.AvailabilityZones))
+	table = append(table, color.YellowString("On-demand base capacity:")+fmt.Sprintf("|%d", nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandBaseCapacity))
+	table = append(table, color.YellowString("Spot percentage above base capacity:")+fmt.Sprintf("|%d", 100-nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandPercentageAboveBaseCapacity))
+	table = append(table, color.YellowString("Node scaling:")+"|"+formatNodeScaling(nodePool.Scaling))
+	table = append(table, color.YellowString("Nodes desired:")+fmt.Sprintf("|%d", nodePool.Status.Nodes))
+	table = append(table, color.YellowString("Nodes in state Ready:")+fmt.Sprintf("|%d", nodePool.Status.NodesReady))
+	table = append(table, color.YellowString("Spot instances:")+fmt.Sprintf("|%d", nodePool.Status.SpotInstances))
+	table = append(table, color.YellowString("CPUs:")+"|"+formatCPUs(nodePool.Status.NodesReady, instanceTypeDetails))
+	table = append(table, color.YellowString("RAM:")+"|"+formatRAM(nodePool.Status.NodesReady, instanceTypeDetails))
 
 	fmt.Println(columnize.SimpleFormat(table))
 }

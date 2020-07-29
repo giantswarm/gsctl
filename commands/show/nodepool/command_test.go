@@ -16,8 +16,6 @@ import (
 func Test_ShowNodePool(t *testing.T) {
 	var testCases = []struct {
 		responseBody string
-		sumCPUs      int64
-		sumMemory    float64
 	}{
 		{
 			`{
@@ -29,8 +27,6 @@ func Test_ShowNodePool(t *testing.T) {
 				"status": {"nodes": 3, "nodes_ready": 3},
 				"subnet": "10.1.0.0/24"
 			}`,
-			6,
-			12.0,
 		},
 		{
 			// Instance type "nonexisting" does not exist. That's on purpose.
@@ -43,8 +39,6 @@ func Test_ShowNodePool(t *testing.T) {
 				"status":{"nodes":4,"nodes_ready":4},
 				"subnet":"10.1.0.0/24"
 			}`,
-			0,
-			0.0,
 		},
 	}
 
@@ -99,24 +93,17 @@ selected_endpoint: ` + mockServer.URL
 			}
 			positionalArgs := []string{"cluster-id/nodepool-id"}
 
-			result, err := fetchNodePool(args)
+			nodePool, err := fetchNodePool(args)
 			if err != nil {
 				t.Errorf("Case %d: unexpected error '%s'", i, err)
 			}
 
-			if result == nil {
+			if nodePool == nil {
 				t.Fatalf("Case %d: Got Got nil instead of node pool details", i)
 			}
 
-			if result.nodePool.ID != "nodepool-id" {
-				t.Errorf("Case %d: Got unexpected node pool ID %s", i, result.nodePool.ID)
-			}
-
-			if result.sumCPUs != tc.sumCPUs {
-				t.Errorf("Case %d: Got unexpected number of CPUs: %d", i, result.sumCPUs)
-			}
-			if result.sumMemory != tc.sumMemory {
-				t.Errorf("Case %d: Got unexpected sum of RAM: %f GB", i, result.sumMemory)
+			if nodePool.ID != "nodepool-id" {
+				t.Errorf("Case %d: Got unexpected node pool ID %s", i, nodePool.ID)
 			}
 
 			// Execute our print function and check for errors.
