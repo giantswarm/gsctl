@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
 	"github.com/giantswarm/microerror"
@@ -18,7 +17,6 @@ import (
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
-	"github.com/giantswarm/gsctl/formatting"
 	"github.com/giantswarm/gsctl/nodespec"
 )
 
@@ -133,14 +131,23 @@ func handleError(err error) {
 	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 
-	headline := ""
-	subtext := ""
+	var (
+		headline string
+		subtext  string
+	)
+	{
+		switch {
+		case errors.IsClusterDoesNotSupportNodePools(err):
+			headline = "This cluster does not support node pools."
+			subtext = "Node pools cannot be listed for this cluster. Please use 'gsctl show cluster' to get information on worker nodes."
 
-	if errors.IsInvalidNodePoolIDArgument(err) {
-		headline = "Invalid argument syntax"
-		subtext = "Please give the cluster name or ID, followed by /, followed by the node pool ID."
-	} else {
-		headline = err.Error()
+		case errors.IsInvalidNodePoolIDArgument(err):
+			headline = "Invalid argument syntax"
+			subtext = "Please give the cluster name or ID, followed by /, followed by the node pool ID."
+
+		default:
+			headline = err.Error()
+		}
 	}
 
 	fmt.Println(color.RedString(headline))
@@ -192,85 +199,17 @@ func getOutput(positionalArgs []string) (string, error) {
 			if err != nil {
 				return "", microerror.Mask(err)
 			}
+
+		case nodePool.NodeSpec.Azure != nil:
+			output, err = getOutputAzure(nodePool)
+			if err != nil {
+				return "", microerror.Mask(err)
+			}
+
+		default:
+			return "", microerror.Mask(errors.ClusterDoesNotSupportNodePoolsError)
 		}
 	}
 
 	return output, nil
-}
-
-func getOutputAWS(nodePool *models.V5GetNodePoolResponse) (string, error) {
-	awsInfo, err := nodespec.NewAWS()
-	if err != nil {
-		return "", microerror.Mask(err)
-	}
-
-	instanceTypeDetails, err := awsInfo.GetInstanceTypeDetails(nodePool.NodeSpec.Aws.InstanceType)
-	if nodespec.IsInstanceTypeNotFoundErr(err) {
-		// We deliberately ignore "instance type not found", but respect all other errors.
-	} else if err != nil {
-		return "", microerror.Mask(err)
-	}
-
-	var instanceTypes string
-	{
-		if len(nodePool.Status.InstanceTypes) > 0 {
-			instanceTypes = strings.Join(nodePool.Status.InstanceTypes, ",")
-		} else {
-			instanceTypes = nodePool.NodeSpec.Aws.InstanceType
-		}
-	}
-
-	var table []string
-	{
-		table = append(table, color.YellowString("ID:")+"|"+nodePool.ID)
-		table = append(table, color.YellowString("Name:")+"|"+nodePool.Name)
-		table = append(table, color.YellowString("Node instance types:")+"|"+formatInstanceType(instanceTypes, instanceTypeDetails))
-		table = append(table, color.YellowString("Alike instances types:")+fmt.Sprintf("|%t", nodePool.NodeSpec.Aws.UseAlikeInstanceTypes))
-		table = append(table, color.YellowString("Availability zones:")+"|"+formatting.AvailabilityZonesList(nodePool.AvailabilityZones))
-		table = append(table, color.YellowString("On-demand base capacity:")+fmt.Sprintf("|%d", nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandBaseCapacity))
-		table = append(table, color.YellowString("Spot percentage above base capacity:")+fmt.Sprintf("|%d", 100-nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandPercentageAboveBaseCapacity))
-		table = append(table, color.YellowString("Node scaling:")+"|"+formatNodeScaling(nodePool.Scaling))
-		table = append(table, color.YellowString("Nodes desired:")+fmt.Sprintf("|%d", nodePool.Status.Nodes))
-		table = append(table, color.YellowString("Nodes in state Ready:")+fmt.Sprintf("|%d", nodePool.Status.NodesReady))
-		table = append(table, color.YellowString("Spot instances:")+fmt.Sprintf("|%d", nodePool.Status.SpotInstances))
-		table = append(table, color.YellowString("CPUs:")+"|"+formatCPUs(nodePool.Status.NodesReady, instanceTypeDetails))
-		table = append(table, color.YellowString("RAM:")+"|"+formatRAM(nodePool.Status.NodesReady, instanceTypeDetails))
-	}
-
-	return columnize.SimpleFormat(table), nil
-}
-
-func formatInstanceType(instanceTypeName string, details *nodespec.InstanceType) string {
-	if details != nil {
-		return fmt.Sprintf("%s - %d GB RAM, %d CPUs each",
-			instanceTypeName,
-			details.MemorySizeGB,
-			details.CPUCores)
-	}
-
-	return fmt.Sprintf("%s %s", instanceTypeName, color.RedString("(no information available on this instance type)"))
-}
-
-func formatCPUs(numNodes int64, details *nodespec.InstanceType) string {
-	if details != nil {
-		return fmt.Sprintf("%d", numNodes*int64(details.CPUCores))
-	}
-
-	return "n/a"
-}
-
-func formatRAM(numNodes int64, details *nodespec.InstanceType) string {
-	if details != nil {
-		return fmt.Sprintf("%d GB", numNodes*int64(details.MemorySizeGB))
-	}
-
-	return "n/a"
-}
-
-func formatNodeScaling(scaling *models.V5GetNodePoolResponseScaling) string {
-	if scaling.Min == scaling.Max {
-		return fmt.Sprintf("Pinned to %d", scaling.Min)
-	}
-
-	return fmt.Sprintf("Autoscaling between %d and %d", scaling.Min, scaling.Max)
 }
