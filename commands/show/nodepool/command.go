@@ -7,17 +7,16 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
-	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/clustercache"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
-	"github.com/giantswarm/gsctl/formatting"
 	"github.com/giantswarm/gsctl/nodespec"
 )
 
@@ -109,35 +108,57 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	args, err := collectArguments(positionalArgs)
 	if err == nil {
 		err = verifyPreconditions(args)
+		if err == nil {
+			return
+		}
 	}
 
-	if err == nil {
-		return
+	handleError(err)
+	os.Exit(1)
+}
+
+func printResult(cmd *cobra.Command, positionalArgs []string) {
+	output, err := getOutput(positionalArgs)
+	if err != nil {
+		handleError(microerror.Mask(err))
+		os.Exit(1)
 	}
 
+	fmt.Println(output)
+}
+
+func handleError(err error) {
 	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 
-	headline := ""
-	subtext := ""
+	var (
+		headline string
+		subtext  string
+	)
+	{
+		switch {
+		case errors.IsClusterDoesNotSupportNodePools(err):
+			headline = "This cluster does not support node pools."
+			subtext = "Node pools cannot be listed for this cluster. Please use 'gsctl show cluster' to get information on worker nodes."
 
-	if errors.IsInvalidNodePoolIDArgument(err) {
-		headline = "Invalid argument syntax"
-		subtext = "Please give the cluster name or ID, followed by /, followed by the node pool ID."
-	} else {
-		headline = err.Error()
+		case errors.IsInvalidNodePoolIDArgument(err):
+			headline = "Invalid argument syntax"
+			subtext = "Please give the cluster name or ID, followed by /, followed by the node pool ID."
+
+		default:
+			headline = err.Error()
+		}
 	}
 
 	fmt.Println(color.RedString(headline))
 	if subtext != "" {
 		fmt.Println(subtext)
 	}
-	os.Exit(1)
 }
 
 // fetchNodePool collects all information we would want to display
 // on a node pools of a cluster.
-func fetchNodePool(args *Arguments) (*result, error) {
+func fetchNodePool(args *Arguments) (*models.V5GetNodePoolResponse, error) {
 	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -151,106 +172,44 @@ func fetchNodePool(args *Arguments) (*result, error) {
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = activityName
 
-	// create combined output data structure.
-	res := &result{}
-
 	response, err := clientWrapper.GetNodePool(clusterID, args.nodePoolID, auxParams)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	res.nodePool = response.Payload
-
-	awsInfo, err := nodespec.NewAWS()
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	res.instanceTypeDetails, err = awsInfo.GetInstanceTypeDetails(res.nodePool.NodeSpec.Aws.InstanceType)
-	if nodespec.IsInstanceTypeNotFoundErr(err) {
-		// We deliberately ignore "instance type not found", but respect all other errors.
-	} else if err != nil {
-		return nil, microerror.Mask(err)
-	} else {
-		res.sumCPUs = res.nodePool.Status.NodesReady * int64(res.instanceTypeDetails.CPUCores)
-		res.sumMemory = float64(res.nodePool.Status.NodesReady) * float64(res.instanceTypeDetails.MemorySizeGB)
-	}
-
-	return res, nil
+	return response.Payload, nil
 }
 
-func printResult(cmd *cobra.Command, positionalArgs []string) {
-	var data *result
+func getOutput(positionalArgs []string) (string, error) {
 	args, err := collectArguments(positionalArgs)
-	if err == nil {
-		data, err = fetchNodePool(args)
-	}
-
 	if err != nil {
-		client.HandleErrors(err)
-		errors.HandleCommonErrors(err)
-
-		fmt.Println(color.RedString(err.Error()))
-		os.Exit(1)
+		return "", microerror.Mask(err)
 	}
 
-	var instanceTypes string
-	if len(data.nodePool.Status.InstanceTypes) > 0 {
-		instanceTypes = strings.Join(data.nodePool.Status.InstanceTypes, ",")
-	} else {
-		instanceTypes = data.nodePool.NodeSpec.Aws.InstanceType
+	nodePool, err := fetchNodePool(args)
+	if err != nil {
+		return "", microerror.Mask(err)
 	}
 
-	table := []string{}
+	var output string
+	{
+		switch {
+		case nodePool.NodeSpec.Aws != nil:
+			output, err = getOutputAWS(nodePool)
+			if err != nil {
+				return "", microerror.Mask(err)
+			}
 
-	table = append(table, color.YellowString("ID:")+"|"+data.nodePool.ID)
-	table = append(table, color.YellowString("Name:")+"|"+data.nodePool.Name)
-	table = append(table, color.YellowString("Node instance types:")+"|"+formatInstanceType(instanceTypes, data.instanceTypeDetails))
-	table = append(table, color.YellowString("Alike instances types:")+fmt.Sprintf("|%t", data.nodePool.NodeSpec.Aws.UseAlikeInstanceTypes))
-	table = append(table, color.YellowString("Availability zones:")+"|"+formatting.AvailabilityZonesList(data.nodePool.AvailabilityZones))
-	table = append(table, color.YellowString("On-demand base capacity:")+fmt.Sprintf("|%d", data.nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandBaseCapacity))
-	table = append(table, color.YellowString("Spot percentage above base capacity:")+fmt.Sprintf("|%d", 100-data.nodePool.NodeSpec.Aws.InstanceDistribution.OnDemandPercentageAboveBaseCapacity))
-	table = append(table, color.YellowString("Node scaling:")+"|"+formatNodeScaling(data.nodePool.Scaling))
-	table = append(table, color.YellowString("Nodes desired:")+fmt.Sprintf("|%d", data.nodePool.Status.Nodes))
-	table = append(table, color.YellowString("Nodes in state Ready:")+fmt.Sprintf("|%d", data.nodePool.Status.NodesReady))
-	table = append(table, color.YellowString("Spot instances:")+fmt.Sprintf("|%d", data.nodePool.Status.SpotInstances))
-	table = append(table, color.YellowString("CPUs:")+"|"+formatCPUs(data.nodePool.Status.NodesReady, data.instanceTypeDetails))
-	table = append(table, color.YellowString("RAM:")+"|"+formatRAM(data.nodePool.Status.NodesReady, data.instanceTypeDetails))
+		case nodePool.NodeSpec.Azure != nil:
+			output, err = getOutputAzure(nodePool)
+			if err != nil {
+				return "", microerror.Mask(err)
+			}
 
-	fmt.Println(columnize.SimpleFormat(table))
-}
-
-func formatInstanceType(instanceTypeName string, details *nodespec.InstanceType) string {
-	if details != nil {
-		return fmt.Sprintf("%s - %d GB RAM, %d CPUs each",
-			instanceTypeName,
-			details.MemorySizeGB,
-			details.CPUCores)
+		default:
+			return "", microerror.Mask(errors.ClusterDoesNotSupportNodePoolsError)
+		}
 	}
 
-	return fmt.Sprintf("%s %s", instanceTypeName, color.RedString("(no information available on this instance type)"))
-}
-
-func formatCPUs(numNodes int64, details *nodespec.InstanceType) string {
-	if details != nil {
-		return fmt.Sprintf("%d", numNodes*int64(details.CPUCores))
-	}
-
-	return "n/a"
-}
-
-func formatRAM(numNodes int64, details *nodespec.InstanceType) string {
-	if details != nil {
-		return fmt.Sprintf("%d GB", numNodes*int64(details.MemorySizeGB))
-	}
-
-	return "n/a"
-}
-
-func formatNodeScaling(scaling *models.V5GetNodePoolResponseScaling) string {
-	if scaling.Min == scaling.Max {
-		return fmt.Sprintf("Pinned to %d", scaling.Min)
-	}
-
-	return fmt.Sprintf("Autoscaling between %d and %d", scaling.Min, scaling.Max)
+	return output, nil
 }

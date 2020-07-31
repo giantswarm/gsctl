@@ -3,7 +3,6 @@ package nodepool
 import (
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -15,12 +14,12 @@ import (
 // Test_ShowNodePool tries cases where we don't expect any errors.
 func Test_ShowNodePool(t *testing.T) {
 	var testCases = []struct {
+		name         string
 		responseBody string
-		sumCPUs      int64
-		sumMemory    float64
 	}{
 		{
-			`{
+			name: "aws",
+			responseBody: `{
 				"id": "nodepool-id",
 				"name": "Application servers",
 				"availability_zones": ["eu-west-1a", "eu-west-1c"],
@@ -29,12 +28,10 @@ func Test_ShowNodePool(t *testing.T) {
 				"status": {"nodes": 3, "nodes_ready": 3},
 				"subnet": "10.1.0.0/24"
 			}`,
-			6,
-			12.0,
 		},
 		{
-			// Instance type "nonexisting" does not exist. That's on purpose.
-			`{
+			name: "aws, instance type non-existing",
+			responseBody: `{
 				"id":"nodepool-id",
 				"name":"awesome-nodepool",
 				"availability_zones":["europe-west-1b","europe-central-1a","europe-central-1b"],
@@ -43,13 +40,31 @@ func Test_ShowNodePool(t *testing.T) {
 				"status":{"nodes":4,"nodes_ready":4},
 				"subnet":"10.1.0.0/24"
 			}`,
-			0,
-			0.0,
+		},
+		{
+			name: "azure",
+			responseBody: `{
+				"id": "nodepool-id",
+				"name": "Application servers",
+				"availability_zones": ["1", "2"],
+				"node_spec": {"azure": {"vm_size": "Standard_D2s_v3"}},
+				"status": {"nodes": 3, "nodes_ready": 3}
+			}`,
+		},
+		{
+			name: "azure, non-existent vm size",
+			responseBody: `{
+				"id": "nodepool-id",
+				"name": "Application servers",
+				"availability_zones": ["1", "2"],
+				"node_spec": {"azure": {"vm_size": "weird_one"}},
+				"status": {"nodes": 3, "nodes_ready": 3}
+			}`,
 		},
 	}
 
 	for i, tc := range testCases {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				if r.Method == "GET" {
@@ -99,24 +114,17 @@ selected_endpoint: ` + mockServer.URL
 			}
 			positionalArgs := []string{"cluster-id/nodepool-id"}
 
-			result, err := fetchNodePool(args)
+			nodePool, err := fetchNodePool(args)
 			if err != nil {
 				t.Errorf("Case %d: unexpected error '%s'", i, err)
 			}
 
-			if result == nil {
+			if nodePool == nil {
 				t.Fatalf("Case %d: Got Got nil instead of node pool details", i)
 			}
 
-			if result.nodePool.ID != "nodepool-id" {
-				t.Errorf("Case %d: Got unexpected node pool ID %s", i, result.nodePool.ID)
-			}
-
-			if result.sumCPUs != tc.sumCPUs {
-				t.Errorf("Case %d: Got unexpected number of CPUs: %d", i, result.sumCPUs)
-			}
-			if result.sumMemory != tc.sumMemory {
-				t.Errorf("Case %d: Got unexpected sum of RAM: %f GB", i, result.sumMemory)
+			if nodePool.ID != "nodepool-id" {
+				t.Errorf("Case %d: Got unexpected node pool ID %s", i, nodePool.ID)
 			}
 
 			// Execute our print function and check for errors.
