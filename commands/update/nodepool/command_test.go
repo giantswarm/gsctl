@@ -1,30 +1,58 @@
 package nodepool
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"testing"
 
 	"github.com/giantswarm/gsclientgen/models"
-	"github.com/giantswarm/gsctl/commands/errors"
-	"github.com/giantswarm/gsctl/testutils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
+
+	"github.com/giantswarm/gsctl/commands/errors"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
 // configYAML is a mock configuration used by some of the tests.
 const configYAML = `last_version_check: 0001-01-01T00:00:00Z
 endpoints:
-  https://foo:
+  %s:
     email: email@example.com
     token: some-token
-selected_endpoint: https://foo
+selected_endpoint: %s
 updated: 2017-09-29T11:23:15+02:00
 `
 
 // TestCollectArgs tests whether collectArguments produces the expected results.
 func TestCollectArgs(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == "GET" && r.URL.String() == "/v4/info/" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{
+				"general": {
+				  "provider": "aws"
+				},
+				"features": {
+				  "nodepools": {"release_version_minimum": "9.0.0"},
+				  "ha_masters": {"release_version_minimum": "11.5.0"}
+				}
+			  }`))
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"code": "ERROR", "message": "Bad things happened"}`))
+		}
+	}))
+	defer mockServer.Close()
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, fmt.Sprintf(configYAML, mockServer.URL, mockServer.URL))
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	var testCases = []struct {
 		// The positional arguments we pass.
 		positionalArguments []string
@@ -40,10 +68,11 @@ func TestCollectArgs(t *testing.T) {
 				Command.ParseFlags([]string{"clusterid/nodepoolid"})
 			},
 			Arguments{
-				APIEndpoint:     "https://foo",
+				APIEndpoint:     mockServer.URL,
 				AuthToken:       "some-token",
 				ClusterNameOrID: "clusterid",
 				NodePoolID:      "nodepoolid",
+				Provider:        "aws",
 			},
 		},
 		{
@@ -53,21 +82,16 @@ func TestCollectArgs(t *testing.T) {
 				Command.ParseFlags([]string{"clusterid/nodepoolid", "--nodes-min=3", "--nodes-max=5", "--name=NewName"})
 			},
 			Arguments{
-				APIEndpoint:     "https://foo",
+				APIEndpoint:     mockServer.URL,
 				AuthToken:       "some-token",
 				ClusterNameOrID: "clusterid",
 				NodePoolID:      "nodepoolid",
 				ScalingMin:      3,
 				ScalingMax:      5,
 				Name:            "NewName",
+				Provider:        "aws",
 			},
 		},
-	}
-
-	fs := afero.NewMemMapFs()
-	_, err := testutils.TempConfig(fs, configYAML)
-	if err != nil {
-		t.Fatal(err)
 	}
 
 	for i, tc := range testCases {
@@ -87,56 +111,86 @@ func TestCollectArgs(t *testing.T) {
 // Test_verifyPreconditions tests cases where validating preconditions fails.
 func Test_verifyPreconditions(t *testing.T) {
 	var testCases = []struct {
+		name         string
 		args         Arguments
 		errorMatcher func(error) bool
 	}{
-		// Cluster ID is missing.
 		{
-			Arguments{
+			name: "case 0: cluster ID is missing",
+			args: Arguments{
 				AuthToken:   "token",
 				APIEndpoint: "https://mock-url",
+				Provider:    "aws",
 				NodePoolID:  "abc",
 			},
-			errors.IsClusterNameOrIDMissingError,
+			errorMatcher: errors.IsClusterNameOrIDMissingError,
 		},
-		// Node pool ID is missing.
 		{
-			Arguments{
+			name: "case 1: node pool ID is missing",
+			args: Arguments{
 				AuthToken:       "token",
 				APIEndpoint:     "https://mock-url",
+				Provider:        "aws",
 				ClusterNameOrID: "abc",
 			},
-			errors.IsNodePoolIDMissingError,
+			errorMatcher: errors.IsNodePoolIDMissingError,
 		},
-		// No token provided.
 		{
-			Arguments{
+			name: "case 2: no token provided",
+			args: Arguments{
 				APIEndpoint:     "https://mock-url",
+				Provider:        "aws",
 				ClusterNameOrID: "cluster-id",
 			},
-			errors.IsNotLoggedInError,
+			errorMatcher: errors.IsNotLoggedInError,
 		},
-		// Nothing to change.
 		{
-			Arguments{
+			name: "case 3: nothing to change, on aws",
+			args: Arguments{
 				AuthToken:       "token",
 				APIEndpoint:     "https://mock-url",
+				Provider:        "aws",
 				ClusterNameOrID: "cluster-id",
 				NodePoolID:      "abc",
 			},
-			errors.IsNoOpError,
+			errorMatcher: errors.IsNoOpError,
 		},
-		// Bad scaling parameters
 		{
-			Arguments{
+			name: "case 4: bad scaling parameters, on aws",
+			args: Arguments{
 				AuthToken:       "token",
 				APIEndpoint:     "https://mock-url",
+				Provider:        "aws",
 				ClusterNameOrID: "cluster-id",
 				NodePoolID:      "abc",
 				ScalingMin:      10,
 				ScalingMax:      1,
 			},
-			errors.IsWorkersMinMaxInvalid,
+			errorMatcher: errors.IsWorkersMinMaxInvalid,
+		},
+		{
+			name: "case 5: nothing to change, on azure",
+			args: Arguments{
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Provider:        "azure",
+				ClusterNameOrID: "cluster-id",
+				NodePoolID:      "abc",
+			},
+			errorMatcher: errors.IsNoOpError,
+		},
+		{
+			name: "case 6: trying to provide unsupported arguments, on azure",
+			args: Arguments{
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				Provider:        "azure",
+				ClusterNameOrID: "cluster-id",
+				NodePoolID:      "abc",
+				ScalingMin:      1,
+				ScalingMax:      3,
+			},
+			errorMatcher: errors.IsNoOpError,
 		},
 	}
 
@@ -147,7 +201,7 @@ func Test_verifyPreconditions(t *testing.T) {
 	}
 
 	for i, tc := range testCases {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			err := verifyPreconditions(tc.args)
 			if err == nil {
 				t.Errorf("Case %d - Expected error, got nil", i)
