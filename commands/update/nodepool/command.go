@@ -141,11 +141,11 @@ func verifyPreconditions(args Arguments) error {
 	}
 
 	if args.Provider == provider.Azure {
-		if args.Name == "" {
-			return microerror.Maskf(errors.NoOpError, "Nothing to update.")
-		}
 		if args.ScalingMin > 0 || args.ScalingMax > 0 {
 			return microerror.Maskf(errors.NoOpError, "Provider '%s' does not support node pool scaling.", args.Provider)
+		}
+		if args.Name == "" {
+			return microerror.Maskf(errors.NoOpError, "Nothing to update.")
 		}
 	}
 
