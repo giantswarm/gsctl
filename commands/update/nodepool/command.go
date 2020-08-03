@@ -21,7 +21,7 @@ import (
 var (
 	// Command is the cobra command for 'gsctl update nodepool'
 	Command = &cobra.Command{
-		Use:     "nodepool <cluster-id/nodepool-id>/<nodepool-id>",
+		Use:     "nodepool <cluster-name/cluster-id>/<nodepool-id>",
 		Aliases: []string{"np"},
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
 		Args:  cobra.ExactArgs(1),
