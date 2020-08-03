@@ -9,9 +9,11 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/models"
-	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/clustercache"
+	"github.com/giantswarm/gsctl/pkg/provider"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
@@ -26,7 +28,7 @@ var (
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
 		Args:  cobra.ExactArgs(1),
 		Short: "Modify node pool details",
-		Long: `Change the name or the scaling settings of a node pool.
+		Long: `Change the name (Azure and AWS) or the scaling settings (AWS only) of a node pool.
 
 Examples:
 
@@ -73,6 +75,7 @@ type Arguments struct {
 	NodePoolID        string
 	ScalingMax        int64
 	ScalingMin        int64
+	Provider          string
 	UserProvidedToken string
 }
 
@@ -85,6 +88,19 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		return Arguments{}, microerror.Mask(errors.NodePoolIDMalformedError)
 	}
 
+	var err error
+	var info *models.V4InfoResponse
+	{
+		if flags.Verbose {
+			fmt.Println(color.WhiteString("Fetching installation info to validate input"))
+		}
+
+		info, err = getInstallationInfo(endpoint, flags.Token)
+		if err != nil {
+			return Arguments{}, microerror.Mask(err)
+		}
+	}
+
 	return Arguments{
 		APIEndpoint:       endpoint,
 		AuthToken:         token,
@@ -93,6 +109,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		NodePoolID:        strings.TrimSpace(parts[1]),
 		ScalingMax:        flags.WorkersMax,
 		ScalingMin:        flags.WorkersMin,
+		Provider:          info.General.Provider,
 		UserProvidedToken: flags.Token,
 	}, nil
 }
@@ -113,10 +130,23 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	} else if args.NodePoolID == "" {
 		return microerror.Mask(errors.NodePoolIDMissingError)
-	} else if args.ScalingMin == 0 && args.ScalingMax == 0 && args.Name == "" {
-		return microerror.Mask(errors.NoOpError)
-	} else if args.ScalingMin > args.ScalingMax && args.ScalingMax > 0 {
-		return microerror.Mask(errors.WorkersMinMaxInvalidError)
+	}
+
+	if args.Provider == provider.AWS {
+		if args.ScalingMin == 0 && args.ScalingMax == 0 && args.Name == "" {
+			return microerror.Maskf(errors.NoOpError, "Nothing to update.")
+		} else if args.ScalingMin > args.ScalingMax && args.ScalingMax > 0 {
+			return microerror.Mask(errors.WorkersMinMaxInvalidError)
+		}
+	}
+
+	if args.Provider == provider.Azure {
+		if args.Name == "" {
+			return microerror.Maskf(errors.NoOpError, "Nothing to update.")
+		}
+		if args.ScalingMin > 0 || args.ScalingMax > 0 {
+			return microerror.Maskf(errors.NoOpError, "Provider '%s' does not support cluster scaling.", args.Provider)
+		}
 	}
 
 	return nil
@@ -140,9 +170,13 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	headline := ""
 	subtext := ""
 
-	if errors.IsNodePoolIDMalformedError(err) {
+	switch {
+	case errors.IsNodePoolIDMalformedError(err):
 		headline = "Bad format for Cluster name/ID or Node Pool ID argument"
 		subtext = "Please provide cluster name/ID and node pool ID separated by a slash. See --help for examples."
+
+	case errors.IsNoOpError(err):
+		headline = microerror.Pretty(err, false)
 	}
 
 	// print output
@@ -217,4 +251,18 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 
 	fmt.Println(color.GreenString("Node pool '%s' (ID '%s') in cluster '%s' has been modified.", r.NodePool.Name, r.NodePool.ID, arguments.ClusterNameOrID))
+}
+
+func getInstallationInfo(endpoint, userProvidedToken string) (*models.V4InfoResponse, error) {
+	clientWrapper, err := client.NewWithConfig(endpoint, userProvidedToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	installationInfo, err := clientWrapper.GetInfo(nil)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return installationInfo.Payload, nil
 }
