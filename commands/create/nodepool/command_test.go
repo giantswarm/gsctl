@@ -399,6 +399,18 @@ func TestVerifyPreconditions(t *testing.T) {
 			},
 			errors.IsConflictingFlagsError,
 		},
+		{
+			Arguments{
+				AuthToken:       "token",
+				APIEndpoint:     "https://mock-url",
+				ClusterNameOrID: "cluster-id",
+				VmSize:          "something-also-big",
+				ScalingMin:      3,
+				ScalingMax:      10,
+				Provider:        "azure",
+			},
+			errors.IsWorkersMinMaxInvalid,
+		},
 	}
 
 	fs := afero.NewMemMapFs()
