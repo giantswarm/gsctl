@@ -28,7 +28,9 @@ var (
 		// Args: cobra.ExactArgs(1) guarantees that cobra will fail if no positional argument is given.
 		Args:  cobra.ExactArgs(1),
 		Short: "Modify node pool details",
-		Long: `Change the name (Azure and AWS) or the scaling settings (AWS only) of a node pool.
+		Long: `Change the name or the scaling settings of a node pool.
+
+Setting the '--nodes-min' and '--nodes-max' flags to different values will enable autoscaling (AWS only).
 
 Examples:
 
@@ -132,20 +134,19 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Mask(errors.NodePoolIDMissingError)
 	}
 
-	if args.Provider == provider.AWS {
-		if args.ScalingMin == 0 && args.ScalingMax == 0 && args.Name == "" {
-			return microerror.Maskf(errors.NoOpError, "Nothing to update.")
-		} else if args.ScalingMin > args.ScalingMax && args.ScalingMax > 0 {
-			return microerror.Mask(errors.WorkersMinMaxInvalidError)
-		}
+	if args.ScalingMin == 0 && args.ScalingMax == 0 && args.Name == "" {
+		return microerror.Maskf(errors.NoOpError, "Nothing to update.")
 	}
 
-	if args.Provider == provider.Azure {
-		if args.ScalingMin > 0 || args.ScalingMax > 0 {
-			return microerror.Maskf(errors.NoOpError, "Provider '%s' does not support node pool scaling.", args.Provider)
+	switch args.Provider {
+	case provider.AWS:
+		if args.ScalingMin > args.ScalingMax && args.ScalingMax > 0 {
+			return microerror.Mask(errors.WorkersMinMaxInvalidError)
 		}
-		if args.Name == "" {
-			return microerror.Maskf(errors.NoOpError, "Nothing to update.")
+
+	case provider.Azure:
+		if args.ScalingMin != args.ScalingMax {
+			return microerror.Maskf(errors.NoOpError, "Provider '%s' does not support node pool autoscaling.", args.Provider)
 		}
 	}
 
