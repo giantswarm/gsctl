@@ -61,7 +61,7 @@ func init() {
 func initFlags() {
 	Command.ResetFlags()
 	Command.Flags().StringVarP(&flags.Name, "name", "n", "", "new cluster name")
-	Command.Flags().BoolVar(&flags.MasterHA, "master-ha", false, "switch to high-availability master")
+	Command.Flags().BoolVar(&flags.MasterHA, "master-ha", false, "switch to high-availability master (AWS only)")
 	Command.Flags().StringSliceVar(&flags.Label, "label", nil, "modification of a label in form of 'key=value'. Can be specified multiple times. To delete a label set to 'key='")
 }
 
