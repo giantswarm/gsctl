@@ -15,7 +15,7 @@ require (
 	github.com/giantswarm/gsclientgen v1.0.2-0.20200724110725-6bd63fe7f9c6
 	github.com/giantswarm/k8sclient v0.0.0-20191213144452-f75fead2ae06
 	github.com/giantswarm/kubeconfig v0.0.0-20191209121754-c5784ae65a49
-	github.com/giantswarm/microerror v0.2.0
+	github.com/giantswarm/microerror v0.2.1
 	github.com/giantswarm/micrologger v0.0.0-20190118112544-0926d9b7c541
 	github.com/go-openapi/analysis v0.19.4 // indirect
 	github.com/go-openapi/errors v0.19.3-0.20190617201723-9b273e805998 // indirect
