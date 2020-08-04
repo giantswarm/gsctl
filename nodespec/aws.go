@@ -102,10 +102,30 @@ r3.xlarge:
   description: R3 High-Memory Extra Large
   memory_size_gb: 30.5
   storage_size_gb: 80
+r5.xlarge:
+  cpu_cores: 4
+  description: R5 High-Memory Extra Large
+  memory_size_gb: 32
+  storage_size_gb: 0
 r5.2xlarge:
   cpu_cores: 8
   description: R5 High-Memory Double Extra Large
   memory_size_gb: 64
+  storage_size_gb: 0
+r5.4xlarge:
+  cpu_cores: 16
+  description: R5 High-Memory Quadruple Extra Large
+  memory_size_gb: 128
+  storage_size_gb: 0
+r5.8xlarge:
+  cpu_cores: 32
+  description: R5 High-Memory Eight Extra Large
+  memory_size_gb: 256
+  storage_size_gb: 0
+r5.12xlarge:
+  cpu_cores: 48
+  description: R5 High-Memory Twelve Extra Large
+  memory_size_gb: 284
   storage_size_gb: 0
 t2.2xlarge:
   cpu_cores: 8
