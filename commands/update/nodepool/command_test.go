@@ -190,7 +190,7 @@ func Test_verifyPreconditions(t *testing.T) {
 				ScalingMin:      1,
 				ScalingMax:      3,
 			},
-			errorMatcher: errors.IsNoOpError,
+			errorMatcher: errors.IsWorkersMinMaxInvalid,
 		},
 	}
 
