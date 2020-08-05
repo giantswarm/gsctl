@@ -51,7 +51,7 @@ follows:
 - Availability zones: the node pool will use 1 zone selected randomly.
 - Instance type (AWS) / VM Size (Azure): the default machine type of the installation will be
   used. Check 'gsctl info' to find out what that is.
-- Scaling settings: the minimum will be 3 and maximum 10 nodes.
+- Scaling settings: on AWS, the minimum will be 3 and maximum 10 nodes, and on Azure, the node count will be 3
 
 Examples:
 
@@ -89,12 +89,20 @@ Examples:
 
     gsctl create nodepool "Cluster name" --azure-vm-size Standard_D4_v3
 
-  # Node pool scaling (AWS only):
+  # Node pool scaling:
+
+  # AWS
 
   The initial node pool size is set by adjusting the lower and upper
   size limit like this:
 
     gsctl create nodepool f01r4 --nodes-min 3 --nodes-max 10
+
+  # Azure
+
+  The number of nodes is configured by setting both the lower and upper size limit to the same value:
+
+    gsctl create nodepool f01r4 --nodes-min 3 --nodes-max 3
 
   To use 50% spot instances in a node pool and making sure to always have
   three on-demand instances you can create your node pool like this:
@@ -145,8 +153,8 @@ func initFlags() {
 	Command.Flags().StringSliceVarP(&cmdAvailabilityZones, "availability-zones", "", nil, "List of availability zones to use, instead of setting a number. Use comma to separate values.")
 	Command.Flags().StringVarP(&flags.WorkerAwsEc2InstanceType, "aws-instance-type", "", "", "AWS EC2 instance type to use for workers, e. g. 'm5.2xlarge'")
 	Command.Flags().StringVarP(&flags.WorkerAzureVMSize, "azure-vm-size", "", "", "Azure VM Size to use for workers, e. g. 'Standard_D4_v3'")
-	Command.Flags().Int64VarP(&flags.WorkersMin, "nodes-min", "", 0, "Minimum number of worker nodes for the node pool (AWS only).")
-	Command.Flags().Int64VarP(&flags.WorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool (AWS only).")
+	Command.Flags().Int64VarP(&flags.WorkersMin, "nodes-min", "", 0, "Minimum number of worker nodes for the node pool.")
+	Command.Flags().Int64VarP(&flags.WorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool.")
 	Command.Flags().BoolVarP(&flags.AWSUseAlikeInstanceTypes, "aws-use-alike-instance-types", "", false, "Use similar instance type in your node pool (AWS only). This list is maintained by Giant Swarm at the moment. Eg if you select m5.xlarge then the node pool can fall back on m4.xlarge too.")
 	Command.Flags().Int64VarP(&flags.AWSOnDemandBaseCapacity, "aws-on-demand-base-capacity", "", 0, "Number of on-demand instances that this node pool needs to have until spot instances are used (AWS only). Default is 0")
 	Command.Flags().Int64VarP(&flags.AWSSpotPercentage, "aws-spot-percentage", "", 0, "Percentage of spot instances used once the on-demand base capacity is fullfilled (AWS only). A number of 40 would mean that 60% will be on-demand and 40% will be spot instances.")
@@ -282,7 +290,8 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Maskf(errors.ConflictingFlagsError, "the flags --aws-instance-type and --azure-vm-size cannot be combined.")
 	}
 
-	if args.Provider == provider.AWS {
+	switch args.Provider {
+	case provider.AWS:
 		// Scaling flags plausibility
 		if args.ScalingMin > 0 && args.ScalingMax > 0 {
 			if args.ScalingMin > args.ScalingMax {
@@ -293,6 +302,11 @@ func verifyPreconditions(args Arguments) error {
 		// SpotPercentage check percentage
 		if args.SpotPercentage < 0 || args.SpotPercentage > 100 {
 			return microerror.Mask(errors.NotPercentage)
+		}
+
+	case provider.Azure:
+		if args.ScalingMin != args.ScalingMax {
+			return microerror.Maskf(errors.WorkersMinMaxInvalidError, "Provider '%s' does not support node pool autoscaling.", args.Provider)
 		}
 	}
 
@@ -361,21 +375,22 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 			if args.InstanceType != "" {
 				requestBody.NodeSpec.Aws.InstanceType = args.InstanceType
 			}
-			if args.ScalingMin != 0 || args.ScalingMax != 0 {
-				requestBody.Scaling = &models.V5AddNodePoolRequestScaling{}
-				if args.ScalingMin != 0 {
-					requestBody.Scaling.Min = args.ScalingMin
-				}
-				if args.ScalingMax != 0 {
-					requestBody.Scaling.Max = args.ScalingMax
-				}
-			}
 		}
 
 		if args.Provider == provider.Azure {
 			requestBody.NodeSpec.Azure = &models.V5AddNodePoolRequestNodeSpecAzure{
 				VMSize: args.VmSize,
 			}
+		}
+	}
+
+	if args.ScalingMin != 0 || args.ScalingMax != 0 {
+		requestBody.Scaling = &models.V5AddNodePoolRequestScaling{}
+		if args.ScalingMin != 0 {
+			requestBody.Scaling.Min = args.ScalingMin
+		}
+		if args.ScalingMax != 0 {
+			requestBody.Scaling.Max = args.ScalingMax
 		}
 	}
 
