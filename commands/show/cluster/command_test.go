@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/giantswarm/gscliauth/config"
-	models "github.com/giantswarm/gsclientgen/models"
+	models "github.com/giantswarm/gsclientgen/v2/models"
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/commands/errors"

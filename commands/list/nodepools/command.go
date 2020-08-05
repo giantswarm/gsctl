@@ -12,7 +12,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
-	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsclientgen/v2/models"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 

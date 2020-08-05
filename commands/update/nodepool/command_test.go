@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsclientgen/v2/models"
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
 
