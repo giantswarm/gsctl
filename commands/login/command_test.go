@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/giantswarm/gscliauth/config"
-	"github.com/giantswarm/gsclientgen/client/auth_tokens"
+	"github.com/giantswarm/gsclientgen/v2/client/auth_tokens"
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/client/clienterror"

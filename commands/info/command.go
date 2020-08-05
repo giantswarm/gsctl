@@ -8,7 +8,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
-	clientinfo "github.com/giantswarm/gsclientgen/client/info"
+	clientinfo "github.com/giantswarm/gsclientgen/v2/client/info"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 

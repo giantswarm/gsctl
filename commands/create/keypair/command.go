@@ -8,7 +8,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
-	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsclientgen/v2/models"
 
 	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/gsctl/confirm"

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsclientgen/v2/models"
 	"github.com/giantswarm/microerror"
 	yaml "gopkg.in/yaml.v2"
 

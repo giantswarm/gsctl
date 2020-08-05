@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsclientgen/v2/models"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/testutils"

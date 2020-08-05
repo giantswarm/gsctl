@@ -12,7 +12,7 @@ import (
 
 	"github.com/Jeffail/gabs"
 	"github.com/giantswarm/gscliauth/config"
-	"github.com/giantswarm/gsclientgen/models"
+	"github.com/giantswarm/gsclientgen/v2/models"
 	"github.com/giantswarm/microerror"
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/afero"
