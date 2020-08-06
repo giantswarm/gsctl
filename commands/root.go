@@ -58,7 +58,7 @@ func init() {
 	RootCommand.PersistentFlags().StringVarP(&flags.ConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
 	RootCommand.PersistentFlags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Print more information")
 	RootCommand.Flags().Bool("version", false, version.Command.Short)
-	RootCommand.PersistentFlags().StringVarP(&flags.OutputFormat, "output", "", "table", "Output format. Allows 'table' or 'json'.")
+	RootCommand.PersistentFlags().StringVarP(&flags.OutputFormat, "output", "", "table", "Output format. Allows 'table' or 'json'. 'json' also disables any confirmations.")
 
 	// add subcommands
 	RootCommand.AddCommand(CompletionCommand)

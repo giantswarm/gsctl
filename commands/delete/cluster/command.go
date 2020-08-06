@@ -2,6 +2,7 @@
 package cluster
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -36,6 +37,11 @@ type Arguments struct {
 	userProvidedToken string
 	// verbosity
 	verbose bool
+}
+
+type jsonOutput struct {
+	Result string `json:"result"`
+	ID     string `json:"id"`
 }
 
 func collectArguments(positionalArgs []string) Arguments {
@@ -176,6 +182,18 @@ func printResult(cmd *cobra.Command, args []string) {
 		if arguments.clusterNameOrID != "" {
 			clusterID = arguments.clusterNameOrID
 		}
+
+		if flags.OutputFormat == "json" {
+			jsonResult := jsonOutput{Result: "deletion scheduled", ID: clusterID}
+			outputBytes, err := json.Marshal(jsonResult)
+			if err != nil {
+				os.Exit(1)
+			}
+
+			fmt.Println(string(outputBytes))
+			return
+		}
+
 		fmt.Println(color.GreenString("The cluster '%s' will be deleted as soon as all workloads are terminated.", clusterID))
 	} else {
 		if arguments.verbose {
@@ -205,8 +223,13 @@ func deleteCluster(args Arguments) (bool, error) {
 		}
 	}
 
-	// confirmation
-	if !args.force {
+	requireConfirmation := true
+
+	if args.force || flags.OutputFormat == "json" {
+		requireConfirmation = false
+	}
+
+	if requireConfirmation {
 		confirmed := confirm.AskStrict(
 			fmt.Sprintf("Do you really want to delete cluster '%s'? Please type '%s' to confirm", args.clusterNameOrID, args.clusterNameOrID),
 			args.clusterNameOrID,
