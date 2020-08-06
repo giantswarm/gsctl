@@ -19,6 +19,7 @@ The command deals with a few delicacies/spiecialties:
 package cluster
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -98,6 +99,13 @@ type creationResult struct {
 	// This is only relevant in v5 and should only be used if a node
 	// pool could not be created successfully.
 	HasErrors bool
+}
+
+type jsonOutput struct {
+	// cluster ID
+	ID string `json:"id"`
+	// result. should be 'created'
+	Result string `json:"result"`
 }
 
 const (
@@ -330,6 +338,20 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 			fmt.Println(subtext)
 		}
 		os.Exit(1)
+	}
+
+	if flags.OutputFormat == "json" {
+		jsonResult := jsonOutput{ID: result.ID, Result: "created"}
+		if result.HasErrors {
+			jsonResult.Result = "created-with-errors"
+		}
+		outputBytes, err := json.Marshal(jsonResult)
+		if err != nil {
+			os.Exit(1)
+		}
+
+		fmt.Println(string(outputBytes))
+		return
 	}
 
 	// success output

@@ -14,6 +14,7 @@ import (
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
+	"github.com/giantswarm/gsctl/flags"
 )
 
 // updateDefinitionFromFlagsV4 extend/overwrites a clusterDefinition based on the
@@ -104,7 +105,9 @@ func addClusterV4(def *types.ClusterDefinitionV4, args Arguments, clientWrapper 
 		fmt.Println()
 	}
 
-	fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(def.Owner))
+	if flags.OutputFormat != "json" {
+		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(def.Owner))
+	}
 
 	// perform API call
 	response, err := clientWrapper.CreateClusterV4(addClusterBody, auxParams)
