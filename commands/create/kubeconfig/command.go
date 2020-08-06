@@ -4,6 +4,7 @@ package kubeconfig
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
+	"github.com/giantswarm/gsclientgen/v2/client/key_pairs"
 	"github.com/giantswarm/gsclientgen/v2/models"
 	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/k8sclient/k8srestconfig"
@@ -164,12 +166,19 @@ type createKubeconfigResult struct {
 	clientKeyPath string
 	// absolute path for a self-contained kubeconfig file
 	selfContainedPath string
+	// kubeconfig yaml bytes
+	selfContainedYAMLBytes []byte
 	// the context name applied
 	contextName string
 	// key pair ID
 	id string
 	// TTL of the key pair in hours
 	ttlHours uint
+}
+
+type jsonOutput struct {
+	Result     string `json:"result"`
+	KubeConfig string `json:"kubeconfig"`
 }
 
 func init() {
@@ -344,6 +353,17 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	// Success output
 
+	if flags.OutputFormat == "json" {
+		jsonResult := jsonOutput{Result: "ok", KubeConfig: string(result.selfContainedYAMLBytes)}
+		outputBytes, err := json.Marshal(jsonResult)
+		if err != nil {
+			os.Exit(1)
+		}
+
+		fmt.Println(string(outputBytes))
+		return
+	}
+
 	msg := fmt.Sprintf("New key pair created with ID %s and expiry of %v",
 		util.Truncate(formatting.CleanKeypairID(result.id), 10, true),
 		util.DurationPhrase(int(result.ttlHours)))
@@ -466,7 +486,15 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	result.id = response.Payload.ID
 	result.ttlHours = uint(response.Payload.TTLHours)
 
-	if args.selfContainedPath == "" {
+	if flags.OutputFormat == "json" {
+		yamlBytes, err := createKubeconfigYAML(ctx, clusterID, result.apiEndpoint, response)
+		if err != nil {
+			return result, microerror.Mask(err)
+		}
+
+		result.selfContainedYAMLBytes = yamlBytes
+
+	} else if args.selfContainedPath == "" {
 		// modify the given kubeconfig file
 		result.caCertPath = util.StoreCaCertificate(args.fileSystem, config.CertsDirPath,
 			clusterID, response.Payload.CertificateAuthorityData)
@@ -494,34 +522,9 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 		}
 	} else {
 		// create a self-contained kubeconfig
-		var yamlBytes []byte
-		logger, err := micrologger.New(micrologger.Config{
-			IOWriter: new(bytes.Buffer), // to suppress any log output
-		})
+		yamlBytes, err := createKubeconfigYAML(ctx, clusterID, result.apiEndpoint, response)
 		if err != nil {
 			return result, microerror.Mask(err)
-		}
-		{
-			c := k8srestconfig.Config{
-				Logger: logger,
-
-				Address:   result.apiEndpoint,
-				InCluster: false,
-				TLS: k8srestconfig.ConfigTLS{
-					CAData:  []byte(response.Payload.CertificateAuthorityData),
-					CrtData: []byte(response.Payload.ClientCertificateData),
-					KeyData: []byte(response.Payload.ClientKeyData),
-				},
-			}
-			restConfig, err := k8srestconfig.New(c)
-			if err != nil {
-				return result, microerror.Mask(err)
-			}
-
-			yamlBytes, err = kubeconfig.NewKubeConfigForRESTConfig(ctx, restConfig, fmt.Sprintf("giantswarm-%s", clusterID), "")
-			if err != nil {
-				return result, microerror.Mask(err)
-			}
 		}
 
 		err = afero.WriteFile(args.fileSystem, args.selfContainedPath, yamlBytes, 0600)
@@ -533,4 +536,38 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	}
 
 	return result, nil
+}
+
+func createKubeconfigYAML(ctx context.Context, clusterID, apiEndpoint string, response *key_pairs.AddKeyPairOK) ([]byte, error) {
+	var yamlBytes []byte
+	logger, err := micrologger.New(micrologger.Config{
+		IOWriter: new(bytes.Buffer), // to suppress any log output
+	})
+	if err != nil {
+		return yamlBytes, microerror.Mask(err)
+	}
+	{
+		c := k8srestconfig.Config{
+			Logger: logger,
+
+			Address:   apiEndpoint,
+			InCluster: false,
+			TLS: k8srestconfig.ConfigTLS{
+				CAData:  []byte(response.Payload.CertificateAuthorityData),
+				CrtData: []byte(response.Payload.ClientCertificateData),
+				KeyData: []byte(response.Payload.ClientKeyData),
+			},
+		}
+		restConfig, err := k8srestconfig.New(c)
+		if err != nil {
+			return yamlBytes, microerror.Mask(err)
+		}
+
+		yamlBytes, err = kubeconfig.NewKubeConfigForRESTConfig(ctx, restConfig, fmt.Sprintf("giantswarm-%s", clusterID), "")
+		if err != nil {
+			return yamlBytes, microerror.Mask(err)
+		}
+
+		return yamlBytes, nil
+	}
 }
