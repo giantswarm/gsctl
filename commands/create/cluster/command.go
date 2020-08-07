@@ -101,7 +101,8 @@ type creationResult struct {
 	HasErrors bool
 }
 
-type jsonOutput struct {
+// JSONOutput contains the fields included in JSON output of the create cluster command when called with json output flag
+type JSONOutput struct {
 	// cluster ID
 	ID string `json:"id"`
 	// result. should be 'created'
@@ -341,7 +342,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	}
 
 	if flags.OutputFormat == "json" {
-		jsonResult := jsonOutput{ID: result.ID, Result: "created"}
+		jsonResult := JSONOutput{ID: result.ID, Result: "created"}
 		if result.HasErrors {
 			jsonResult.Result = "created-with-errors"
 		}

@@ -39,7 +39,8 @@ type Arguments struct {
 	verbose bool
 }
 
-type jsonOutput struct {
+// JSONOutput contains the fields included in JSON output of the delete cluster command when called with json output flag
+type JSONOutput struct {
 	Result string `json:"result"`
 	ID     string `json:"id"`
 }
@@ -184,7 +185,7 @@ func printResult(cmd *cobra.Command, args []string) {
 		}
 
 		if flags.OutputFormat == "json" {
-			jsonResult := jsonOutput{Result: "deletion scheduled", ID: clusterID}
+			jsonResult := JSONOutput{Result: "deletion scheduled", ID: clusterID}
 			outputBytes, err := json.Marshal(jsonResult)
 			if err != nil {
 				os.Exit(1)

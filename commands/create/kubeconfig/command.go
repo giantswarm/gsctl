@@ -176,7 +176,8 @@ type createKubeconfigResult struct {
 	ttlHours uint
 }
 
-type jsonOutput struct {
+// JSONOutput contains the fields included in JSON output of the create kubeconfig command when called with json output flag
+type JSONOutput struct {
 	Result     string `json:"result"`
 	KubeConfig string `json:"kubeconfig"`
 }
@@ -354,7 +355,7 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	// Success output
 
 	if flags.OutputFormat == "json" {
-		jsonResult := jsonOutput{Result: "ok", KubeConfig: string(result.selfContainedYAMLBytes)}
+		jsonResult := JSONOutput{Result: "ok", KubeConfig: string(result.selfContainedYAMLBytes)}
 		outputBytes, err := json.Marshal(jsonResult)
 		if err != nil {
 			os.Exit(1)
