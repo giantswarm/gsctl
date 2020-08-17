@@ -68,6 +68,8 @@ func collectArguments(cmd *cobra.Command) Arguments {
 		haMasters = &flags.MasterHA
 	}
 
+	normalizedReleaseVersion := strings.TrimPrefix(flags.Release, "v")
+
 	return Arguments{
 		APIEndpoint:           endpoint,
 		AuthToken:             token,
@@ -77,7 +79,7 @@ func collectArguments(cmd *cobra.Command) Arguments {
 		InputYAMLFile:         flags.InputYAMLFile,
 		MasterHA:              haMasters,
 		Owner:                 flags.Owner,
-		ReleaseVersion:        flags.Release,
+		ReleaseVersion:        normalizedReleaseVersion,
 		Scheme:                scheme,
 		UserProvidedToken:     flags.Token,
 		Verbose:               flags.Verbose,
