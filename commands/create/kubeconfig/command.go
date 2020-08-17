@@ -106,6 +106,7 @@ type Arguments struct {
 	fileSystem        afero.Fs
 	force             bool
 	tenantInternal    bool
+	outputFormat      string
 	scheme            string
 	selfContainedPath string
 	ttlHours          int32
@@ -147,6 +148,7 @@ func collectArguments() (Arguments, error) {
 		fileSystem:        config.FileSystem,
 		force:             flags.Force,
 		tenantInternal:    flags.TenantInternal,
+		outputFormat:      flags.OutputFormat,
 		scheme:            scheme,
 		selfContainedPath: cmdKubeconfigSelfContained,
 		ttlHours:          int32(ttl.Hours()),
@@ -192,6 +194,7 @@ func init() {
 	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation. Also, there will not be any confirmation for TTL > 30d.")
 	Command.Flags().BoolVarP(&flags.TenantInternal, "tenant-internal", "", false, "If set, kubeconfig will be rendered with internal Kubernets API address.")
 	Command.Flags().StringVarP(&flags.TTL, "ttl", "", "1d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
+	Command.Flags().StringVarP(&flags.OutputFormat, "output", "", "", fmt.Sprintf("Output format. Specifying '%s' will change output to be JSON formatted.", formatting.OutputFormatJSON))
 
 	Command.MarkFlagRequired("cluster")
 }
@@ -276,6 +279,9 @@ func verifyCreateKubeconfigPreconditions(args Arguments, cmdLineArgs []string) e
 	if args.clusterNameOrID == "" {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
+	if args.outputFormat != "" && args.outputFormat != formatting.OutputFormatJSON {
+		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is unknown. Valid options: '%s'", args.outputFormat, formatting.OutputFormatJSON))
+	}
 
 	// validate CN prefix character set
 	if args.cnPrefix != "" {
@@ -354,9 +360,9 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	// Success output
 
-	if flags.OutputFormat == "json" {
+	if arguments.outputFormat == formatting.OutputFormatJSON {
 		jsonResult := JSONOutput{Result: "ok", KubeConfig: string(result.selfContainedYAMLBytes)}
-		outputBytes, err := json.Marshal(jsonResult)
+		outputBytes, err := json.MarshalIndent(jsonResult, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
 		if err != nil {
 			os.Exit(1)
 		}
@@ -487,7 +493,7 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	result.id = response.Payload.ID
 	result.ttlHours = uint(response.Payload.TTLHours)
 
-	if flags.OutputFormat == "json" {
+	if arguments.outputFormat == formatting.OutputFormatJSON {
 		yamlBytes, err := createKubeconfigYAML(ctx, clusterID, result.apiEndpoint, response)
 		if err != nil {
 			return result, microerror.Mask(err)

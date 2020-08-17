@@ -39,6 +39,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/formatting"
 )
 
 // Arguments contains all possible input parameter needed
@@ -56,6 +57,7 @@ type Arguments struct {
 	MasterHA              *bool
 	UserProvidedToken     string
 	Verbose               bool
+	OutputFormat          string
 }
 
 // collectArguments gets arguments from flags and returns an Arguments object.
@@ -82,6 +84,7 @@ func collectArguments(cmd *cobra.Command) Arguments {
 		Scheme:                scheme,
 		UserProvidedToken:     flags.Token,
 		Verbose:               flags.Verbose,
+		OutputFormat:          flags.OutputFormat,
 	}
 }
 
@@ -212,6 +215,7 @@ func initFlags() {
 	Command.Flags().StringVarP(&flags.Release, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
 	Command.Flags().BoolVar(&flags.MasterHA, "master-ha", true, "This means the cluster will have three master nodes. Requires High-Availability Master support.")
 	Command.Flags().BoolVarP(&flags.CreateDefaultNodePool, "create-default-nodepool", "", true, "Whether a default node pool should be created if none is specified in the definition. Requires node pool support.")
+	Command.Flags().StringVarP(&flags.OutputFormat, "output", "", "", fmt.Sprintf("Output format. Specifying '%s' will change output to be JSON formatted.", formatting.OutputFormatJSON))
 }
 
 // printValidation runs our pre-checks.
@@ -341,12 +345,12 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		os.Exit(1)
 	}
 
-	if flags.OutputFormat == "json" {
+	if arguments.OutputFormat == formatting.OutputFormatJSON {
 		jsonResult := JSONOutput{ID: result.ID, Result: "created"}
 		if result.HasErrors {
 			jsonResult.Result = "created-with-errors"
 		}
-		outputBytes, err := json.Marshal(jsonResult)
+		outputBytes, err := json.MarshalIndent(jsonResult, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
 		if err != nil {
 			os.Exit(1)
 		}
@@ -398,6 +402,9 @@ func verifyPreconditions(args Arguments) error {
 	// logged in?
 	if args.AuthToken == "" && args.UserProvidedToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
+	}
+	if args.OutputFormat != "" && args.OutputFormat != formatting.OutputFormatJSON {
+		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is unknown. Valid options: '%s'", args.OutputFormat, formatting.OutputFormatJSON))
 	}
 
 	return nil

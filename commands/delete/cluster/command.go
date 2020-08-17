@@ -9,6 +9,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsctl/clustercache"
+	"github.com/giantswarm/gsctl/formatting"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -37,6 +38,8 @@ type Arguments struct {
 	userProvidedToken string
 	// verbosity
 	verbose bool
+	// outputFormat
+	outputFormat string
 }
 
 // JSONOutput contains the fields included in JSON output of the delete cluster command when called with json output flag
@@ -64,6 +67,7 @@ func collectArguments(positionalArgs []string) Arguments {
 		token:             token,
 		userProvidedToken: flags.Token,
 		verbose:           flags.Verbose,
+		outputFormat:      flags.OutputFormat,
 	}
 }
 
@@ -92,6 +96,7 @@ Example:
 func init() {
 	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "Name or ID of the cluster to delete")
 	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
+	Command.Flags().StringVarP(&flags.OutputFormat, "output", "", "", fmt.Sprintf("Output format. Specifying '%s' will change output to be JSON formatted. It also disables any confirmations.", formatting.OutputFormatJSON))
 
 	Command.Flags().MarkDeprecated("cluster", "You no longer need to pass the cluster ID with -c/--cluster. Use --help for details.")
 }
@@ -149,6 +154,9 @@ func validatePreconditions(args Arguments) error {
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
+	if args.outputFormat != "" && args.outputFormat != formatting.OutputFormatJSON {
+		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is unknown. Valid options: '%s'", args.outputFormat, formatting.OutputFormatJSON))
+	}
 	return nil
 }
 
@@ -184,9 +192,9 @@ func printResult(cmd *cobra.Command, args []string) {
 			clusterID = arguments.clusterNameOrID
 		}
 
-		if flags.OutputFormat == "json" {
+		if arguments.outputFormat == formatting.OutputFormatJSON {
 			jsonResult := JSONOutput{Result: "deletion scheduled", ID: clusterID}
-			outputBytes, err := json.Marshal(jsonResult)
+			outputBytes, err := json.MarshalIndent(jsonResult, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
 			if err != nil {
 				os.Exit(1)
 			}
@@ -226,7 +234,7 @@ func deleteCluster(args Arguments) (bool, error) {
 
 	requireConfirmation := true
 
-	if args.force || flags.OutputFormat == "json" {
+	if args.force || args.outputFormat == formatting.OutputFormatJSON {
 		requireConfirmation = false
 	}
 

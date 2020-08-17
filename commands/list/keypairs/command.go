@@ -25,15 +25,7 @@ import (
 	"github.com/giantswarm/gsctl/util"
 )
 
-const (
-	listKeypairsActivityName = "list-keypairs"
-
-	outputFormatJSON  = "json"
-	outputFormatTable = "table"
-
-	outputJSONPrefix = ""
-	outputJSONIndent = "  "
-)
+const listKeypairsActivityName = "list-keypairs"
 
 var (
 
@@ -45,8 +37,6 @@ var (
 		PreRun: printValidation,
 		Run:    printResult,
 	}
-
-	cmdOutput string
 
 	arguments Arguments
 )
@@ -74,7 +64,7 @@ func collectArguments() Arguments {
 		apiEndpoint:       endpoint,
 		clusterNameOrID:   flags.ClusterID,
 		full:              flags.Full,
-		outputFormat:      cmdOutput,
+		outputFormat:      flags.OutputFormat,
 		token:             token,
 		userProvidedToken: flags.Token,
 		scheme:            scheme,
@@ -95,7 +85,7 @@ func initFlags() {
 
 	Command.Flags().StringVarP(&flags.ClusterID, "cluster", "c", "", "Name/ID of the cluster to list key pairs for")
 	Command.Flags().BoolVarP(&flags.Full, "full", "", false, "Enables output of full, untruncated values")
-	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output. Defaults to human-friendly table output.")
+	Command.Flags().StringVarP(&flags.OutputFormat, "output", "o", formatting.OutputFormatTable, fmt.Sprintf("Use '%s' for JSON output. Defaults to human-friendly table output.", formatting.OutputFormatJSON))
 
 	Command.MarkFlagRequired("cluster")
 }
@@ -126,7 +116,7 @@ func listKeypairsValidate(args *Arguments) error {
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
-	if args.outputFormat != outputFormatJSON && args.outputFormat != outputFormatTable {
+	if args.outputFormat != formatting.OutputFormatJSON && args.outputFormat != formatting.OutputFormatTable {
 		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is unknown", args.outputFormat))
 	}
 
@@ -176,8 +166,8 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 		os.Exit(1)
 	}
 
-	if arguments.outputFormat == "json" {
-		outputBytes, err := json.MarshalIndent(result.keypairs, outputJSONPrefix, outputJSONIndent)
+	if arguments.outputFormat == formatting.OutputFormatJSON {
+		outputBytes, err := json.MarshalIndent(result.keypairs, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
 		if err != nil {
 			fmt.Println(color.RedString("Error while encoding JSON"))
 			fmt.Printf("Details: %s", err.Error())
