@@ -73,6 +73,17 @@ func Test_CollectArgs(t *testing.T) {
 				MasterHA:              nil,
 			},
 		},
+		{
+			[]string{"--output=json"},
+			Arguments{
+				APIEndpoint:           "https://foo",
+				AuthToken:             "some-token",
+				CreateDefaultNodePool: true,
+				Scheme:                "giantswarm",
+				MasterHA:              nil,
+				OutputFormat:          "json",
+			},
+		},
 	}
 
 	fs := afero.NewMemMapFs()
@@ -109,6 +120,15 @@ func Test_verifyPreconditions(t *testing.T) {
 				APIEndpoint: "https://mock-url",
 			},
 			errors.IsNotLoggedInError,
+		},
+		// unknown output format
+		{
+			Arguments{
+				APIEndpoint:  "https://mock-url",
+				AuthToken:    "mock-token",
+				OutputFormat: "not-json",
+			},
+			errors.IsOutputFormatInvalid,
 		},
 	}
 
@@ -1079,5 +1099,108 @@ func Test_validateHAMasters(t *testing.T) {
 				t.Errorf("Case %d - Resulting args unequal. (-expected +got):\n%s", i, diff)
 			}
 		})
+	}
+}
+
+func Test_jsonOutput(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Log("mockServer request: ", r.Method, r.URL)
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == "POST" && r.URL.String() == "/v5/clusters/" {
+			w.Header().Set("Location", "/v5/clusters/f6e8r/")
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{
+					"id": "f6e8r",
+					"owner": "acme",
+					"release_version": "9.0.0",
+					"name": "Node Pool Cluster",
+					"master": {
+						"availability_zone": "eu-central-1c"
+					},
+					"nodepools": [],
+					"labels": {
+						"key": "value",
+						"labelkey": "labelvalue"
+					}
+				}`))
+		} else if r.Method == "GET" && r.URL.String() == "/v4/info/" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{
+					"general": {
+					  "provider": "aws"
+					},
+					"features": {
+					  "nodepools": {"release_version_minimum": "9.0.0"},
+					  "ha_masters": {"release_version_minimum": "11.5.0"}
+					}
+				  }`))
+		} else if r.Method == "GET" && r.URL.String() == "/v4/releases/" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[
+					{
+						"timestamp": "2019-01-01T12:00:00Z",
+						"version": "1.0.0",
+						"active": true,
+						"changelog": [],
+						"components": []
+					},
+					{
+						"timestamp": "2019-09-23T12:00:00Z",
+						"version": "9.0.0",
+						"active": true,
+						"changelog": [],
+						"components": []
+					},
+					{
+						"timestamp": "2019-10-23T12:00:00Z",
+						"version": "11.5.0",
+						"active": true,
+						"changelog": [],
+						"components": []
+					}
+				]`))
+		}
+	}))
+	defer mockServer.Close()
+
+	fs := afero.NewMemMapFs()
+	// config
+	yamlText := `last_version_check: 0001-01-01T00:00:00Z
+updated: 2017-09-29T11:23:15+02:00
+endpoints:
+  ` + mockServer.URL + `:
+    email: email@example.com
+    token: some-token
+selected_endpoint: ` + mockServer.URL
+	_, err := testutils.TempConfig(fs, yamlText)
+	if err != nil {
+		t.Error(err)
+	}
+
+	flags.APIEndpoint = mockServer.URL // required to make InitClient() work
+	args := Arguments{
+		APIEndpoint:  mockServer.URL,
+		AuthToken:    "testtoken",
+		ClusterName:  "json-output-cluster",
+		Owner:        "giantswarm",
+		OutputFormat: "json",
+	}
+
+	err = verifyPreconditions(args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	jsonRepresentation := getJSONOutput(addCluster(args))
+
+	t.Log(jsonRepresentation)
+
+	expectedResult := `{
+  "id": "f6e8r",
+  "result": "created"
+}`
+
+	if jsonRepresentation != expectedResult {
+		t.Errorf("Returned json representation '%s' does not match expected '%s'", jsonRepresentation, expectedResult)
 	}
 }

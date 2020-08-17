@@ -107,9 +107,11 @@ type creationResult struct {
 // JSONOutput contains the fields included in JSON output of the create cluster command when called with json output flag
 type JSONOutput struct {
 	// cluster ID
-	ID string `json:"id"`
+	ID string `json:"id,omitempty"`
 	// result. should be 'created'
 	Result string `json:"result"`
+	// Error which occured
+	Error error `json:"error,omitempty"`
 }
 
 const (
@@ -252,6 +254,12 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 // printResult calls addCluster() and creates user-friendly output of the result
 func printResult(cmd *cobra.Command, positionalArgs []string) {
 	result, err := addCluster(arguments)
+
+	if arguments.OutputFormat == formatting.OutputFormatJSON {
+		fmt.Println(getJSONOutput(result, err))
+		return
+	}
+
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -345,20 +353,6 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 		os.Exit(1)
 	}
 
-	if arguments.OutputFormat == formatting.OutputFormatJSON {
-		jsonResult := JSONOutput{ID: result.ID, Result: "created"}
-		if result.HasErrors {
-			jsonResult.Result = "created-with-errors"
-		}
-		outputBytes, err := json.MarshalIndent(jsonResult, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
-		if err != nil {
-			os.Exit(1)
-		}
-
-		fmt.Println(string(outputBytes))
-		return
-	}
-
 	// success output
 	if result.DefinitionV4 != nil {
 		if result.DefinitionV4.Name != "" {
@@ -392,6 +386,29 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	fmt.Println("To know more about how to create the kubeconfig run")
 	fmt.Println("")
 	fmt.Printf("    %s \n\n", color.YellowString("gsctl create kubeconfig --help"))
+}
+
+func getJSONOutput(result *creationResult, creationErr error) string {
+	var outputBytes []byte
+	var err error
+	var jsonResult JSONOutput
+
+	// handle errors
+	if creationErr != nil {
+		jsonResult = JSONOutput{Result: "error", Error: creationErr}
+	} else {
+		jsonResult = JSONOutput{ID: result.ID, Result: "created"}
+		if result.HasErrors {
+			jsonResult.Result = "created-with-errors"
+		}
+	}
+
+	outputBytes, err = json.MarshalIndent(jsonResult, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
+	if err != nil {
+		os.Exit(1)
+	}
+
+	return string(outputBytes)
 }
 
 // verifyPreconditions checks preconditions and returns an error in case.
@@ -457,7 +474,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 
 	// Ensure provider information is there.
 	if config.Config.Provider == "" {
-		if flags.Verbose {
+		if args.OutputFormat != formatting.OutputFormatJSON && args.Verbose {
 			fmt.Println(color.WhiteString("Fetching installation information"))
 		}
 
@@ -533,7 +550,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 			return nil, microerror.Mask(err)
 		}
 
-		if args.Verbose {
+		if args.OutputFormat != formatting.OutputFormatJSON && args.Verbose {
 			fmt.Println(color.WhiteString("Determined release version %s is the latest, so this will be used.", latest))
 		}
 		wantedRelease = latest
@@ -545,7 +562,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	if args.Verbose {
+	if args.OutputFormat != formatting.OutputFormatJSON && args.Verbose {
 		fmt.Println(color.WhiteString("Fetching installation capabilities"))
 	}
 
@@ -576,7 +593,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 	}
 
 	if nodePoolsEnabled {
-		if args.Verbose {
+		if args.OutputFormat != formatting.OutputFormatJSON && args.Verbose {
 			fmt.Println(color.WhiteString("Using the v5 API to create a cluster with node pool support"))
 		}
 
@@ -606,7 +623,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 		result.HasErrors = hasErrors
 
 	} else {
-		if args.Verbose {
+		if args.OutputFormat != formatting.OutputFormatJSON && args.Verbose {
 			fmt.Println(color.WhiteString("Using the v4 API to create a cluster"))
 		}
 
@@ -658,7 +675,7 @@ func validateHAMasters(featureEnabled bool, args *Arguments, v5Definition *types
 		} else if featureEnabled && v5Definition.Master == nil {
 			if args.MasterHA == nil && v5Definition.MasterNodes == nil {
 				// Check if 'master' field is set before defaulting to HA master.
-				if args.Verbose {
+				if args.OutputFormat != formatting.OutputFormatJSON && args.Verbose {
 					fmt.Println(color.WhiteString("Using master node high availability by default."))
 				}
 				// Default to true if it is supported and not provided other value.
