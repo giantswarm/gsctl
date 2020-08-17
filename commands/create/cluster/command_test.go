@@ -73,6 +73,19 @@ func Test_CollectArgs(t *testing.T) {
 				MasterHA:              nil,
 			},
 		},
+		{
+			[]string{
+				"--release=v1.2.3",
+			},
+			Arguments{
+				APIEndpoint:           "https://foo",
+				AuthToken:             "some-token",
+				CreateDefaultNodePool: true,
+				ReleaseVersion:        "1.2.3",
+				Scheme:                "giantswarm",
+				MasterHA:              nil,
+			},
+		},
 	}
 
 	fs := afero.NewMemMapFs()
