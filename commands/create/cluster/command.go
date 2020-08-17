@@ -407,6 +407,7 @@ func getJSONOutput(result *creationResult, creationErr error) string {
 
 	outputBytes, err = json.MarshalIndent(jsonResult, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
 	if err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
