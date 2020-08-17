@@ -493,7 +493,7 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	result.id = response.Payload.ID
 	result.ttlHours = uint(response.Payload.TTLHours)
 
-	if arguments.outputFormat == formatting.OutputFormatJSON {
+	if args.outputFormat == formatting.OutputFormatJSON {
 		yamlBytes, err := createKubeconfigYAML(ctx, clusterID, result.apiEndpoint, response)
 		if err != nil {
 			return result, microerror.Mask(err)
