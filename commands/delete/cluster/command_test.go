@@ -74,8 +74,8 @@ func TestDeleteClusterSuccess(t *testing.T) {
 }
 
 type failTestCase struct {
-	arguments     Arguments
-	expectedError error
+	arguments    Arguments
+	errorMatcher func(error) bool
 }
 
 // TestDeleteClusterFailures runs test case that are supposed to fail
@@ -83,17 +83,28 @@ func TestDeleteClusterFailures(t *testing.T) {
 	var failTestCases = []failTestCase{
 		{
 			arguments: Arguments{
+				apiEndpoint:     "https://mock-url",
 				clusterNameOrID: "somecluster",
 				token:           "",
 			},
-			expectedError: errors.NotLoggedInError,
+			errorMatcher: errors.IsNotLoggedInError,
 		},
 		{
 			arguments: Arguments{
+				apiEndpoint:     "https://mock-url",
 				clusterNameOrID: "",
 				token:           "some token",
 			},
-			expectedError: errors.ClusterNameOrIDMissingError,
+			errorMatcher: errors.IsClusterNameOrIDMissingError,
+		},
+		{
+			arguments: Arguments{
+				apiEndpoint:     "https://mock-url",
+				token:           "some token",
+				clusterNameOrID: "somecluster",
+				outputFormat:    "not-json",
+			},
+			errorMatcher: errors.IsOutputFormatInvalid,
 		},
 	}
 
@@ -106,7 +117,9 @@ func TestDeleteClusterFailures(t *testing.T) {
 	for i, ftc := range failTestCases {
 		validateErr := validatePreconditions(ftc.arguments)
 		if validateErr == nil {
-			t.Errorf("Didn't get an error where we expected '%s' in testCase %v", ftc.expectedError, i)
+			t.Errorf("Case %d - Expected error, got nil", i)
+		} else if !ftc.errorMatcher(validateErr) {
+			t.Errorf("Case %d - Error did not match expectec type. Got '%s'", i, validateErr)
 		}
 	}
 }
