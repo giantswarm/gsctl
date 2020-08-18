@@ -133,6 +133,42 @@ func Test_ListClustersEmpty(t *testing.T) {
 	}
 }
 
+// Test_ListClustersEmptyJSON tests listing an empty cluster list as json ([])
+func Test_ListClustersEmptyJSON(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`[]`))
+	}))
+	defer mockServer.Close()
+
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
+	if err != nil {
+		t.Error(err)
+	}
+
+	args := Arguments{
+		apiEndpoint:  mockServer.URL,
+		authToken:    "testtoken",
+		outputFormat: "json",
+	}
+
+	err = verifyListClusterPreconditions(args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	output, err := getClustersOutput(args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if output != "[]" {
+		t.Errorf("Expected '[]', got '%s'", output)
+	}
+}
+
 // Test_ListClustersUnauthorized tests listing clusters with a 401 response.
 func Test_ListClustersUnauthorized(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

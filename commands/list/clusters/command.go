@@ -439,6 +439,11 @@ func getJSONOutput(clusterList []*models.V4ClusterListItem, cTable *table.Table,
 		output []byte
 	)
 
+	// take the shortest route. no need to call json.Marshal
+	if clusterList == nil || len(clusterList) == 0 {
+		return "[]", nil
+	}
+
 	// If there is nothing to sort, let's get this over with.
 	if len(clusterList) < 2 {
 		output, err = json.MarshalIndent(clusterList, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
