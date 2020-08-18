@@ -280,7 +280,7 @@ func verifyCreateKubeconfigPreconditions(args Arguments, cmdLineArgs []string) e
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
 	if args.outputFormat != "" && args.outputFormat != formatting.OutputFormatJSON {
-		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is unknown. Valid options: '%s'", args.outputFormat, formatting.OutputFormatJSON))
+		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is is invalid for gsctl create kubeconfig. Valid options: '%s'", args.outputFormat, formatting.OutputFormatJSON))
 	}
 
 	// validate CN prefix character set
@@ -364,6 +364,7 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		jsonResult := JSONOutput{Result: "ok", KubeConfig: string(result.selfContainedYAMLBytes)}
 		outputBytes, err := json.MarshalIndent(jsonResult, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
 		if err != nil {
+			fmt.Println(err)
 			os.Exit(1)
 		}
 

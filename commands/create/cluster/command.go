@@ -424,7 +424,7 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 	if args.OutputFormat != "" && args.OutputFormat != formatting.OutputFormatJSON {
-		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is unknown. Valid options: '%s'", args.OutputFormat, formatting.OutputFormatJSON))
+		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is invalid for gsctl create cluster. Valid options: '%s'", args.OutputFormat, formatting.OutputFormatJSON))
 	}
 
 	return nil

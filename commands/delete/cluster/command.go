@@ -155,7 +155,7 @@ func validatePreconditions(args Arguments) error {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
 	if args.outputFormat != "" && args.outputFormat != formatting.OutputFormatJSON {
-		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is unknown. Valid options: '%s'", args.outputFormat, formatting.OutputFormatJSON))
+		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is invalid for gsctl delete cluster. Valid options: '%s'", args.outputFormat, formatting.OutputFormatJSON))
 	}
 	return nil
 }
@@ -196,6 +196,7 @@ func printResult(cmd *cobra.Command, args []string) {
 			jsonResult := JSONOutput{Result: "deletion scheduled", ID: clusterID}
 			outputBytes, err := json.MarshalIndent(jsonResult, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
 			if err != nil {
+				fmt.Println(err)
 				os.Exit(1)
 			}
 
