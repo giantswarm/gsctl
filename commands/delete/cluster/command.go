@@ -60,6 +60,13 @@ func collectArguments(positionalArgs []string) Arguments {
 		clusterNameOrID = positionalArgs[0]
 	}
 
+	// hack..
+	// cobra sets defaults from other commands to the OutputFormat flag
+	// but we don't have "table" here, so if it's "table", set it to empty string
+	if flags.OutputFormat == "table" {
+		flags.OutputFormat = ""
+	}
+
 	return Arguments{
 		apiEndpoint:       endpoint,
 		clusterNameOrID:   clusterNameOrID,

@@ -73,6 +73,13 @@ func collectArguments(cmd *cobra.Command) Arguments {
 
 	normalizedReleaseVersion := strings.TrimPrefix(flags.Release, "v")
 
+	// hack..
+	// cobra sets defaults from other commands to the OutputFormat flag
+	// but we don't have "table" here, so if it's "table", set it to empty string
+	if flags.OutputFormat == "table" {
+		flags.OutputFormat = ""
+	}
+
 	return Arguments{
 		APIEndpoint:           endpoint,
 		AuthToken:             token,
