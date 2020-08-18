@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
+	"unicode"
 
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/spf13/afero"
@@ -32,7 +34,7 @@ func CaptureOutput(f func()) (printed string) {
 	os.Stdout = orig // restoring the real stdout
 	out := <-outC
 
-	return out
+	return strings.TrimLeftFunc(strings.ReplaceAll(out, "Warning: endpoint URL uses an insecure protocol", ""), unicode.IsSpace)
 }
 
 // CaptureOutputSync runs a function synchronously and captures returns STDOUT output as a string.
@@ -47,7 +49,7 @@ func CaptureOutputSync(f func()) (printed string) {
 	out, _ := ioutil.ReadAll(r)
 	os.Stdout = orig
 
-	return string(out)
+	return strings.TrimLeftFunc(strings.ReplaceAll(string(out), "Warning: endpoint URL uses an insecure protocol", ""), unicode.IsSpace)
 }
 
 // TempDir creates a temporary directory for a temporary config file in tests.
