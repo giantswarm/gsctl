@@ -11,7 +11,7 @@ require (
 	github.com/fatih/color v1.9.0
 	github.com/giantswarm/apiextensions v0.0.0-20191213075442-71155aa0f5b7
 	github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatible
-	github.com/giantswarm/gscliauth v0.2.1
+	github.com/giantswarm/gscliauth v0.2.2-0.20200818113519-8f47bc101477
 	github.com/giantswarm/gsclientgen/v2 v2.0.7
 	github.com/giantswarm/k8sclient v0.0.0-20191213144452-f75fead2ae06
 	github.com/giantswarm/kubeconfig v0.0.0-20191209121754-c5784ae65a49
