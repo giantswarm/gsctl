@@ -180,7 +180,9 @@ type createKubeconfigResult struct {
 
 // JSONOutput contains the fields included in JSON output of the create kubeconfig command when called with json output flag
 type JSONOutput struct {
-	Result     string `json:"result"`
+	// Result of the command. should be 'ok'
+	Result string `json:"result"`
+	// KubeConfig is a string containing the kubeconfig
 	KubeConfig string `json:"kubeconfig"`
 }
 

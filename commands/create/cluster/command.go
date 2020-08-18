@@ -108,9 +108,9 @@ type creationResult struct {
 
 // JSONOutput contains the fields included in JSON output of the create cluster command when called with json output flag
 type JSONOutput struct {
-	// cluster ID
+	// ID of the cluster
 	ID string `json:"id,omitempty"`
-	// result. should be 'created'
+	// Result of the command. should be 'created'
 	Result string `json:"result"`
 	// Error which occured
 	Error error `json:"error,omitempty"`

@@ -44,8 +44,10 @@ type Arguments struct {
 
 // JSONOutput contains the fields included in JSON output of the delete cluster command when called with json output flag
 type JSONOutput struct {
+	// Result of the command. should be 'deletion scheduled'
 	Result string `json:"result"`
-	ID     string `json:"id"`
+	// ID of the cluster
+	ID string `json:"id"`
 }
 
 func collectArguments(positionalArgs []string) Arguments {
