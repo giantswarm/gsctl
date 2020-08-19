@@ -190,7 +190,9 @@ type JSONOutput struct {
 	// Result of the command. should be 'ok'
 	Result string `json:"result"`
 	// KubeConfig is a string containing the kubeconfig
-	KubeConfig string `json:"kubeconfig"`
+	KubeConfig string `json:"kubeconfig,omitempty"`
+	// Error which occured
+	Error error `json:"error,omitempty"`
 }
 
 func init() {
@@ -324,6 +326,11 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	result, err := createKubeconfig(ctx, arguments)
 
+	if arguments.outputFormat == formatting.OutputFormatJSON {
+		printJSONOutput(result, err)
+		return
+	}
+
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -369,18 +376,6 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 
 	// Success output
 
-	if arguments.outputFormat == formatting.OutputFormatJSON {
-		jsonResult := JSONOutput{Result: "ok", KubeConfig: string(result.selfContainedYAMLBytes)}
-		outputBytes, err := json.MarshalIndent(jsonResult, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		fmt.Println(string(outputBytes))
-		return
-	}
-
 	msg := fmt.Sprintf("New key pair created with ID %s and expiry of %v",
 		util.Truncate(formatting.CleanKeypairID(result.id), 10, true),
 		util.DurationPhrase(int(result.ttlHours)))
@@ -408,6 +403,30 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println(color.YellowString("    kubectl cluster-info\n"))
 		fmt.Println(color.GreenString("Whenever you want to switch to using this context:\n"))
 		fmt.Println(color.YellowString("    kubectl config use-context %s\n", result.contextName))
+	}
+}
+
+func printJSONOutput(result createKubeconfigResult, creationErr error) {
+	var outputBytes []byte
+	var err error
+	var jsonResult JSONOutput
+
+	// handle errors
+	if creationErr != nil {
+		jsonResult = JSONOutput{Result: "error", Error: creationErr}
+	} else {
+		jsonResult = JSONOutput{Result: "ok", KubeConfig: string(result.selfContainedYAMLBytes)}
+	}
+
+	outputBytes, err = json.MarshalIndent(jsonResult, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	fmt.Println(string(outputBytes))
+	if creationErr != nil {
+		os.Exit(1)
 	}
 }
 

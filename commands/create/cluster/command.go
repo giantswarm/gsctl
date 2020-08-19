@@ -265,7 +265,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	result, err := addCluster(arguments)
 
 	if arguments.OutputFormat == formatting.OutputFormatJSON {
-		fmt.Println(getJSONOutput(result, err))
+		printJSONOutput(result, err)
 		return
 	}
 
@@ -397,7 +397,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	fmt.Printf("    %s \n\n", color.YellowString("gsctl create kubeconfig --help"))
 }
 
-func getJSONOutput(result *creationResult, creationErr error) string {
+func printJSONOutput(result *creationResult, creationErr error) {
 	var outputBytes []byte
 	var err error
 	var jsonResult JSONOutput
@@ -418,7 +418,10 @@ func getJSONOutput(result *creationResult, creationErr error) string {
 		os.Exit(1)
 	}
 
-	return string(outputBytes)
+	fmt.Println(string(outputBytes))
+	if creationErr != nil || result.HasErrors {
+		os.Exit(1)
+	}
 }
 
 // verifyPreconditions checks preconditions and returns an error in case.

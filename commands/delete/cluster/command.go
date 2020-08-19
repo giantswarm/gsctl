@@ -48,6 +48,8 @@ type JSONOutput struct {
 	Result string `json:"result"`
 	// ID of the cluster
 	ID string `json:"id"`
+	// Error which occured
+	Error error `json:"error,omitempty"`
 }
 
 func collectArguments(positionalArgs []string) Arguments {
@@ -171,7 +173,18 @@ func validatePreconditions(args Arguments) error {
 
 // interprets arguments/flags, eventually submits delete request
 func printResult(cmd *cobra.Command, args []string) {
+	clusterID := arguments.legacyClusterID
+	if arguments.clusterNameOrID != "" {
+		clusterID = arguments.clusterNameOrID
+	}
+
 	deleted, err := deleteCluster(arguments)
+
+	if arguments.outputFormat == formatting.OutputFormatJSON {
+		printJSONOutput(deleted, clusterID, err)
+		return
+	}
+
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -196,28 +209,35 @@ func printResult(cmd *cobra.Command, args []string) {
 
 	// non-error output
 	if deleted {
-		clusterID := arguments.legacyClusterID
-		if arguments.clusterNameOrID != "" {
-			clusterID = arguments.clusterNameOrID
-		}
-
-		if arguments.outputFormat == formatting.OutputFormatJSON {
-			jsonResult := JSONOutput{Result: "deletion scheduled", ID: clusterID}
-			outputBytes, err := json.MarshalIndent(jsonResult, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
-			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
-
-			fmt.Println(string(outputBytes))
-			return
-		}
-
 		fmt.Println(color.GreenString("The cluster '%s' will be deleted as soon as all workloads are terminated.", clusterID))
 	} else {
 		if arguments.verbose {
 			fmt.Println(color.GreenString("Aborted."))
 		}
+	}
+}
+
+func printJSONOutput(deleted bool, clusterID string, creationErr error) {
+	var outputBytes []byte
+	var err error
+	var jsonResult JSONOutput
+
+	// handle errors
+	if creationErr != nil {
+		jsonResult = JSONOutput{Result: "error", Error: creationErr}
+	} else {
+		jsonResult = JSONOutput{Result: "deletion scheduled", ID: clusterID}
+	}
+
+	outputBytes, err = json.MarshalIndent(jsonResult, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	fmt.Println(string(outputBytes))
+	if creationErr != nil {
+		os.Exit(1)
 	}
 }
 
