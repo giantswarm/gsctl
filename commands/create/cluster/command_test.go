@@ -1214,10 +1214,9 @@ selected_endpoint: ` + mockServer.URL
 	expectedResult := `{
   "id": "f6e8r",
   "result": "created"
-}
-`
+}`
 
-	if jsonRepresentation != expectedResult {
-		t.Errorf("Returned json representation '%s' does not match expected '%s'", jsonRepresentation, expectedResult)
+	if strings.TrimSpace(jsonRepresentation) != expectedResult {
+		t.Errorf("Returned json representation '%s' does not match expected '%s'", strings.TrimSpace(jsonRepresentation), expectedResult)
 	}
 }
