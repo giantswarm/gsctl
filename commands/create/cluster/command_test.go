@@ -1204,14 +1204,18 @@ selected_endpoint: ` + mockServer.URL
 		t.Error(err)
 	}
 
-	jsonRepresentation := getJSONOutput(addCluster(args))
+	jsonRepresentation := testutils.CaptureOutput(func() {
+		// output
+		printJSONOutput(addCluster(args))
+	})
 
 	t.Log(jsonRepresentation)
 
 	expectedResult := `{
   "id": "f6e8r",
   "result": "created"
-}`
+}
+`
 
 	if jsonRepresentation != expectedResult {
 		t.Errorf("Returned json representation '%s' does not match expected '%s'", jsonRepresentation, expectedResult)
