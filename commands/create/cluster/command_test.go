@@ -1211,12 +1211,11 @@ selected_endpoint: ` + mockServer.URL
 
 	t.Log(jsonRepresentation)
 
-	expectedResult := `{
-  "id": "f6e8r",
-  "result": "created"
-}`
+	if strings.Contains(jsonRepresentation, `"id": "f6e8r"`) == false {
+		t.Errorf("Returned json representation '%s' does not contain expected '%s'", jsonRepresentation, `"id": "f6e8r"`)
+	}
 
-	if strings.TrimSpace(jsonRepresentation) != expectedResult {
-		t.Errorf("Returned json representation '%s' does not match expected '%s'", strings.TrimSpace(jsonRepresentation), expectedResult)
+	if strings.Contains(jsonRepresentation, `"result": "created"`) == false {
+		t.Errorf("Returned json representation '%s' does not contain expected '%s'", jsonRepresentation, `"result": "created"`)
 	}
 }
