@@ -4,6 +4,7 @@ package kubeconfig
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
+	"github.com/giantswarm/gsclientgen/v2/client/key_pairs"
 	"github.com/giantswarm/gsclientgen/v2/models"
 	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/k8sclient/k8srestconfig"
@@ -104,6 +106,7 @@ type Arguments struct {
 	fileSystem        afero.Fs
 	force             bool
 	tenantInternal    bool
+	outputFormat      string
 	scheme            string
 	selfContainedPath string
 	ttlHours          int32
@@ -134,6 +137,13 @@ func collectArguments() (Arguments, error) {
 		return Arguments{}, microerror.Mask(err)
 	}
 
+	// hack..
+	// cobra sets defaults from other commands to the OutputFormat flag
+	// but we don't have "table" here, so if it's "table", set it to empty string
+	if flags.OutputFormat == "table" {
+		flags.OutputFormat = ""
+	}
+
 	return Arguments{
 		apiEndpoint:       endpoint,
 		authToken:         token,
@@ -145,11 +155,12 @@ func collectArguments() (Arguments, error) {
 		fileSystem:        config.FileSystem,
 		force:             flags.Force,
 		tenantInternal:    flags.TenantInternal,
+		outputFormat:      flags.OutputFormat,
 		scheme:            scheme,
 		selfContainedPath: cmdKubeconfigSelfContained,
 		ttlHours:          int32(ttl.Hours()),
 		userProvidedToken: flags.Token,
-		verbose:           flags.Verbose,
+		verbose:           flags.OutputFormat != formatting.OutputFormatJSON && flags.Verbose,
 	}, nil
 }
 
@@ -164,12 +175,24 @@ type createKubeconfigResult struct {
 	clientKeyPath string
 	// absolute path for a self-contained kubeconfig file
 	selfContainedPath string
+	// kubeconfig yaml bytes
+	selfContainedYAMLBytes []byte
 	// the context name applied
 	contextName string
 	// key pair ID
 	id string
 	// TTL of the key pair in hours
 	ttlHours uint
+}
+
+// JSONOutput contains the fields included in JSON output of the create kubeconfig command when called with json output flag
+type JSONOutput struct {
+	// Result of the command. should be 'ok'
+	Result string `json:"result"`
+	// KubeConfig is a string containing the kubeconfig
+	KubeConfig string `json:"kubeconfig,omitempty"`
+	// Error which occured
+	Error error `json:"error,omitempty"`
 }
 
 func init() {
@@ -182,6 +205,7 @@ func init() {
 	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation. Also, there will not be any confirmation for TTL > 30d.")
 	Command.Flags().BoolVarP(&flags.TenantInternal, "tenant-internal", "", false, "If set, kubeconfig will be rendered with internal Kubernets API address.")
 	Command.Flags().StringVarP(&flags.TTL, "ttl", "", "1d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
+	Command.Flags().StringVarP(&flags.OutputFormat, "output", "", "", fmt.Sprintf("Output format. Specifying '%s' will change output to be JSON formatted.", formatting.OutputFormatJSON))
 
 	Command.MarkFlagRequired("cluster")
 }
@@ -266,6 +290,9 @@ func verifyCreateKubeconfigPreconditions(args Arguments, cmdLineArgs []string) e
 	if args.clusterNameOrID == "" {
 		return microerror.Mask(errors.ClusterNameOrIDMissingError)
 	}
+	if args.outputFormat != "" && args.outputFormat != formatting.OutputFormatJSON {
+		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is is invalid for gsctl create kubeconfig. Valid options: '%s'", args.outputFormat, formatting.OutputFormatJSON))
+	}
 
 	// validate CN prefix character set
 	if args.cnPrefix != "" {
@@ -298,6 +325,11 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	ctx := context.Background()
 
 	result, err := createKubeconfig(ctx, arguments)
+
+	if arguments.outputFormat == formatting.OutputFormatJSON {
+		printJSONOutput(result, err)
+		return
+	}
 
 	if err != nil {
 		client.HandleErrors(err)
@@ -371,6 +403,30 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println(color.YellowString("    kubectl cluster-info\n"))
 		fmt.Println(color.GreenString("Whenever you want to switch to using this context:\n"))
 		fmt.Println(color.YellowString("    kubectl config use-context %s\n", result.contextName))
+	}
+}
+
+func printJSONOutput(result createKubeconfigResult, creationErr error) {
+	var outputBytes []byte
+	var err error
+	var jsonResult JSONOutput
+
+	// handle errors
+	if creationErr != nil {
+		jsonResult = JSONOutput{Result: "error", Error: creationErr}
+	} else {
+		jsonResult = JSONOutput{Result: "ok", KubeConfig: string(result.selfContainedYAMLBytes)}
+	}
+
+	outputBytes, err = json.MarshalIndent(jsonResult, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	fmt.Println(string(outputBytes))
+	if creationErr != nil {
+		os.Exit(1)
 	}
 }
 
@@ -466,7 +522,15 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	result.id = response.Payload.ID
 	result.ttlHours = uint(response.Payload.TTLHours)
 
-	if args.selfContainedPath == "" {
+	if args.outputFormat == formatting.OutputFormatJSON {
+		yamlBytes, err := createKubeconfigYAML(ctx, clusterID, result.apiEndpoint, response)
+		if err != nil {
+			return result, microerror.Mask(err)
+		}
+
+		result.selfContainedYAMLBytes = yamlBytes
+
+	} else if args.selfContainedPath == "" {
 		// modify the given kubeconfig file
 		result.caCertPath = util.StoreCaCertificate(args.fileSystem, config.CertsDirPath,
 			clusterID, response.Payload.CertificateAuthorityData)
@@ -494,34 +558,9 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 		}
 	} else {
 		// create a self-contained kubeconfig
-		var yamlBytes []byte
-		logger, err := micrologger.New(micrologger.Config{
-			IOWriter: new(bytes.Buffer), // to suppress any log output
-		})
+		yamlBytes, err := createKubeconfigYAML(ctx, clusterID, result.apiEndpoint, response)
 		if err != nil {
 			return result, microerror.Mask(err)
-		}
-		{
-			c := k8srestconfig.Config{
-				Logger: logger,
-
-				Address:   result.apiEndpoint,
-				InCluster: false,
-				TLS: k8srestconfig.ConfigTLS{
-					CAData:  []byte(response.Payload.CertificateAuthorityData),
-					CrtData: []byte(response.Payload.ClientCertificateData),
-					KeyData: []byte(response.Payload.ClientKeyData),
-				},
-			}
-			restConfig, err := k8srestconfig.New(c)
-			if err != nil {
-				return result, microerror.Mask(err)
-			}
-
-			yamlBytes, err = kubeconfig.NewKubeConfigForRESTConfig(ctx, restConfig, fmt.Sprintf("giantswarm-%s", clusterID), "")
-			if err != nil {
-				return result, microerror.Mask(err)
-			}
 		}
 
 		err = afero.WriteFile(args.fileSystem, args.selfContainedPath, yamlBytes, 0600)
@@ -533,4 +572,38 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	}
 
 	return result, nil
+}
+
+func createKubeconfigYAML(ctx context.Context, clusterID, apiEndpoint string, response *key_pairs.AddKeyPairOK) ([]byte, error) {
+	var yamlBytes []byte
+	logger, err := micrologger.New(micrologger.Config{
+		IOWriter: new(bytes.Buffer), // to suppress any log output
+	})
+	if err != nil {
+		return yamlBytes, microerror.Mask(err)
+	}
+	{
+		c := k8srestconfig.Config{
+			Logger: logger,
+
+			Address:   apiEndpoint,
+			InCluster: false,
+			TLS: k8srestconfig.ConfigTLS{
+				CAData:  []byte(response.Payload.CertificateAuthorityData),
+				CrtData: []byte(response.Payload.ClientCertificateData),
+				KeyData: []byte(response.Payload.ClientKeyData),
+			},
+		}
+		restConfig, err := k8srestconfig.New(c)
+		if err != nil {
+			return yamlBytes, microerror.Mask(err)
+		}
+
+		yamlBytes, err = kubeconfig.NewKubeConfigForRESTConfig(ctx, restConfig, fmt.Sprintf("giantswarm-%s", clusterID), "")
+		if err != nil {
+			return yamlBytes, microerror.Mask(err)
+		}
+
+		return yamlBytes, nil
+	}
 }

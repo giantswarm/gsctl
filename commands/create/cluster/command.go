@@ -19,6 +19,7 @@ The command deals with a few delicacies/spiecialties:
 package cluster
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -38,6 +39,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/formatting"
 )
 
 // Arguments contains all possible input parameter needed
@@ -55,6 +57,7 @@ type Arguments struct {
 	MasterHA              *bool
 	UserProvidedToken     string
 	Verbose               bool
+	OutputFormat          string
 }
 
 // collectArguments gets arguments from flags and returns an Arguments object.
@@ -70,6 +73,13 @@ func collectArguments(cmd *cobra.Command) Arguments {
 
 	normalizedReleaseVersion := strings.TrimPrefix(flags.Release, "v")
 
+	// hack..
+	// cobra sets defaults from other commands to the OutputFormat flag
+	// but we don't have "table" here, so if it's "table", set it to empty string
+	if flags.OutputFormat == "table" {
+		flags.OutputFormat = ""
+	}
+
 	return Arguments{
 		APIEndpoint:           endpoint,
 		AuthToken:             token,
@@ -82,7 +92,8 @@ func collectArguments(cmd *cobra.Command) Arguments {
 		ReleaseVersion:        normalizedReleaseVersion,
 		Scheme:                scheme,
 		UserProvidedToken:     flags.Token,
-		Verbose:               flags.Verbose,
+		Verbose:               flags.OutputFormat != formatting.OutputFormatJSON && flags.Verbose,
+		OutputFormat:          flags.OutputFormat,
 	}
 }
 
@@ -100,6 +111,16 @@ type creationResult struct {
 	// This is only relevant in v5 and should only be used if a node
 	// pool could not be created successfully.
 	HasErrors bool
+}
+
+// JSONOutput contains the fields included in JSON output of the create cluster command when called with json output flag
+type JSONOutput struct {
+	// ID of the cluster
+	ID string `json:"id,omitempty"`
+	// Result of the command. should be 'created'
+	Result string `json:"result"`
+	// Error which occured
+	Error error `json:"error,omitempty"`
 }
 
 const (
@@ -205,6 +226,7 @@ func initFlags() {
 	Command.Flags().StringVarP(&flags.Release, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
 	Command.Flags().BoolVar(&flags.MasterHA, "master-ha", true, "This means the cluster will have three master nodes. Requires High-Availability Master support.")
 	Command.Flags().BoolVarP(&flags.CreateDefaultNodePool, "create-default-nodepool", "", true, "Whether a default node pool should be created if none is specified in the definition. Requires node pool support.")
+	Command.Flags().StringVarP(&flags.OutputFormat, "output", "", "", fmt.Sprintf("Output format. Specifying '%s' will change output to be JSON formatted.", formatting.OutputFormatJSON))
 }
 
 // printValidation runs our pre-checks.
@@ -241,6 +263,12 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 // printResult calls addCluster() and creates user-friendly output of the result
 func printResult(cmd *cobra.Command, positionalArgs []string) {
 	result, err := addCluster(arguments)
+
+	if arguments.OutputFormat == formatting.OutputFormatJSON {
+		printJSONOutput(result, err)
+		return
+	}
+
 	if err != nil {
 		client.HandleErrors(err)
 		errors.HandleCommonErrors(err)
@@ -369,6 +397,33 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 	fmt.Printf("    %s \n\n", color.YellowString("gsctl create kubeconfig --help"))
 }
 
+func printJSONOutput(result *creationResult, creationErr error) {
+	var outputBytes []byte
+	var err error
+	var jsonResult JSONOutput
+
+	// handle errors
+	if creationErr != nil {
+		jsonResult = JSONOutput{Result: "error", Error: creationErr}
+	} else {
+		jsonResult = JSONOutput{ID: result.ID, Result: "created"}
+		if result.HasErrors {
+			jsonResult.Result = "created-with-errors"
+		}
+	}
+
+	outputBytes, err = json.MarshalIndent(jsonResult, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	fmt.Println(string(outputBytes))
+	if creationErr != nil || result.HasErrors {
+		os.Exit(1)
+	}
+}
+
 // verifyPreconditions checks preconditions and returns an error in case.
 func verifyPreconditions(args Arguments) error {
 	if args.APIEndpoint == "" {
@@ -377,6 +432,9 @@ func verifyPreconditions(args Arguments) error {
 	// logged in?
 	if args.AuthToken == "" && args.UserProvidedToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
+	}
+	if args.OutputFormat != "" && args.OutputFormat != formatting.OutputFormatJSON {
+		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is invalid for gsctl create cluster. Valid options: '%s'", args.OutputFormat, formatting.OutputFormatJSON))
 	}
 
 	return nil

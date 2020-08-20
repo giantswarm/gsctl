@@ -97,6 +97,15 @@ func TestDeleteClusterFailures(t *testing.T) {
 			},
 			errorMatcher: errors.IsClusterNameOrIDMissingError,
 		},
+		{
+			arguments: Arguments{
+				apiEndpoint:     "https://mock-url",
+				token:           "some token",
+				clusterNameOrID: "somecluster",
+				outputFormat:    "not-json",
+			},
+			errorMatcher: errors.IsOutputFormatInvalid,
+		},
 	}
 
 	fs := afero.NewMemMapFs()
