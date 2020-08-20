@@ -1214,17 +1214,17 @@ selected_endpoint: ` + mockServer.URL
 
 	t.Log(jsonRepresentation)
 
-	if strings.Contains(jsonRepresentation, `"id": "f6e8r"`) == false {
+	if !strings.Contains(jsonRepresentation, `"id": "f6e8r"`) {
 		t.Errorf("Returned json representation '%s' does not contain expected '%s'", jsonRepresentation, `"id": "f6e8r"`)
 	}
 
-	if strings.Contains(jsonRepresentation, `"result": "created"`) == false {
+	if !strings.Contains(jsonRepresentation, `"result": "created"`) {
 		t.Errorf("Returned json representation '%s' does not contain expected '%s'", jsonRepresentation, `"result": "created"`)
 	}
 
-	if strings.Contains(jsonRepresentation, "Requesting new cluster for organization 'giantswarm'") == true ||
-		strings.Contains(jsonRepresentation, "Adding node pool") == true ||
-		strings.Contains(jsonRepresentation, "Adding a default node pool") == true {
+	if strings.Contains(jsonRepresentation, "Requesting new cluster for organization 'giantswarm'") ||
+		strings.Contains(jsonRepresentation, "Adding node pool") ||
+		strings.Contains(jsonRepresentation, "Adding a default node pool") {
 		t.Errorf("Expected no additional output for json output, got '%s'", jsonRepresentation)
 	}
 }
