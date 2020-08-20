@@ -10,6 +10,7 @@ import (
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
+	"github.com/giantswarm/gsctl/formatting"
 )
 
 type definitionFromFlagsV5 struct {
@@ -130,7 +131,9 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 
 	clusterRequestBody := createAddClusterBodyV5(def)
 
-	fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(def.Owner))
+	if args.OutputFormat != formatting.OutputFormatJSON {
+		fmt.Printf("Requesting new cluster for organization '%s'\n", color.CyanString(def.Owner))
+	}
 
 	response, err := clientWrapper.CreateClusterV5(clusterRequestBody, auxParams)
 	if err != nil {
@@ -144,7 +147,9 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 		for i, np := range def.NodePools {
 			nodePoolRequestBody := createAddNodePoolBody(np)
 
-			fmt.Printf("Adding node pool %d\n", i+1)
+			if args.OutputFormat != formatting.OutputFormatJSON {
+				fmt.Printf("Adding node pool %d\n", i+1)
+			}
 
 			npResponse, err := clientWrapper.CreateNodePool(response.Payload.ID, nodePoolRequestBody, auxParams)
 			if err != nil {
@@ -155,7 +160,9 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 			}
 		}
 	} else if args.CreateDefaultNodePool {
-		fmt.Println("Adding a default node pool")
+		if args.OutputFormat != formatting.OutputFormatJSON {
+			fmt.Println("Adding a default node pool")
+		}
 
 		nodePoolRequestBody := &models.V5AddNodePoolRequest{}
 		npResponse, err := clientWrapper.CreateNodePool(response.Payload.ID, nodePoolRequestBody, auxParams)

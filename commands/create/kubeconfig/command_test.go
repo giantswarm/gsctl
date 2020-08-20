@@ -313,3 +313,65 @@ func Test_CreateKubeconfigNoConnection(t *testing.T) {
 	}
 
 }
+
+func Test_CreateKubeconfigJSONOutput(t *testing.T) {
+	mockServer := makeMockServer()
+	defer mockServer.Close()
+
+	// temporary config
+	fs := afero.NewMemMapFs()
+	_, err := testutils.TempConfig(fs, "")
+	if err != nil {
+		t.Error(err)
+	}
+
+	args := Arguments{
+		apiEndpoint:     mockServer.URL,
+		authToken:       "auth-token",
+		clusterNameOrID: "Name of the cluster",
+		contextName:     "giantswarm-test-cluster-id",
+		fileSystem:      fs,
+		outputFormat:    "json",
+	}
+
+	err = verifyCreateKubeconfigPreconditions(args, []string{})
+	if err != nil {
+		t.Error(err)
+	}
+
+	result, err := createKubeconfig(context.Background(), args)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// check result object contents
+	if len(result.selfContainedYAMLBytes) == 0 {
+		t.Error("Expected non-empty result.selfContainedYAMLBytes, got empty slice")
+	}
+
+	print := printJSONOutput
+
+	jsonRepresentation := testutils.CaptureOutput(func() {
+		// output
+		print(result, err)
+	})
+
+	// t.Error(jsonRepresentation)
+
+	if !strings.Contains(jsonRepresentation, `"result": "ok"`) {
+		t.Error("JSON representation doesn't contain the expected result: ok key value pair")
+	}
+
+	if !strings.Contains(jsonRepresentation, "current-context: giantswarm-test-cluster-id") {
+		t.Error("Kubeconfig doesn't contain the expected current-context value")
+	}
+	if !strings.Contains(jsonRepresentation, "client-certificate-data:") {
+		t.Error("Kubeconfig doesn't contain the key client-certificate-data")
+	}
+	if !strings.Contains(jsonRepresentation, "client-key-data:") {
+		t.Error("Kubeconfig doesn't contain the key client-key-data")
+	}
+	if !strings.Contains(jsonRepresentation, "certificate-authority-data:") {
+		t.Error("Kubeconfig doesn't contain the key certificate-authority-data")
+	}
+}
