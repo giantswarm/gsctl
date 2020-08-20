@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/clustercache"
+	"github.com/giantswarm/gsctl/formatting"
 	"github.com/giantswarm/gsctl/pkg/sortable"
 	"github.com/giantswarm/gsctl/pkg/table"
 
@@ -50,8 +51,6 @@ Examples:
 		Run:    printResult,
 	}
 
-	cmdOutput string
-
 	cmdShowDeleted bool
 
 	cmdSelector string
@@ -63,12 +62,6 @@ Examples:
 
 const (
 	listClustersActivityName = "list-clusters"
-
-	outputFormatJSON  = "json"
-	outputFormatTable = "table"
-
-	outputJSONPrefix = ""
-	outputJSONIndent = "  "
 
 	tableColID            = "id"
 	tableColCreateDate    = "created"
@@ -93,7 +86,7 @@ func init() {
 
 func initFlags() {
 	Command.ResetFlags()
-	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output. Defaults to human-friendly table output.")
+	Command.Flags().StringVarP(&flags.OutputFormat, "output", "o", formatting.OutputFormatTable, fmt.Sprintf("Use '%s' for JSON output. Defaults to human-friendly table output.", formatting.OutputFormatJSON))
 	Command.Flags().BoolVarP(&cmdShowDeleted, "show-deleting", "", false, "Show clusters which are currently being deleted (only with cluster release > 10.0.0).")
 	Command.Flags().StringVarP(&cmdSelector, "selector", "l", "", "Label selector query to filter clusters on.")
 	Command.Flags().StringVarP(&cmdSort, "sort", "s", "id", fmt.Sprintf("Sort by one of the fields %s", getFormattedFilterFields(tableCols[:])))
@@ -118,7 +111,7 @@ func collectArguments() Arguments {
 	return Arguments{
 		apiEndpoint:       endpoint,
 		authToken:         token,
-		outputFormat:      cmdOutput,
+		outputFormat:      flags.OutputFormat,
 		scheme:            scheme,
 		selector:          cmdSelector,
 		showDeleting:      cmdShowDeleted,
@@ -151,7 +144,7 @@ func verifyListClusterPreconditions(args Arguments) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
-	if args.outputFormat != outputFormatJSON && args.outputFormat != outputFormatTable {
+	if args.outputFormat != formatting.OutputFormatJSON && args.outputFormat != formatting.OutputFormatTable {
 		return microerror.Maskf(errors.OutputFormatInvalidError, "Output format '%s' is unknown", args.outputFormat)
 	}
 
@@ -261,7 +254,7 @@ func getClustersOutput(args Arguments) (string, error) {
 	// Create the cluster list table.
 	cTable := createTable(args)
 
-	if args.outputFormat == "json" {
+	if args.outputFormat == formatting.OutputFormatJSON {
 		// Filter deleted clusters if seeing them is not desired.
 		var clusterList []*models.V4ClusterListItem
 		{
@@ -453,7 +446,7 @@ func getJSONOutput(clusterList []*models.V4ClusterListItem, cTable *table.Table,
 
 	// If there is nothing to sort, let's get this over with.
 	if len(clusterList) < 2 {
-		output, err = json.MarshalIndent(clusterList, outputJSONPrefix, outputJSONIndent)
+		output, err = json.MarshalIndent(clusterList, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
 		if err != nil {
 			return "", microerror.Mask(err)
 		}
@@ -508,7 +501,7 @@ func getJSONOutput(clusterList []*models.V4ClusterListItem, cTable *table.Table,
 
 	table.SortMapSliceUsingColumnData(clustersAsMapList, sortByColumn, fieldMapping)
 
-	output, err = json.MarshalIndent(clustersAsMapList, outputJSONPrefix, outputJSONIndent)
+	output, err = json.MarshalIndent(clustersAsMapList, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}

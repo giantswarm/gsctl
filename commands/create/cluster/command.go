@@ -429,7 +429,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 
 	// Ensure provider information is there.
 	if config.Config.Provider == "" {
-		if flags.Verbose {
+		if args.Verbose {
 			fmt.Println(color.WhiteString("Fetching installation information"))
 		}
 

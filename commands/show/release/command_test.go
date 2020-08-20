@@ -179,7 +179,7 @@ selected_endpoint: ` + releasesMockServer.URL
 		t.Errorf("Expected release version '%s', got '%s'", testArgs.releaseVersion, *details.Version)
 	}
 
-	expected := "Warning: endpoint URL uses an insecure protocol\nWarning: endpoint URL uses an insecure protocol\nWarning: endpoint URL uses an insecure protocol\nWarning: endpoint URL uses an insecure protocol\nWarning: endpoint URL uses an insecure protocol\n---\nVersion: 0.10.0\nCreated: 2017 Oct 27, 16:21 UTC\nActive: true\nComponents:\n  vault: 0.7.3\n  flannel: 0.9.0\n  calico: 2.6.2\n  docker: 1.12.6\n  etcd: 3.2.7\n  kubedns: 1.14.5\n  kubernetes: 1.8.1\n  nginx-ingress-controller: 0.9.0\nChangelog:\n  vault: Vault version updated.\n  flannel: Flannel version updated.\n  calico: Calico version updated.\n  docker: Docker version updated.\n  etcd: Etcd version updated.\n  kubedns: KubeDNS version updated.\n  kubernetes: Kubernetes version updated.\n  nginx-ingress-controller: Nginx-ingress-controller version updated.\n"
+	expected := "---\nVersion: 0.10.0\nCreated: 2017 Oct 27, 16:21 UTC\nActive: true\nComponents:\n  vault: 0.7.3\n  flannel: 0.9.0\n  calico: 2.6.2\n  docker: 1.12.6\n  etcd: 3.2.7\n  kubedns: 1.14.5\n  kubernetes: 1.8.1\n  nginx-ingress-controller: 0.9.0\nChangelog:\n  vault: Vault version updated.\n  flannel: Flannel version updated.\n  calico: Calico version updated.\n  docker: Docker version updated.\n  etcd: Etcd version updated.\n  kubedns: KubeDNS version updated.\n  kubernetes: Kubernetes version updated.\n  nginx-ingress-controller: Nginx-ingress-controller version updated.\n"
 	ShowReleaseCommand.SetArgs([]string{testArgs.releaseVersion})
 	output := testutils.CaptureOutput(func() {
 		ShowReleaseCommand.Execute()

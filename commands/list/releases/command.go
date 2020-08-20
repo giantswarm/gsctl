@@ -20,18 +20,11 @@ import (
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/formatting"
 	"github.com/giantswarm/gsctl/util"
 )
 
-const (
-	listReleasesActivityName = "list-releases"
-
-	outputFormatJSON  = "json"
-	outputFormatTable = "table"
-
-	outputJSONPrefix = ""
-	outputJSONIndent = "  "
-)
+const listReleasesActivityName = "list-releases"
 
 var (
 	// Command performs the "list releases" function
@@ -45,8 +38,6 @@ A release is a software bundle that constitutes a cluster. It is identified by i
 		Run:    printResult,
 	}
 
-	cmdOutput string
-
 	arguments Arguments
 )
 
@@ -57,7 +48,7 @@ func init() {
 func initFlags() {
 	Command.ResetFlags()
 
-	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output.")
+	Command.Flags().StringVarP(&flags.OutputFormat, "output", "o", formatting.OutputFormatTable, fmt.Sprintf("Use '%s' for JSON output. Defaults to human-friendly table output.", formatting.OutputFormatJSON))
 }
 
 // Arguments are the actual arguments used to call the
@@ -79,7 +70,7 @@ func collectArguments() Arguments {
 
 	return Arguments{
 		apiEndpoint:       endpoint,
-		outputFormat:      cmdOutput,
+		outputFormat:      flags.OutputFormat,
 		token:             token,
 		scheme:            scheme,
 		userProvidedToken: flags.Token,
@@ -112,7 +103,7 @@ func listReleasesPreconditions(args *Arguments) error {
 	if config.Config.Token == "" && args.token == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
-	if args.outputFormat != outputFormatJSON && args.outputFormat != outputFormatTable {
+	if args.outputFormat != formatting.OutputFormatJSON && args.outputFormat != formatting.OutputFormatTable {
 		return microerror.Maskf(errors.OutputFormatInvalidError, fmt.Sprintf("Output format '%s' is unknown", args.outputFormat))
 	}
 
@@ -139,8 +130,8 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 		os.Exit(1)
 	}
 
-	if arguments.outputFormat == "json" {
-		outputBytes, err := json.MarshalIndent(releases, outputJSONPrefix, outputJSONIndent)
+	if arguments.outputFormat == formatting.OutputFormatJSON {
+		outputBytes, err := json.MarshalIndent(releases, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
 		if err != nil {
 			fmt.Println(color.RedString("Error while encoding JSON"))
 			fmt.Printf("Details: %s", err.Error())
