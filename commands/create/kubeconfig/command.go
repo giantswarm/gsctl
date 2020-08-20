@@ -160,7 +160,7 @@ func collectArguments() (Arguments, error) {
 		selfContainedPath: cmdKubeconfigSelfContained,
 		ttlHours:          int32(ttl.Hours()),
 		userProvidedToken: flags.Token,
-		verbose:           flags.Verbose,
+		verbose:           flags.OutputFormat != formatting.OutputFormatJSON && flags.Verbose,
 	}, nil
 }
 

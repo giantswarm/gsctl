@@ -92,7 +92,7 @@ func collectArguments(cmd *cobra.Command) Arguments {
 		ReleaseVersion:        normalizedReleaseVersion,
 		Scheme:                scheme,
 		UserProvidedToken:     flags.Token,
-		Verbose:               flags.Verbose,
+		Verbose:               flags.OutputFormat != formatting.OutputFormatJSON && flags.Verbose,
 		OutputFormat:          flags.OutputFormat,
 	}
 }
@@ -487,7 +487,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 
 	// Ensure provider information is there.
 	if config.Config.Provider == "" {
-		if args.OutputFormat != formatting.OutputFormatJSON && args.Verbose {
+		if args.Verbose {
 			fmt.Println(color.WhiteString("Fetching installation information"))
 		}
 
@@ -563,7 +563,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 			return nil, microerror.Mask(err)
 		}
 
-		if args.OutputFormat != formatting.OutputFormatJSON && args.Verbose {
+		if args.Verbose {
 			fmt.Println(color.WhiteString("Determined release version %s is the latest, so this will be used.", latest))
 		}
 		wantedRelease = latest
@@ -575,7 +575,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	if args.OutputFormat != formatting.OutputFormatJSON && args.Verbose {
+	if args.Verbose {
 		fmt.Println(color.WhiteString("Fetching installation capabilities"))
 	}
 
@@ -606,7 +606,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 	}
 
 	if nodePoolsEnabled {
-		if args.OutputFormat != formatting.OutputFormatJSON && args.Verbose {
+		if args.Verbose {
 			fmt.Println(color.WhiteString("Using the v5 API to create a cluster with node pool support"))
 		}
 
@@ -636,7 +636,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 		result.HasErrors = hasErrors
 
 	} else {
-		if args.OutputFormat != formatting.OutputFormatJSON && args.Verbose {
+		if args.Verbose {
 			fmt.Println(color.WhiteString("Using the v4 API to create a cluster"))
 		}
 
@@ -688,7 +688,7 @@ func validateHAMasters(featureEnabled bool, args *Arguments, v5Definition *types
 		} else if featureEnabled && v5Definition.Master == nil {
 			if args.MasterHA == nil && v5Definition.MasterNodes == nil {
 				// Check if 'master' field is set before defaulting to HA master.
-				if args.OutputFormat != formatting.OutputFormatJSON && args.Verbose {
+				if args.Verbose {
 					fmt.Println(color.WhiteString("Using master node high availability by default."))
 				}
 				// Default to true if it is supported and not provided other value.
