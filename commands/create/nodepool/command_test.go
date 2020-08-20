@@ -375,6 +375,17 @@ func TestVerifyPreconditions(t *testing.T) {
 			},
 			errors.IsConflictingFlagsError,
 		},
+		// Availability zones number is negative on AWS.
+		{
+			Arguments{
+				AuthToken:            "token",
+				APIEndpoint:          "https://mock-url",
+				AvailabilityZonesNum: -1,
+				ClusterNameOrID:      "cluster-id",
+				Provider:             "aws",
+			},
+			IsInvalidAvailabilityZones,
+		},
 		// Scaling min and max are not plausible.
 		{
 			Arguments{
