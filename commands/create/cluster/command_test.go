@@ -1204,11 +1204,12 @@ selected_endpoint: ` + mockServer.URL
 		t.Error(err)
 	}
 
+	addClusterFunc := addCluster
 	print := printJSONOutput
 
 	jsonRepresentation := testutils.CaptureOutput(func() {
 		// output
-		print(addCluster(args))
+		print(addClusterFunc(args))
 	})
 
 	t.Log(jsonRepresentation)
