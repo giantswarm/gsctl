@@ -1221,4 +1221,33 @@ selected_endpoint: ` + mockServer.URL
 	if strings.Contains(jsonRepresentation, `"result": "created"`) == false {
 		t.Errorf("Returned json representation '%s' does not contain expected '%s'", jsonRepresentation, `"result": "created"`)
 	}
+
+	if strings.Contains(jsonRepresentation, "Requesting new cluster for organization 'giantswarm'") == true ||
+		strings.Contains(jsonRepresentation, "Adding node pool") == true ||
+		strings.Contains(jsonRepresentation, "Adding a default node pool") == true {
+		t.Errorf("Expected no additional output for json output, got '%s'", jsonRepresentation)
+	}
+}
+
+// Test_collectArguments tests the hack for ensuring empty
+// flags.OutputFormat when its set to "table"
+func Test_collectArguments(t *testing.T) {
+	// set flags.OutputFormat to "table"
+	flags.OutputFormat = "table"
+
+	argsEmptyOutputFormat := collectArguments(Command)
+
+	if argsEmptyOutputFormat.OutputFormat != "" {
+		t.Errorf("Expected OutputFormat argument to be empty. Received '%s'", argsEmptyOutputFormat.OutputFormat)
+	}
+
+	// Check verbose flag false for flags.OutputFormat == "json" && flags.Verbose == true
+	flags.OutputFormat = "json"
+	flags.Verbose = true
+
+	argsVerboseFalse := collectArguments(Command)
+
+	if argsVerboseFalse.Verbose == true {
+		t.Errorf("Expected Verbose argument to be false. Got '%t'", argsVerboseFalse.Verbose)
+	}
 }
