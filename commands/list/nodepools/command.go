@@ -60,27 +60,17 @@ To list all clusters you have access to, use 'gsctl list clusters'.`,
 		Run:    printResult,
 	}
 
-	cmdOutput string
-
 	arguments Arguments
 )
 
-const (
-	activityName = "list-nodepools"
-
-	outputFormatJSON  = "json"
-	outputFormatTable = "table"
-
-	outputJSONPrefix = ""
-	outputJSONIndent = "  "
-)
+const activityName = "list-nodepools"
 
 func init() {
 	initFlags()
 }
 
 func initFlags() {
-	Command.Flags().StringVarP(&cmdOutput, "output", "o", "table", "Use 'json' for JSON output. Defaults to human-friendly table output.")
+	Command.Flags().StringVarP(&flags.OutputFormat, "output", "o", formatting.OutputFormatTable, fmt.Sprintf("Use '%s' for JSON output. Defaults to human-friendly table output.", formatting.OutputFormatJSON))
 }
 
 type Arguments struct {
@@ -103,7 +93,7 @@ func collectArguments(cmdLineArgs []string) Arguments {
 		apiEndpoint:       endpoint,
 		authToken:         token,
 		clusterNameOrID:   cmdLineArgs[0],
-		outputFormat:      cmdOutput,
+		outputFormat:      flags.OutputFormat,
 		scheme:            scheme,
 		userProvidedToken: flags.Token,
 		verbose:           flags.Verbose,
@@ -117,7 +107,7 @@ func verifyPreconditions(args Arguments, positionalArgs []string) error {
 	if config.Config.Token == "" && args.authToken == "" {
 		return microerror.Mask(errors.NotLoggedInError)
 	}
-	if args.outputFormat != outputFormatJSON && args.outputFormat != outputFormatTable {
+	if args.outputFormat != formatting.OutputFormatJSON && args.outputFormat != formatting.OutputFormatTable {
 		return microerror.Maskf(errors.OutputFormatInvalidError, "Output format '%s' is unknown", args.outputFormat)
 	}
 
@@ -208,8 +198,8 @@ func getOutput(nps []*models.V5GetNodePoolsResponseItems, outputFormat string) (
 		return "", nil
 	}
 
-	if outputFormat == outputFormatJSON {
-		outputBytes, err := json.MarshalIndent(nps, outputJSONPrefix, outputJSONIndent)
+	if outputFormat == formatting.OutputFormatJSON {
+		outputBytes, err := json.MarshalIndent(nps, formatting.OutputJSONPrefix, formatting.OutputJSONIndent)
 		if err != nil {
 			return "", microerror.Mask(err)
 		}

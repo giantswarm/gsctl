@@ -68,6 +68,9 @@ var (
 	// OrganizationID represents an organization ID, passed as a flag.
 	OrganizationID string
 
+	// OutputFormat is the output format (table or json) of a commands output, passed as a flag.
+	OutputFormat string
+
 	// Owner is the owner organization of the cluster as set via flag on execution.
 	Owner string
 
