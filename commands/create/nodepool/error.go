@@ -4,11 +4,11 @@ import (
 	"github.com/giantswarm/microerror"
 )
 
-var invalidAvailabilityZones = &microerror.Error{
-	Kind: "invalidAvailabilityZones",
+var invalidAvailabilityZonesError = &microerror.Error{
+	Kind: "invalidAvailabilityZonesError",
 }
 
-// IsInvalidAvailabilityZones asserts invalidAvailabilityZones.
+// IsInvalidAvailabilityZones asserts invalidAvailabilityZonesError.
 func IsInvalidAvailabilityZones(err error) bool {
-	return microerror.Cause(err) == invalidAvailabilityZones
+	return microerror.Cause(err) == invalidAvailabilityZonesError
 }

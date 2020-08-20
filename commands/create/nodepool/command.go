@@ -260,7 +260,7 @@ func expandAndValidateZones(zones []string, p, dataCenter string) ([]string, err
 	if p == provider.Azure {
 		for _, zone := range zones {
 			if _, err := strconv.Atoi(zone); err != nil {
-				return nil, microerror.Mask(invalidAvailabilityZones)
+				return nil, microerror.Maskf(invalidAvailabilityZonesError, "The provided availability zones have an incorrect format")
 			}
 		}
 	}
@@ -281,8 +281,12 @@ func verifyPreconditions(args Arguments) error {
 	}
 
 	// AZ flags plausibility
-	if len(args.AvailabilityZonesList) > 0 && args.AvailabilityZonesNum > 0 {
+	if len(args.AvailabilityZonesList) > 0 && args.AvailabilityZonesNum != 0 {
 		return microerror.Maskf(errors.ConflictingFlagsError, "the flags --availability-zones and --num-availability-zones cannot be combined.")
+	}
+
+	if args.Provider == provider.AWS && args.AvailabilityZonesNum < 0 {
+		return microerror.Maskf(invalidAvailabilityZonesError, "The value of the --num-availability-zones flag must be bigger than 0, on AWS.")
 	}
 
 	// Check if not using both instance types (AWS-specific) and vm sizes (Azure-specific).
@@ -334,7 +338,7 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	switch {
 	case IsInvalidAvailabilityZones(err):
 		headline = "Invalid availability zones"
-		subtext = "The provided availability zones have an incorrect format"
+		subtext = strings.Replace(err.Error(), "invalid availability zones error: ", "", 1)
 	case errors.IsConflictingFlagsError(err):
 		headline = "Conflicting flags used"
 		// Removing the 'conflicting flags error:' from the beginning
