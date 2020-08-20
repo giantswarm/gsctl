@@ -349,16 +349,27 @@ func Test_CreateKubeconfigJSONOutput(t *testing.T) {
 		t.Error("Expected non-empty result.selfContainedYAMLBytes, got empty slice")
 	}
 
-	if !strings.Contains(string(result.selfContainedYAMLBytes), "current-context: giantswarm-test-cluster-id") {
+	jsonRepresentation := testutils.CaptureOutput(func() {
+		// output
+		printJSONOutput(result, err)
+	})
+
+	// t.Error(jsonRepresentation)
+
+	if !strings.Contains(jsonRepresentation, `"result": "ok"`) {
+		t.Error("JSON representation doesn't contain the expected result: ok key value pair")
+	}
+
+	if !strings.Contains(jsonRepresentation, "current-context: giantswarm-test-cluster-id") {
 		t.Error("Kubeconfig doesn't contain the expected current-context value")
 	}
-	if !strings.Contains(string(result.selfContainedYAMLBytes), "client-certificate-data:") {
+	if !strings.Contains(jsonRepresentation, "client-certificate-data:") {
 		t.Error("Kubeconfig doesn't contain the key client-certificate-data")
 	}
-	if !strings.Contains(string(result.selfContainedYAMLBytes), "client-key-data:") {
+	if !strings.Contains(jsonRepresentation, "client-key-data:") {
 		t.Error("Kubeconfig doesn't contain the key client-key-data")
 	}
-	if !strings.Contains(string(result.selfContainedYAMLBytes), "certificate-authority-data:") {
+	if !strings.Contains(jsonRepresentation, "certificate-authority-data:") {
 		t.Error("Kubeconfig doesn't contain the key certificate-authority-data")
 	}
 }
