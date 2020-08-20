@@ -349,9 +349,11 @@ func Test_CreateKubeconfigJSONOutput(t *testing.T) {
 		t.Error("Expected non-empty result.selfContainedYAMLBytes, got empty slice")
 	}
 
+	print := printJSONOutput
+
 	jsonRepresentation := testutils.CaptureOutput(func() {
 		// output
-		printJSONOutput(result, err)
+		print(result, err)
 	})
 
 	// t.Error(jsonRepresentation)
