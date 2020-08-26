@@ -255,7 +255,9 @@ func getOutputAWS(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 
 	for _, np := range nps {
 		it, err := awsInfo.GetInstanceTypeDetails(np.NodeSpec.Aws.InstanceType)
-		if err != nil {
+		if nodespec.IsInstanceTypeNotFoundErr(err) {
+			// We deliberately ignore "instance type not found", but respect all other errors.
+		} else if err != nil {
 			return "", microerror.Mask(err)
 		}
 
