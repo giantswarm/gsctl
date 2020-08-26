@@ -255,12 +255,31 @@ func getOutputAWS(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 
 	for _, np := range nps {
 		it, err := awsInfo.GetInstanceTypeDetails(np.NodeSpec.Aws.InstanceType)
-		if err != nil {
+		if nodespec.IsInstanceTypeNotFoundErr(err) {
+			// We deliberately ignore "instance type not found", but respect all other errors.
+		} else if err != nil {
 			return "", microerror.Mask(err)
 		}
 
-		sumCPUs := np.Status.NodesReady * int64(it.CPUCores)
-		sumMemory := float64(np.Status.NodesReady) * float64(it.MemorySizeGB)
+		var sumCPUs string
+		{
+			if it == nil {
+				sumCPUs = "n/a"
+			} else {
+				totalCPUs := np.Status.NodesReady * int64(it.CPUCores)
+				sumCPUs = strconv.FormatInt(totalCPUs, 10)
+			}
+		}
+
+		var sumMemory string
+		{
+			if it == nil {
+				sumMemory = "n/a"
+			} else {
+				totalMemory := float64(np.Status.NodesReady) * float64(it.MemorySizeGB)
+				sumMemory = strconv.FormatFloat(totalMemory, 'f', 1, 64)
+			}
+		}
 
 		var instanceTypes string
 		{
@@ -283,8 +302,8 @@ func getOutputAWS(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 			strconv.FormatInt(np.Status.Nodes, 10),
 			formatNodesReady(np.Status.Nodes, np.Status.NodesReady),
 			strconv.FormatInt(np.Status.SpotInstances, 10),
-			strconv.FormatInt(sumCPUs, 10),
-			strconv.FormatFloat(sumMemory, 'f', 1, 64),
+			sumCPUs,
+			sumMemory,
 		}, "|"))
 	}
 
@@ -330,12 +349,31 @@ func getOutputAzure(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 
 	for _, np := range nps {
 		vmSize, err := azureInfo.GetVMSizeDetails(np.NodeSpec.Azure.VMSize)
-		if err != nil {
+		if nodespec.IsVMSizeNotFoundErr(err) {
+			// We deliberately ignore "vm size not found", but respect all other errors.
+		} else if err != nil {
 			return "", microerror.Mask(err)
 		}
 
-		sumCPUs := np.Status.NodesReady * vmSize.NumberOfCores
-		sumMemory := float64(np.Status.NodesReady) * vmSize.MemoryInMB / 1000
+		var sumCPUs string
+		{
+			if vmSize == nil {
+				sumCPUs = "n/a"
+			} else {
+				totalCPUs := np.Status.NodesReady * vmSize.NumberOfCores
+				sumCPUs = strconv.FormatInt(totalCPUs, 10)
+			}
+		}
+
+		var sumMemory string
+		{
+			if vmSize == nil {
+				sumMemory = "n/a"
+			} else {
+				totalMemory := float64(np.Status.NodesReady) * vmSize.MemoryInMB / 1000
+				sumMemory = strconv.FormatFloat(totalMemory, 'f', 1, 64)
+			}
+		}
 
 		var vmSizes string
 		{
@@ -353,8 +391,8 @@ func getOutputAzure(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 			vmSizes,
 			strconv.FormatInt(np.Status.Nodes, 10),
 			formatNodesReady(np.Status.Nodes, np.Status.NodesReady),
-			strconv.FormatInt(sumCPUs, 10),
-			strconv.FormatFloat(sumMemory, 'f', 1, 64),
+			sumCPUs,
+			sumMemory,
 		}, "|"))
 	}
 
