@@ -59,7 +59,7 @@ func init() {
 	RootCommand.PersistentFlags().StringVarP(&flags.Token, "auth-token", "", tokenFromEnv, "Authorization token to use")
 	RootCommand.PersistentFlags().StringVarP(&flags.ConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
 	RootCommand.PersistentFlags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Print more information")
-	RootCommand.PersistentFlags().BoolVarP(&flags.SilenceHTTPEndpointWarning, "silence-http-endpoint-warning", "", false, "Dont't print warnings when deliberately using an insecure http endpoint")
+	RootCommand.PersistentFlags().BoolVarP(&flags.SilenceHTTPEndpointWarning, "silence-http-endpoint-warning", "", false, "Dont't print warnings when deliberately using an insecure HTTP endpoint")
 	RootCommand.Flags().Bool("version", false, version.Command.Short)
 
 	// add subcommands
@@ -95,7 +95,7 @@ func initConfig(cmd *cobra.Command, args []string) error {
 	fs := afero.NewOsFs()
 
 	var configLogger io.Writer
-	if flags.SilenceHTTPEndpointWarning == true {
+	if flags.SilenceHTTPEndpointWarning {
 		configLogger = ioutil.Discard
 	} else {
 		configLogger = os.Stdout
