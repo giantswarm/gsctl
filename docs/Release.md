@@ -30,6 +30,12 @@ Edit the description to inform about what has changed since the last release. Sa
 
 The release draft will attach itself to the tag you've pushed in the first step.
 
+## Release docs
+
+The gsctl reference hosted at [https://docs.giantswarm.io/reference/gsctl/](https://docs.giantswarm.io/reference/gsctl/) contains the latest releasd gsctl version. ([Relevant code](https://github.com/giantswarm/docs/blob/master/Makefile#L49))
+
+To update this, read the [Deploying](https://github.com/giantswarm/docs#deploying) section in the giantswarm/docs Readme.
+
 ## Prerequisites
 
 CircleCI must be set up with certain environment variables:
