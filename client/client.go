@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/giantswarm/apiextensions/pkg/apis/provider/v1alpha1"
+	"github.com/giantswarm/apiextensions/v2/pkg/apis/provider/v1alpha1"
 	"github.com/giantswarm/gscliauth/config"
 	gsclient "github.com/giantswarm/gsclientgen/v2/client"
 	"github.com/giantswarm/gsclientgen/v2/client/apps"
