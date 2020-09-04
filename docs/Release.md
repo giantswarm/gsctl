@@ -16,13 +16,19 @@ git tag -a ${VERSION} -m "Release version ${VERSION}"
 git push origin ${VERSION}
 ```
 
-Follow CircleCI's progress in https://circleci.com/gh/giantswarm/gsctl/.
+This will push your the new tag to the GitHub repository where it will show up as a tag without release.
+
+Follow CircleCI's progress in https://circleci.com/gh/giantswarm/gsctl/. Do not do anything until CI is finished.
+
+CircleCI should have created a new Release draft. Edit this draft.
 
 ## Edit the release draft and publish
 
 Open the [release draft](https://github.com/giantswarm/gsctl/releases/) on Github.
 
 Edit the description to inform about what has changed since the last release. Save and publish the release.
+
+The release draft will attach itself to the tag you've pushed in the first step.
 
 ## Prerequisites
 
