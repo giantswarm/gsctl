@@ -1,6 +1,6 @@
 module github.com/giantswarm/gsctl
 
-go 1.14
+go 1.15
 
 require (
 	github.com/Jeffail/gabs v1.4.0
