@@ -77,6 +77,9 @@ var (
 	// Release sets a release to use, provided as a command line flag.
 	Release string
 
+	// SilenceHTTPEndpointWarning represents
+	SilenceHTTPEndpointWarning bool
+
 	// MasterHA enables or disabled master node high availability.
 	MasterHA bool
 

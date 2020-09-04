@@ -2,6 +2,8 @@ package commands
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 
 	"github.com/giantswarm/gscliauth/config"
@@ -57,6 +59,7 @@ func init() {
 	RootCommand.PersistentFlags().StringVarP(&flags.Token, "auth-token", "", tokenFromEnv, "Authorization token to use")
 	RootCommand.PersistentFlags().StringVarP(&flags.ConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
 	RootCommand.PersistentFlags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Print more information")
+	RootCommand.PersistentFlags().BoolVarP(&flags.SilenceHTTPEndpointWarning, "silence-http-endpoint-warning", "", false, "Dont't print warnings when deliberately using an insecure http endpoint")
 	RootCommand.Flags().Bool("version", false, version.Command.Short)
 
 	// add subcommands
@@ -90,7 +93,15 @@ func init() {
 // before any command is executed (see PersistentPreRunE above).
 func initConfig(cmd *cobra.Command, args []string) error {
 	fs := afero.NewOsFs()
-	err := config.Initialize(fs, flags.ConfigDirPath)
+
+	var configLogger io.Writer
+	if flags.SilenceHTTPEndpointWarning == true {
+		configLogger = ioutil.Discard
+	} else {
+		configLogger = os.Stdout
+	}
+
+	err := config.InitializeWithLogger(fs, flags.ConfigDirPath, configLogger)
 	if err != nil {
 		if flags.Verbose {
 			fmt.Printf("Error initializing configuration: %#v\n", err)
