@@ -71,7 +71,7 @@ build/bin/$(BIN)-linux-amd64: $(SOURCE)
 		-e GOPATH=/go -e GOOS=linux -e GOARCH=amd64 -e CGO_ENABLED=0 \
 		-w /go/src/github.com/$(ORGANISATION)/$(PROJECT) \
 		--user ${USERID}:${GROUPID} \
-		golang:$(GOVERSION)-stretch go build -a -o build/bin/$(BIN)-linux-amd64 \
+		golang:$(GOVERSION)-buster go build -a -o build/bin/$(BIN)-linux-amd64 \
 		-ldflags="-X github.com/giantswarm/gsctl/buildinfo.Version=$(VERSION) -X github.com/giantswarm/gsctl/buildinfo.BuildDate=$(BUILDDATE) -X github.com/giantswarm/gsctl/buildinfo.Commit=$(COMMITHASH)"
 	rm -rf go-build-cache
 
