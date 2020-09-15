@@ -12,10 +12,8 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gsctl/clustercache"
-	"github.com/giantswarm/gsctl/pkg/provider"
-
 	"github.com/giantswarm/gsctl/client"
+	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
 )
@@ -138,16 +136,8 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Maskf(errors.NoOpError, "Nothing to update.")
 	}
 
-	switch args.Provider {
-	case provider.AWS:
-		if args.ScalingMin > args.ScalingMax && args.ScalingMax > 0 {
-			return microerror.Mask(errors.WorkersMinMaxInvalidError)
-		}
-
-	case provider.Azure:
-		if args.ScalingMin != args.ScalingMax {
-			return microerror.Maskf(errors.WorkersMinMaxInvalidError, "Provider '%s' does not support node pool autoscaling.", args.Provider)
-		}
+	if args.ScalingMin > args.ScalingMax && args.ScalingMax > 0 {
+		return microerror.Mask(errors.WorkersMinMaxInvalidError)
 	}
 
 	return nil
