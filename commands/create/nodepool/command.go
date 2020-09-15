@@ -294,23 +294,18 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Maskf(errors.ConflictingFlagsError, "the flags --aws-instance-type and --azure-vm-size cannot be combined.")
 	}
 
+	// Scaling flags plausibility
+	if args.ScalingMin > 0 && args.ScalingMax > 0 {
+		if args.ScalingMin > args.ScalingMax {
+			return microerror.Mask(errors.WorkersMinMaxInvalidError)
+		}
+	}
+
 	switch args.Provider {
 	case provider.AWS:
-		// Scaling flags plausibility
-		if args.ScalingMin > 0 && args.ScalingMax > 0 {
-			if args.ScalingMin > args.ScalingMax {
-				return microerror.Mask(errors.WorkersMinMaxInvalidError)
-			}
-		}
-
 		// SpotPercentage check percentage
 		if args.SpotPercentage < 0 || args.SpotPercentage > 100 {
 			return microerror.Mask(errors.NotPercentage)
-		}
-
-	case provider.Azure:
-		if args.ScalingMin != args.ScalingMax {
-			return microerror.Maskf(errors.WorkersMinMaxInvalidError, "Provider '%s' does not support node pool autoscaling.", args.Provider)
 		}
 	}
 
