@@ -345,6 +345,16 @@ func TestSuccess(t *testing.T) {
 				if r.Method == "PATCH" && r.URL.Path == "/v5/clusters/clusterid/nodepools/nodepoolid/" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(tc.responseBody))
+				} else if r.Method == "GET" && r.URL.Path == "/v5/clusters/clusterid/nodepools/nodepoolid/" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{
+						"id": "nodepoolid",
+						"name": "Some random name",
+						"scaling": {
+							"min": 999,
+							"max": 1000
+						}
+					}`))
 				} else if r.Method == "GET" && r.URL.Path == "/v4/clusters/" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(`[
@@ -450,6 +460,16 @@ func TestExecuteWithError(t *testing.T) {
 				if r.Method == "PATCH" && r.URL.Path == "/v5/clusters/clusterid/nodepools/nodepoolid/" {
 					w.WriteHeader(tc.responseStatusCode)
 					w.Write([]byte(tc.responseBody))
+				} else if r.Method == "GET" && r.URL.Path == "/v5/clusters/clusterid/nodepools/nodepoolid/" {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{
+						"id": "nodepoolid",
+						"name": "Some random name",
+						"scaling": {
+							"min": 999,
+							"max": 1000
+						}
+					}`))
 				} else if r.Method == "GET" && r.URL.Path == "/v4/clusters/" {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(`[
