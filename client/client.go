@@ -139,11 +139,15 @@ func NewWithConfig(endpointString, token string) (*Wrapper, error) {
 	ClientConfig := &Configuration{
 		AuthHeaderGetter: config.Config.AuthHeaderGetter(endpoint, token),
 		Endpoint:         endpoint,
-		Timeout:          20 * time.Second,
 		UserAgent:        config.UserAgent(),
 	}
 
 	return New(ClientConfig)
+}
+
+// WithTimeout adds a timeout setting to the client.
+func (w *Wrapper) WithTimeout(timeoutSeconds int8) {
+	w.conf.Timeout = time.Duration(timeoutSeconds) * time.Second
 }
 
 type roundTripperWithUserAgent struct {
