@@ -39,6 +39,9 @@ const (
         fi
     fi
 	`
+
+	// Default network timeout in seconds.
+	timeoutSecondsDefault = 20
 )
 
 // RootCommand is the main command of the CLI
@@ -60,6 +63,7 @@ func init() {
 	RootCommand.PersistentFlags().StringVarP(&flags.ConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
 	RootCommand.PersistentFlags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Print more information")
 	RootCommand.PersistentFlags().BoolVarP(&flags.SilenceHTTPEndpointWarning, "silence-http-endpoint-warning", "", false, "Dont't print warnings when deliberately using an insecure HTTP endpoint")
+	RootCommand.PersistentFlags().Int8VarP(&flags.TimeoutSeconds, "timeout", "", timeoutSecondsDefault, "Timeout for network requests, in seconds")
 	RootCommand.Flags().Bool("version", false, version.Command.Short)
 
 	// add subcommands

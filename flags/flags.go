@@ -87,6 +87,9 @@ var (
 	// used to generate kubeconfig
 	TenantInternal bool
 
+	// TimeoutSeconds is the network timeout duration in seconds.
+	TimeoutSeconds int8
+
 	// Token represents the auth token passed as a flag.
 	Token string
 
