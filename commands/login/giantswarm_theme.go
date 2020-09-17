@@ -66,7 +66,7 @@ func loginGiantSwarm(args Arguments) (loginResult, error) {
 		fmt.Println(color.WhiteString("Fetching installation details"))
 	}
 
-	installationInfo, err := getInstallationInfo(args.apiEndpoint, "giantswarm", result.token)
+	installationInfo, err := getInstallationInfo(args.apiEndpoint, "giantswarm", result.token, args.timeout)
 	if err != nil {
 		return result, microerror.Mask(err)
 	}

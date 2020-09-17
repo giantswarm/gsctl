@@ -64,20 +64,24 @@ type Arguments struct {
 	apiEndpoint string
 	email       string
 	password    string
+	timeout     int8
 	verbose     bool
 }
 
-func collectArguments(positionalArgs []string) Arguments {
+func collectArguments(cmd *cobra.Command, positionalArgs []string) Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 
 	if len(positionalArgs) > 0 {
 		cmdEmail = positionalArgs[0]
 	}
 
+	timeoutSeconds, _ := cmd.Root().PersistentFlags().GetInt8("timeout")
+
 	return Arguments{
 		apiEndpoint: endpoint,
 		email:       cmdEmail,
 		password:    cmdPassword,
+		timeout:     timeoutSeconds,
 		verbose:     flags.Verbose,
 	}
 }
@@ -106,7 +110,7 @@ type loginResult struct {
 // loginPreRunOutput runs our pre-checks.
 // If an error occurred, it prints the error info and exits with non-zero code.
 func loginPreRunOutput(cmd *cobra.Command, positionalArgs []string) {
-	err := verifyLoginPreconditions(positionalArgs)
+	err := verifyLoginPreconditions(cmd, positionalArgs)
 
 	if err == nil {
 		return
@@ -138,8 +142,8 @@ func loginPreRunOutput(cmd *cobra.Command, positionalArgs []string) {
 }
 
 // verifyLoginPreconditions does the pre-checks and returns an error in case something's wrong.
-func verifyLoginPreconditions(positionalArgs []string) error {
-	arguments = collectArguments(positionalArgs)
+func verifyLoginPreconditions(cmd *cobra.Command, positionalArgs []string) error {
+	arguments = collectArguments(cmd, positionalArgs)
 
 	// using auth token flag? The 'login' command is the only exception
 	// where we can't accept this argument.
@@ -188,7 +192,7 @@ func login(loginArgs Arguments) (loginResult, error) {
 // loginRunOutput executes the login logic and
 // prints output and sets the exit code.
 func loginRunOutput(cmd *cobra.Command, positionalArgs []string) {
-	arguments := collectArguments(positionalArgs)
+	arguments := collectArguments(cmd, positionalArgs)
 	result, err := login(arguments)
 
 	if err != nil {
@@ -260,7 +264,7 @@ func loginRunOutput(cmd *cobra.Command, positionalArgs []string) {
 
 // getInstallationInfo creates a giantswarm API client and tries to fetch the info endpoint.
 // If it succeeds it returns the alias for that endpoint.
-func getInstallationInfo(apiEndpoint string, scheme string, accessToken string) (*models.V4InfoResponseGeneral, error) {
+func getInstallationInfo(apiEndpoint string, scheme string, accessToken string, timeoutSeconds int8) (*models.V4InfoResponseGeneral, error) {
 	// Create an API client.
 	authHeaderGetter := func() (string, error) {
 		return scheme + " " + accessToken, nil
@@ -268,7 +272,7 @@ func getInstallationInfo(apiEndpoint string, scheme string, accessToken string) 
 
 	clientConfig := &client.Configuration{
 		Endpoint:         apiEndpoint,
-		Timeout:          10 * time.Second,
+		Timeout:          time.Duration(timeoutSeconds) * time.Second,
 		UserAgent:        config.UserAgent(),
 		AuthHeaderGetter: authHeaderGetter,
 	}

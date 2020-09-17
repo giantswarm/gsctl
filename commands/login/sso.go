@@ -36,7 +36,7 @@ func loginSSO(args Arguments) (loginResult, error) {
 	}
 
 	// Check if the access token works by fetching the installation's name.
-	installationInfo, err := getInstallationInfo(args.apiEndpoint, "Bearer", pkceResponse.AccessToken)
+	installationInfo, err := getInstallationInfo(args.apiEndpoint, "Bearer", pkceResponse.AccessToken, args.timeout)
 	if err != nil {
 		if args.verbose {
 			fmt.Println(color.WhiteString("Attempt to use new token against the API failed."))
