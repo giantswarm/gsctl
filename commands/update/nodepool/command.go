@@ -255,9 +255,10 @@ func handleError(err error) {
 	case errors.IsNodePoolIDMalformedError(err):
 		headline = "Bad format for Cluster name/ID or Node Pool ID argument"
 		subtext = "Please provide cluster name/ID and node pool ID separated by a slash. See --help for examples."
-
 	case errors.IsNoOpError(err):
 		headline = microerror.Pretty(err, false)
+	default:
+		headline = err.Error()
 	}
 
 	// print output
