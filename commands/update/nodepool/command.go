@@ -165,6 +165,86 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 		return
 	}
 
+	handleError(err)
+	os.Exit(1)
+}
+
+func updateNodePool(args Arguments) (*result, error) {
+	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	clusterID, err := clustercache.GetID(args.APIEndpoint, args.ClusterNameOrID, clientWrapper)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	auxParams := clientWrapper.DefaultAuxiliaryParams()
+	auxParams.ActivityName = activityName
+	existingNP, err := clientWrapper.GetNodePool(clusterID, args.NodePoolID, auxParams)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	updated := false
+	modifyRequestBody := &models.V5ModifyNodePoolRequest{}
+	{
+		if args.Name != "" && args.Name != existingNP.Payload.Name {
+			modifyRequestBody.Name = args.Name
+			updated = true
+		}
+		if args.ScalingMin != 0 && args.ScalingMin != existingNP.Payload.Scaling.Min ||
+			args.ScalingMax != 0 && args.ScalingMax != existingNP.Payload.Scaling.Max {
+			modifyRequestBody.Scaling = &models.V5ModifyNodePoolRequestScaling{
+				Min: args.ScalingMin,
+				Max: args.ScalingMax,
+			}
+			updated = true
+		}
+	}
+	if !updated {
+		return nil, microerror.Maskf(errors.NoOpError, "Nothing to update.")
+	}
+
+	auxParams.ActivityName = activityName
+	response, err := clientWrapper.ModifyNodePool(clusterID, args.NodePoolID, modifyRequestBody, auxParams)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	r := &result{
+		NodePool: response.Payload,
+	}
+
+	return r, nil
+}
+
+func printResult(cmd *cobra.Command, positionalArgs []string) {
+	r, err := updateNodePool(arguments)
+	if err != nil {
+		handleError(err)
+		os.Exit(1)
+	}
+
+	fmt.Println(color.GreenString("Node pool '%s' (ID '%s') in cluster '%s' has been modified.", r.NodePool.Name, r.NodePool.ID, arguments.ClusterNameOrID))
+}
+
+func getInstallationInfo(endpoint, userProvidedToken string) (*models.V4InfoResponse, error) {
+	clientWrapper, err := client.NewWithConfig(endpoint, userProvidedToken)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	installationInfo, err := clientWrapper.GetInfo(nil)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return installationInfo.Payload, nil
+}
+
+func handleError(err error) {
 	client.HandleErrors(err)
 	errors.HandleCommonErrors(err)
 
@@ -185,85 +265,4 @@ func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	if subtext != "" {
 		fmt.Println(subtext)
 	}
-	os.Exit(1)
-}
-
-func updateNodePool(args Arguments) (*result, error) {
-	clientWrapper, err := client.NewWithConfig(args.APIEndpoint, args.UserProvidedToken)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	requestBody := &models.V5ModifyNodePoolRequest{}
-	if args.Name != "" {
-		requestBody.Name = args.Name
-	}
-	if args.ScalingMin != 0 || args.ScalingMax != 0 {
-		requestBody.Scaling = &models.V5ModifyNodePoolRequestScaling{}
-	}
-	if args.ScalingMin != 0 {
-		requestBody.Scaling.Min = args.ScalingMin
-	}
-	if args.ScalingMax != 0 {
-		requestBody.Scaling.Max = args.ScalingMax
-	}
-
-	clusterID, err := clustercache.GetID(args.APIEndpoint, args.ClusterNameOrID, clientWrapper)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	auxParams := clientWrapper.DefaultAuxiliaryParams()
-	auxParams.ActivityName = activityName
-
-	response, err := clientWrapper.ModifyNodePool(clusterID, args.NodePoolID, requestBody, auxParams)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	r := &result{
-		NodePool: response.Payload,
-	}
-
-	return r, nil
-}
-
-func printResult(cmd *cobra.Command, positionalArgs []string) {
-	r, err := updateNodePool(arguments)
-	if err != nil {
-		client.HandleErrors(err)
-		errors.HandleCommonErrors(err)
-
-		headline := ""
-		subtext := ""
-
-		switch {
-		// If there are specific errors to handle, add them here.
-		default:
-			headline = err.Error()
-		}
-
-		// print output
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
-		os.Exit(1)
-	}
-
-	fmt.Println(color.GreenString("Node pool '%s' (ID '%s') in cluster '%s' has been modified.", r.NodePool.Name, r.NodePool.ID, arguments.ClusterNameOrID))
-}
-
-func getInstallationInfo(endpoint, userProvidedToken string) (*models.V4InfoResponse, error) {
-	clientWrapper, err := client.NewWithConfig(endpoint, userProvidedToken)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	installationInfo, err := clientWrapper.GetInfo(nil)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	return installationInfo.Payload, nil
 }
