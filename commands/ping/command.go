@@ -33,21 +33,24 @@ var (
 // Arguments specifies all the arguments to be used for our business function.
 type Arguments struct {
 	apiEndpoint string
+	timeout     int8
 	verbose     bool
 }
 
 // collectArguments fills arguments from user input, config, and environment.
-func collectArguments() Arguments {
+func collectArguments(cmd *cobra.Command) Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
+	timeoutSeconds, _ := cmd.Root().PersistentFlags().GetInt8("timeout")
 
 	return Arguments{
 		apiEndpoint: endpoint,
+		timeout:     timeoutSeconds,
 		verbose:     flags.Verbose,
 	}
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	args := collectArguments()
+	args := collectArguments(cmd)
 	err := verifyPreconditions(args, cmdLineArgs)
 
 	if err == nil {
@@ -72,9 +75,9 @@ func verifyPreconditions(args Arguments, cmdLineArgs []string) error {
 // runCommand executes the ping() function
 // and prints output in a user-friendly way
 func runCommand(cmd *cobra.Command, cmdLineArgs []string) {
-	args := collectArguments()
+	args := collectArguments(cmd)
 
-	duration, err := ping(args.apiEndpoint)
+	duration, err := ping(args)
 	if err != nil {
 
 		errors.HandleCommonErrors(err)
@@ -90,11 +93,11 @@ func runCommand(cmd *cobra.Command, cmdLineArgs []string) {
 
 // ping checks the API connection and returns
 // duration (in case of success) and error (in case of failure)
-func ping(endpointURL string) (time.Duration, error) {
+func ping(args Arguments) (time.Duration, error) {
 	var duration time.Duration
 
 	// create root URI for the endpoint
-	u, err := url.Parse(endpointURL)
+	u, err := url.Parse(args.apiEndpoint)
 	if err != nil {
 		return duration, microerror.Mask(err)
 	}
@@ -124,7 +127,7 @@ func ping(endpointURL string) (time.Duration, error) {
 		TLSClientConfig: tlsConfig,
 	}
 	pingClient := &http.Client{
-		Timeout:   5 * time.Second,
+		Timeout:   time.Duration(args.timeout) * time.Second,
 		Transport: t,
 	}
 

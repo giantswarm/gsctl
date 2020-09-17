@@ -45,7 +45,7 @@ func Test_Ping(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	duration, err := ping(mockServer.URL)
+	duration, err := ping(Arguments{apiEndpoint: mockServer.URL})
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
@@ -60,14 +60,14 @@ func Test_Ping_InternalServerError(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	_, err := ping(mockServer.URL)
+	_, err := ping(Arguments{apiEndpoint: mockServer.URL})
 	if err == nil {
 		t.Error("Expected error, got nil")
 	}
 }
 
 func Test_Ping_NonexistingEndpoint(t *testing.T) {
-	_, err := ping("http://notexisting")
+	_, err := ping(Arguments{apiEndpoint: "http://notexisting"})
 	if err == nil {
 		t.Error("Expected 'no such host' error, got <nil>")
 	}
