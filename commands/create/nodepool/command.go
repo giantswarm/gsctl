@@ -91,18 +91,12 @@ Examples:
 
   # Node pool scaling:
 
-  # AWS
-
   The initial node pool size is set by adjusting the lower and upper
   size limit like this:
 
     gsctl create nodepool f01r4 --nodes-min 3 --nodes-max 10
 
-  # Azure
-
-  The number of nodes is configured by setting both the lower and upper size limit to the same value:
-
-    gsctl create nodepool f01r4 --nodes-min 3 --nodes-max 3
+  # Spot instances (AWS only):
 
   To use 50% spot instances in a node pool and making sure to always have
   three on-demand instances you can create your node pool like this:
@@ -110,8 +104,6 @@ Examples:
     gsctl create nodepool f01r4 --nodes-min 3 --nodes-max 10 \
 	  --aws-on-demand-base-capacity 3 \
 	  --aws-spot-percentage 50
-
-  # Spot instances (AWS only):
 
   To use similar instances in your node pool to the one that you defined
   you can create your node pool like this (the list is maintained by
@@ -294,23 +286,18 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Maskf(errors.ConflictingFlagsError, "the flags --aws-instance-type and --azure-vm-size cannot be combined.")
 	}
 
+	// Scaling flags plausibility
+	if args.ScalingMin > 0 && args.ScalingMax > 0 {
+		if args.ScalingMin > args.ScalingMax {
+			return microerror.Mask(errors.WorkersMinMaxInvalidError)
+		}
+	}
+
 	switch args.Provider {
 	case provider.AWS:
-		// Scaling flags plausibility
-		if args.ScalingMin > 0 && args.ScalingMax > 0 {
-			if args.ScalingMin > args.ScalingMax {
-				return microerror.Mask(errors.WorkersMinMaxInvalidError)
-			}
-		}
-
 		// SpotPercentage check percentage
 		if args.SpotPercentage < 0 || args.SpotPercentage > 100 {
 			return microerror.Mask(errors.NotPercentage)
-		}
-
-	case provider.Azure:
-		if args.ScalingMin != args.ScalingMax {
-			return microerror.Maskf(errors.WorkersMinMaxInvalidError, "Provider '%s' does not support node pool autoscaling.", args.Provider)
 		}
 	}
 
