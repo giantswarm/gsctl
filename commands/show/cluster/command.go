@@ -493,7 +493,7 @@ func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 	webUIURL, _ := webui.ClusterDetailsURL(args.apiEndpoint, details.ID, details.Owner)
 
 	// clusterTable is the table for cluster information.
-	clusterTable := []string{}
+	var clusterTable []string
 
 	clusterTable = append(clusterTable, color.YellowString("Cluster ID:")+"|"+details.ID)
 	clusterTable = append(clusterTable, color.YellowString("Name:")+"|"+stringOrPlaceholder(details.Name))
@@ -593,48 +593,79 @@ func formatCredentialDetails(credentialDetails *models.V4GetCredentialResponse) 
 }
 
 func formatNodePoolDetails(nodePools *models.V5GetNodePoolsResponse) []string {
-	rows := []string{}
+	var err error
 
-	cpus := 0
-	ramGB := 0
-	numNodes := 0
-	numNodePools := len(*nodePools)
-
-	awsInfo, err := nodespec.NewAWS()
-	if err != nil {
-		fmt.Println(color.RedString("Error: Cannot provide info on AWS instance types. Details: %s", err))
+	var numNodePools int
+	{
+		if nodePools != nil {
+			numNodePools = len(*nodePools)
+		}
+		if numNodePools == 0 {
+			return nil
+		}
 	}
 
-	if nodePools != nil && numNodePools > 0 {
-		for _, np := range *nodePools {
-			numNodes += int(np.Status.NodesReady)
+	providerInfo, err := guessProviderInfo(nodePools)
+	if err != nil {
+		fmt.Println(color.RedString(microerror.Pretty(err, false)))
+	}
 
-			// Provider: AWS
-			if np.NodeSpec.Aws != nil && np.NodeSpec.Aws.InstanceType != "" {
-				it, err := awsInfo.GetInstanceTypeDetails(np.NodeSpec.Aws.InstanceType)
-				if err != nil {
-					fmt.Println(color.YellowString("Warning: Cannot provide info on AWS instance type '%s'. Please kindly report this to the Giant Swarm support team.", np.NodeSpec.Aws.InstanceType))
-				} else {
-					cpus += it.CPUCores * int(np.Status.NodesReady)
-					ramGB += it.MemorySizeGB * int(np.Status.NodesReady)
+	var numNodes int
+	var nodesReady int
+	var cpus int
+	var ramGB float64
+	{
+		if numNodePools > 0 {
+			for _, np := range *nodePools {
+				numNodes += int(np.Status.NodesReady)
+				nodesReady = int(np.Status.NodesReady)
+
+				switch info := providerInfo.(type) {
+				case *nodespec.ProviderAWS:
+					if np.NodeSpec.Aws != nil && len(np.NodeSpec.Aws.InstanceType) > 0 {
+						var it *nodespec.InstanceType
+						it, err = info.GetInstanceTypeDetails(np.NodeSpec.Aws.InstanceType)
+						if err != nil {
+							fmt.Println(color.YellowString("Warning: Cannot provide info on AWS instance type '%s'. Please kindly report this to the Giant Swarm support team.", np.NodeSpec.Aws.InstanceType))
+							continue
+						}
+
+						cpus += it.CPUCores * nodesReady
+						ramGB += float64(it.MemorySizeGB * nodesReady)
+					}
+				case *nodespec.ProviderAzure:
+					if np.NodeSpec.Azure != nil && len(np.NodeSpec.Azure.VMSize) > 0 {
+						var vs *nodespec.VMSize
+						vs, err = info.GetVMSizeDetails(np.NodeSpec.Azure.VMSize)
+						if err != nil {
+							fmt.Println(color.YellowString("Warning: Cannot provide info on Azure VM size '%s'. Please kindly report this to the Giant Swarm support team.", np.NodeSpec.Azure.VMSize))
+							continue
+						}
+
+						cpus += int(vs.NumberOfCores) * nodesReady
+						ramGB += vs.MemoryInMB * float64(nodesReady) / 1000
+					}
 				}
 			}
 		}
 	}
 
-	nodesTerm := "nodes"
-	if numNodes == 1 {
-		nodesTerm = "node"
-	}
+	var rows []string
+	{
+		nodesTerm := "nodes"
+		if numNodes == 1 {
+			nodesTerm = "node"
+		}
 
-	nodePoolsTerm := "node pools"
-	if numNodePools == 1 {
-		nodePoolsTerm = "node pool"
-	}
+		nodePoolsTerm := "node pools"
+		if numNodePools == 1 {
+			nodePoolsTerm = "node pool"
+		}
 
-	rows = append(rows, color.YellowString("Size:")+fmt.Sprintf("|%d %s in %d %s", numNodes, nodesTerm, numNodePools, nodePoolsTerm))
-	rows = append(rows, color.YellowString("CPUs in nodes:")+fmt.Sprintf("|%d", cpus))
-	rows = append(rows, color.YellowString("RAM in nodes (GB):")+fmt.Sprintf("|%d", ramGB))
+		rows = append(rows, color.YellowString("Size:")+fmt.Sprintf("|%d %s in %d %s", numNodes, nodesTerm, numNodePools, nodePoolsTerm))
+		rows = append(rows, color.YellowString("CPUs in nodes:")+fmt.Sprintf("|%d", cpus))
+		rows = append(rows, color.YellowString("RAM in nodes (GB):")+fmt.Sprintf("|%s", strconv.FormatFloat(ramGB, 'f', 1, 64)))
+	}
 
 	return rows
 }
@@ -685,4 +716,33 @@ func getCapabilitiesService(args Arguments) (*capabilities.Service, error) {
 	}
 
 	return capabilityService, nil
+}
+
+func guessProviderInfo(fromNodePools *models.V5GetNodePoolsResponse) (interface{}, error) {
+	if fromNodePools == nil || len(*fromNodePools) < 1 {
+		return nil, microerror.Mask(unknownProviderError)
+	}
+
+	var err error
+
+	np := (*fromNodePools)[0]
+	if np.NodeSpec != nil && np.NodeSpec.Aws != nil {
+		var awsInfo *nodespec.ProviderAWS
+		awsInfo, err = nodespec.NewAWS()
+		if err != nil {
+			return nil, microerror.Maskf(providerInfoCorruptError, "Cannot provide info on AWS instance types")
+		}
+
+		return awsInfo, nil
+	} else if np.NodeSpec != nil && np.NodeSpec.Azure != nil {
+		var azureInfo *nodespec.ProviderAzure
+		azureInfo, err := nodespec.NewAzureProvider()
+		if err != nil {
+			return nil, microerror.Maskf(providerInfoCorruptError, "Cannot provide info on Azure VM sizes")
+		}
+
+		return azureInfo, nil
+	}
+
+	return nil, microerror.Mask(unknownProviderError)
 }
