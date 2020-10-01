@@ -11,15 +11,6 @@ var (
 	// Warning: YAML in Golang is super fragile. There must not be any tabs in this string, otherwise
 	// the marshalling will fail. However we will likely detect this in CI when running tests.
 	azureVMSizesYAML = `
-Standard_A2_v2:
-  description: Av2-series, general purpose, 100 ACU, no premium storage
-  additionalProperties: {}
-  maxDataDiskCount: 4
-  memoryInMb: 4294.967296
-  name: Standard_A2_v2
-  numberOfCores: 2
-  osDiskSizeInMb: 1047552
-  resourceDiskSizeInMb: 21474.83648
 Standard_A4_v2:
   description: Av2-series, general purpose, 100 ACU, no premium storage
   additionalProperties: {}
@@ -38,15 +29,6 @@ Standard_A8_v2:
   numberOfCores: 8
   osDiskSizeInMb: 1047552
   resourceDiskSizeInMb: 85899.34592
-Standard_D2_v3:
-  description: Dv3-series, general purpose, 160-190 ACU, no premium storage
-  additionalProperties: {}
-  maxDataDiskCount: 4
-  memoryInMb: 8589.934592
-  name: Standard_D2_v3
-  numberOfCores: 2
-  osDiskSizeInMb: 1047552
-  resourceDiskSizeInMb: 53687.0912
 Standard_D4_v3:
   description: Dv3-series, general purpose, 160-190 ACU, no premium storage
   additionalProperties: {}
@@ -83,15 +65,6 @@ Standard_D32_v3:
   numberOfCores: 32
   osDiskSizeInMb: 1047552
   resourceDiskSizeInMb: 85899.34592
-Standard_D2s_v3:
-  description: Dsv3-series, general purpose, 160-190 ACU, premium storage supported
-  additionalProperties: {}
-  maxDataDiskCount: 4
-  memoryInMb: 8589.934592
-  name: Standard_D2s_v3
-  numberOfCores: 2
-  osDiskSizeInMb: 1047552
-  resourceDiskSizeInMb: 17179.869184
 Standard_D4s_v3:
   description: Dsv3-series, general purpose, 160-190 ACU, premium storage supported
   additionalProperties: {}
@@ -218,6 +191,60 @@ Standard_F32s_v2:
   numberOfCores: 32
   osDiskSizeInMb: 1047552
   resourceDiskSizeInMb: 274877.906944
+Standard_NC6:
+  description: NC-series, gpu - accelerated compute, no premium storage
+  additionalProperties: {}
+  maxDataDiskCount: 24
+  memoryInMb: 60129.5
+  name: Standard_NC6
+  numberOfCores: 6
+  osDiskSizeInMb: 1047552
+  resourceDiskSizeInMb: 365072
+Standard_NC12:
+  description: NC-series, gpu - accelerated compute, no premium storage
+  additionalProperties: {}
+  maxDataDiskCount: 48
+  memoryInMb: 120259
+  name: Standard_NC12
+  numberOfCores: 12
+  osDiskSizeInMb: 1047552
+  resourceDiskSizeInMb: 730144
+Standard_NC24:
+  description: NC-series, gpu - accelerated compute, no premium storage
+  additionalProperties: {}
+  maxDataDiskCount: 64
+  memoryInMb: 240518
+  name: Standard_NC24
+  numberOfCores: 24
+  osDiskSizeInMb: 1047552
+  resourceDiskSizeInMb: 1546188
+Standard_NC6s_v2:
+  description: NCv2-series, gpu - accelerated compute, premium storage supported
+  additionalProperties: {}
+  maxDataDiskCount: 12
+  memoryInMb: 120259
+  name: Standard_NC6s_v2
+  numberOfCores: 6
+  osDiskSizeInMb: 1047552
+  resourceDiskSizeInMb: 790274
+Standard_NC12s_v2:
+  description: NCv2-series, gpu - accelerated compute, premium storage supported
+  additionalProperties: {}
+  maxDataDiskCount: 24
+  memoryInMb: 240518
+  name: Standard_NC12s_v2
+  numberOfCores: 12
+  osDiskSizeInMb: 1047552
+  resourceDiskSizeInMb: 1582695
+Standard_NC24s_v2:
+  description: NCv2-series, gpu - accelerated compute, premium storage supported
+  additionalProperties: {}
+  maxDataDiskCount: 32
+  memoryInMb: 481036
+  name: Standard_NC24s_v2
+  numberOfCores: 24
+  osDiskSizeInMb: 1047552
+  resourceDiskSizeInMb: 3165391
 `
 )
 
