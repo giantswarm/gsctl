@@ -7,7 +7,7 @@ nodepools:
   - name: Node pool with 2 random AZs
     availability_zones:
       number: 2
-  - name: Node pool with 3 specific AZs 1, 2, 3, Standard_D2s_v3
+  - name: Node pool with 3 specific AZs 1, 2, 3, Standard_D4s_v3
     availability_zones:
       zones:
         - 1
@@ -15,5 +15,5 @@ nodepools:
         - 3
     node_spec:
       azure:
-        vm_size: Standard_D2s_v3
+        vm_size: Standard_D4s_v3
   - name: Node pool using defaults only

@@ -10,7 +10,7 @@ func TestAzure(t *testing.T) {
 		t.Errorf("Unexpected error: %s", err)
 	}
 
-	vmSize, err := p.GetVMSizeDetails("Standard_D2s_v3")
+	vmSize, err := p.GetVMSizeDetails("Standard_D4s_v3")
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}

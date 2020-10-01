@@ -451,7 +451,7 @@ nodepools:
     - 3
   node_spec:
     azure:
-      vm_size: "Standard_D2s_v3"
+      vm_size: "Standard_D4s_v3"
 - name: Batch
 `),
 			&types.ClusterDefinitionV5{
@@ -466,7 +466,7 @@ nodepools:
 					{
 						Name:              "Database",
 						AvailabilityZones: &types.AvailabilityZonesDefinition{Zones: []string{"1", "2", "3"}},
-						NodeSpec:          &types.NodeSpec{Azure: &types.AzureSpecificDefinition{VMSize: "Standard_D2s_v3"}},
+						NodeSpec:          &types.NodeSpec{Azure: &types.AzureSpecificDefinition{VMSize: "Standard_D4s_v3"}},
 					},
 					{
 						Name: "Batch",
