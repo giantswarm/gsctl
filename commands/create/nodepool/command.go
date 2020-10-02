@@ -87,7 +87,7 @@ Examples:
 
   Here is how you specify the vm size (Azure) to use:
 
-    gsctl create nodepool "Cluster name" --azure-vm-size Standard_D4_v3
+    gsctl create nodepool "Cluster name" --azure-vm-size Standard_D4s_v3
 
   # Node pool scaling:
 
@@ -144,7 +144,7 @@ func initFlags() {
 	Command.Flags().IntVarP(&cmdAvailabilityZonesNum, "num-availability-zones", "", 0, "Number of availability zones to use. Default is 1.")
 	Command.Flags().StringSliceVarP(&cmdAvailabilityZones, "availability-zones", "", nil, "List of availability zones to use, instead of setting a number. Use comma to separate values.")
 	Command.Flags().StringVarP(&flags.WorkerAwsEc2InstanceType, "aws-instance-type", "", "", "AWS EC2 instance type to use for workers, e. g. 'm5.2xlarge'")
-	Command.Flags().StringVarP(&flags.WorkerAzureVMSize, "azure-vm-size", "", "", "Azure VM Size to use for workers, e. g. 'Standard_D4_v3'")
+	Command.Flags().StringVarP(&flags.WorkerAzureVMSize, "azure-vm-size", "", "", "Azure VM Size to use for workers, e. g. 'Standard_D4s_v3'")
 	Command.Flags().Int64VarP(&flags.WorkersMin, "nodes-min", "", 0, "Minimum number of worker nodes for the node pool.")
 	Command.Flags().Int64VarP(&flags.WorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool.")
 	Command.Flags().BoolVarP(&flags.AWSUseAlikeInstanceTypes, "aws-use-alike-instance-types", "", false, "Use similar instance type in your node pool (AWS only). This list is maintained by Giant Swarm at the moment. Eg if you select m5.xlarge then the node pool can fall back on m4.xlarge too.")
