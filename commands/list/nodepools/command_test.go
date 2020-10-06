@@ -73,21 +73,21 @@ a6bf4  New node pool  C   m5.2xlarge     false               0              100 
 		},
 		{
 			npResponse: `[
-                {"id": "np001-1", "name": "np001-1", "availability_zones": ["2"], "scaling": {"min": 1, "max": 2}, "node_spec": {"azure": {"vm_size": "Standard_D2s_v3"}, "volume_sizes_gb": {"docker": 50, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}}
+                {"id": "np001-1", "name": "np001-1", "availability_zones": ["2"], "scaling": {"min": -1, "max": -1}, "node_spec": {"azure": {"vm_size": "Standard_D2s_v3"}, "volume_sizes_gb": {"docker": 50, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}}
             ]`,
 			outputFormat: "table",
-			output: `ID       NAME     AZ  VM SIZE          NODES MIN/MAX  NODES DESIRED  NODES READY  CPUS  RAM (GB)
-np001-1  np001-1  2   Standard_D2s_v3            1/2              0            0     0  0.0`,
+			output: `ID       NAME     AZ  VM SIZE          NODES DESIRED  NODES READY  CPUS  RAM (GB)
+np001-1  np001-1  2   Standard_D2s_v3              0            0     0       0.0`,
 		},
 		{
 			npResponse: `[
-                {"id": "np002-1", "name": "np002-1", "availability_zones": ["1"], "scaling": {"min": 1, "max": 2}, "node_spec": {"azure": {"vm_size": "Standard_D2s_v3"}, "volume_sizes_gb": {"docker": 50, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}},
-                {"id": "np002-2", "name": "np002-2", "availability_zones": ["2", "3"], "scaling": {"min": 1, "max": 3}, "node_spec": {"azure": {"vm_size": "Standard_D2s_v3"}, "volume_sizes_gb": {"docker": 50, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}}
+                {"id": "np002-1", "name": "np002-1", "availability_zones": ["1"], "scaling": {"min": -1, "max": -1}, "node_spec": {"azure": {"vm_size": "Standard_D2s_v3"}, "volume_sizes_gb": {"docker": 50, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}},
+                {"id": "np002-2", "name": "np002-2", "availability_zones": ["2", "3"], "scaling": {"min": -1, "max": -1}, "node_spec": {"azure": {"vm_size": "Standard_D2s_v3"}, "volume_sizes_gb": {"docker": 50, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}}
             ]`,
 			outputFormat: "table",
-			output: `ID       NAME     AZ   VM SIZE          NODES MIN/MAX  NODES DESIRED  NODES READY  CPUS  RAM (GB)
-np002-1  np002-1  1    Standard_D2s_v3            1/2              0            0     0  0.0
-np002-2  np002-2  2,3  Standard_D2s_v3            1/3              0            0     0  0.0`,
+			output: `ID       NAME     AZ   VM SIZE          NODES DESIRED  NODES READY  CPUS  RAM (GB)
+np002-1  np002-1  1    Standard_D2s_v3              0            0     0       0.0
+np002-2  np002-2  2,3  Standard_D2s_v3              0            0     0       0.0`,
 		},
 		{
 			npResponse: `[
