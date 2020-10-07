@@ -13,7 +13,7 @@ import (
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/v2/models"
-
+	"github.com/giantswarm/gsctl/pkg/releaseinfo"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -217,7 +217,7 @@ func getOrgCredentials(orgName, credentialID string, args Arguments) (*models.V4
 // - cluster details (v4 or v5)
 // - cluster status (v4 only)
 // - credential details, in case this is a BYOC cluster
-func getClusterDetails(args Arguments) (
+func getClusterDetails(clientWrapper *client.Wrapper, args Arguments) (
 	*models.V4ClusterDetailsResponse,
 	*models.V5ClusterDetailsResponse,
 	*models.V5GetNodePoolsResponse,
@@ -230,11 +230,7 @@ func getClusterDetails(args Arguments) (
 	var clusterStatus *client.ClusterStatus
 	var nodePools *models.V5GetNodePoolsResponse
 
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
-	if err != nil {
-		return nil, nil, nil, nil, nil, microerror.Mask(err)
-	}
-
+	var err error
 	args.clusterNameOrID, err = clustercache.GetID(args.apiEndpoint, args.clusterNameOrID, clientWrapper)
 	if err != nil {
 		return nil, nil, nil, nil, nil, microerror.Mask(err)
@@ -358,45 +354,47 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println(color.WhiteString("Fetching details for cluster %s.", arguments.clusterNameOrID))
 	}
 
-	clusterDetailsV4, clusterDetailsV5, nodePools, clusterStatus, credentialDetails, err := getClusterDetails(arguments)
+	clientWrapper, err := client.NewWithConfig(arguments.apiEndpoint, arguments.userProvidedToken)
+	if err != nil {
+		handleError(microerror.Mask(err))
+		os.Exit(1)
+	}
+
+	clusterDetailsV4, clusterDetailsV5, nodePools, clusterStatus, credentialDetails, err := getClusterDetails(clientWrapper, arguments)
 
 	var capabilitiesService *capabilities.Service
 	if err == nil {
 		capabilitiesService, err = getCapabilitiesService(arguments)
 	}
 	if err != nil {
-		client.HandleErrors(err)
-		errors.HandleCommonErrors(err)
+		handleError(microerror.Mask(err))
+		os.Exit(1)
+	}
 
-		headline := ""
-		subtext := ""
-
-		switch {
-		case errors.IsClusterNotFoundError(err):
-			headline = "Cluster not found"
-			subtext = fmt.Sprintf("Either there is no cluster with ID '%s', or you have no access to it.\n", arguments.clusterNameOrID)
-			subtext += "Please check whether the cluster is listed when executing 'gsctl list clusters'."
-		default:
-			headline = "Unknown error"
-			subtext = "Please contact the Giant Swarm support team and share details about the command you just executed."
-		}
-
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
+	releaseInfoConfig := releaseinfo.Config{
+		ClientWrapper: clientWrapper,
+	}
+	releaseInfo, err := releaseinfo.New(releaseInfoConfig)
+	if err != nil {
+		handleError(microerror.Mask(err))
 		os.Exit(1)
 	}
 
 	if clusterDetailsV4 != nil {
-		printV4Result(arguments, clusterDetailsV4, clusterStatus, credentialDetails)
+		printV4Result(arguments, clusterDetailsV4, clusterStatus, credentialDetails, releaseInfo)
 	} else if clusterDetailsV5 != nil {
-		printV5Result(arguments, clusterDetailsV5, credentialDetails, nodePools, capabilitiesService)
+		printV5Result(arguments, clusterDetailsV5, credentialDetails, nodePools, capabilitiesService, releaseInfo)
 	}
 }
 
 // printV4Result prints the detils for a V4 cluster.
-func printV4Result(args Arguments, clusterDetails *models.V4ClusterDetailsResponse, clusterStatus *client.ClusterStatus, credentialDetails *models.V4GetCredentialResponse) {
+func printV4Result(
+	args Arguments,
+	clusterDetails *models.V4ClusterDetailsResponse,
+	clusterStatus *client.ClusterStatus,
+	credentialDetails *models.V4GetCredentialResponse,
+	releaseInfo *releaseinfo.ReleaseInfo,
+) {
 	// Calculate worker node count.
 	numWorkers := 0
 	if clusterStatus != nil && clusterStatus.Cluster.Nodes != nil {
@@ -427,6 +425,11 @@ func printV4Result(args Arguments, clusterDetails *models.V4ClusterDetailsRespon
 	output = append(output, color.YellowString("Organization:")+"|"+clusterDetails.Owner)
 	output = append(output, color.YellowString("Kubernetes API endpoint:")+"|"+clusterDetails.APIEndpoint)
 	output = append(output, color.YellowString("Release version:")+"|"+stringOrPlaceholder(clusterDetails.ReleaseVersion))
+
+	{
+		kubernetesVersion := formatKubernetesVersion(releaseInfo, clusterDetails.ReleaseVersion)
+		output = append(output, fmt.Sprintf("%s|%s", color.YellowString("Kubernetes version:"), kubernetesVersion))
+	}
 
 	// BYOC credentials.
 	if credentialDetails != nil && credentialDetails.ID != "" {
@@ -486,9 +489,14 @@ func printV4Result(args Arguments, clusterDetails *models.V4ClusterDetailsRespon
 }
 
 // printV5Result prints details for a v5 clsuter.
-func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
+func printV5Result(
+	args Arguments,
+	details *models.V5ClusterDetailsResponse,
 	credentialDetails *models.V4GetCredentialResponse,
-	nodePools *models.V5GetNodePoolsResponse, capabilitiesService *capabilities.Service) {
+	nodePools *models.V5GetNodePoolsResponse,
+	capabilitiesService *capabilities.Service,
+	releaseInfo *releaseinfo.ReleaseInfo,
+) {
 
 	webUIURL, _ := webui.ClusterDetailsURL(args.apiEndpoint, details.ID, details.Owner)
 
@@ -501,6 +509,12 @@ func printV5Result(args Arguments, details *models.V5ClusterDetailsResponse,
 	clusterTable = append(clusterTable, color.YellowString("Organization:")+"|"+details.Owner)
 	clusterTable = append(clusterTable, color.YellowString("Kubernetes API endpoint:")+"|"+details.APIEndpoint)
 	clusterTable = append(clusterTable, color.YellowString("Release version:")+"|"+details.ReleaseVersion)
+
+	{
+		kubernetesVersion := formatKubernetesVersion(releaseInfo, details.ReleaseVersion)
+		clusterTable = append(clusterTable, fmt.Sprintf("%s|%s", color.YellowString("Kubernetes version:"), kubernetesVersion))
+	}
+
 	clusterTable = append(clusterTable, formatClusterLabels(details.Labels)...)
 
 	// BYOC credentials.
@@ -745,4 +759,42 @@ func guessProviderInfo(fromNodePools *models.V5GetNodePoolsResponse) (interface{
 	}
 
 	return nil, microerror.Mask(unknownProviderError)
+}
+
+func handleError(err error) {
+	client.HandleErrors(err)
+	errors.HandleCommonErrors(err)
+
+	headline := ""
+	subtext := ""
+
+	switch {
+	case errors.IsClusterNotFoundError(err):
+		headline = "Cluster not found"
+		subtext = fmt.Sprintf("Either there is no cluster with ID '%s', or you have no access to it.\n", arguments.clusterNameOrID)
+		subtext += "Please check whether the cluster is listed when executing 'gsctl list clusters'."
+	default:
+		headline = "Unknown error"
+		subtext = "Please contact the Giant Swarm support team and share details about the command you just executed."
+	}
+
+	fmt.Println(color.RedString(headline))
+	if subtext != "" {
+		fmt.Println(subtext)
+	}
+}
+
+func formatKubernetesVersion(releaseInfo *releaseinfo.ReleaseInfo, releaseVersion string) string {
+	releaseData, err := releaseInfo.GetReleaseData(releaseVersion)
+	if err != nil {
+		return naString
+	}
+
+	if releaseData.IsK8sVersionEOL {
+		return fmt.Sprintf("%s (end of life)", releaseData.K8sVersion)
+	} else if date := releaseData.K8sVersionEOLDate; len(date) > 0 {
+		return fmt.Sprintf("%s (end of life on %s)", releaseData.K8sVersion, date)
+	}
+
+	return naString
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/giantswarm/gscliauth/config"
 	models "github.com/giantswarm/gsclientgen/v2/models"
+	"github.com/giantswarm/gsctl/client"
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/commands/errors"
@@ -82,7 +83,12 @@ func TestShowAWSClusterV4(t *testing.T) {
 		t.Errorf("Unexpected error: %s", err)
 	}
 
-	detailsV4, detailsV5, _, statusV4, credentials, err := getClusterDetails(testArgs)
+	clientWrapper, err := client.NewWithConfig(testArgs.apiEndpoint, testArgs.authToken)
+	if err != nil {
+		t.Error(err)
+	}
+
+	detailsV4, detailsV5, _, statusV4, credentials, err := getClusterDetails(clientWrapper, testArgs)
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err)
 	}
@@ -202,7 +208,12 @@ func TestShowAWSClusterV5(t *testing.T) {
 		t.Errorf("Unexpected error: %s", err)
 	}
 
-	detailsV4, detailsV5, _, statusV4, credentials, err := getClusterDetails(testArgs)
+	clientWrapper, err := client.NewWithConfig(testArgs.apiEndpoint, testArgs.authToken)
+	if err != nil {
+		t.Error(err)
+	}
+
+	detailsV4, detailsV5, _, statusV4, credentials, err := getClusterDetails(clientWrapper, testArgs)
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err)
 	}
@@ -320,7 +331,12 @@ func TestShowAzureClusterV5(t *testing.T) {
 		t.Errorf("Unexpected error: %s", err)
 	}
 
-	detailsV4, detailsV5, _, statusV4, credentials, err := getClusterDetails(testArgs)
+	clientWrapper, err := client.NewWithConfig(testArgs.apiEndpoint, testArgs.authToken)
+	if err != nil {
+		t.Error(err)
+	}
+
+	detailsV4, detailsV5, _, statusV4, credentials, err := getClusterDetails(clientWrapper, testArgs)
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err)
 	}
@@ -438,7 +454,12 @@ func TestShowAWSClusterV5NoHAMasters(t *testing.T) {
 		t.Errorf("Unexpected error: %s", err)
 	}
 
-	detailsV4, detailsV5, _, statusV4, credentials, err := getClusterDetails(testArgs)
+	clientWrapper, err := client.NewWithConfig(testArgs.apiEndpoint, testArgs.authToken)
+	if err != nil {
+		t.Error(err)
+	}
+
+	detailsV4, detailsV5, _, statusV4, credentials, err := getClusterDetails(clientWrapper, testArgs)
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err)
 	}
@@ -538,7 +559,12 @@ func TestShowClusterNotFound(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, _, _, _, _, err = getClusterDetails(testArgs)
+	clientWrapper, err := client.NewWithConfig(testArgs.apiEndpoint, testArgs.authToken)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, _, _, _, _, err = getClusterDetails(clientWrapper, testArgs)
 	if err == nil {
 		t.Fatal("Expected ClusterNotFoundError, got nil")
 	}
@@ -579,7 +605,12 @@ func TestShowClusterInternalServerError(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, _, _, _, _, err = getClusterDetails(testArgs)
+	clientWrapper, err := client.NewWithConfig(testArgs.apiEndpoint, testArgs.authToken)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, _, _, _, _, err = getClusterDetails(clientWrapper, testArgs)
 	if err == nil {
 		t.Fatal("Expected InternalServerError, got nil")
 	}
@@ -726,7 +757,12 @@ func TestShowAWSBYOCClusterV4(t *testing.T) {
 		t.Error(err)
 	}
 
-	detailsV4, _, _, _, credentialDetails, showErr := getClusterDetails(testArgs)
+	clientWrapper, err := client.NewWithConfig(testArgs.apiEndpoint, testArgs.authToken)
+	if err != nil {
+		t.Error(err)
+	}
+
+	detailsV4, _, _, _, credentialDetails, showErr := getClusterDetails(clientWrapper, testArgs)
 	if showErr != nil {
 		t.Error(showErr)
 	}
