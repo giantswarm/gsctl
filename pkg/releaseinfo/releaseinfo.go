@@ -21,6 +21,8 @@ type Config struct {
 	ReleaseVersion string
 }
 
+// ReleaseInfo is an utility data structure for collecting
+// common information about a GS release version.
 type ReleaseInfo struct {
 	clientWrapper  *client.Wrapper
 	releaseVersion string
