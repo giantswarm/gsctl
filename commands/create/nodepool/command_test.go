@@ -417,7 +417,7 @@ func TestVerifyPreconditions(t *testing.T) {
 				ClusterNameOrID: "cluster-id",
 				VmSize:          "something-also-big",
 				ScalingMin:      3,
-				ScalingMax:      1,
+				ScalingMax:      10,
 				Provider:        "azure",
 			},
 			errors.IsWorkersMinMaxInvalid,

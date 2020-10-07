@@ -180,15 +180,15 @@ func Test_verifyPreconditions(t *testing.T) {
 			errorMatcher: errors.IsNoOpError,
 		},
 		{
-			name: "case 6: bad scaling parameters, on azure",
+			name: "case 6: trying to provide unsupported arguments, on azure",
 			args: Arguments{
 				AuthToken:       "token",
 				APIEndpoint:     "https://mock-url",
 				Provider:        "azure",
 				ClusterNameOrID: "cluster-id",
 				NodePoolID:      "abc",
-				ScalingMin:      3,
-				ScalingMax:      1,
+				ScalingMin:      1,
+				ScalingMax:      3,
 			},
 			errorMatcher: errors.IsWorkersMinMaxInvalid,
 		},
