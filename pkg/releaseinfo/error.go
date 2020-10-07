@@ -37,3 +37,12 @@ var versionNotFoundError = &microerror.Error{
 func IsVersionNotFound(err error) bool {
 	return microerror.Cause(err) == versionNotFoundError
 }
+
+var componentNotFoundError = &microerror.Error{
+	Kind: "componentNotFoundError",
+}
+
+// IsComponentNotFound asserts componentNotFoundError.
+func IsComponentNotFound(err error) bool {
+	return microerror.Cause(err) == componentNotFoundError
+}

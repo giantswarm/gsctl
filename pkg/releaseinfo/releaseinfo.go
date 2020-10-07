@@ -9,50 +9,50 @@ import (
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/microerror"
+	"github.com/go-openapi/strfmt"
 )
 
 const (
 	listReleasesActivityName = "list-releases"
 	infoActivityName         = "info"
+
+	dateFormat = strfmt.RFC3339FullDate
 )
 
 type Config struct {
-	ClientWrapper  *client.Wrapper
-	ReleaseVersion string
+	ClientWrapper *client.Wrapper
 }
 
 // ReleaseInfo is an utility data structure for collecting
 // common information about a GS release version.
 type ReleaseInfo struct {
-	clientWrapper  *client.Wrapper
-	releaseVersion string
+	clientWrapper *client.Wrapper
 
-	k8sVersion        string
-	k8sVersionEOLDate *time.Time
+	releases     []*models.V4ReleaseListItem
+	infoResponse *models.V4InfoResponse
+}
+
+type ReleaseData struct {
+	Version           string
+	K8sVersionEOLDate string
+	IsK8sVersionEOL   bool
 }
 
 func New(c Config) (*ReleaseInfo, error) {
 	if c.ClientWrapper == nil {
 		return nil, microerror.Maskf(invalidConfigError, "%T.ClientWrapper must not be empty", c)
 	}
-	if len(c.ReleaseVersion) < 1 {
-		return nil, microerror.Maskf(invalidConfigError, "%T.ReleaseVersion must not be empty", c)
-	}
-
-	releases, err := getReleases(c.ClientWrapper)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-	infoResponse, err := getInfo(c.ClientWrapper)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
 
 	ri := &ReleaseInfo{
-		clientWrapper:  c.ClientWrapper,
-		releaseVersion: c.ReleaseVersion,
+		clientWrapper: c.ClientWrapper,
 	}
-	err = ri.parseCapabilities(releases, infoResponse)
+
+	var err error
+	ri.releases, err = getReleases(ri.clientWrapper)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+	ri.infoResponse, err = getInfo(ri.clientWrapper)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
@@ -60,59 +60,65 @@ func New(c Config) (*ReleaseInfo, error) {
 	return ri, nil
 }
 
-// IsK8sVersionEOL checks whether the current Kubernetes version
-// has reached its end of life.
-func (ri *ReleaseInfo) IsK8sVersionEOL() bool {
-	if ri.k8sVersionEOLDate == nil {
-		return false
+func (ri *ReleaseInfo) GetReleaseData(version string) (ReleaseData, error) {
+	release, err := ri.getReleaseForVersion(version)
+	if err != nil {
+		return ReleaseData{}, microerror.Mask(err)
 	}
 
-	return time.Now().After(*ri.k8sVersionEOLDate)
+	k8sComponent, err := ri.getReleaseComponent("kubernetes", release.Components)
+	if err != nil {
+		return ReleaseData{}, microerror.Mask(err)
+	}
+
+	rd := ReleaseData{
+		Version: version,
+	}
+
+	k8sEolDate := ri.getKubernetesVersionEOLDate(*k8sComponent.Version)
+	if k8sEolDate == nil {
+		rd.IsK8sVersionEOL = false
+		rd.K8sVersionEOLDate = ""
+	} else {
+		rd.IsK8sVersionEOL = time.Now().After(*k8sEolDate)
+		rd.K8sVersionEOLDate = k8sEolDate.Format(dateFormat)
+	}
+
+	return rd, nil
 }
 
-func (ri *ReleaseInfo) parseCapabilities(releases []*models.V4ReleaseListItem, infoResponse *models.V4InfoResponse) error {
-	err := ri.parseReleaseCapabilities(releases)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	err = ri.parseInfoCapabilities(infoResponse)
-	if err != nil {
-		return microerror.Mask(err)
-	}
-
-	return nil
-}
-
-func (ri *ReleaseInfo) parseReleaseCapabilities(releases []*models.V4ReleaseListItem) error {
+func (ri *ReleaseInfo) getReleaseForVersion(version string) (*models.V4ReleaseListItem, error) {
 	var currentRelease *models.V4ReleaseListItem
 	{
-		for _, release := range releases {
-			if release.Version != nil && *release.Version == ri.releaseVersion {
+		for _, release := range ri.releases {
+			if release.Version != nil && *release.Version == version {
 				currentRelease = release
 				break
 			}
 		}
 	}
 	if currentRelease == nil {
-		return microerror.Mask(versionNotFoundError)
+		return nil, microerror.Mask(versionNotFoundError)
 	}
 
-	for _, component := range currentRelease.Components {
-		if component.Name != nil && *component.Name == "kubernetes" && component.Version != nil {
-			ri.k8sVersion = *component.Version
-			break
+	return currentRelease, nil
+}
+
+func (ri *ReleaseInfo) getReleaseComponent(componentName string, components []*models.V4ReleaseListItemComponentsItems) (*models.V4ReleaseListItemComponentsItems, error) {
+	for _, component := range components {
+		if component.Name != nil && *component.Name == componentName {
+			return component, nil
 		}
 	}
 
-	return nil
+	return nil, microerror.Mask(componentNotFoundError)
 }
 
-func (ri *ReleaseInfo) parseInfoCapabilities(infoResponse *models.V4InfoResponse) error {
+func (ri *ReleaseInfo) getKubernetesVersionEOLDate(version string) *time.Time {
 	var currentKubeVersion *models.V4InfoResponseGeneralKubernetesVersionsItems
 	{
-		for _, kubeVersion := range infoResponse.General.KubernetesVersions {
-			versionParts := strings.SplitN(ri.k8sVersion, ".", 3)
+		for _, kubeVersion := range ri.infoResponse.General.KubernetesVersions {
+			versionParts := strings.SplitN(version, ".", 3)
 			if len(versionParts) < 2 {
 				continue
 			}
@@ -127,7 +133,7 @@ func (ri *ReleaseInfo) parseInfoCapabilities(infoResponse *models.V4InfoResponse
 
 	if currentKubeVersion != nil && currentKubeVersion.EolDate != nil {
 		eolDate := time.Time(*currentKubeVersion.EolDate)
-		ri.k8sVersionEOLDate = &eolDate
+		return &eolDate
 	}
 
 	return nil
