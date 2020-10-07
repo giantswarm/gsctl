@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/giantswarm/gscliauth/config"
+	"github.com/giantswarm/gsctl/client"
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/commands/errors"
@@ -16,131 +17,149 @@ import (
 func TestShowRelease(t *testing.T) {
 	releasesMockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`[
-		  {
-				"timestamp": "2017-10-15T12:00:00Z",
-				"version": "0.1.0",
-				"active": true,
-				"changelog": [
-			  	{
-						"component": "vault",
-						"description": "Vault version updated."
-			  	},
-			  	{
-					"component": "flannel",
-					"description": "Flannel version updated."
-					}
-				],
-				"components": [
+
+		switch true {
+		case r.Method == http.MethodGet && r.URL.Path == "/v4/info/":
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{
+				"general": {
+					"kubernetes_versions": [
+					   {
+						  "minor_version": "1.8",
+						  "eol_date": "1960-01-01"
+					   }
+					]
+				}
+			  }`))
+
+		case r.Method == http.MethodGet && r.URL.Path == "/v4/releases/":
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[
+			  {
+					"timestamp": "2017-10-15T12:00:00Z",
+					"version": "0.1.0",
+					"active": true,
+					"changelog": [
 					{
-						"name": "vault",
-						"version": "0.7.2"
-					},
-					{
-						"name": "flannel",
-						"version": "0.8.0"
-					},
-					{
-						"name": "calico",
-						"version": "2.6.1"
-					},
-					{
-						"name": "docker",
-						"version": "1.12.5"
-					},
-					{
-						"name": "etcd",
-						"version": "3.2.2"
-					},
-					{
-						"name": "kubedns",
-						"version": "1.14.4"
-					},
-					{
-						"name": "kubernetes",
-						"version": "1.8.0"
-					},
-					{
-						"name": "nginx-ingress-controller",
-						"version": "0.8.0"
-					}
-				]
-		  },
-		  {
-				"timestamp": "2017-10-27T16:21:00Z",
-				"version": "0.10.0",
-				"active": true,
-				"changelog": [
-					{
-						"component": "vault",
-						"description": "Vault version updated."
+							"component": "vault",
+							"description": "Vault version updated."
 					},
 					{
 						"component": "flannel",
 						"description": "Flannel version updated."
-					},
-					{
-						"component": "calico",
-						"description": "Calico version updated."
-					},
-					{
-						"component": "docker",
-						"description": "Docker version updated."
-					},
-					{
-						"component": "etcd",
-						"description": "Etcd version updated."
-					},
-					{
-						"component": "kubedns",
-						"description": "KubeDNS version updated."
-					},
-					{
-						"component": "kubernetes",
-						"description": "Kubernetes version updated."
-					},
-					{
-						"component": "nginx-ingress-controller",
-						"description": "Nginx-ingress-controller version updated."
-					}
-				],
-				"components": [
-					{
-						"name": "vault",
-						"version": "0.7.3"
-					},
-					{
-						"name": "flannel",
-						"version": "0.9.0"
-					},
-					{
-						"name": "calico",
-						"version": "2.6.2"
-					},
-					{
-						"name": "docker",
-						"version": "1.12.6"
-					},
-					{
-						"name": "etcd",
-						"version": "3.2.7"
-					},
-					{
-						"name": "kubedns",
-						"version": "1.14.5"
-					},
-					{
-						"name": "kubernetes",
-						"version": "1.8.1"
-					},
-					{
-						"name": "nginx-ingress-controller",
-						"version": "0.9.0"
-					}
-				]
-		  }
+						}
+					],
+					"components": [
+						{
+							"name": "vault",
+							"version": "0.7.2"
+						},
+						{
+							"name": "flannel",
+							"version": "0.8.0"
+						},
+						{
+							"name": "calico",
+							"version": "2.6.1"
+						},
+						{
+							"name": "docker",
+							"version": "1.12.5"
+						},
+						{
+							"name": "etcd",
+							"version": "3.2.2"
+						},
+						{
+							"name": "kubedns",
+							"version": "1.14.4"
+						},
+						{
+							"name": "kubernetes",
+							"version": "1.8.0"
+						},
+						{
+							"name": "nginx-ingress-controller",
+							"version": "0.8.0"
+						}
+					]
+			  },
+			  {
+					"timestamp": "2017-10-27T16:21:00Z",
+					"version": "0.10.0",
+					"active": true,
+					"changelog": [
+						{
+							"component": "vault",
+							"description": "Vault version updated."
+						},
+						{
+							"component": "flannel",
+							"description": "Flannel version updated."
+						},
+						{
+							"component": "calico",
+							"description": "Calico version updated."
+						},
+						{
+							"component": "docker",
+							"description": "Docker version updated."
+						},
+						{
+							"component": "etcd",
+							"description": "Etcd version updated."
+						},
+						{
+							"component": "kubedns",
+							"description": "KubeDNS version updated."
+						},
+						{
+							"component": "kubernetes",
+							"description": "Kubernetes version updated."
+						},
+						{
+							"component": "nginx-ingress-controller",
+							"description": "Nginx-ingress-controller version updated."
+						}
+					],
+					"components": [
+						{
+							"name": "vault",
+							"version": "0.7.3"
+						},
+						{
+							"name": "flannel",
+							"version": "0.9.0"
+						},
+						{
+							"name": "calico",
+							"version": "2.6.2"
+						},
+						{
+							"name": "docker",
+							"version": "1.12.6"
+						},
+						{
+							"name": "etcd",
+							"version": "3.2.7"
+						},
+						{
+							"name": "kubedns",
+							"version": "1.14.5"
+						},
+						{
+							"name": "kubernetes",
+							"version": "1.8.1"
+						},
+						{
+							"name": "nginx-ingress-controller",
+							"version": "0.9.0"
+						}
+					]
+			  }
 		]`))
+		}
+
 	}))
 	defer releasesMockServer.Close()
 
@@ -170,7 +189,12 @@ selected_endpoint: ` + releasesMockServer.URL
 		t.Error(err)
 	}
 
-	details, showErr := getReleaseDetails(testArgs)
+	clientWrapper, err := client.NewWithConfig(testArgs.apiEndpoint, testArgs.authToken)
+	if err != nil {
+		t.Error(err)
+	}
+
+	details, showErr := getReleaseDetails(clientWrapper, testArgs)
 	if showErr != nil {
 		t.Error(showErr)
 	}
@@ -179,7 +203,7 @@ selected_endpoint: ` + releasesMockServer.URL
 		t.Errorf("Expected release version '%s', got '%s'", testArgs.releaseVersion, *details.Version)
 	}
 
-	expected := "---\nVersion: 0.10.0\nCreated: 2017 Oct 27, 16:21 UTC\nActive: true\nComponents:\n  vault: 0.7.3\n  flannel: 0.9.0\n  calico: 2.6.2\n  docker: 1.12.6\n  etcd: 3.2.7\n  kubedns: 1.14.5\n  kubernetes: 1.8.1\n  nginx-ingress-controller: 0.9.0\nChangelog:\n  vault: Vault version updated.\n  flannel: Flannel version updated.\n  calico: Calico version updated.\n  docker: Docker version updated.\n  etcd: Etcd version updated.\n  kubedns: KubeDNS version updated.\n  kubernetes: Kubernetes version updated.\n  nginx-ingress-controller: Nginx-ingress-controller version updated.\n"
+	expected := "---\nVersion: 0.10.0\nCreated: 2017 Oct 27, 16:21 UTC\nActive: true\nComponents:\n  vault: 0.7.3\n  flannel: 0.9.0\n  calico: 2.6.2\n  docker: 1.12.6\n  etcd: 3.2.7\n  kubedns: 1.14.5\n  kubernetes: 1.8.1 (end of life)\n  nginx-ingress-controller: 0.9.0\nChangelog:\n  vault: Vault version updated.\n  flannel: Flannel version updated.\n  calico: Calico version updated.\n  docker: Docker version updated.\n  etcd: Etcd version updated.\n  kubedns: KubeDNS version updated.\n  kubernetes: Kubernetes version updated.\n  nginx-ingress-controller: Nginx-ingress-controller version updated.\n"
 	ShowReleaseCommand.SetArgs([]string{testArgs.releaseVersion})
 	output := testutils.CaptureOutput(func() {
 		ShowReleaseCommand.Execute()
@@ -222,7 +246,11 @@ func TestShowReleaseNotAuthorized(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = getReleaseDetails(testArgs)
+	clientWrapper, err := client.NewWithConfig(testArgs.apiEndpoint, testArgs.authToken)
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = getReleaseDetails(clientWrapper, testArgs)
 
 	if err == nil {
 		t.Fatal("Expected notAuthorizedError, got nil")
@@ -277,7 +305,11 @@ func TestShowReleaseNotFound(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = getReleaseDetails(testArgs)
+	clientWrapper, err := client.NewWithConfig(testArgs.apiEndpoint, testArgs.authToken)
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = getReleaseDetails(clientWrapper, testArgs)
 
 	if err == nil {
 		t.Fatal("Expected releaseNotFoundError, got nil")
@@ -319,7 +351,11 @@ func TestShowReleaseInternalServerError(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = getReleaseDetails(testArgs)
+	clientWrapper, err := client.NewWithConfig(testArgs.apiEndpoint, testArgs.authToken)
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = getReleaseDetails(clientWrapper, testArgs)
 
 	if err == nil {
 		t.Fatal("Expected internalServerError, got nil")
