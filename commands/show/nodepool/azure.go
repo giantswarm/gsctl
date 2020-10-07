@@ -41,7 +41,6 @@ func getOutputAzure(nodePool *models.V5GetNodePoolResponse) (string, error) {
 		table = append(table, color.YellowString("Name:")+"|"+nodePool.Name)
 		table = append(table, color.YellowString("Node VM sizes:")+"|"+formatVMSizeAzure(vmSizes, vmSizeDetails))
 		table = append(table, color.YellowString("Availability zones:")+"|"+formatAZsAzure(nodePool.AvailabilityZones))
-		table = append(table, color.YellowString("Node scaling:")+"|"+formatNodeScalingAzure(nodePool.Scaling))
 		table = append(table, color.YellowString("Nodes desired:")+fmt.Sprintf("|%d", nodePool.Status.Nodes))
 		table = append(table, color.YellowString("Nodes in state Ready:")+fmt.Sprintf("|%d", nodePool.Status.NodesReady))
 		table = append(table, color.YellowString("CPUs:")+"|"+formatCPUsAzure(nodePool.Status.NodesReady, vmSizeDetails))
@@ -68,14 +67,6 @@ func formatCPUsAzure(nodesReady int64, details *nodespec.VMSize) string {
 	}
 
 	return "n/a"
-}
-
-func formatNodeScalingAzure(scaling *models.V5GetNodePoolResponseScaling) string {
-	if scaling.Min == scaling.Max {
-		return fmt.Sprintf("Pinned to %d", scaling.Min)
-	}
-
-	return fmt.Sprintf("Autoscaling between %d and %d", scaling.Min, scaling.Max)
 }
 
 func formatRAMAzure(nodesReady int64, details *nodespec.VMSize) string {

@@ -47,8 +47,7 @@ func Test_ShowNodePool(t *testing.T) {
 				"id": "nodepool-id",
 				"name": "Application servers",
 				"availability_zones": ["1", "2"],
-                "node_spec": {"azure": {"vm_size": "Standard_D2s_v3"}},
-                "scaling":{"min":2,"max":5},
+				"node_spec": {"azure": {"vm_size": "Standard_D2s_v3"}},
 				"status": {"nodes": 3, "nodes_ready": 3}
 			}`,
 		},
@@ -59,7 +58,6 @@ func Test_ShowNodePool(t *testing.T) {
 				"name": "Application servers",
 				"availability_zones": ["1", "2"],
 				"node_spec": {"azure": {"vm_size": "weird_one"}},
-                "scaling":{"min":2,"max":5},
 				"status": {"nodes": 3, "nodes_ready": 3}
 			}`,
 		},
