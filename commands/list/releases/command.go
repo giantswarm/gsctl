@@ -165,7 +165,6 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 		color.CyanString("CALICO"),
 	}, "|")}
 
-	var releaseData releaseinfo.ReleaseData
 	for _, release := range releases {
 		created := util.ShortDate(util.ParseDate(*release.Timestamp))
 		kubernetesVersion := "n/a"
@@ -178,19 +177,9 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 			status = "active"
 		}
 
-		hasReleaseData := false
-		releaseData, err = releaseInfo.GetReleaseData(*release.Version)
-		if err == nil {
-			hasReleaseData = true
-		}
-
 		for _, component := range release.Components {
 			if *component.Name == "kubernetes" {
-				if hasReleaseData {
-					kubernetesVersion = formatKubernetesVersion(releaseData, *component.Version)
-				} else {
-					kubernetesVersion = *component.Version
-				}
+				kubernetesVersion = formatKubernetesVersion(releaseInfo, *release.Version)
 			}
 			if *component.Name == "containerlinux" {
 				containerLinuxVersion = *component.Version
@@ -264,12 +253,17 @@ func listReleases(clientWrapper *client.Wrapper, args Arguments) ([]*models.V4Re
 	return response.Payload, nil
 }
 
-func formatKubernetesVersion(releaseData releaseinfo.ReleaseData, version string) string {
-	if releaseData.IsK8sVersionEOL {
-		return fmt.Sprintf("%s (EOL)", version)
+func formatKubernetesVersion(releaseInfo *releaseinfo.ReleaseInfo, version string) string {
+	releaseData, err := releaseInfo.GetReleaseData(version)
+	if err != nil {
+		return "n/a"
 	}
 
-	return version
+	if releaseData.IsK8sVersionEOL {
+		return fmt.Sprintf("%s (EOL)", releaseData.K8sVersion)
+	}
+
+	return releaseData.K8sVersion
 }
 
 func handleError(err error) {
