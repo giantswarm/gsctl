@@ -122,7 +122,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 
 	releases, err := listReleases(clientWrapper, arguments)
 	if err != nil {
-		handleError(err)
+		handleError(microerror.Mask(err))
 		os.Exit(1)
 	}
 
@@ -131,7 +131,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 	}
 	releaseInfo, err := releaseinfo.New(releaseInfoConfig)
 	if err != nil {
-		handleError(err)
+		handleError(microerror.Mask(err))
 		os.Exit(1)
 	}
 
