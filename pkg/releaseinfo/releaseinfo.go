@@ -34,6 +34,7 @@ type ReleaseInfo struct {
 
 type ReleaseData struct {
 	Version           string
+	K8sVersion        string
 	K8sVersionEOLDate string
 	IsK8sVersionEOL   bool
 }
@@ -72,7 +73,8 @@ func (ri *ReleaseInfo) GetReleaseData(version string) (ReleaseData, error) {
 	}
 
 	rd := ReleaseData{
-		Version: version,
+		Version:    version,
+		K8sVersion: *k8sComponent.Version,
 	}
 
 	k8sEolDate := ri.getKubernetesVersionEOLDate(*k8sComponent.Version)
