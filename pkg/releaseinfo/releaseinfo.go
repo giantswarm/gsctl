@@ -2,12 +2,13 @@ package releaseinfo
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/giantswarm/gsclientgen/v2/models"
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/microerror"
-	"strings"
-	"time"
 )
 
 const (
@@ -57,6 +58,8 @@ func New(c Config) (*ReleaseInfo, error) {
 	return ri, nil
 }
 
+// IsK8sVersionEOL checks whether the current Kubernetes version
+// has reached its end of life.
 func (ri *ReleaseInfo) IsK8sVersionEOL() bool {
 	if ri.k8sVersionEOLDate == nil {
 		return false
@@ -107,10 +110,11 @@ func (ri *ReleaseInfo) parseInfoCapabilities(infoResponse *models.V4InfoResponse
 	var currentKubeVersion *models.V4InfoResponseGeneralKubernetesVersionsItems
 	{
 		for _, kubeVersion := range infoResponse.General.KubernetesVersions {
-			versionParts := strings.SplitN(ri.k8sVersion, ".", 2)
+			versionParts := strings.SplitN(ri.k8sVersion, ".", 3)
 			if len(versionParts) < 2 {
 				continue
 			}
+
 			minor := fmt.Sprintf("%s.%s", versionParts[0], versionParts[1])
 			if kubeVersion.MinorVersion != nil && *kubeVersion.MinorVersion == minor {
 				currentKubeVersion = kubeVersion

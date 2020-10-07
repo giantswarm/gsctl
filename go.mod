@@ -24,6 +24,7 @@ require (
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/howeyc/gopass v0.0.0-20170109162249-bf9dde6d0d2c
 	github.com/juju/errgo v0.0.0-20140925100237-08cceb5d0b53
+	github.com/pkg/errors v0.9.1
 	github.com/rogpeppe/go-internal v1.5.0 // indirect
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v1.0.0
