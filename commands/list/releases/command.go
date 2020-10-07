@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/v2/models"
+	"github.com/giantswarm/gsctl/pkg/releaseinfo"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -113,20 +114,24 @@ func listReleasesPreconditions(args *Arguments) error {
 // printResult is the function called to list releases and display
 // errors in case they happen
 func printResult(cmd *cobra.Command, extraArgs []string) {
-	releases, err := listReleases(arguments)
-
+	clientWrapper, err := client.NewWithConfig(arguments.apiEndpoint, arguments.userProvidedToken)
 	if err != nil {
-		client.HandleErrors(err)
-		errors.HandleCommonErrors(err)
+		handleError(microerror.Mask(err))
+		os.Exit(1)
+	}
 
-		if clientErr, ok := err.(*clienterror.APIError); ok {
-			fmt.Println(color.RedString(clientErr.ErrorMessage))
-			if clientErr.ErrorDetails != "" {
-				fmt.Println(clientErr.ErrorDetails)
-			}
-		} else {
-			fmt.Println(color.RedString("Error: %s", err.Error()))
-		}
+	releases, err := listReleases(clientWrapper, arguments)
+	if err != nil {
+		handleError(err)
+		os.Exit(1)
+	}
+
+	releaseInfoConfig := releaseinfo.Config{
+		ClientWrapper: clientWrapper,
+	}
+	releaseInfo, err := releaseinfo.New(releaseInfoConfig)
+	if err != nil {
+		handleError(err)
 		os.Exit(1)
 	}
 
@@ -160,6 +165,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 		color.CyanString("CALICO"),
 	}, "|")}
 
+	var releaseData releaseinfo.ReleaseData
 	for _, release := range releases {
 		created := util.ShortDate(util.ParseDate(*release.Timestamp))
 		kubernetesVersion := "n/a"
@@ -172,9 +178,19 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 			status = "active"
 		}
 
+		hasReleaseData := false
+		releaseData, err = releaseInfo.GetReleaseData(*release.Version)
+		if err == nil {
+			hasReleaseData = true
+		}
+
 		for _, component := range release.Components {
 			if *component.Name == "kubernetes" {
-				kubernetesVersion = *component.Version
+				if hasReleaseData {
+					kubernetesVersion = formatKubernetesVersion(releaseData, *component.Version)
+				} else {
+					kubernetesVersion = *component.Version
+				}
 			}
 			if *component.Name == "containerlinux" {
 				containerLinuxVersion = *component.Version
@@ -214,13 +230,7 @@ func printResult(cmd *cobra.Command, extraArgs []string) {
 }
 
 // listReleases fetches releases and returns them as a structured result.
-func listReleases(args Arguments) ([]*models.V4ReleaseListItem, error) {
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
-
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
+func listReleases(clientWrapper *client.Wrapper, args Arguments) ([]*models.V4ReleaseListItem, error) {
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = listReleasesActivityName
 
@@ -252,4 +262,27 @@ func listReleases(args Arguments) ([]*models.V4ReleaseListItem, error) {
 	})
 
 	return response.Payload, nil
+}
+
+func formatKubernetesVersion(releaseData releaseinfo.ReleaseData, version string) string {
+	if releaseData.IsK8sVersionEOL {
+		return fmt.Sprintf("%s (EOL)", version)
+	}
+
+	return version
+}
+
+func handleError(err error) {
+	client.HandleErrors(err)
+	errors.HandleCommonErrors(err)
+
+	if clientErr, ok := err.(*clienterror.APIError); ok {
+		fmt.Println(color.RedString(clientErr.ErrorMessage))
+		if clientErr.ErrorDetails != "" {
+			fmt.Println(clientErr.ErrorDetails)
+		}
+		return
+	}
+
+	fmt.Println(color.RedString("Error: %s", err.Error()))
 }

@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/giantswarm/gsctl/client"
 	"github.com/spf13/afero"
 
 	"github.com/giantswarm/gsctl/testutils"
@@ -39,7 +40,12 @@ func Test_ListReleases_Empty(t *testing.T) {
 		t.Error(err)
 	}
 
-	releases, listErr := listReleases(args)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	if err != nil {
+		t.Error(err)
+	}
+
+	releases, listErr := listReleases(clientWrapper, args)
 	if listErr != nil {
 		t.Error(listErr)
 	}
@@ -200,7 +206,12 @@ func Test_ListReleases_Nonempty(t *testing.T) {
 		t.Error(err)
 	}
 
-	releases, listErr := listReleases(args)
+	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.token)
+	if err != nil {
+		t.Error(err)
+	}
+
+	releases, listErr := listReleases(clientWrapper, args)
 	if listErr != nil {
 		t.Error(listErr)
 	}
