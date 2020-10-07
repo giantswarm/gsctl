@@ -199,9 +199,9 @@ func handleError(err error) {
 func formatComponentVersion(releaseData releaseinfo.ReleaseData, component, version string) string {
 	if component == "kubernetes" {
 		if releaseData.IsK8sVersionEOL {
-			version += " (end of life)"
+			return fmt.Sprintf("%s (end of life)", version)
 		} else if date := releaseData.K8sVersionEOLDate; len(date) > 0 {
-			version += fmt.Sprintf(" (end of life on %s)", date)
+			return fmt.Sprintf("%s (end of life on %s)", version, date)
 		}
 	}
 
