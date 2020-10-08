@@ -796,5 +796,5 @@ func formatKubernetesVersion(releaseInfo *releaseinfo.ReleaseInfo, releaseVersio
 		return fmt.Sprintf("%s (end of life on %s)", releaseData.K8sVersion, date)
 	}
 
-	return naString
+	return releaseData.K8sVersion
 }
