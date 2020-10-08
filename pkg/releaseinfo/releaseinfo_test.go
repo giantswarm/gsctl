@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func TestNew(t *testing.T) {
+func TestReleaseInfo_GetReleaseData(t *testing.T) {
 	testCases := []struct {
 		name                       string
 		releasesResponse           []byte
@@ -23,7 +23,8 @@ func TestNew(t *testing.T) {
 		infoResponseStatusCode     int
 		releaseVersion             string
 		expectedK8sVersion         string
-		expectedK8sVersionEOLDate  *string
+		expectedK8sVersionEOLDate  string
+		expectedIsK8sVersionEOL    bool
 		errorMatcher               func(error) bool
 	}{
 		{
@@ -56,7 +57,7 @@ func TestNew(t *testing.T) {
 			infoResponseStatusCode:    http.StatusOK,
 			releaseVersion:            "1.0.1",
 			expectedK8sVersion:        "15.0.1",
-			expectedK8sVersionEOLDate: toStringPtr("2020-10-20"),
+			expectedK8sVersionEOLDate: "2020-10-20",
 		},
 		{
 			name: "case 1: getting the information of an existing release, with a k8s version without an EOL date",
@@ -84,7 +85,7 @@ func TestNew(t *testing.T) {
 			infoResponseStatusCode:    http.StatusOK,
 			releaseVersion:            "2.0.0",
 			expectedK8sVersion:        "16.0.0",
-			expectedK8sVersionEOLDate: nil,
+			expectedK8sVersionEOLDate: "",
 		},
 		{
 			name: "case 2: getting the information of a release that doesn't exist",
@@ -112,27 +113,11 @@ func TestNew(t *testing.T) {
 			infoResponseStatusCode:    http.StatusOK,
 			releaseVersion:            "3.0.0",
 			expectedK8sVersion:        "",
-			expectedK8sVersionEOLDate: nil,
+			expectedK8sVersionEOLDate: "",
 			errorMatcher:              IsVersionNotFound,
 		},
 		{
-			name:                       "case 3: trying to get the information, but the releases request fails",
-			releasesResponse:           []byte{},
-			releasesResponseStatusCode: http.StatusUnauthorized,
-			infoResponse: makeInfoResponse(
-				k8sVersionConfig{
-					version: "15.0",
-					eolDate: "2020-10-20",
-				},
-			),
-			infoResponseStatusCode:    http.StatusOK,
-			releaseVersion:            "3.0.0",
-			expectedK8sVersion:        "",
-			expectedK8sVersionEOLDate: nil,
-			errorMatcher:              IsNotAuthorized,
-		},
-		{
-			name: "case 4: trying to get the information, but the info request fails",
+			name: "case 3: getting the information of a release with an EOL k8s version",
 			releasesResponse: makeReleasesResponse(
 				releaseConfig{
 					version:    "1.0.0",
@@ -148,12 +133,17 @@ func TestNew(t *testing.T) {
 				},
 			),
 			releasesResponseStatusCode: http.StatusOK,
-			infoResponse:               []byte{},
-			infoResponseStatusCode:     http.StatusInternalServerError,
-			releaseVersion:             "3.0.0",
-			expectedK8sVersion:         "",
-			expectedK8sVersionEOLDate:  nil,
-			errorMatcher:               IsInternalServerError,
+			infoResponse: makeInfoResponse(
+				k8sVersionConfig{
+					version: "15.0",
+					eolDate: "1960-10-20",
+				},
+			),
+			infoResponseStatusCode:    http.StatusOK,
+			releaseVersion:            "1.0.1",
+			expectedK8sVersion:        "15.0.1",
+			expectedK8sVersionEOLDate: "1960-10-20",
+			expectedIsK8sVersionEOL:   true,
 		},
 	}
 
@@ -182,10 +172,14 @@ func TestNew(t *testing.T) {
 			}
 
 			config := Config{
-				ClientWrapper:  clientWrapper,
-				ReleaseVersion: tc.releaseVersion,
+				ClientWrapper: clientWrapper,
 			}
 			ri, err := New(config)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err.Error())
+			}
+
+			releaseData, err := ri.GetReleaseData(tc.releaseVersion)
 			if tc.errorMatcher != nil {
 				if !tc.errorMatcher(err) {
 					t.Fatalf("error not matching expected matcher, got: %s", errors.Cause(err))
@@ -196,69 +190,17 @@ func TestNew(t *testing.T) {
 				t.Fatalf("unexpected error: %s", err.Error())
 			}
 
-			if tc.expectedK8sVersion != ri.k8sVersion {
-				t.Fatalf("k8s version value not expected, got %s", cmp.Diff(tc.expectedK8sVersion, ri.k8sVersion))
+			if tc.expectedK8sVersion != releaseData.K8sVersion {
+				t.Fatalf("k8s version value not expected, got %s", cmp.Diff(tc.expectedK8sVersion, releaseData.K8sVersion))
 			}
 
-			var expectedEolDate *time.Time
-			{
-				if tc.expectedK8sVersionEOLDate != nil {
-					date, _ := time.Parse(strfmt.RFC3339FullDate, *tc.expectedK8sVersionEOLDate)
-					expectedEolDate = &date
-				}
+			if tc.expectedIsK8sVersionEOL != releaseData.IsK8sVersionEOL {
+				t.Fatalf("k8s version EOL status not expected, got %s", cmp.Diff(tc.expectedIsK8sVersionEOL, releaseData.IsK8sVersionEOL))
 			}
 
-			diff := cmp.Diff(expectedEolDate, ri.k8sVersionEOLDate)
+			diff := cmp.Diff(tc.expectedK8sVersionEOLDate, releaseData.K8sVersionEOLDate)
 			if len(diff) > 0 {
 				t.Fatalf("k8s version EOL date value not expected, got %s", diff)
-			}
-		})
-	}
-}
-
-func TestReleaseInfo_IsK8sVersionEOL(t *testing.T) {
-	testCases := []struct {
-		name           string
-		eolDate        *string
-		expectedResult bool
-	}{
-		{
-			name:           "case 0: a date in the past",
-			eolDate:        toStringPtr("1975-01-01"),
-			expectedResult: true,
-		},
-		{
-			name:           "case 1: a date in the future",
-			eolDate:        toStringPtr("2999-01-01"),
-			expectedResult: false,
-		},
-		{
-			name:           "case 2: no known EOL date",
-			eolDate:        nil,
-			expectedResult: false,
-		},
-		{
-			name:           "case 3: the current date",
-			eolDate:        toStringPtr(time.Now().String()),
-			expectedResult: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			var eolDate *time.Time
-			if tc.eolDate != nil {
-				date, _ := time.Parse(strfmt.RFC3339FullDate, *tc.eolDate)
-				eolDate = &date
-			}
-			ri := ReleaseInfo{
-				k8sVersionEOLDate: eolDate,
-			}
-
-			result := ri.IsK8sVersionEOL()
-
-			if tc.expectedResult != result {
-				t.Fatalf("result not expected, got %s", cmp.Diff(tc.expectedResult, result))
 			}
 		})
 	}
@@ -303,7 +245,7 @@ func makeInfoResponse(k8sVersions ...k8sVersionConfig) []byte {
 	}
 
 	for _, config := range k8sVersions {
-		date, _ := time.Parse(strfmt.RFC3339FullDate, config.eolDate)
+		date, _ := time.Parse(dateFormat, config.eolDate)
 		dateAsStrFmt := strfmt.Date(date)
 		newRelease := &models.V4InfoResponseGeneralKubernetesVersionsItems{
 			MinorVersion: toStringPtr(config.version),

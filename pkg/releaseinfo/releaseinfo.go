@@ -61,6 +61,8 @@ func New(c Config) (*ReleaseInfo, error) {
 	return ri, nil
 }
 
+// GetReleaseData fetches release information such as Kubernetes version
+// status, based on a given GS release version.
 func (ri *ReleaseInfo) GetReleaseData(version string) (ReleaseData, error) {
 	release, err := ri.getReleaseForVersion(version)
 	if err != nil {
