@@ -8,6 +8,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/v2/models"
+	"github.com/giantswarm/gsctl/pkg/releaseinfo"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -98,12 +99,7 @@ func verifyShowReleasePreconditions(args Arguments, cmdLineArgs []string) error 
 }
 
 // getReleaseDetails fetches release details from the API
-func getReleaseDetails(args Arguments) (*models.V4ReleaseListItem, error) {
-	clientWrapper, err := client.NewWithConfig(args.apiEndpoint, args.userProvidedToken)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
+func getReleaseDetails(clientWrapper *client.Wrapper, args Arguments) (*models.V4ReleaseListItem, error) {
 	// perform API call
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = showReleaseActivityName
@@ -133,29 +129,22 @@ func getReleaseDetails(args Arguments) (*models.V4ReleaseListItem, error) {
 // printResult prints the release information on stdout
 func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	arguments.releaseVersion = cmdLineArgs[0]
-	release, err := getReleaseDetails(arguments)
 
-	// error output
+	clientWrapper, err := client.NewWithConfig(arguments.apiEndpoint, arguments.userProvidedToken)
 	if err != nil {
-		client.HandleErrors(err)
-		errors.HandleCommonErrors(err)
+		handleError(microerror.Mask(err))
+		os.Exit(1)
+	}
 
-		var headline = ""
-		var subtext = ""
+	release, err := getReleaseDetails(clientWrapper, arguments)
+	if err != nil {
+		handleError(microerror.Mask(err))
+		os.Exit(1)
+	}
 
-		// TODO: handle specific errors
-		switch {
-		case err.Error() == "":
-			return
-		default:
-			headline = err.Error()
-		}
-
-		// Print error output
-		fmt.Println(color.RedString(headline))
-		if subtext != "" {
-			fmt.Println(subtext)
-		}
+	releaseData, err := getReleaseData(clientWrapper, *release.Version)
+	if err != nil {
+		handleError(microerror.Mask(err))
 		os.Exit(1)
 	}
 
@@ -174,7 +163,8 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	fmt.Printf("%s\n", color.YellowString("Components:"))
 
 	for _, component := range release.Components {
-		fmt.Printf("  %s %s\n", color.YellowString(*component.Name+":"), *component.Version)
+		version := formatComponentVersion(releaseData, *component.Name, *component.Version)
+		fmt.Printf("  %s %s\n", color.YellowString(*component.Name+":"), version)
 	}
 
 	fmt.Printf("%s\n", color.YellowString("Changelog:"))
@@ -182,4 +172,54 @@ func printResult(cmd *cobra.Command, cmdLineArgs []string) {
 	for _, change := range release.Changelog {
 		fmt.Printf("  %s %s\n", color.YellowString(change.Component+":"), change.Description)
 	}
+}
+
+func handleError(err error) {
+	client.HandleErrors(err)
+	errors.HandleCommonErrors(err)
+
+	var headline = ""
+	var subtext = ""
+
+	// TODO: handle specific errors
+	switch {
+	case err.Error() == "":
+		return
+	default:
+		headline = err.Error()
+	}
+
+	// Print error output
+	fmt.Println(color.RedString(headline))
+	if subtext != "" {
+		fmt.Println(subtext)
+	}
+}
+
+func formatComponentVersion(releaseData releaseinfo.ReleaseData, component, version string) string {
+	if component == "kubernetes" {
+		if releaseData.IsK8sVersionEOL {
+			return fmt.Sprintf("%s (end of life)", version)
+		} else if date := releaseData.K8sVersionEOLDate; len(date) > 0 {
+			return fmt.Sprintf("%s (end of life on %s)", version, date)
+		}
+	}
+
+	return version
+}
+
+func getReleaseData(clientWrapper *client.Wrapper, version string) (releaseinfo.ReleaseData, error) {
+	releaseInfoConfig := releaseinfo.Config{
+		ClientWrapper: clientWrapper,
+	}
+	releaseInfo, err := releaseinfo.New(releaseInfoConfig)
+	if err != nil {
+		return releaseinfo.ReleaseData{}, microerror.Mask(err)
+	}
+	releaseData, err := releaseInfo.GetReleaseData(version)
+	if err != nil {
+		return releaseinfo.ReleaseData{}, microerror.Mask(err)
+	}
+
+	return releaseData, nil
 }
