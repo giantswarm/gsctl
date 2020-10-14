@@ -5,12 +5,14 @@ import (
 	"os"
 	"sort"
 
+	"github.com/Masterminds/semver"
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/v2/models"
-	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
+
+	"github.com/giantswarm/gsctl/clustercache"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
@@ -262,10 +264,10 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	releaseVersions := []string{}
+	var releaseVersions []string
 	for _, r := range releasesResponse.Payload {
 		// filter out non-active releases
-		if !r.Active {
+		if !r.Active || !isVersionProductionReady(*r.Version) {
 			continue
 		}
 
@@ -357,6 +359,15 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 	}
 
 	return result, nil
+}
+
+func isVersionProductionReady(version string) bool {
+	semverVersion, err := semver.NewVersion(version)
+	if err != nil {
+		return false
+	}
+
+	return len(semverVersion.Prerelease()) < 1 && len(semverVersion.Metadata()) < 1
 }
 
 // successorReleaseVersion returns the lowest version number from a slice

@@ -28,7 +28,6 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
-	"github.com/giantswarm/gsclientgen/v2/models"
 	"github.com/giantswarm/microerror"
 	"github.com/juju/errgo"
 	"github.com/spf13/afero"
@@ -447,28 +446,35 @@ func getLatestActiveReleaseVersion(clientWrapper *client.Wrapper, auxParams *cli
 		return "", microerror.Mask(err)
 	}
 
-	activeReleases := []*models.V4ReleaseListItem{}
+	var activeReleases []*semver.Version
 	for _, r := range response.Payload {
-		if r.Active {
-			activeReleases = append(activeReleases, r)
+		if !r.Active {
+			continue
 		}
+
+		var version *semver.Version
+		version, err = semver.NewVersion(*r.Version)
+		if err != nil {
+			continue
+		}
+
+		if !isVersionProductionReady(version) {
+			continue
+		}
+
+		activeReleases = append(activeReleases, version)
 	}
 
-	// sort releases by version (descending)
-	sort.Slice(activeReleases[:], func(i, j int) bool {
-		vi, err := semver.NewVersion(*activeReleases[i].Version)
-		if err != nil {
-			return false
-		}
-		vj, err := semver.NewVersion(*activeReleases[j].Version)
-		if err != nil {
-			return true
-		}
-
-		return vi.GreaterThan(vj)
+	// Sort releases by version (descending).
+	sort.Slice(activeReleases, func(i, j int) bool {
+		return activeReleases[i].GreaterThan(activeReleases[j])
 	})
 
-	return *activeReleases[0].Version, nil
+	return activeReleases[0].String(), nil
+}
+
+func isVersionProductionReady(version *semver.Version) bool {
+	return len(version.Prerelease()) < 1 && len(version.Metadata()) < 1
 }
 
 // addCluster collects information to decide whether to create a cluster
