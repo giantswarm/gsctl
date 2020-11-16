@@ -342,6 +342,9 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 		}
 
 		_, err = clientWrapper.ModifyClusterV5(result.clusterID, reqBody, auxParams)
+		if err != nil {
+			return nil, microerror.Maskf(errors.CouldNotUpgradeClusterError, err.Error())
+		}
 	} else {
 		if args.Verbose {
 			fmt.Println(color.WhiteString("Submitting cluster modification request to v4 endpoint."))
