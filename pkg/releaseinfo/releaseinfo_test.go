@@ -58,6 +58,7 @@ func TestReleaseInfo_GetReleaseData(t *testing.T) {
 			releaseVersion:            "1.0.1",
 			expectedK8sVersion:        "15.0.1",
 			expectedK8sVersionEOLDate: "2020-10-20",
+			expectedIsK8sVersionEOL:   true,
 		},
 		{
 			name: "case 1: getting the information of an existing release, with a k8s version without an EOL date",
