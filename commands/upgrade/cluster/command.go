@@ -306,7 +306,7 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 
 	if targetRelease.Version == nil {
 		// Release was not found.
-		return nil, microerror.Maskf(errors.InvalidReleaseError, fmt.Sprintf("Release %s was not found", targetVersion))
+		return nil, microerror.Maskf(errors.InvalidReleaseError, fmt.Sprintf("Can't upgrade to non existing release %s", targetVersion))
 	}
 
 	// Show some details independent of confirmation
