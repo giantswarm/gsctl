@@ -285,10 +285,8 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 
 	var targetVersion string
 	{
-		fmt.Printf("args.Release = %s, result.versionBefore = %s, releaseVersions = %v\n", args.Release, result.versionBefore, releaseVersions)
 		if args.Release == "" {
 			targetVersion = successorReleaseVersion(result.versionBefore, releaseVersions)
-			fmt.Printf("targetVersion = %s\n", targetVersion)
 			if targetVersion == "" {
 				return nil, microerror.Mask(errors.NoUpgradeAvailableError)
 			}
