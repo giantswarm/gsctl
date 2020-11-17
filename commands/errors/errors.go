@@ -27,6 +27,16 @@ func IsCouldNotCreateClientError(err error) bool {
 	return microerror.Cause(err) == CouldNotCreateClientError
 }
 
+// InvalidReleaseError means that the customer entered an invalid release.
+var InvalidReleaseError = &microerror.Error{
+	Kind: "InvalidReleaseError",
+}
+
+// IsInvalidReleaseError asserts InvalidReleaseError.
+func IsInvalidReleaseError(err error) bool {
+	return microerror.Cause(err) == InvalidReleaseError
+}
+
 // NotLoggedInError means that the user is currently not authenticated
 var NotLoggedInError = &microerror.Error{
 	Kind: "NotLoggedInError",
