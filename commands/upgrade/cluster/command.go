@@ -116,7 +116,7 @@ func initFlags() {
 	Command.ResetFlags()
 
 	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
-	Command.Flags().StringVarP(&flags.Release, "release", "", "", "The target release version for the upgrade. If no version is specified, the latest production version will be used.")
+	Command.Flags().StringVarP(&flags.Release, "release", "", "", "The target release version for the upgrade. If no version is specified, the first version following the running one is selected..")
 }
 
 // Prints results of our pre-validation
