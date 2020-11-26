@@ -86,7 +86,7 @@ func createAddNodePoolBody(def *types.NodePoolDefinition) *models.V5AddNodePoolR
 	}
 
 	if def.Scaling != nil {
-		if def.Scaling.Min != 0 {
+		if def.Scaling.Min != nil {
 			b.Scaling.Min = def.Scaling.Min
 		}
 		if def.Scaling.Max != 0 {

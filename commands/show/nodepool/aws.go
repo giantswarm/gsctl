@@ -83,7 +83,7 @@ func formatRAMAWS(numNodes int64, details *nodespec.InstanceType) string {
 }
 
 func formatNodeScalingAWS(scaling *models.V5GetNodePoolResponseScaling) string {
-	if scaling.Min == scaling.Max {
+	if *scaling.Min == scaling.Max {
 		return fmt.Sprintf("Pinned to %d", scaling.Min)
 	}
 

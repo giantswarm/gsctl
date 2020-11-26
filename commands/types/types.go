@@ -68,8 +68,8 @@ type ClusterDefinitionV5 struct {
 
 // ScalingDefinition defines how a tenant cluster can scale.
 type ScalingDefinition struct {
-	Min int64 `yaml:"min,omitempty"`
-	Max int64 `yaml:"max,omitempty"`
+	Min *int64 `yaml:"min,omitempty"`
+	Max int64  `yaml:"max,omitempty"`
 }
 
 // MasterDefinition defines a master in cluster creation, as introduced by the V5 API.
