@@ -28,3 +28,21 @@ func TestCaptureOutputSync(t *testing.T) {
 		t.Errorf("Expected %q, got %q", input, output)
 	}
 }
+
+func TestInt64Value(t *testing.T) {
+	input := int64(3)
+	output := Int64Value(input)
+
+	if *output != input {
+		t.Errorf("Expected %v, got %v", input, output)
+	}
+}
+
+func TestInt64ValueZero(t *testing.T) {
+	input := int64(0)
+	output := Int64Value(input)
+
+	if *output != input {
+		t.Errorf("Expected %v, got %v", input, output)
+	}
+}
