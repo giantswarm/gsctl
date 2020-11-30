@@ -47,7 +47,6 @@ func TestCollectArguments(t *testing.T) {
 				AuthToken:       "some-token",
 				ClusterNameOrID: "clusterid",
 				Scheme:          "giantswarm",
-				WorkersMin:      0,
 			},
 		},
 		{
@@ -87,7 +86,6 @@ func TestCollectArguments(t *testing.T) {
 				Scheme:          "giantswarm",
 				WorkersMaxSet:   true,
 				WorkersMax:      12,
-				WorkersMin:      0,
 				WorkersMinSet:   false,
 				WorkersSet:      false,
 			},

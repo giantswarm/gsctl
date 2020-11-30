@@ -76,7 +76,6 @@ func TestCollectArgs(t *testing.T) {
 				Name:            "my-name",
 				Scheme:          "giantswarm",
 				Provider:        "aws",
-				ScalingMin:      0,
 			},
 		},
 		{
@@ -121,7 +120,6 @@ func TestCollectArgs(t *testing.T) {
 				Scheme:                "giantswarm",
 				AvailabilityZonesList: []string{"myzonea", "myzoneb", "myzonec"},
 				Provider:              "aws",
-				ScalingMin:            0,
 			},
 		},
 		// Only setting the --nodes-min, but not --nodes-max flag.
@@ -181,7 +179,6 @@ func TestCollectArgs(t *testing.T) {
 				VmSize:          "something-large",
 				Scheme:          "giantswarm",
 				Provider:        "aws",
-				ScalingMin:      0,
 			},
 		},
 	}
