@@ -322,7 +322,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 								Zones: []string{"eu-central-1a", "eu-central-1b", "eu-central-1c"},
 							},
 							Scaling: &types.ScalingDefinition{
-								Min: testutils.Int64Value(3),
+								Min: 3,
 								Max: 10,
 							},
 							NodeSpec: &types.NodeSpec{

@@ -47,7 +47,7 @@ func createAddClusterBodyV4(d *types.ClusterDefinitionV4) *models.V4AddClusterRe
 		a.Owner = &d.Owner
 		a.ReleaseVersion = d.ReleaseVersion
 		a.Scaling = &models.V4AddClusterRequestScaling{
-			Min: d.Scaling.Min,
+			Min: &d.Scaling.Min,
 			Max: d.Scaling.Max,
 		}
 

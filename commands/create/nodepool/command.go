@@ -175,7 +175,7 @@ type Arguments struct {
 	Name                  string
 	Provider              string
 	ScalingMax            int64
-	ScalingMin            *int64
+	ScalingMin            int64
 	Scheme                string
 	UserProvidedToken     string
 	Verbose               bool
@@ -230,7 +230,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		Name:                  flags.Name,
 		Provider:              info.General.Provider,
 		ScalingMax:            flags.WorkersMax,
-		ScalingMin:            &flags.WorkersMin,
+		ScalingMin:            flags.WorkersMin,
 		Scheme:                scheme,
 		UserProvidedToken:     flags.Token,
 		Verbose:               flags.Verbose,
@@ -297,8 +297,8 @@ func verifyPreconditions(args Arguments) error {
 	switch args.Provider {
 	case provider.AWS:
 		// Scaling flags plausibility
-		if args.ScalingMin != nil && args.ScalingMax > 0 {
-			if *args.ScalingMin > args.ScalingMax {
+		if args.ScalingMin > 0 && args.ScalingMax > 0 {
+			if args.ScalingMin > args.ScalingMax {
 				return microerror.Mask(errors.WorkersMinMaxInvalidError)
 			}
 		}
@@ -309,7 +309,7 @@ func verifyPreconditions(args Arguments) error {
 		}
 
 	case provider.Azure:
-		if args.ScalingMin != nil && *args.ScalingMin != args.ScalingMax {
+		if args.ScalingMin != args.ScalingMax {
 			return microerror.Maskf(errors.WorkersMinMaxInvalidError, "Provider '%s' does not support node pool autoscaling.", args.Provider)
 		}
 	}
@@ -388,10 +388,10 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 		}
 	}
 
-	if args.ScalingMin != nil || args.ScalingMax != 0 {
+	if args.ScalingMin != -1 || args.ScalingMax != 0 {
 		requestBody.Scaling = &models.V5AddNodePoolRequestScaling{}
-		if args.ScalingMin != nil {
-			requestBody.Scaling.Min = args.ScalingMin
+		if args.ScalingMin != -1 {
+			requestBody.Scaling.Min = &args.ScalingMin
 		}
 		if args.ScalingMax != 0 {
 			requestBody.Scaling.Max = args.ScalingMax

@@ -90,7 +90,7 @@ type Arguments struct {
 	Verbose             bool
 	WorkersMax          int64
 	WorkersMaxSet       bool
-	WorkersMin          *int64
+	WorkersMin          int64
 	WorkersMinSet       bool
 	Workers             int
 	WorkersSet          bool
@@ -107,13 +107,13 @@ type Result struct {
 
 // getConfirmation asks the user for confirmation for scaling actions.
 func getConfirmation(args Arguments, maxBefore int, minBefore int, currentWorkers int) error {
-	if int64(currentWorkers) > args.WorkersMax && args.WorkersMax == *args.WorkersMin {
+	if int64(currentWorkers) > args.WorkersMax && args.WorkersMax == args.WorkersMin {
 		confirmed := confirm.Ask(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to pin the number of worker nodes to %d?", currentWorkers, args.WorkersMin))
 		if !confirmed {
 			return microerror.Mask(errors.CommandAbortedError)
 		}
 	}
-	if int64(currentWorkers) > args.WorkersMax && args.WorkersMax != *args.WorkersMin {
+	if int64(currentWorkers) > args.WorkersMax && args.WorkersMax != args.WorkersMin {
 		confirmed := confirm.Ask(fmt.Sprintf("The cluster currently has %d worker nodes running.\nDo you want to change the limits to be min=%d, max=%d?", currentWorkers, args.WorkersMin, args.WorkersMax))
 		if !confirmed {
 			return microerror.Mask(errors.CommandAbortedError)
@@ -141,7 +141,7 @@ func collectArguments(cmd *cobra.Command, positionalArgs []string) (Arguments, e
 		UserProvidedToken:   flags.Token,
 		Verbose:             flags.Verbose,
 		WorkersMax:          flags.WorkersMax,
-		WorkersMin:          &flags.WorkersMin,
+		WorkersMin:          flags.WorkersMin,
 		Workers:             flags.NumWorkers,
 		WorkersMaxSet:       cmd.Flags().Changed(cmdWorkersMaxName),
 		WorkersMinSet:       cmd.Flags().Changed(cmdWorkersMinName),
@@ -149,7 +149,7 @@ func collectArguments(cmd *cobra.Command, positionalArgs []string) (Arguments, e
 	}
 
 	if args.Workers > 0 {
-		*args.WorkersMin = int64(args.Workers)
+		args.WorkersMin = int64(args.Workers)
 		args.WorkersMax = int64(args.Workers)
 	}
 
@@ -221,7 +221,7 @@ func verifyPreconditions(args Arguments, clientWrapper *client.Wrapper) error {
 	if args.WorkersMax > 0 && args.WorkersMax < int64(limits.MinimumNumWorkers) {
 		return microerror.Mask(errors.CannotScaleBelowMinimumWorkersError)
 	}
-	if args.WorkersMin != nil && *args.WorkersMin < int64(limits.MinimumNumWorkers) {
+	if args.WorkersMin >= 0 && args.WorkersMin < int64(limits.MinimumNumWorkers) {
 		return microerror.Mask(errors.NotEnoughWorkerNodesError)
 	}
 	if args.Workers != 0 && args.Workers < limits.MinimumNumWorkers {
@@ -348,7 +348,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 	{
 		minWorkers := int64(scalingResult.ScalingMinBefore)
 		if args.WorkersMinSet {
-			minWorkers = *args.WorkersMin
+			minWorkers = int64(args.WorkersMin)
 		} else if args.WorkersSet {
 			minWorkers = int64(args.Workers)
 		}
