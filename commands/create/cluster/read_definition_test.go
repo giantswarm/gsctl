@@ -9,6 +9,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/giantswarm/gsctl/commands/types"
+	"github.com/giantswarm/gsctl/testutils"
 )
 
 // Test_ReadDefinitionFiles tests the readDefinitionFromFile with all
@@ -121,7 +122,7 @@ scaling:
 				ReleaseVersion:    "1.2.3",
 				AvailabilityZones: 3,
 				Scaling: types.ScalingDefinition{
-					Min: 3,
+					Min: testutils.Int64Value(3),
 					Max: 5,
 				},
 			},
@@ -246,7 +247,7 @@ nodepools:
 					{
 						Name:              "Database",
 						AvailabilityZones: &types.AvailabilityZonesDefinition{Zones: []string{"my-zone-1a", "my-zone-1b", "my-zone-1c"}},
-						Scaling:           &types.ScalingDefinition{Min: 3, Max: 10},
+						Scaling:           &types.ScalingDefinition{Min: testutils.Int64Value(3), Max: 10},
 						NodeSpec:          &types.NodeSpec{AWS: &types.AWSSpecificDefinition{InstanceType: "m5.superlarge"}},
 					},
 					{
@@ -291,7 +292,7 @@ nodepools:
 					{
 						Name:              "Database",
 						AvailabilityZones: &types.AvailabilityZonesDefinition{Zones: []string{"my-zone-1a", "my-zone-1b", "my-zone-1c"}},
-						Scaling:           &types.ScalingDefinition{Min: 3, Max: 10},
+						Scaling:           &types.ScalingDefinition{Min: testutils.Int64Value(3), Max: 10},
 						NodeSpec:          &types.NodeSpec{AWS: &types.AWSSpecificDefinition{InstanceType: "m5.superlarge"}},
 					},
 					{

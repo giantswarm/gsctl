@@ -309,7 +309,7 @@ func verifyPreconditions(args Arguments) error {
 		}
 
 	case provider.Azure:
-		if *args.ScalingMin != args.ScalingMax {
+		if args.ScalingMin != nil && *args.ScalingMin != args.ScalingMax {
 			return microerror.Maskf(errors.WorkersMinMaxInvalidError, "Provider '%s' does not support node pool autoscaling.", args.Provider)
 		}
 	}

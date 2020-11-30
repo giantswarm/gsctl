@@ -134,7 +134,7 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Mask(errors.NodePoolIDMissingError)
 	}
 
-	if *args.ScalingMin < 0 && args.ScalingMax <= 0 && args.Name == "" {
+	if (args.ScalingMin == nil || *args.ScalingMin < 0) && args.ScalingMax <= 0 && args.Name == "" {
 		return microerror.Maskf(errors.NoOpError, "Nothing to update.")
 	}
 
@@ -196,7 +196,7 @@ func updateNodePool(args Arguments) (*result, error) {
 		}
 
 		//Check for non-input from user, set value to current min
-		if *args.ScalingMin == -1 {
+		if args.ScalingMin == nil || *args.ScalingMin == -1 {
 			args.ScalingMin = existingNP.Payload.Scaling.Min
 		}
 		if (*args.ScalingMin >= 0) || (args.ScalingMax >= 0 && args.ScalingMax != existingNP.Payload.Scaling.Max) {

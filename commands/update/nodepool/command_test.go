@@ -73,6 +73,7 @@ func TestCollectArgs(t *testing.T) {
 				ClusterNameOrID: "clusterid",
 				NodePoolID:      "nodepoolid",
 				Provider:        "aws",
+				ScalingMin:      testutils.Int64Value(-1),
 			},
 		},
 		{
@@ -86,7 +87,7 @@ func TestCollectArgs(t *testing.T) {
 				AuthToken:       "some-token",
 				ClusterNameOrID: "clusterid",
 				NodePoolID:      "nodepoolid",
-				ScalingMin:      3,
+				ScalingMin:      testutils.Int64Value(3),
 				ScalingMax:      5,
 				Name:            "NewName",
 				Provider:        "aws",
@@ -163,7 +164,7 @@ func Test_verifyPreconditions(t *testing.T) {
 				Provider:        "aws",
 				ClusterNameOrID: "cluster-id",
 				NodePoolID:      "abc",
-				ScalingMin:      10,
+				ScalingMin:      testutils.Int64Value(10),
 				ScalingMax:      1,
 			},
 			errorMatcher: errors.IsWorkersMinMaxInvalid,
@@ -187,7 +188,7 @@ func Test_verifyPreconditions(t *testing.T) {
 				Provider:        "azure",
 				ClusterNameOrID: "cluster-id",
 				NodePoolID:      "abc",
-				ScalingMin:      1,
+				ScalingMin:      testutils.Int64Value(1),
 				ScalingMax:      3,
 			},
 			errorMatcher: errors.IsWorkersMinMaxInvalid,
@@ -240,7 +241,7 @@ func TestSuccess(t *testing.T) {
 					ID:   "nodepoolid",
 					Name: "New name",
 					Scaling: &models.V5GetNodePoolResponseScaling{
-						Min: 3,
+						Min: testutils.Int64Value(3),
 						Max: 5,
 					},
 				},
@@ -252,7 +253,7 @@ func TestSuccess(t *testing.T) {
 				ClusterNameOrID: "clusterid",
 				NodePoolID:      "nodepoolid",
 				AuthToken:       "token",
-				ScalingMin:      10,
+				ScalingMin:      testutils.Int64Value(10),
 				ScalingMax:      20,
 			},
 			`{
@@ -268,7 +269,7 @@ func TestSuccess(t *testing.T) {
 					ID:   "nodepoolid",
 					Name: "New name",
 					Scaling: &models.V5GetNodePoolResponseScaling{
-						Min: 10,
+						Min: testutils.Int64Value(10),
 						Max: 20,
 					},
 				},
@@ -280,7 +281,7 @@ func TestSuccess(t *testing.T) {
 				ClusterNameOrID: "clusterid",
 				NodePoolID:      "nodepoolid",
 				AuthToken:       "token",
-				ScalingMin:      10,
+				ScalingMin:      testutils.Int64Value(10),
 			},
 			`{
 				"id": "nodepoolid",
@@ -295,7 +296,7 @@ func TestSuccess(t *testing.T) {
 					ID:   "nodepoolid",
 					Name: "New name",
 					Scaling: &models.V5GetNodePoolResponseScaling{
-						Min: 10,
+						Min: testutils.Int64Value(10),
 						Max: 20,
 					},
 				},
@@ -322,7 +323,7 @@ func TestSuccess(t *testing.T) {
 					ID:   "nodepoolid",
 					Name: "New name",
 					Scaling: &models.V5GetNodePoolResponseScaling{
-						Min: 3,
+						Min: testutils.Int64Value(3),
 						Max: 10,
 					},
 				},

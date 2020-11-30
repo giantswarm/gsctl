@@ -47,6 +47,7 @@ func TestCollectArguments(t *testing.T) {
 				AuthToken:       "some-token",
 				ClusterNameOrID: "clusterid",
 				Scheme:          "giantswarm",
+				WorkersMin:      testutils.Int64Value(0),
 			},
 		},
 		{
@@ -58,7 +59,7 @@ func TestCollectArguments(t *testing.T) {
 				Scheme:          "giantswarm",
 				WorkersMax:      5,
 				WorkersMaxSet:   false,
-				WorkersMin:      5,
+				WorkersMin:      testutils.Int64Value(5),
 				WorkersMinSet:   false,
 				Workers:         5,
 				WorkersSet:      true,
@@ -72,7 +73,7 @@ func TestCollectArguments(t *testing.T) {
 				ClusterNameOrID: "clusterid",
 				Scheme:          "giantswarm",
 				WorkersMaxSet:   false,
-				WorkersMin:      12,
+				WorkersMin:      testutils.Int64Value(12),
 				WorkersMinSet:   true,
 				WorkersSet:      false,
 			},
@@ -86,6 +87,7 @@ func TestCollectArguments(t *testing.T) {
 				Scheme:          "giantswarm",
 				WorkersMaxSet:   true,
 				WorkersMax:      12,
+				WorkersMin:      testutils.Int64Value(0),
 				WorkersMinSet:   false,
 				WorkersSet:      false,
 			},
@@ -99,7 +101,7 @@ func TestCollectArguments(t *testing.T) {
 				Scheme:          "giantswarm",
 				WorkersMax:      5,
 				WorkersMaxSet:   true,
-				WorkersMin:      5,
+				WorkersMin:      testutils.Int64Value(5),
 				WorkersMinSet:   true,
 				Workers:         5,
 				WorkersSet:      true,
@@ -184,7 +186,7 @@ func TestVerifyPreconditions(t *testing.T) {
 				ClusterNameOrID: "v4-cluster-id",
 				Workers:         10,
 				WorkersSet:      true,
-				WorkersMin:      4,
+				WorkersMin:      testutils.Int64Value(4),
 				WorkersMinSet:   true,
 			},
 			errors.IsConflictingWorkerFlagsUsed,
@@ -416,7 +418,7 @@ func TestScaleCluster(t *testing.T) {
 					"resources": [],
 					"scaling":{
 						"desiredCapacity": 3
-					},					
+					},
 					"versions": [
 						{
 							"date": "0001-01-01T00:00:00Z",
@@ -450,7 +452,7 @@ selected_endpoint: ` + mockServer.URL
 				APIEndpoint:       mockServer.URL,
 				ClusterNameOrID:   "cluster-id",
 				WorkersMax:        int64(tc.desiredMaxScaling),
-				WorkersMin:        int64(tc.desiredMinScaling),
+				WorkersMin:        testutils.Int64Value(int64(tc.desiredMinScaling)),
 				UserProvidedToken: "my-token",
 				WorkersMinSet:     tc.workersMinSet,
 				WorkersMaxSet:     tc.workersMaxSet,
@@ -493,7 +495,7 @@ func generateClusterResponse(workerCount int, workersMin int, workersMax int) []
 		CreateDate:  "2017-05-16T09:30:31.192170835Z",
 		Owner:       "acmeorg",
 		Scaling: &models.V4ClusterDetailsResponseScaling{
-			Min: int64(workersMin),
+			Min: testutils.Int64Value(int64(workersMin)),
 			Max: int64(workersMax),
 		},
 	}
