@@ -183,6 +183,23 @@ func Test_collectArguments(t *testing.T) {
 			resultingArgs: Arguments{
 				ClusterNameOrID: "clusterid",
 				Force:           true,
+				Release:         "",
+			},
+		},
+		{
+			name:                "Test 2: Specify release",
+			positionalArguments: []string{"clusterid"},
+			commandExecution: func() {
+				initFlags()
+				Command.ParseFlags([]string{
+					"clusterid",
+					"--release=1.2.3",
+				})
+			},
+			resultingArgs: Arguments{
+				ClusterNameOrID: "clusterid",
+				Release:         "1.2.3",
+				Force:           false,
 			},
 		},
 	}

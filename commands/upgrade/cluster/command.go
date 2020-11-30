@@ -55,6 +55,7 @@ When in doubt, please contact the Giant Swarm support team before upgrading.
 Example:
   gsctl upgrade cluster 6iec4
   gsctl upgrade cluster "Cluster name"
+  gsctl upgrade cluster "Cluster name" --release "13.0.0"
 `),
 
 		// We use PreRun for general input validation, authentication etc.
@@ -76,6 +77,7 @@ type Arguments struct {
 	AuthToken         string
 	ClusterNameOrID   string
 	Force             bool
+	Release           string
 	UserProvidedToken string
 	Verbose           bool
 }
@@ -94,6 +96,7 @@ func collectArguments(positionalArgs []string) Arguments {
 		AuthToken:         token,
 		ClusterNameOrID:   clusterID,
 		Force:             flags.Force,
+		Release:           flags.Release,
 		UserProvidedToken: flags.Token,
 		Verbose:           flags.Verbose,
 	}
@@ -113,6 +116,7 @@ func initFlags() {
 	Command.ResetFlags()
 
 	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, no interactive confirmation will be required (risky!).")
+	Command.Flags().StringVarP(&flags.Release, "release", "", "", "The target release version for the upgrade. If no version is specified, the first version following the running one is selected..")
 }
 
 // Prints results of our pre-validation
@@ -279,9 +283,16 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 		fmt.Println(color.WhiteString("Obtaining information on the successor release."))
 	}
 
-	targetVersion := successorReleaseVersion(result.versionBefore, releaseVersions)
-	if targetVersion == "" {
-		return nil, microerror.Mask(errors.NoUpgradeAvailableError)
+	var targetVersion string
+	{
+		if args.Release == "" {
+			targetVersion = successorReleaseVersion(result.versionBefore, releaseVersions)
+			if targetVersion == "" {
+				return nil, microerror.Mask(errors.NoUpgradeAvailableError)
+			}
+		} else {
+			targetVersion = args.Release
+		}
 	}
 
 	result.versionAfter = targetVersion
@@ -291,6 +302,11 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 		if *rel.Version == targetVersion {
 			targetRelease = *rel
 		}
+	}
+
+	if targetRelease.Version == nil {
+		// Release was not found.
+		return nil, microerror.Maskf(errors.InvalidReleaseError, fmt.Sprintf("Can't upgrade to non existing release %s", targetVersion))
 	}
 
 	// Show some details independent of confirmation
@@ -342,6 +358,9 @@ func upgradeCluster(args Arguments) (*upgradeClusterResult, error) {
 		}
 
 		_, err = clientWrapper.ModifyClusterV5(result.clusterID, reqBody, auxParams)
+		if err != nil {
+			return nil, microerror.Maskf(errors.CouldNotUpgradeClusterError, err.Error())
+		}
 	} else {
 		if args.Verbose {
 			fmt.Println(color.WhiteString("Submitting cluster modification request to v4 endpoint."))
