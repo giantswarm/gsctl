@@ -81,11 +81,11 @@ type MasterDefinition struct {
 type MasterNodes struct {
 	HighAvailability  bool             `yaml:"high_availability,omitempty"`
 	AvailabilityZones []string         `yaml:"availability_zones,omitempty"`
-	Azure             MasterNodesAzure `yaml:"azure.omitempty"`
+	Azure             MasterNodesAzure `yaml:"azure,omitempty"`
 }
 
 type MasterNodesAzure struct {
-	AvailabilityZonesUnspecified bool `yaml:"availability_zones"`
+	AvailabilityZonesUnspecified bool `yaml:"availability_zones_unspecified"`
 }
 
 // AvailabilityZonesDefinition defines the availability zones for a node pool, as intgroduc ed in the V5 API.
