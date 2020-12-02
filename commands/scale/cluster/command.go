@@ -314,10 +314,15 @@ func scaleCluster(args Arguments) (*Result, error) {
 		return nil, microerror.Mask(err)
 	}
 
+	scalingMin := int64(0)
+	if clusterDetails.Payload.Scaling.Min == nil {
+		scalingMin = *clusterDetails.Payload.Scaling.Min
+	}
+
 	scalingResult := &Result{
 		NumWorkersBefore: int(len(clusterDetails.Payload.Workers)),
 		ScalingMaxBefore: int(clusterDetails.Payload.Scaling.Max),
-		ScalingMinBefore: int(*clusterDetails.Payload.Scaling.Min),
+		ScalingMinBefore: int(scalingMin),
 	}
 
 	var statusWorkers int
