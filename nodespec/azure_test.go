@@ -10,16 +10,16 @@ func TestAzure(t *testing.T) {
 		t.Errorf("Unexpected error: %s", err)
 	}
 
-	vmSize, err := p.GetVMSizeDetails("Standard_D2s_v3")
+	vmSize, err := p.GetVMSizeDetails("Standard_D4s_v3")
 	if err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
 
-	if vmSize.NumberOfCores != 2 {
-		t.Errorf("Expected 2, got %d", vmSize.NumberOfCores)
+	if vmSize.NumberOfCores != 4 {
+		t.Errorf("Expected 4, got %d", vmSize.NumberOfCores)
 	}
-	if vmSize.MemoryInMB != 8589.934592 {
-		t.Errorf("Expected 8589.934592, got %f", vmSize.MemoryInMB)
+	if vmSize.MemoryInMB != 17179.869184 {
+		t.Errorf("Expected 17179.869184, got %f", vmSize.MemoryInMB)
 	}
 
 }
