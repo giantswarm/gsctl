@@ -451,7 +451,7 @@ func printV4Result(
 	// scaling info
 	scalingInfo := ""
 	if clusterDetails.Scaling != nil {
-		if clusterDetails.Scaling.Min == clusterDetails.Scaling.Max {
+		if clusterDetails.Scaling.Min != nil && *clusterDetails.Scaling.Min == clusterDetails.Scaling.Max {
 			scalingInfo = fmt.Sprintf("pinned at %d", clusterDetails.Scaling.Min)
 		} else {
 			scalingInfo = fmt.Sprintf("autoscaling between %d and %d", clusterDetails.Scaling.Min, clusterDetails.Scaling.Max)
@@ -460,7 +460,7 @@ func printV4Result(
 	output = append(output, color.YellowString("Worker node scaling:")+"|"+stringOrPlaceholder(scalingInfo))
 
 	// what the autoscaler tries to reach as a target (only interesting if not pinned)
-	if clusterStatus != nil && clusterStatus.Cluster != nil && clusterDetails.Scaling != nil && clusterDetails.Scaling.Min != clusterDetails.Scaling.Max {
+	if clusterStatus != nil && clusterStatus.Cluster != nil && clusterDetails.Scaling != nil && clusterDetails.Scaling.Min != nil && *clusterDetails.Scaling.Min != clusterDetails.Scaling.Max {
 		output = append(output, color.YellowString("Desired worker node count:")+"|"+fmt.Sprintf("%d", clusterStatus.Cluster.Scaling.DesiredCapacity))
 	}
 

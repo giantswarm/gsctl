@@ -314,10 +314,17 @@ func scaleCluster(args Arguments) (*Result, error) {
 		return nil, microerror.Mask(err)
 	}
 
+	var scalingMinBefore int
+	{
+		if clusterDetails.Payload.Scaling.Min != nil {
+			scalingMinBefore = int(*clusterDetails.Payload.Scaling.Min)
+		}
+	}
+
 	scalingResult := &Result{
 		NumWorkersBefore: int(len(clusterDetails.Payload.Workers)),
 		ScalingMaxBefore: int(clusterDetails.Payload.Scaling.Max),
-		ScalingMinBefore: int(clusterDetails.Payload.Scaling.Min),
+		ScalingMinBefore: scalingMinBefore,
 	}
 
 	var statusWorkers int
@@ -364,7 +371,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 		reqBody = &models.V4ModifyClusterRequest{
 			Scaling: &models.V4ModifyClusterRequestScaling{
 				Max: maxWorkers,
-				Min: minWorkers,
+				Min: &minWorkers,
 			},
 		}
 	}
@@ -372,7 +379,13 @@ func scaleCluster(args Arguments) (*Result, error) {
 	// Ask for confirmation for the scaling action.
 	if !args.OppressConfirmation {
 		// get confirmation and handle result
-		err = getConfirmation(args, int(reqBody.Scaling.Max), int(reqBody.Scaling.Min), statusWorkers)
+		var scalingMin int
+		{
+			if reqBody.Scaling.Min != nil {
+				scalingMin = int(*reqBody.Scaling.Min)
+			}
+		}
+		err = getConfirmation(args, int(reqBody.Scaling.Max), scalingMin, statusWorkers)
 		if err != nil {
 			fmt.Println(color.GreenString("Scaling cancelled"))
 			os.Exit(0)
@@ -388,7 +401,13 @@ func scaleCluster(args Arguments) (*Result, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	scalingResult.ScalingMinAfter = int(reqBody.Scaling.Min)
+	var scalingMin int
+	{
+		if reqBody.Scaling.Min != nil {
+			scalingMin = int(*reqBody.Scaling.Min)
+		}
+	}
+	scalingResult.ScalingMinAfter = scalingMin
 	scalingResult.ScalingMaxAfter = int(reqBody.Scaling.Max)
 
 	return scalingResult, nil

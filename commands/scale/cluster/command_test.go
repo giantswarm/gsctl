@@ -486,6 +486,7 @@ selected_endpoint: ` + mockServer.URL
 }
 
 func generateClusterResponse(workerCount int, workersMin int, workersMax int) []byte {
+	workersMin64 := int64(workersMin)
 	c := models.V4ClusterDetailsResponse{
 		ID:          "cluster-id",
 		Name:        "",
@@ -493,7 +494,7 @@ func generateClusterResponse(workerCount int, workersMin int, workersMax int) []
 		CreateDate:  "2017-05-16T09:30:31.192170835Z",
 		Owner:       "acmeorg",
 		Scaling: &models.V4ClusterDetailsResponseScaling{
-			Min: int64(workersMin),
+			Min: &workersMin64,
 			Max: int64(workersMax),
 		},
 	}

@@ -194,10 +194,10 @@ func updateNodePool(args Arguments) (*result, error) {
 			modifyRequestBody.Name = args.Name
 			updated = true
 		}
-		if args.ScalingMin != 0 && args.ScalingMin != existingNP.Payload.Scaling.Min ||
-			args.ScalingMax != 0 && args.ScalingMax != existingNP.Payload.Scaling.Max {
+		if (args.ScalingMin != 0 && existingNP.Payload.Scaling.Min != nil && args.ScalingMin != *existingNP.Payload.Scaling.Min) ||
+			(args.ScalingMax != 0 && args.ScalingMax != existingNP.Payload.Scaling.Max) {
 			modifyRequestBody.Scaling = &models.V5ModifyNodePoolRequestScaling{
-				Min: args.ScalingMin,
+				Min: &args.ScalingMin,
 				Max: args.ScalingMax,
 			}
 			updated = true

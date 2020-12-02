@@ -212,6 +212,10 @@ func Test_verifyPreconditions(t *testing.T) {
 	}
 }
 
+func int64ptr(i int64) *int64 {
+	return &i
+}
+
 // TestSuccess tests node pool creation with cases that are expected to succeed.
 func TestSuccess(t *testing.T) {
 	var testCases = []struct {
@@ -240,7 +244,7 @@ func TestSuccess(t *testing.T) {
 					ID:   "nodepoolid",
 					Name: "New name",
 					Scaling: &models.V5GetNodePoolResponseScaling{
-						Min: 3,
+						Min: int64ptr(3),
 						Max: 5,
 					},
 				},
@@ -268,7 +272,7 @@ func TestSuccess(t *testing.T) {
 					ID:   "nodepoolid",
 					Name: "New name",
 					Scaling: &models.V5GetNodePoolResponseScaling{
-						Min: 10,
+						Min: int64ptr(10),
 						Max: 20,
 					},
 				},
@@ -295,7 +299,7 @@ func TestSuccess(t *testing.T) {
 					ID:   "nodepoolid",
 					Name: "New name",
 					Scaling: &models.V5GetNodePoolResponseScaling{
-						Min: 10,
+						Min: int64ptr(10),
 						Max: 20,
 					},
 				},
@@ -322,7 +326,7 @@ func TestSuccess(t *testing.T) {
 					ID:   "nodepoolid",
 					Name: "New name",
 					Scaling: &models.V5GetNodePoolResponseScaling{
-						Min: 3,
+						Min: int64ptr(3),
 						Max: 10,
 					},
 				},

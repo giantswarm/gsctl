@@ -391,7 +391,7 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 	if args.ScalingMin != 0 || args.ScalingMax != 0 {
 		requestBody.Scaling = &models.V5AddNodePoolRequestScaling{}
 		if args.ScalingMin != 0 {
-			requestBody.Scaling.Min = args.ScalingMin
+			requestBody.Scaling.Min = &args.ScalingMin
 		}
 		if args.ScalingMax != 0 {
 			requestBody.Scaling.Max = args.ScalingMax
