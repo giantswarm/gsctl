@@ -47,8 +47,12 @@ func createAddClusterBodyV4(d *types.ClusterDefinitionV4) *models.V4AddClusterRe
 		a.Owner = &d.Owner
 		a.ReleaseVersion = d.ReleaseVersion
 		a.Scaling = &models.V4AddClusterRequestScaling{
-			Min: &d.Scaling.Min,
+			Min: nil,
 			Max: d.Scaling.Max,
+		}
+
+		if d.Scaling.Min != 0 {
+			a.Scaling.Min = &d.Scaling.Min
 		}
 
 		// We accept only exactly one worker item, as the number of worker nodes is
