@@ -291,7 +291,7 @@ func getOutputAWS(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 		}
 
 		scalingMin := int64(0)
-		if np.Scaling.Min == nil {
+		if np.Scaling.Min != nil {
 			scalingMin = *np.Scaling.Min
 		}
 

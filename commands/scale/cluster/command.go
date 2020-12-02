@@ -315,7 +315,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 	}
 
 	scalingMin := int64(0)
-	if clusterDetails.Payload.Scaling.Min == nil {
+	if clusterDetails.Payload.Scaling.Min != nil {
 		scalingMin = *clusterDetails.Payload.Scaling.Min
 	}
 
