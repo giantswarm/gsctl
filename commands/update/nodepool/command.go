@@ -64,7 +64,7 @@ func init() {
 func initFlags() {
 	Command.ResetFlags()
 	Command.Flags().StringVarP(&flags.Name, "name", "n", "", "name or purpose description of the node pool")
-	Command.Flags().Int64VarP(&flags.WorkersMin, "nodes-min", "", -1, "Minimum number of worker nodes for the node pool.")
+	Command.Flags().Int64VarP(&flags.WorkersMin, "nodes-min", "", 0, "Minimum number of worker nodes for the node pool.")
 	Command.Flags().Int64VarP(&flags.WorkersMax, "nodes-max", "", 0, "Maximum number of worker nodes for the node pool.")
 }
 
@@ -77,11 +77,12 @@ type Arguments struct {
 	NodePoolID        string
 	ScalingMax        int64
 	ScalingMin        int64
+	ScalingMinSet     bool
 	Provider          string
 	UserProvidedToken string
 }
 
-func collectArguments(positionalArgs []string) (Arguments, error) {
+func collectArguments(cmd *cobra.Command, positionalArgs []string) (Arguments, error) {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
 
@@ -111,6 +112,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		NodePoolID:        strings.TrimSpace(parts[1]),
 		ScalingMax:        flags.WorkersMax,
 		ScalingMin:        flags.WorkersMin,
+		ScalingMinSet:     cmd.Flags().Changed("nodes-min"),
 		Provider:          info.General.Provider,
 		UserProvidedToken: flags.Token,
 	}, nil
@@ -155,7 +157,7 @@ func verifyPreconditions(args Arguments) error {
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	var err error
-	arguments, err = collectArguments(positionalArgs)
+	arguments, err = collectArguments(cmd, positionalArgs)
 
 	if err == nil {
 		err = verifyPreconditions(arguments)
@@ -196,7 +198,7 @@ func updateNodePool(args Arguments) (*result, error) {
 		}
 
 		//Check for non-input from user, set value to current min
-		if args.ScalingMin == -1 {
+		if !args.ScalingMinSet {
 			args.ScalingMin = *existingNP.Payload.Scaling.Min
 		}
 		if (args.ScalingMin >= 0 && args.ScalingMin != *existingNP.Payload.Scaling.Min) || (args.ScalingMax >= 0 && args.ScalingMax != existingNP.Payload.Scaling.Max) {

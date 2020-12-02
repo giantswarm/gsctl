@@ -73,7 +73,6 @@ func TestCollectArgs(t *testing.T) {
 				ClusterNameOrID: "clusterid",
 				NodePoolID:      "nodepoolid",
 				Provider:        "aws",
-				ScalingMin:      -1,
 			},
 		},
 		{
@@ -88,6 +87,7 @@ func TestCollectArgs(t *testing.T) {
 				ClusterNameOrID: "clusterid",
 				NodePoolID:      "nodepoolid",
 				ScalingMin:      3,
+				ScalingMinSet:   true,
 				ScalingMax:      5,
 				Name:            "NewName",
 				Provider:        "aws",
@@ -97,8 +97,10 @@ func TestCollectArgs(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			Command.ParseFlags(tc.positionalArguments)
+
 			tc.commandExecution()
-			args, err := collectArguments(tc.positionalArguments)
+			args, err := collectArguments(Command, tc.positionalArguments)
 			if err != nil {
 				t.Errorf("Case %d - Unexpected error '%s'", i, err)
 			}
