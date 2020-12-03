@@ -186,7 +186,7 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 
 		nodePoolRequestBody := &models.V5AddNodePoolRequest{}
 
-		if response.Payload.MasterNodes != nil && response.Payload.MasterNodes.AvailabilityZones == nil {
+		if response.Payload.MasterNodes != nil && len(response.Payload.MasterNodes.AvailabilityZones) < 1 {
 			nodePoolRequestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
 				Number: -1,
 			}
