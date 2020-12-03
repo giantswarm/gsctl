@@ -15,11 +15,12 @@ import (
 )
 
 type definitionFromFlagsV5 struct {
-	clusterName    string
-	releaseVersion string
-	owner          string
-	isHAMaster     *bool
-	provider       string
+	clusterName     string
+	releaseVersion  string
+	owner           string
+	isHAMaster      *bool
+	provider        string
+	maxSupportedAZs int64
 }
 
 // updateDefinitionFromFlagsV5 extend/overwrites a clusterDefinition based on the
@@ -41,20 +42,19 @@ func updateDefinitionFromFlagsV5(def *types.ClusterDefinitionV5, flags definitio
 		def.Owner = flags.owner
 	}
 
-	if flags.isHAMaster != nil {
+	switch flags.provider {
+	case provider.AWS:
+		if flags.isHAMaster != nil {
+			def.MasterNodes = &types.MasterNodes{
+				HighAvailability: flags.isHAMaster,
+			}
+		}
+
+	case provider.Azure:
 		def.MasterNodes = &types.MasterNodes{
-			HighAvailability: flags.isHAMaster,
-		}
-	}
-
-	// If no AZs provided and we're on Azure, then default to having AZs not specified.
-	if flags.provider == provider.Azure && (def.MasterNodes == nil || len(def.MasterNodes.AvailabilityZones) < 1) {
-		if def.MasterNodes == nil {
-			def.MasterNodes = &types.MasterNodes{}
-		}
-
-		def.MasterNodes.Azure = &types.MasterNodesAzure{
-			AvailabilityZonesUnspecified: true,
+			Azure: &types.MasterNodesAzure{
+				AvailabilityZonesUnspecified: flags.maxSupportedAZs < 1,
+			},
 		}
 	}
 }
