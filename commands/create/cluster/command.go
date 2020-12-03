@@ -631,6 +631,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 			releaseVersion: args.ReleaseVersion,
 			owner:          args.Owner,
 			isHAMaster:     args.MasterHA,
+			provider:       config.Config.Provider,
 		})
 
 		id, hasErrors, err := addClusterV5(result.DefinitionV5, args, clientWrapper, auxParams)

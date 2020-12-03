@@ -11,6 +11,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
 	"github.com/giantswarm/gsctl/formatting"
+	"github.com/giantswarm/gsctl/pkg/provider"
 )
 
 type definitionFromFlagsV5 struct {
@@ -18,6 +19,7 @@ type definitionFromFlagsV5 struct {
 	releaseVersion string
 	owner          string
 	isHAMaster     *bool
+	provider       string
 }
 
 // updateDefinitionFromFlagsV5 extend/overwrites a clusterDefinition based on the
@@ -42,6 +44,17 @@ func updateDefinitionFromFlagsV5(def *types.ClusterDefinitionV5, flags definitio
 	if flags.isHAMaster != nil {
 		def.MasterNodes = &types.MasterNodes{
 			HighAvailability: flags.isHAMaster,
+		}
+	}
+
+	// If no AZs provided and we're on Azure, then default to having AZs not specified.
+	if flags.provider == provider.Azure && (def.MasterNodes == nil || len(def.MasterNodes.AvailabilityZones) < 1) {
+		if def.MasterNodes == nil {
+			def.MasterNodes = &types.MasterNodes{}
+		}
+
+		def.MasterNodes.Azure = &types.MasterNodesAzure{
+			AvailabilityZonesUnspecified: true,
 		}
 	}
 }
@@ -69,13 +82,6 @@ func createAddClusterBodyV5(def *types.ClusterDefinitionV5) *models.V5AddCluster
 			b.MasterNodes.Azure = &models.V5AddClusterRequestMasterNodesAzure{
 				AvailabilityZonesUnspecified: def.MasterNodes.Azure.AvailabilityZonesUnspecified,
 			}
-		}
-	} else {
-		b.MasterNodes = &models.V5AddClusterRequestMasterNodes{
-			// We default to unspecified AZs on azure to match happa's behaviour.
-			Azure: &models.V5AddClusterRequestMasterNodesAzure{
-				AvailabilityZonesUnspecified: true,
-			},
 		}
 	}
 
@@ -179,6 +185,13 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 		}
 
 		nodePoolRequestBody := &models.V5AddNodePoolRequest{}
+
+		if response.Payload.MasterNodes != nil && response.Payload.MasterNodes.AvailabilityZones == nil {
+			nodePoolRequestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
+				Number: -1,
+			}
+		}
+
 		npResponse, err := clientWrapper.CreateNodePool(response.Payload.ID, nodePoolRequestBody, auxParams)
 		if err != nil {
 			fmt.Println(color.RedString("Error creating default node pool: %s", err.Error()))
