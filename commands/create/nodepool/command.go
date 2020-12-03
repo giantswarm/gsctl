@@ -176,6 +176,7 @@ type Arguments struct {
 	Provider              string
 	ScalingMax            int64
 	ScalingMin            int64
+	ScalingMinSet         bool
 	Scheme                string
 	UserProvidedToken     string
 	Verbose               bool
@@ -189,7 +190,7 @@ type result struct {
 
 // collectArguments populates an arguments struct with values both from command flags,
 // from config, and potentially from built-in defaults.
-func collectArguments(positionalArgs []string) (Arguments, error) {
+func collectArguments(cmd *cobra.Command, positionalArgs []string) (Arguments, error) {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
 	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
@@ -231,6 +232,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		Provider:              info.General.Provider,
 		ScalingMax:            flags.WorkersMax,
 		ScalingMin:            flags.WorkersMin,
+		ScalingMinSet:         cmd.Flags().Changed("nodes-min"),
 		Scheme:                scheme,
 		UserProvidedToken:     flags.Token,
 		Verbose:               flags.Verbose,
@@ -320,7 +322,7 @@ func verifyPreconditions(args Arguments) error {
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	var err error
 
-	arguments, err = collectArguments(positionalArgs)
+	arguments, err = collectArguments(cmd, positionalArgs)
 	if err == nil {
 		err = verifyPreconditions(arguments)
 	}
@@ -388,10 +390,10 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 		}
 	}
 
-	if args.ScalingMin != 0 || args.ScalingMax != 0 {
+	if args.ScalingMinSet || args.ScalingMax != 0 {
 		requestBody.Scaling = &models.V5AddNodePoolRequestScaling{}
-		if args.ScalingMin != 0 {
-			requestBody.Scaling.Min = args.ScalingMin
+		if args.ScalingMinSet {
+			requestBody.Scaling.Min = &args.ScalingMin
 		}
 		if args.ScalingMax != 0 {
 			requestBody.Scaling.Max = args.ScalingMax

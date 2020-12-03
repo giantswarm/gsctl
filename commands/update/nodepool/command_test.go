@@ -87,6 +87,7 @@ func TestCollectArgs(t *testing.T) {
 				ClusterNameOrID: "clusterid",
 				NodePoolID:      "nodepoolid",
 				ScalingMin:      3,
+				ScalingMinSet:   true,
 				ScalingMax:      5,
 				Name:            "NewName",
 				Provider:        "aws",
@@ -96,8 +97,10 @@ func TestCollectArgs(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			Command.ParseFlags(tc.positionalArguments)
+
 			tc.commandExecution()
-			args, err := collectArguments(tc.positionalArguments)
+			args, err := collectArguments(Command, tc.positionalArguments)
 			if err != nil {
 				t.Errorf("Case %d - Unexpected error '%s'", i, err)
 			}
@@ -240,7 +243,7 @@ func TestSuccess(t *testing.T) {
 					ID:   "nodepoolid",
 					Name: "New name",
 					Scaling: &models.V5GetNodePoolResponseScaling{
-						Min: 3,
+						Min: testutils.Int64Value(3),
 						Max: 5,
 					},
 				},
@@ -268,7 +271,7 @@ func TestSuccess(t *testing.T) {
 					ID:   "nodepoolid",
 					Name: "New name",
 					Scaling: &models.V5GetNodePoolResponseScaling{
-						Min: 10,
+						Min: testutils.Int64Value(10),
 						Max: 20,
 					},
 				},
@@ -295,7 +298,7 @@ func TestSuccess(t *testing.T) {
 					ID:   "nodepoolid",
 					Name: "New name",
 					Scaling: &models.V5GetNodePoolResponseScaling{
-						Min: 10,
+						Min: testutils.Int64Value(10),
 						Max: 20,
 					},
 				},
@@ -322,7 +325,7 @@ func TestSuccess(t *testing.T) {
 					ID:   "nodepoolid",
 					Name: "New name",
 					Scaling: &models.V5GetNodePoolResponseScaling{
-						Min: 3,
+						Min: testutils.Int64Value(3),
 						Max: 10,
 					},
 				},

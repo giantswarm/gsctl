@@ -100,6 +100,7 @@ func TestCollectArgs(t *testing.T) {
 				AvailabilityZonesNum: 3,
 				InstanceType:         "instance-type",
 				ScalingMin:           5,
+				ScalingMinSet:        true,
 				ScalingMax:           10,
 				Provider:             "aws",
 			},
@@ -138,6 +139,7 @@ func TestCollectArgs(t *testing.T) {
 				ClusterNameOrID: "another-cluster-id",
 				ScalingMax:      0,
 				ScalingMin:      5,
+				ScalingMinSet:   true,
 				Scheme:          "giantswarm",
 				Provider:        "aws",
 			},
@@ -157,7 +159,6 @@ func TestCollectArgs(t *testing.T) {
 				AuthToken:       "some-token",
 				ClusterNameOrID: "another-cluster-id",
 				ScalingMax:      5,
-				ScalingMin:      0,
 				Scheme:          "giantswarm",
 				Provider:        "aws",
 			},
@@ -199,8 +200,10 @@ selected_endpoint: ` + mockServer.URL
 
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			Command.ParseFlags(tc.positionalArguments)
+
 			tc.commandExecution()
-			args, err := collectArguments(tc.positionalArguments)
+			args, err := collectArguments(Command, tc.positionalArguments)
 			if err != nil {
 				t.Errorf("Case %d - Unexpected error '%s'", i, err)
 			}

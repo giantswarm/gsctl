@@ -221,7 +221,7 @@ func verifyPreconditions(args Arguments, clientWrapper *client.Wrapper) error {
 	if args.WorkersMax > 0 && args.WorkersMax < int64(limits.MinimumNumWorkers) {
 		return microerror.Mask(errors.CannotScaleBelowMinimumWorkersError)
 	}
-	if args.WorkersMin > 0 && args.WorkersMin < int64(limits.MinimumNumWorkers) {
+	if args.WorkersMin >= 0 && args.WorkersMin < int64(limits.MinimumNumWorkers) {
 		return microerror.Mask(errors.NotEnoughWorkerNodesError)
 	}
 	if args.Workers != 0 && args.Workers < limits.MinimumNumWorkers {
@@ -314,10 +314,15 @@ func scaleCluster(args Arguments) (*Result, error) {
 		return nil, microerror.Mask(err)
 	}
 
+	scalingMin := int64(0)
+	if clusterDetails.Payload.Scaling.Min != nil {
+		scalingMin = *clusterDetails.Payload.Scaling.Min
+	}
+
 	scalingResult := &Result{
 		NumWorkersBefore: int(len(clusterDetails.Payload.Workers)),
 		ScalingMaxBefore: int(clusterDetails.Payload.Scaling.Max),
-		ScalingMinBefore: int(clusterDetails.Payload.Scaling.Min),
+		ScalingMinBefore: int(scalingMin),
 	}
 
 	var statusWorkers int
@@ -348,7 +353,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 	{
 		minWorkers := int64(scalingResult.ScalingMinBefore)
 		if args.WorkersMinSet {
-			minWorkers = args.WorkersMin
+			minWorkers = int64(args.WorkersMin)
 		} else if args.WorkersSet {
 			minWorkers = int64(args.Workers)
 		}
@@ -364,7 +369,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 		reqBody = &models.V4ModifyClusterRequest{
 			Scaling: &models.V4ModifyClusterRequestScaling{
 				Max: maxWorkers,
-				Min: minWorkers,
+				Min: &minWorkers,
 			},
 		}
 	}
@@ -372,7 +377,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 	// Ask for confirmation for the scaling action.
 	if !args.OppressConfirmation {
 		// get confirmation and handle result
-		err = getConfirmation(args, int(reqBody.Scaling.Max), int(reqBody.Scaling.Min), statusWorkers)
+		err = getConfirmation(args, int(reqBody.Scaling.Max), int(*reqBody.Scaling.Min), statusWorkers)
 		if err != nil {
 			fmt.Println(color.GreenString("Scaling cancelled"))
 			os.Exit(0)
@@ -388,7 +393,7 @@ func scaleCluster(args Arguments) (*Result, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	scalingResult.ScalingMinAfter = int(reqBody.Scaling.Min)
+	scalingResult.ScalingMinAfter = int(*reqBody.Scaling.Min)
 	scalingResult.ScalingMaxAfter = int(reqBody.Scaling.Max)
 
 	return scalingResult, nil

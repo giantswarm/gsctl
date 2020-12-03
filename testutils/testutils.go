@@ -129,3 +129,8 @@ func TempClusterCache(fs afero.Fs, cacheYAML string) (string, error) {
 
 	return dir, nil
 }
+
+// Int64Value returns a pointer of a value
+func Int64Value(x int64) *int64 {
+	return &x
+}

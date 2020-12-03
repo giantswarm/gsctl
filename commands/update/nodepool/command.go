@@ -77,11 +77,12 @@ type Arguments struct {
 	NodePoolID        string
 	ScalingMax        int64
 	ScalingMin        int64
+	ScalingMinSet     bool
 	Provider          string
 	UserProvidedToken string
 }
 
-func collectArguments(positionalArgs []string) (Arguments, error) {
+func collectArguments(cmd *cobra.Command, positionalArgs []string) (Arguments, error) {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
 
@@ -111,6 +112,7 @@ func collectArguments(positionalArgs []string) (Arguments, error) {
 		NodePoolID:        strings.TrimSpace(parts[1]),
 		ScalingMax:        flags.WorkersMax,
 		ScalingMin:        flags.WorkersMin,
+		ScalingMinSet:     cmd.Flags().Changed("nodes-min"),
 		Provider:          info.General.Provider,
 		UserProvidedToken: flags.Token,
 	}, nil
@@ -134,7 +136,7 @@ func verifyPreconditions(args Arguments) error {
 		return microerror.Mask(errors.NodePoolIDMissingError)
 	}
 
-	if args.ScalingMin == 0 && args.ScalingMax == 0 && args.Name == "" {
+	if args.ScalingMin <= 0 && args.ScalingMax <= 0 && args.Name == "" {
 		return microerror.Maskf(errors.NoOpError, "Nothing to update.")
 	}
 
@@ -155,7 +157,7 @@ func verifyPreconditions(args Arguments) error {
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
 	var err error
-	arguments, err = collectArguments(positionalArgs)
+	arguments, err = collectArguments(cmd, positionalArgs)
 
 	if err == nil {
 		err = verifyPreconditions(arguments)
@@ -194,10 +196,14 @@ func updateNodePool(args Arguments) (*result, error) {
 			modifyRequestBody.Name = args.Name
 			updated = true
 		}
-		if args.ScalingMin != 0 && args.ScalingMin != existingNP.Payload.Scaling.Min ||
-			args.ScalingMax != 0 && args.ScalingMax != existingNP.Payload.Scaling.Max {
+
+		//Check for non-input from user, set value to current min
+		if !args.ScalingMinSet {
+			args.ScalingMin = *existingNP.Payload.Scaling.Min
+		}
+		if (args.ScalingMin >= 0 && args.ScalingMin != *existingNP.Payload.Scaling.Min) || (args.ScalingMax >= 0 && args.ScalingMax != existingNP.Payload.Scaling.Max) {
 			modifyRequestBody.Scaling = &models.V5ModifyNodePoolRequestScaling{
-				Min: args.ScalingMin,
+				Min: &args.ScalingMin,
 				Max: args.ScalingMax,
 			}
 			updated = true

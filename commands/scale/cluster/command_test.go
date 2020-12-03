@@ -416,7 +416,7 @@ func TestScaleCluster(t *testing.T) {
 					"resources": [],
 					"scaling":{
 						"desiredCapacity": 3
-					},					
+					},
 					"versions": [
 						{
 							"date": "0001-01-01T00:00:00Z",
@@ -493,7 +493,7 @@ func generateClusterResponse(workerCount int, workersMin int, workersMax int) []
 		CreateDate:  "2017-05-16T09:30:31.192170835Z",
 		Owner:       "acmeorg",
 		Scaling: &models.V4ClusterDetailsResponseScaling{
-			Min: int64(workersMin),
+			Min: testutils.Int64Value(int64(workersMin)),
 			Max: int64(workersMax),
 		},
 	}

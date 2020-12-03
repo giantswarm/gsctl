@@ -111,6 +111,9 @@ var (
 	// WorkersMin is the minimum number of workers created for the cluster or node pool.
 	WorkersMin int64
 
+	// WorkersMin is used to detect if the parameter has been set in the commandline
+	WorkersMinSet bool
+
 	// WorkersMax is the minimum number of workers created for the cluster or node pool.
 	WorkersMax int64
 )

@@ -290,6 +290,11 @@ func getOutputAWS(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 			}
 		}
 
+		scalingMin := int64(0)
+		if np.Scaling.Min != nil {
+			scalingMin = *np.Scaling.Min
+		}
+
 		table = append(table, strings.Join([]string{
 			np.ID,
 			np.Name,
@@ -298,7 +303,7 @@ func getOutputAWS(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 			fmt.Sprintf("%t", np.NodeSpec.Aws.UseAlikeInstanceTypes),
 			strconv.FormatInt(np.NodeSpec.Aws.InstanceDistribution.OnDemandBaseCapacity, 10),
 			strconv.FormatInt(100-np.NodeSpec.Aws.InstanceDistribution.OnDemandPercentageAboveBaseCapacity, 10),
-			strconv.FormatInt(np.Scaling.Min, 10) + "/" + strconv.FormatInt(np.Scaling.Max, 10),
+			strconv.FormatInt(scalingMin, 10) + "/" + strconv.FormatInt(np.Scaling.Max, 10),
 			strconv.FormatInt(np.Status.Nodes, 10),
 			formatNodesReady(np.Status.Nodes, np.Status.NodesReady),
 			strconv.FormatInt(np.Status.SpotInstances, 10),
