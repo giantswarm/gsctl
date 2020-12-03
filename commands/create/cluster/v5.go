@@ -11,13 +11,16 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/commands/types"
 	"github.com/giantswarm/gsctl/formatting"
+	"github.com/giantswarm/gsctl/pkg/provider"
 )
 
 type definitionFromFlagsV5 struct {
-	clusterName    string
-	releaseVersion string
-	owner          string
-	isHAMaster     *bool
+	clusterName     string
+	releaseVersion  string
+	owner           string
+	isHAMaster      *bool
+	provider        string
+	maxSupportedAZs int64
 }
 
 // updateDefinitionFromFlagsV5 extend/overwrites a clusterDefinition based on the
@@ -39,9 +42,19 @@ func updateDefinitionFromFlagsV5(def *types.ClusterDefinitionV5, flags definitio
 		def.Owner = flags.owner
 	}
 
-	if flags.isHAMaster != nil {
+	switch flags.provider {
+	case provider.AWS:
+		if flags.isHAMaster != nil {
+			def.MasterNodes = &types.MasterNodes{
+				HighAvailability: flags.isHAMaster,
+			}
+		}
+
+	case provider.Azure:
 		def.MasterNodes = &types.MasterNodes{
-			HighAvailability: *flags.isHAMaster,
+			Azure: &types.MasterNodesAzure{
+				AvailabilityZonesUnspecified: flags.maxSupportedAZs < 1,
+			},
 		}
 	}
 }
@@ -61,7 +74,14 @@ func createAddClusterBodyV5(def *types.ClusterDefinitionV5) *models.V5AddCluster
 
 	if def.MasterNodes != nil {
 		b.MasterNodes = &models.V5AddClusterRequestMasterNodes{
-			HighAvailability: &def.MasterNodes.HighAvailability,
+			HighAvailability:  def.MasterNodes.HighAvailability,
+			AvailabilityZones: def.MasterNodes.AvailabilityZones,
+		}
+
+		if def.MasterNodes.Azure != nil {
+			b.MasterNodes.Azure = &models.V5AddClusterRequestMasterNodesAzure{
+				AvailabilityZonesUnspecified: def.MasterNodes.Azure.AvailabilityZonesUnspecified,
+			}
 		}
 	}
 
@@ -165,6 +185,13 @@ func addClusterV5(def *types.ClusterDefinitionV5, args Arguments, clientWrapper 
 		}
 
 		nodePoolRequestBody := &models.V5AddNodePoolRequest{}
+
+		if response.Payload.MasterNodes != nil && len(response.Payload.MasterNodes.AvailabilityZones) < 1 {
+			nodePoolRequestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
+				Number: -1,
+			}
+		}
+
 		npResponse, err := clientWrapper.CreateNodePool(response.Payload.ID, nodePoolRequestBody, auxParams)
 		if err != nil {
 			fmt.Println(color.RedString("Error creating default node pool: %s", err.Error()))

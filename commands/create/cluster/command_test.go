@@ -185,7 +185,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 				DefinitionV5: &types.ClusterDefinitionV5{
 					Owner: "acme",
 					MasterNodes: &types.MasterNodes{
-						HighAvailability: true,
+						HighAvailability: toBoolPtr(true),
 					},
 				},
 			},
@@ -288,7 +288,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					Name:       "Cluster Name from Args",
 					Owner:      "acme",
 					MasterNodes: &types.MasterNodes{
-						HighAvailability: true,
+						HighAvailability: toBoolPtr(true),
 					},
 				},
 			},
@@ -360,7 +360,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					Owner:          "acme",
 					ReleaseVersion: "11.5.0",
 					MasterNodes: &types.MasterNodes{
-						HighAvailability: true,
+						HighAvailability: toBoolPtr(true),
 					},
 					NodePools: []*types.NodePoolDefinition{
 						{
@@ -457,7 +457,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					Name:       "Cluster Name from Args with Labels",
 					Owner:      "acme",
 					MasterNodes: &types.MasterNodes{
-						HighAvailability: true,
+						HighAvailability: toBoolPtr(true),
 					},
 					Labels: map[string]*string{"key": stringP("value"), "labelkey": stringP("labelvalue")},
 				},
@@ -481,7 +481,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					Name:       "Cluster Name from Args with Labels",
 					Owner:      "acme",
 					MasterNodes: &types.MasterNodes{
-						HighAvailability: true,
+						HighAvailability: toBoolPtr(true),
 					},
 				},
 			},
@@ -505,7 +505,7 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					Name:       "Cluster Name from Args with Labels",
 					Owner:      "acme",
 					MasterNodes: &types.MasterNodes{
-						HighAvailability: false,
+						HighAvailability: toBoolPtr(false),
 					},
 				},
 			},
@@ -554,7 +554,11 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(`{
 					"general": {
-					  "provider": "aws"
+					  "provider": "aws",
+					  "availability_zones": {
+						  "default": 3,
+						  "max": 3
+					  }
 					},
 					"features": {
 					  "nodepools": {"release_version_minimum": "9.0.0"},
@@ -685,7 +689,11 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(`{
 					"general": {
-					  "provider": "aws"
+					  "provider": "aws",
+					  "availability_zones": {
+						  "default": 3,
+						  "max": 3
+					  }
 					},
 					"features": {
 					  "nodepools": {"release_version_minimum": "9.0.0"}
@@ -931,7 +939,7 @@ func Test_validateHAMasters(t *testing.T) {
 			v5Definition: types.ClusterDefinitionV5{
 				Master: nil,
 				MasterNodes: &types.MasterNodes{
-					HighAvailability: true,
+					HighAvailability: toBoolPtr(true),
 				},
 			},
 			errorMatcher: IsHAMastersNotSupported,
@@ -948,7 +956,7 @@ func Test_validateHAMasters(t *testing.T) {
 			v5Definition: types.ClusterDefinitionV5{
 				Master: nil,
 				MasterNodes: &types.MasterNodes{
-					HighAvailability: true,
+					HighAvailability: toBoolPtr(true),
 				},
 			},
 			errorMatcher: nil,
@@ -967,7 +975,7 @@ func Test_validateHAMasters(t *testing.T) {
 					AvailabilityZone: "eu-something",
 				},
 				MasterNodes: &types.MasterNodes{
-					HighAvailability: true,
+					HighAvailability: toBoolPtr(true),
 				},
 			},
 			errorMatcher: IsMustProvideSingleMasterType,
@@ -986,7 +994,7 @@ func Test_validateHAMasters(t *testing.T) {
 					AvailabilityZone: "eu-something",
 				},
 				MasterNodes: &types.MasterNodes{
-					HighAvailability: true,
+					HighAvailability: toBoolPtr(true),
 				},
 			},
 			errorMatcher: IsMustProvideSingleMasterType,
@@ -1037,7 +1045,7 @@ func Test_validateHAMasters(t *testing.T) {
 			v5Definition: types.ClusterDefinitionV5{
 				Master: nil,
 				MasterNodes: &types.MasterNodes{
-					HighAvailability: false,
+					HighAvailability: toBoolPtr(false),
 				},
 			},
 			errorMatcher: nil,
@@ -1054,7 +1062,7 @@ func Test_validateHAMasters(t *testing.T) {
 			v5Definition: types.ClusterDefinitionV5{
 				Master: nil,
 				MasterNodes: &types.MasterNodes{
-					HighAvailability: false,
+					HighAvailability: toBoolPtr(false),
 				},
 			},
 			errorMatcher: nil,
@@ -1140,7 +1148,11 @@ func Test_jsonOutput(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{
 					"general": {
-					  "provider": "aws"
+					  "provider": "aws",
+					  "availability_zones": {
+						  "default": 3,
+						  "max": 3
+					  }
 					},
 					"features": {
 					  "nodepools": {"release_version_minimum": "9.0.0"},

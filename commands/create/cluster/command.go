@@ -491,17 +491,17 @@ func addCluster(args Arguments) (*creationResult, error) {
 	auxParams := clientWrapper.DefaultAuxiliaryParams()
 	auxParams.ActivityName = createClusterActivityName
 
+	if args.Verbose {
+		fmt.Println(color.WhiteString("Fetching installation information"))
+	}
+
+	info, err := clientWrapper.GetInfo(auxParams)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
 	// Ensure provider information is there.
 	if config.Config.Provider == "" {
-		if args.Verbose {
-			fmt.Println(color.WhiteString("Fetching installation information"))
-		}
-
-		info, err := clientWrapper.GetInfo(auxParams)
-		if err != nil {
-			return nil, microerror.Mask(err)
-		}
-
 		err = config.Config.SetProvider(info.Payload.General.Provider)
 		if err != nil {
 			return nil, microerror.Mask(err)
@@ -627,10 +627,12 @@ func addCluster(args Arguments) (*creationResult, error) {
 		}
 
 		updateDefinitionFromFlagsV5(result.DefinitionV5, definitionFromFlagsV5{
-			clusterName:    args.ClusterName,
-			releaseVersion: args.ReleaseVersion,
-			owner:          args.Owner,
-			isHAMaster:     args.MasterHA,
+			clusterName:     args.ClusterName,
+			releaseVersion:  args.ReleaseVersion,
+			owner:           args.Owner,
+			isHAMaster:      args.MasterHA,
+			provider:        config.Config.Provider,
+			maxSupportedAZs: *info.Payload.General.AvailabilityZones.Max,
 		})
 
 		id, hasErrors, err := addClusterV5(result.DefinitionV5, args, clientWrapper, auxParams)
@@ -683,7 +685,7 @@ func validateHAMasters(featureEnabled bool, args *Arguments, v5Definition *types
 
 	{
 		// HA master has been enabled by cluster definition.
-		hasHAMaster := v5Definition.MasterNodes != nil && v5Definition.MasterNodes.HighAvailability
+		hasHAMaster := v5Definition.MasterNodes != nil && v5Definition.MasterNodes.HighAvailability != nil && *v5Definition.MasterNodes.HighAvailability
 		// HA master has been enabled by command-line flag.
 		hasHAMasterFromFlag := args.MasterHA != nil && *args.MasterHA
 		if hasHAMaster || hasHAMasterFromFlag {
