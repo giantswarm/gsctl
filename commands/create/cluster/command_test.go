@@ -554,7 +554,11 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(`{
 					"general": {
-					  "provider": "aws"
+					  "provider": "aws",
+					  "availability_zones": {
+						  "default": 3,
+						  "max": 3
+					  }
 					},
 					"features": {
 					  "nodepools": {"release_version_minimum": "9.0.0"},
@@ -685,7 +689,11 @@ func Test_CreateClusterExecutionFailures(t *testing.T) {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(`{
 					"general": {
-					  "provider": "aws"
+					  "provider": "aws",
+					  "availability_zones": {
+						  "default": 3,
+						  "max": 3
+					  }
 					},
 					"features": {
 					  "nodepools": {"release_version_minimum": "9.0.0"}
@@ -1140,7 +1148,11 @@ func Test_jsonOutput(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{
 					"general": {
-					  "provider": "aws"
+					  "provider": "aws",
+					  "availability_zones": {
+						  "default": 3,
+						  "max": 3
+					  }
 					},
 					"features": {
 					  "nodepools": {"release_version_minimum": "9.0.0"},
