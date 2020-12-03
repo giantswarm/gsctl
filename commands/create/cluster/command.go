@@ -683,7 +683,7 @@ func validateHAMasters(featureEnabled bool, args *Arguments, v5Definition *types
 
 	{
 		// HA master has been enabled by cluster definition.
-		hasHAMaster := v5Definition.MasterNodes != nil && v5Definition.MasterNodes.HighAvailability
+		hasHAMaster := v5Definition.MasterNodes != nil && v5Definition.MasterNodes.HighAvailability != nil && *v5Definition.MasterNodes.HighAvailability
 		// HA master has been enabled by command-line flag.
 		hasHAMasterFromFlag := args.MasterHA != nil && *args.MasterHA
 		if hasHAMaster || hasHAMasterFromFlag {

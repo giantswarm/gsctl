@@ -282,7 +282,7 @@ nodepools:
 			&types.ClusterDefinitionV5{
 				APIVersion:  "v5",
 				Owner:       "myorg",
-				MasterNodes: &types.MasterNodes{HighAvailability: true},
+				MasterNodes: &types.MasterNodes{HighAvailability: toBoolPtr(true)},
 				NodePools: []*types.NodePoolDefinition{
 					{
 						Name:              "General purpose",

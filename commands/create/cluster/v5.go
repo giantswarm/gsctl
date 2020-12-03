@@ -41,7 +41,7 @@ func updateDefinitionFromFlagsV5(def *types.ClusterDefinitionV5, flags definitio
 
 	if flags.isHAMaster != nil {
 		def.MasterNodes = &types.MasterNodes{
-			HighAvailability: *flags.isHAMaster,
+			HighAvailability: flags.isHAMaster,
 		}
 	}
 }
@@ -61,7 +61,21 @@ func createAddClusterBodyV5(def *types.ClusterDefinitionV5) *models.V5AddCluster
 
 	if def.MasterNodes != nil {
 		b.MasterNodes = &models.V5AddClusterRequestMasterNodes{
-			HighAvailability: &def.MasterNodes.HighAvailability,
+			HighAvailability:  def.MasterNodes.HighAvailability,
+			AvailabilityZones: def.MasterNodes.AvailabilityZones,
+		}
+
+		if def.MasterNodes.Azure != nil {
+			b.MasterNodes.Azure = &models.V5AddClusterRequestMasterNodesAzure{
+				AvailabilityZonesUnspecified: def.MasterNodes.Azure.AvailabilityZonesUnspecified,
+			}
+		}
+	} else {
+		b.MasterNodes = &models.V5AddClusterRequestMasterNodes{
+			// We default to unspecified AZs on azure to match happa's behaviour.
+			Azure: &models.V5AddClusterRequestMasterNodesAzure{
+				AvailabilityZonesUnspecified: true,
+			},
 		}
 	}
 
