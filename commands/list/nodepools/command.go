@@ -343,6 +343,7 @@ func getOutputAzure(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 		color.CyanString("NAME"),
 		color.CyanString("AZ"),
 		color.CyanString("VM SIZE"),
+		color.CyanString("NODES MIN/MAX"),
 		color.CyanString("NODES DESIRED"),
 		color.CyanString("NODES READY"),
 		color.CyanString("CPUS"),
@@ -389,11 +390,17 @@ func getOutputAzure(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 			}
 		}
 
+		scalingMin := int64(0)
+		if np.Scaling.Min != nil {
+			scalingMin = *np.Scaling.Min
+		}
+
 		table = append(table, strings.Join([]string{
 			np.ID,
 			np.Name,
 			formatting.AvailabilityZonesList(np.AvailabilityZones),
 			vmSizes,
+			fmt.Sprintf("%s/%s", strconv.FormatInt(scalingMin, 10), strconv.FormatInt(np.Scaling.Max, 10)),
 			strconv.FormatInt(np.Status.Nodes, 10),
 			formatNodesReady(np.Status.Nodes, np.Status.NodesReady),
 			sumCPUs,
