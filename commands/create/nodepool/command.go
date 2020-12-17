@@ -162,24 +162,25 @@ func initFlags() {
 
 // Arguments defines the arguments this command can take into consideration.
 type Arguments struct {
-	APIEndpoint           string
-	AuthToken             string
-	AvailabilityZonesList []string
-	AvailabilityZonesNum  int
-	ClusterNameOrID       string
-	VmSize                string
-	InstanceType          string
-	UseAlikeInstanceTypes bool
-	OnDemandBaseCapacity  int64
-	SpotPercentage        int64
-	Name                  string
-	Provider              string
-	ScalingMax            int64
-	ScalingMin            int64
-	ScalingMinSet         bool
-	Scheme                string
-	UserProvidedToken     string
-	Verbose               bool
+	APIEndpoint               string
+	AuthToken                 string
+	AvailabilityZonesList     []string
+	AvailabilityZonesNum      int
+	MaxNumOfAvailabilityZones int
+	ClusterNameOrID           string
+	VmSize                    string
+	InstanceType              string
+	UseAlikeInstanceTypes     bool
+	OnDemandBaseCapacity      int64
+	SpotPercentage            int64
+	Name                      string
+	Provider                  string
+	ScalingMax                int64
+	ScalingMin                int64
+	ScalingMinSet             bool
+	Scheme                    string
+	UserProvidedToken         string
+	Verbose                   bool
 }
 
 type result struct {
@@ -217,25 +218,33 @@ func collectArguments(cmd *cobra.Command, positionalArgs []string) (Arguments, e
 		}
 	}
 
+	var maxNumOfAZs int
+	{
+		if info.General.AvailabilityZones.Max != nil {
+			maxNumOfAZs = int(*info.General.AvailabilityZones.Max)
+		}
+	}
+
 	return Arguments{
-		APIEndpoint:           endpoint,
-		AuthToken:             token,
-		AvailabilityZonesList: zones,
-		AvailabilityZonesNum:  cmdAvailabilityZonesNum,
-		ClusterNameOrID:       positionalArgs[0],
-		InstanceType:          flags.WorkerAwsEc2InstanceType,
-		VmSize:                flags.WorkerAzureVMSize,
-		UseAlikeInstanceTypes: flags.AWSUseAlikeInstanceTypes,
-		OnDemandBaseCapacity:  flags.AWSOnDemandBaseCapacity,
-		SpotPercentage:        flags.AWSSpotPercentage,
-		Name:                  flags.Name,
-		Provider:              info.General.Provider,
-		ScalingMax:            flags.WorkersMax,
-		ScalingMin:            flags.WorkersMin,
-		ScalingMinSet:         cmd.Flags().Changed("nodes-min"),
-		Scheme:                scheme,
-		UserProvidedToken:     flags.Token,
-		Verbose:               flags.Verbose,
+		APIEndpoint:               endpoint,
+		AuthToken:                 token,
+		AvailabilityZonesList:     zones,
+		AvailabilityZonesNum:      cmdAvailabilityZonesNum,
+		ClusterNameOrID:           positionalArgs[0],
+		InstanceType:              flags.WorkerAwsEc2InstanceType,
+		VmSize:                    flags.WorkerAzureVMSize,
+		UseAlikeInstanceTypes:     flags.AWSUseAlikeInstanceTypes,
+		OnDemandBaseCapacity:      flags.AWSOnDemandBaseCapacity,
+		SpotPercentage:            flags.AWSSpotPercentage,
+		Name:                      flags.Name,
+		Provider:                  info.General.Provider,
+		MaxNumOfAvailabilityZones: maxNumOfAZs,
+		ScalingMax:                flags.WorkersMax,
+		ScalingMin:                flags.WorkersMin,
+		ScalingMinSet:             cmd.Flags().Changed("nodes-min"),
+		Scheme:                    scheme,
+		UserProvidedToken:         flags.Token,
+		Verbose:                   flags.Verbose,
 	}, nil
 }
 
@@ -407,6 +416,12 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 	} else if args.AvailabilityZonesNum != 0 {
 		requestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
 			Number: int64(args.AvailabilityZonesNum),
+		}
+	}
+
+	if args.Provider == provider.Azure && requestBody.AvailabilityZones == nil && args.MaxNumOfAvailabilityZones < 1 {
+		requestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
+			Number: -1,
 		}
 	}
 
