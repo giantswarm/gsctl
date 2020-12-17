@@ -409,6 +409,12 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 		}
 	}
 
+	if args.Provider == provider.Azure && args.MaxNumOfAvailabilityZones < 1 {
+		requestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
+			Number: -1,
+		}
+	}
+
 	if args.AvailabilityZonesList != nil && len(args.AvailabilityZonesList) > 0 {
 		requestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
 			Zones: args.AvailabilityZonesList,
@@ -416,12 +422,6 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 	} else if args.AvailabilityZonesNum != 0 {
 		requestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
 			Number: int64(args.AvailabilityZonesNum),
-		}
-	}
-
-	if args.Provider == provider.Azure && requestBody.AvailabilityZones == nil && args.MaxNumOfAvailabilityZones < 1 {
-		requestBody.AvailabilityZones = &models.V5AddNodePoolRequestAvailabilityZones{
-			Number: -1,
 		}
 	}
 
