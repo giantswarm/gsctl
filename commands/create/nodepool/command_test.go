@@ -29,7 +29,11 @@ func TestCollectArgs(t *testing.T) {
 					"general": {
 						"installation_name": "codename",
 						"provider": "aws",
-						"datacenter": "myzone"
+						"datacenter": "myzone",
+						"availability_zones": {
+						  "default": 3,
+						  "max": 3
+					  	}
 					},
 					"workers": {
 						"count_per_cluster": {
@@ -70,12 +74,13 @@ func TestCollectArgs(t *testing.T) {
 				Command.ParseFlags([]string{"cluster-id", "--name=my-name"})
 			},
 			Arguments{
-				APIEndpoint:     mockServer.URL,
-				AuthToken:       "some-token",
-				ClusterNameOrID: "cluster-id",
-				Name:            "my-name",
-				Scheme:          "giantswarm",
-				Provider:        "aws",
+				APIEndpoint:               mockServer.URL,
+				AuthToken:                 "some-token",
+				ClusterNameOrID:           "cluster-id",
+				Name:                      "my-name",
+				Scheme:                    "giantswarm",
+				Provider:                  "aws",
+				MaxNumOfAvailabilityZones: 3,
 			},
 		},
 		{
@@ -92,17 +97,18 @@ func TestCollectArgs(t *testing.T) {
 				})
 			},
 			Arguments{
-				APIEndpoint:          mockServer.URL,
-				AuthToken:            "some-token",
-				ClusterNameOrID:      "some-cluster-id",
-				Name:                 "my-nodepool-name",
-				Scheme:               "giantswarm",
-				AvailabilityZonesNum: 3,
-				InstanceType:         "instance-type",
-				ScalingMin:           5,
-				ScalingMinSet:        true,
-				ScalingMax:           10,
-				Provider:             "aws",
+				APIEndpoint:               mockServer.URL,
+				AuthToken:                 "some-token",
+				ClusterNameOrID:           "some-cluster-id",
+				Name:                      "my-nodepool-name",
+				Scheme:                    "giantswarm",
+				AvailabilityZonesNum:      3,
+				InstanceType:              "instance-type",
+				ScalingMin:                5,
+				ScalingMinSet:             true,
+				ScalingMax:                10,
+				Provider:                  "aws",
+				MaxNumOfAvailabilityZones: 3,
 			},
 		},
 		{
@@ -115,12 +121,13 @@ func TestCollectArgs(t *testing.T) {
 				})
 			},
 			Arguments{
-				APIEndpoint:           mockServer.URL,
-				AuthToken:             "some-token",
-				ClusterNameOrID:       "a-cluster-id",
-				Scheme:                "giantswarm",
-				AvailabilityZonesList: []string{"myzonea", "myzoneb", "myzonec"},
-				Provider:              "aws",
+				APIEndpoint:               mockServer.URL,
+				AuthToken:                 "some-token",
+				ClusterNameOrID:           "a-cluster-id",
+				Scheme:                    "giantswarm",
+				AvailabilityZonesList:     []string{"myzonea", "myzoneb", "myzonec"},
+				Provider:                  "aws",
+				MaxNumOfAvailabilityZones: 3,
 			},
 		},
 		// Only setting the --nodes-min, but not --nodes-max flag.
@@ -134,14 +141,15 @@ func TestCollectArgs(t *testing.T) {
 				})
 			},
 			Arguments{
-				APIEndpoint:     mockServer.URL,
-				AuthToken:       "some-token",
-				ClusterNameOrID: "another-cluster-id",
-				ScalingMax:      0,
-				ScalingMin:      5,
-				ScalingMinSet:   true,
-				Scheme:          "giantswarm",
-				Provider:        "aws",
+				APIEndpoint:               mockServer.URL,
+				AuthToken:                 "some-token",
+				ClusterNameOrID:           "another-cluster-id",
+				ScalingMax:                0,
+				ScalingMin:                5,
+				ScalingMinSet:             true,
+				Scheme:                    "giantswarm",
+				Provider:                  "aws",
+				MaxNumOfAvailabilityZones: 3,
 			},
 		},
 		// Only setting the --nodes-max, but not --nodes-min flag.
@@ -155,12 +163,13 @@ func TestCollectArgs(t *testing.T) {
 				})
 			},
 			Arguments{
-				APIEndpoint:     mockServer.URL,
-				AuthToken:       "some-token",
-				ClusterNameOrID: "another-cluster-id",
-				ScalingMax:      5,
-				Scheme:          "giantswarm",
-				Provider:        "aws",
+				APIEndpoint:               mockServer.URL,
+				AuthToken:                 "some-token",
+				ClusterNameOrID:           "another-cluster-id",
+				ScalingMax:                5,
+				Scheme:                    "giantswarm",
+				Provider:                  "aws",
+				MaxNumOfAvailabilityZones: 3,
 			},
 		},
 		// Setting the Azure VM size.
@@ -174,12 +183,13 @@ func TestCollectArgs(t *testing.T) {
 				})
 			},
 			Arguments{
-				APIEndpoint:     mockServer.URL,
-				AuthToken:       "some-token",
-				ClusterNameOrID: "another-cluster-id",
-				VmSize:          "something-large",
-				Scheme:          "giantswarm",
-				Provider:        "aws",
+				APIEndpoint:               mockServer.URL,
+				AuthToken:                 "some-token",
+				ClusterNameOrID:           "another-cluster-id",
+				VmSize:                    "something-large",
+				Scheme:                    "giantswarm",
+				Provider:                  "aws",
+				MaxNumOfAvailabilityZones: 3,
 			},
 		},
 	}
