@@ -105,7 +105,7 @@ type Arguments struct {
 	description       string
 	fileSystem        afero.Fs
 	force             bool
-	tenantInternal    bool
+	internalAPI       bool
 	outputFormat      string
 	scheme            string
 	selfContainedPath string
@@ -116,7 +116,7 @@ type Arguments struct {
 
 // collectArguments gathers arguments based on command line
 // flags and config and applies defaults.
-func collectArguments() (Arguments, error) {
+func collectArguments(cmd *cobra.Command) (Arguments, error) {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
 	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
@@ -137,6 +137,11 @@ func collectArguments() (Arguments, error) {
 		return Arguments{}, microerror.Mask(err)
 	}
 
+	// apply deprecated flag if used
+	if cmd.Flags().Changed("tenant-internal") && !cmd.Flags().Changed("internal-api") {
+		flags.InternalAPI = flags.TenantInternal
+	}
+
 	// hack..
 	// cobra sets defaults from other commands to the OutputFormat flag
 	// but we don't have "table" here, so if it's "table", set it to empty string
@@ -154,7 +159,7 @@ func collectArguments() (Arguments, error) {
 		description:       description,
 		fileSystem:        config.FileSystem,
 		force:             flags.Force,
-		tenantInternal:    flags.TenantInternal,
+		internalAPI:       flags.InternalAPI,
 		outputFormat:      flags.OutputFormat,
 		scheme:            scheme,
 		selfContainedPath: cmdKubeconfigSelfContained,
@@ -203,18 +208,22 @@ func init() {
 	Command.Flags().StringVarP(&cmdKubeconfigContextName, "context", "", "", "Set a custom context name. Defaults to 'giantswarm-<cluster-id>'.")
 	Command.Flags().StringVarP(&flags.CertificateOrganizations, "certificate-organizations", "", "", "A comma separated list of organizations for the issued certificates 'O' fields.")
 	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation. Also, there will not be any confirmation for TTL > 30d.")
-	Command.Flags().BoolVarP(&flags.TenantInternal, "tenant-internal", "", false, "If set, kubeconfig will be rendered with internal Kubernetes API address.")
+	Command.Flags().BoolVarP(&flags.TenantInternal, "tenant-internal", "", false, "Replaced by --internal-api.")
+	Command.Flags().BoolVarP(&flags.InternalAPI, "internal-api", "", false, "If set, kubeconfig will be issued with the internal Kubernetes API address instead of the public one.")
 	Command.Flags().StringVarP(&flags.TTL, "ttl", "", "1d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
 	Command.Flags().StringVarP(&flags.OutputFormat, "output", "", "", fmt.Sprintf("Output format. Specifying '%s' will change output to be JSON formatted.", formatting.OutputFormatJSON))
 
 	Command.MarkFlagRequired("cluster")
+
+	// TODO: remove this flag by ~ March 2021
+	Command.Flags().MarkDeprecated("tenant-internal", "please use --internal-api instead.")
 }
 
 // createKubeconfigPreRunOutput shows our pre-check results
 func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 	var argsErr error
 
-	arguments, argsErr = collectArguments()
+	arguments, argsErr = collectArguments(cmd)
 	if argsErr != nil {
 		if errors.IsInvalidDurationError(argsErr) {
 			fmt.Println(color.RedString("The value passed with --ttl is invalid."))
@@ -490,7 +499,7 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 	}
 
 	// Set internal API endpoint if requested.
-	if args.tenantInternal {
+	if args.internalAPI {
 		baseEndpoint := strings.Split(result.apiEndpoint, urlDelimiter)[1:]
 		result.apiEndpoint = fmt.Sprintf("https://%s.%s", tenantInternalAPIPrefix, strings.Join(baseEndpoint, urlDelimiter))
 	}
