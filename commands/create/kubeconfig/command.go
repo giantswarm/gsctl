@@ -84,7 +84,7 @@ const (
 	// windows download page
 	kubectlWindowsInstallURL = "https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md"
 
-	// tenant internal api prefix
+	// workload cluster internal api prefix
 	tenantInternalAPIPrefix = "internal-api"
 
 	urlDelimiter = "."
@@ -430,7 +430,7 @@ func printJSONOutput(result createKubeconfigResult, creationErr error) {
 	}
 }
 
-// getClusterDetails fetches cluster details to get the tenant cluster API endpoint,
+// getClusterDetails fetches cluster details to get the workload cluster API endpoint,
 // and attempts first v5 and then falls back to v4.
 func getClusterDetails(clientWrapper *client.Wrapper, clusterID string, auxParams *client.AuxiliaryParams, verbose bool) (string, error) {
 	// Try v5 first, then fall back to v4.

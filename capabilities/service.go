@@ -1,5 +1,5 @@
 // Package capabilities provides an service to find out which capabilities/functions
-// a tenant cluster on the given installation will provide.
+// a workload cluster on the given installation will provide.
 package capabilities
 
 import (
@@ -10,7 +10,7 @@ import (
 )
 
 // Service provides methods to get more details on the installation's
-// and tenant cluster's capabilities.
+// and workload cluster's capabilities.
 type Service struct {
 	// allCapabilities is a list of all the capabilities this package knows about.
 	allCapabilities []CapabilityDefinition
