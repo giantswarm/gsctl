@@ -3,7 +3,7 @@ package capabilities
 import "github.com/Masterminds/semver"
 
 var (
-	// Autoscaling is the capability to scale tenant clusters automatically.
+	// Autoscaling is the capability to scale workload clusters automatically.
 	Autoscaling = CapabilityDefinition{
 		Name: "Autoscaling",
 		RequiredReleasePerProvider: []ReleaseProviderPair{
@@ -14,7 +14,7 @@ var (
 		},
 	}
 
-	// AvailabilityZones is the capability to spread the worker nodes of a tenant
+	// AvailabilityZones is the capability to spread the worker nodes of a workload
 	// cluster over multiple availability zones.
 	AvailabilityZones = CapabilityDefinition{
 		Name: "AvailabilityZones",
@@ -26,7 +26,7 @@ var (
 		},
 	}
 
-	// NodePools is the capabilitiy to group tenant cluster workers logically.
+	// NodePools is the capabilitiy to group workload cluster workers logically.
 	// Details get completed with API data, if the feature is available.
 	NodePools = CapabilityDefinition{
 		Name: "NodePools",

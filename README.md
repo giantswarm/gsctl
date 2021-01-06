@@ -61,16 +61,17 @@ Whenever you want to switch to using this context:
 
 #### Cluster acccess via internal networks
 
-The Internal Kubernetes API allows you to talk to Kubernetes via the internal load balancer. That can be useful for peered networks.
+The internal Kubernetes API endpoint allows you to talk to Kubernetes via the internal load balancer. That can be useful for peered networks.
 
-In case you want to use the internal Kubernetes API, pass `--tenant-internal=true` to gsctl:
+In case you want to use the internal Kubernetes API, pass `--internal-api=true` to gsctl when creating a kubectl config entry:
+
 ```nohighlight
-$ gsctl create kubeconfig -c h8d0j
+gsctl create kubeconfig -c h8d0j --internal-api=true
 ```
 
-This will render a kubeconfig with the internal Kubernetes API server address (`internal-api`).
+This will render a kubeconfig with the internal Kubernetes API host name `internal-api`, resolving to the internal load balancer.
 
-* Internal API is available only on AWS installations.
+**Note**: The internal API endpoint is available only on AWS installations.
 
 ## Install
 
