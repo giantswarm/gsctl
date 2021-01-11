@@ -51,7 +51,7 @@ follows:
 - Availability zones: the node pool will use 1 zone selected randomly.
 - Instance type (AWS) / VM Size (Azure): the default machine type of the installation will be
   used. Check 'gsctl info' to find out what that is.
-- Scaling settings: on AWS, the minimum will be 3 and the maximum 10 nodes, and on Azure, the minimum will be 3 and the maximum 3 nodes.
+- Scaling settings: the minimum will be 3 and the maximum 10 nodes.
 
 Examples:
 
