@@ -21,6 +21,10 @@ var (
 	// ConfigDirPath represents the configuration path to use temporarily passed as a flag.
 	ConfigDirPath string
 
+	// InternalAPI is a flag that causes the 'create kubeconfig' and 'create keypair'
+	// command to use the workload-cluster-internal API endpoint instead of the public one.
+	InternalAPI bool
+
 	// Verbose represents the verbosity switch passed as a flag.
 	Verbose bool
 

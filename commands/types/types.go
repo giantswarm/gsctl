@@ -44,7 +44,7 @@ type NodeDefinition struct {
 	Azure   AzureSpecificDefinition `yaml:"azure,omitempty"`
 }
 
-// ClusterDefinitionV4 defines a tenant cluster spec compatible with the v4 API.
+// ClusterDefinitionV4 defines a workload cluster spec compatible with the v4 API.
 type ClusterDefinitionV4 struct {
 	Name              string            `yaml:"name,omitempty"`
 	Owner             string            `yaml:"owner,omitempty"`
@@ -54,7 +54,7 @@ type ClusterDefinitionV4 struct {
 	Workers           []NodeDefinition  `yaml:"workers,omitempty"`
 }
 
-// ClusterDefinitionV5 defines a tenant cluster spec compatible with the v5 API.
+// ClusterDefinitionV5 defines a workload cluster spec compatible with the v5 API.
 type ClusterDefinitionV5 struct {
 	APIVersion     string                `yaml:"api_version,omitempty"`
 	Name           string                `yaml:"name,omitempty"`
@@ -66,7 +66,7 @@ type ClusterDefinitionV5 struct {
 	Labels         map[string]*string    `yaml:"labels,omitempty"`
 }
 
-// ScalingDefinition defines how a tenant cluster can scale.
+// ScalingDefinition defines how a workload cluster can scale.
 type ScalingDefinition struct {
 	Min int64 `yaml:"min,omitempty"`
 	Max int64 `yaml:"max,omitempty"`
