@@ -346,6 +346,7 @@ func getOutputAzure(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 		color.CyanString("NODES MIN/MAX"),
 		color.CyanString("NODES DESIRED"),
 		color.CyanString("NODES READY"),
+		color.CyanString("SPOT INSTANCES"),
 		color.CyanString("CPUS"),
 		color.CyanString("RAM (GB)"),
 	}
@@ -395,6 +396,15 @@ func getOutputAzure(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 			scalingMin = *np.Scaling.Min
 		}
 
+		var spotInstances string
+		{
+			if np.NodeSpec.Azure.SpotInstances != nil && np.NodeSpec.Azure.SpotInstances.Enabled {
+				spotInstances = "ON"
+			} else {
+				spotInstances = "OFF"
+			}
+		}
+
 		table = append(table, strings.Join([]string{
 			np.ID,
 			np.Name,
@@ -403,6 +413,7 @@ func getOutputAzure(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 			fmt.Sprintf("%s/%s", strconv.FormatInt(scalingMin, 10), strconv.FormatInt(np.Scaling.Max, 10)),
 			strconv.FormatInt(np.Status.Nodes, 10),
 			formatNodesReady(np.Status.Nodes, np.Status.NodesReady),
+			spotInstances,
 			sumCPUs,
 			sumMemory,
 		}, "|"))
