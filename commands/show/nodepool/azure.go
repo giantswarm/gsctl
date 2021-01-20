@@ -44,10 +44,12 @@ func getOutputAzure(nodePool *models.V5GetNodePoolResponse) (string, error) {
 		table = append(table, color.YellowString("Node scaling:")+"|"+formatNodeScalingAzure(nodePool.Scaling))
 		table = append(table, color.YellowString("Nodes desired:")+fmt.Sprintf("|%d", nodePool.Status.Nodes))
 		table = append(table, color.YellowString("Nodes in state Ready:")+fmt.Sprintf("|%d", nodePool.Status.NodesReady))
-		table = append(table, color.YellowString("Spot instances:")+fmt.Sprintf("|%d", nodePool.Status.SpotInstances))
 
 		if nodePool.NodeSpec.Azure.SpotInstances != nil && nodePool.NodeSpec.Azure.SpotInstances.Enabled {
+			table = append(table, color.YellowString("Spot instances:")+"|Enabled")
 			table = append(table, color.YellowString("Spot instances max price:")+fmt.Sprintf("|$%.5f", nodePool.NodeSpec.Azure.SpotInstances.MaxPrice))
+		} else {
+			table = append(table, color.YellowString("Spot instances:")+"|Disabled")
 		}
 
 		table = append(table, color.YellowString("CPUs:")+"|"+formatCPUsAzure(nodePool.Status.NodesReady, vmSizeDetails))
