@@ -1,0 +1,26 @@
+api_version: v5
+release_version: "14.2.0"
+master_nodes:
+  high_availability: false
+nodepools:
+  - name: Some node pool
+    availability_zones:
+      zones:
+        - 1
+    node_spec:
+      azure:
+        vm_size: Standard_D4s_v3
+        spot_instances:
+          enabled: true
+          max_price: 0.01235
+  - name: Some other node pool
+    availability_zones:
+      zones:
+        - 2
+        - 3
+    node_spec:
+      azure:
+        vm_size: Standard_D4s_v3
+        spot_instances:
+          enabled: false
+  - name: Another node pool with defaults

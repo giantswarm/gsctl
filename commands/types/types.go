@@ -31,7 +31,14 @@ type AWSInstanceDistribution struct {
 
 // AzureSpecificDefinition defines worker node specs for Azure.
 type AzureSpecificDefinition struct {
-	VMSize string `yaml:"vm_size,omitempty"`
+	VMSize             string              `yaml:"vm_size,omitempty"`
+	AzureSpotInstances *AzureSpotInstances `yaml:"spot_instances,omitempty"`
+}
+
+// AzureSpotInstances defines the configuration for the spot instances feature.
+type AzureSpotInstances struct {
+	Enabled  bool    `yaml:"enabled,omitempty"`
+	MaxPrice float64 `yaml:"max_price,omitempty"`
 }
 
 // NodeDefinition defines worker node specs.
