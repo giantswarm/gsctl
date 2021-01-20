@@ -18,6 +18,13 @@ var (
 	// to use in an node pool
 	AWSSpotPercentage int64
 
+	// AzureSpotInstances determines if spot insntances are used in a node pool.
+	AzureSpotInstances bool
+
+	// AzureSpotInstancesMaxPrice represents the maximum value that
+	// a single node pool VM instance can reach before it is deallocated.
+	AzureSpotInstancesMaxPrice float64
+
 	// ConfigDirPath represents the configuration path to use temporarily passed as a flag.
 	ConfigDirPath string
 

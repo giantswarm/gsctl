@@ -96,7 +96,9 @@ Examples:
 
     gsctl create nodepool f01r4 --nodes-min 3 --nodes-max 10
 
-  # Spot instances (AWS only):
+  # Spot instances:
+
+  # AWS
 
   To use 50% spot instances in a node pool and making sure to always have
   three on-demand instances you can create your node pool like this:
@@ -112,6 +114,20 @@ Examples:
 
     gsctl create nodepool f01r4 --aws-instance-type m4.xlarge \
 	  --aws-use-alike-instance-types
+
+  # Azure
+
+  In order to use spot instances, specify the flag, like this:
+
+  gsctl create nodepool f01r4 --azure-spot-instances
+
+  Here is how you can set a maximum price that a single node pool
+  VM instance can reach before it is deallocated:
+
+  gsctl create nodepool f01r4 --azure-spot-instances --azure-spot-instances-max-price 0.00315
+
+  By setting this value to '-1', the maximum price will be fixed
+  to the on-demand price of the instance.
 
 `,
 
@@ -150,29 +166,33 @@ func initFlags() {
 	Command.Flags().BoolVarP(&flags.AWSUseAlikeInstanceTypes, "aws-use-alike-instance-types", "", false, "Use similar instance type in your node pool (AWS only). This list is maintained by Giant Swarm at the moment. Eg if you select m5.xlarge then the node pool can fall back on m4.xlarge too.")
 	Command.Flags().Int64VarP(&flags.AWSOnDemandBaseCapacity, "aws-on-demand-base-capacity", "", 0, "Number of on-demand instances that this node pool needs to have until spot instances are used (AWS only). Default is 0")
 	Command.Flags().Int64VarP(&flags.AWSSpotPercentage, "aws-spot-percentage", "", 0, "Percentage of spot instances used once the on-demand base capacity is fullfilled (AWS only). A number of 40 would mean that 60% will be on-demand and 40% will be spot instances.")
+	Command.Flags().BoolVarP(&flags.AzureSpotInstances, "azure-spot-instances", "", false, "Whether the node pool must use spot instances or on-demand.")
+	Command.Flags().Float64VarP(&flags.AzureSpotInstancesMaxPrice, "azure-spot-instances-max-price", "", -1, "Whether the node pool must use spot instances or on-demand.")
 }
 
 // Arguments defines the arguments this command can take into consideration.
 type Arguments struct {
-	APIEndpoint               string
-	AuthToken                 string
-	AvailabilityZonesList     []string
-	AvailabilityZonesNum      int
-	MaxNumOfAvailabilityZones int
-	ClusterNameOrID           string
-	VmSize                    string
-	InstanceType              string
-	UseAlikeInstanceTypes     bool
-	OnDemandBaseCapacity      int64
-	SpotPercentage            int64
-	Name                      string
-	Provider                  string
-	ScalingMax                int64
-	ScalingMin                int64
-	ScalingMinSet             bool
-	Scheme                    string
-	UserProvidedToken         string
-	Verbose                   bool
+	APIEndpoint                string
+	AuthToken                  string
+	AvailabilityZonesList      []string
+	AvailabilityZonesNum       int
+	MaxNumOfAvailabilityZones  int
+	ClusterNameOrID            string
+	VmSize                     string
+	InstanceType               string
+	UseAlikeInstanceTypes      bool
+	OnDemandBaseCapacity       int64
+	SpotPercentage             int64
+	AzureSpotInstances         bool
+	AzureSpotInstancesMaxPrice float64
+	Name                       string
+	Provider                   string
+	ScalingMax                 int64
+	ScalingMin                 int64
+	ScalingMinSet              bool
+	Scheme                     string
+	UserProvidedToken          string
+	Verbose                    bool
 }
 
 type result struct {
@@ -218,25 +238,27 @@ func collectArguments(cmd *cobra.Command, positionalArgs []string) (Arguments, e
 	}
 
 	return Arguments{
-		APIEndpoint:               endpoint,
-		AuthToken:                 token,
-		AvailabilityZonesList:     zones,
-		AvailabilityZonesNum:      cmdAvailabilityZonesNum,
-		ClusterNameOrID:           positionalArgs[0],
-		InstanceType:              flags.WorkerAwsEc2InstanceType,
-		VmSize:                    flags.WorkerAzureVMSize,
-		UseAlikeInstanceTypes:     flags.AWSUseAlikeInstanceTypes,
-		OnDemandBaseCapacity:      flags.AWSOnDemandBaseCapacity,
-		SpotPercentage:            flags.AWSSpotPercentage,
-		Name:                      flags.Name,
-		Provider:                  info.General.Provider,
-		MaxNumOfAvailabilityZones: maxNumOfAZs,
-		ScalingMax:                flags.WorkersMax,
-		ScalingMin:                flags.WorkersMin,
-		ScalingMinSet:             cmd.Flags().Changed("nodes-min"),
-		Scheme:                    scheme,
-		UserProvidedToken:         flags.Token,
-		Verbose:                   flags.Verbose,
+		APIEndpoint:                endpoint,
+		AuthToken:                  token,
+		AvailabilityZonesList:      zones,
+		AvailabilityZonesNum:       cmdAvailabilityZonesNum,
+		ClusterNameOrID:            positionalArgs[0],
+		InstanceType:               flags.WorkerAwsEc2InstanceType,
+		VmSize:                     flags.WorkerAzureVMSize,
+		UseAlikeInstanceTypes:      flags.AWSUseAlikeInstanceTypes,
+		OnDemandBaseCapacity:       flags.AWSOnDemandBaseCapacity,
+		SpotPercentage:             flags.AWSSpotPercentage,
+		AzureSpotInstances:         flags.AzureSpotInstances,
+		AzureSpotInstancesMaxPrice: flags.AzureSpotInstancesMaxPrice,
+		Name:                       flags.Name,
+		Provider:                   info.General.Provider,
+		MaxNumOfAvailabilityZones:  maxNumOfAZs,
+		ScalingMax:                 flags.WorkersMax,
+		ScalingMin:                 flags.WorkersMin,
+		ScalingMinSet:              cmd.Flags().Changed("nodes-min"),
+		Scheme:                     scheme,
+		UserProvidedToken:          flags.Token,
+		Verbose:                    flags.Verbose,
 	}, nil
 }
 
@@ -308,6 +330,10 @@ func verifyPreconditions(args Arguments) error {
 		// SpotPercentage check percentage
 		if args.SpotPercentage < 0 || args.SpotPercentage > 100 {
 			return microerror.Mask(errors.NotPercentage)
+		}
+	} else if args.Provider == provider.Azure {
+		if !args.AzureSpotInstances && args.AzureSpotInstancesMaxPrice != -1 {
+			return microerror.Maskf(errors.ConflictingFlagsError, "the flag --azure-spot-instances-max-price cannot be set if spot instances are not enabled.")
 		}
 	}
 
@@ -381,6 +407,10 @@ func createNodePool(args Arguments, clusterID string, clientWrapper *client.Wrap
 		if args.Provider == provider.Azure {
 			requestBody.NodeSpec.Azure = &models.V5AddNodePoolRequestNodeSpecAzure{
 				VMSize: args.VmSize,
+				SpotInstances: &models.V5AddNodePoolRequestNodeSpecAzureSpotInstances{
+					Enabled:  &args.AzureSpotInstances,
+					MaxPrice: &args.AzureSpotInstancesMaxPrice,
+				},
 			}
 		}
 	}
