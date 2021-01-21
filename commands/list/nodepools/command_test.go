@@ -26,18 +26,18 @@ func Test_ListNodePools(t *testing.T) {
                 {"id": "a6bf4", "name": "New node pool", "availability_zones": ["eu-west-1c"], "scaling": {"min": 3, "max": 3}, "node_spec": {"aws": {"instance_type": "m5.2xlarge", "instance_distribution": {"on_demand_base_capacity": 0, "on_demand_percentage_above_base_capacity": 0}}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}}
             ]`,
 			outputFormat: "table",
-			output: `ID     NAME                    AZ     INSTANCE TYPE  ALIKE  ON-DEMAND BASE  SPOT PERCENTAGE  NODES MIN/MAX  NODES DESIRED  NODES READY  SPOT INSTANCES  CPUS  RAM (GB)
-6feel  Application servers     A,B,C  p3.2xlarge     false               0              100           3/15             10            9               0    72     549.0
-a6bf4  New node pool           C      m5.2xlarge     false               0              100            3/3              0            0               0     0       0.0
-a7rc4  Batch number crunching  D      p3.8xlarge     false               0              100            2/5              4            4               0   128     976.0`,
+			output: `ID     NAME                    AZ     INSTANCE TYPE  ALIKE  ON-DEMAND BASE  SPOT PERCENTAGE  NODES MIN/MAX  NODES DESIRED  NODES READY  SPOT INSTANCES COUNT  CPUS  RAM (GB)
+6feel  Application servers     A,B,C  p3.2xlarge     false               0              100           3/15             10            9                     0    72     549.0
+a6bf4  New node pool           C      m5.2xlarge     false               0              100            3/3              0            0                     0     0       0.0
+a7rc4  Batch number crunching  D      p3.8xlarge     false               0              100            2/5              4            4                     0   128     976.0`,
 		},
 		{
 			npResponse: `[
                 {"id": "a6bf4", "name": "New node pool", "availability_zones": ["eu-west-1c"], "scaling": {"min": 3, "max": 3}, "node_spec": {"aws": {"instance_type": "m5.2xlarge", "instance_distribution": {"on_demand_base_capacity": 0, "on_demand_percentage_above_base_capacity": 0}}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}}
             ]`,
 			outputFormat: "table",
-			output: `ID     NAME           AZ  INSTANCE TYPE  ALIKE  ON-DEMAND BASE  SPOT PERCENTAGE  NODES MIN/MAX  NODES DESIRED  NODES READY  SPOT INSTANCES  CPUS  RAM (GB)
-a6bf4  New node pool  C   m5.2xlarge     false               0              100            3/3              0            0               0     0       0.0`,
+			output: `ID     NAME           AZ  INSTANCE TYPE  ALIKE  ON-DEMAND BASE  SPOT PERCENTAGE  NODES MIN/MAX  NODES DESIRED  NODES READY  SPOT INSTANCES COUNT  CPUS  RAM (GB)
+a6bf4  New node pool  C   m5.2xlarge     false               0              100            3/3              0            0                     0     0       0.0`,
 		},
 		{
 			npResponse: `[

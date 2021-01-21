@@ -47,7 +47,7 @@ func getOutputAWS(nodePool *models.V5GetNodePoolResponse) (string, error) {
 		table = append(table, color.YellowString("Node scaling:")+"|"+formatNodeScalingAWS(nodePool.Scaling))
 		table = append(table, color.YellowString("Nodes desired:")+fmt.Sprintf("|%d", nodePool.Status.Nodes))
 		table = append(table, color.YellowString("Nodes in state Ready:")+fmt.Sprintf("|%d", nodePool.Status.NodesReady))
-		table = append(table, color.YellowString("Spot instances:")+fmt.Sprintf("|%d", nodePool.Status.SpotInstances))
+		table = append(table, color.YellowString("Spot instances count:")+fmt.Sprintf("|%d", nodePool.Status.SpotInstances))
 		table = append(table, color.YellowString("CPUs:")+"|"+formatCPUsAWS(nodePool.Status.NodesReady, instanceTypeDetails))
 		table = append(table, color.YellowString("RAM:")+"|"+formatRAMAWS(nodePool.Status.NodesReady, instanceTypeDetails))
 	}
