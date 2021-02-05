@@ -126,7 +126,7 @@ Examples:
 
   gsctl create nodepool f01r4 --azure-spot-instances --azure-spot-instances-max-price 0.00315
 
-  By setting this value to '0', the maximum price will be fixed
+  By setting this value to '0', the maximum price will be set
   to the on-demand price of the instance.
 
 `,
