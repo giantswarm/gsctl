@@ -167,7 +167,7 @@ func initFlags() {
 	Command.Flags().Int64VarP(&flags.AWSOnDemandBaseCapacity, "aws-on-demand-base-capacity", "", 0, "Number of on-demand instances that this node pool needs to have until spot instances are used (AWS only). Default is 0")
 	Command.Flags().Int64VarP(&flags.AWSSpotPercentage, "aws-spot-percentage", "", 0, "Percentage of spot instances used once the on-demand base capacity is fullfilled (AWS only). A number of 40 would mean that 60% will be on-demand and 40% will be spot instances.")
 	Command.Flags().BoolVarP(&flags.AzureSpotInstances, "azure-spot-instances", "", false, "Whether the node pool must use spot instances or on-demand.")
-	Command.Flags().Float64VarP(&flags.AzureSpotInstancesMaxPrice, "azure-spot-instances-max-price", "", 0, "Whether the node pool must use spot instances or on-demand.")
+	Command.Flags().Float64VarP(&flags.AzureSpotInstancesMaxPrice, "azure-spot-instances-max-price", "", 0, "Max bid hourly price for a single instance. 0 means on-demand price.")
 }
 
 // Arguments defines the arguments this command can take into consideration.
