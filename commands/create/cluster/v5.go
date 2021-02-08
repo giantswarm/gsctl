@@ -137,6 +137,12 @@ func createAddNodePoolBody(def *types.NodePoolDefinition) *models.V5AddNodePoolR
 			if def.NodeSpec.Azure.VMSize != "" {
 				b.NodeSpec.Azure.VMSize = def.NodeSpec.Azure.VMSize
 			}
+			if def.NodeSpec.Azure.AzureSpotInstances != nil {
+				b.NodeSpec.Azure.SpotInstances = &models.V5AddNodePoolRequestNodeSpecAzureSpotInstances{
+					Enabled:  &def.NodeSpec.Azure.AzureSpotInstances.Enabled,
+					MaxPrice: &def.NodeSpec.Azure.AzureSpotInstances.MaxPrice,
+				}
+			}
 		}
 	}
 

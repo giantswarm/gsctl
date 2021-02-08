@@ -510,6 +510,64 @@ func Test_CreateClusterSuccessfully(t *testing.T) {
 				},
 			},
 		},
+		{
+			description: "Definition from azure v5 YAML file with various spot instances configurations",
+			inputArgs: &Arguments{
+				ClusterName:           "Cluster Name from Args with Labels",
+				CreateDefaultNodePool: false,
+				FileSystem:            afero.NewOsFs(), // needed for YAML file access
+				InputYAMLFile:         "testdata/v5_spot_instances_azure.yaml",
+				Owner:                 "acme",
+				AuthToken:             "fake token",
+				Verbose:               true,
+			},
+			expectedResult: &creationResult{
+				ID: "f6e8r",
+				DefinitionV5: &types.ClusterDefinitionV5{
+					APIVersion: "v5",
+					Name:       "Cluster Name from Args with Labels",
+					Owner:      "acme",
+					MasterNodes: &types.MasterNodes{
+						HighAvailability: toBoolPtr(false),
+					},
+					ReleaseVersion: "14.2.0",
+					NodePools: []*types.NodePoolDefinition{
+						{
+							Name: "Some node pool",
+							NodeSpec: &types.NodeSpec{
+								Azure: &types.AzureSpecificDefinition{
+									VMSize: "Standard_D4s_v3",
+									AzureSpotInstances: &types.AzureSpotInstances{
+										Enabled:  true,
+										MaxPrice: 0.01235,
+									},
+								},
+							},
+							AvailabilityZones: &types.AvailabilityZonesDefinition{
+								Zones: []string{"1"},
+							},
+						},
+						{
+							Name: "Some other node pool",
+							NodeSpec: &types.NodeSpec{
+								Azure: &types.AzureSpecificDefinition{
+									VMSize: "Standard_D4s_v3",
+									AzureSpotInstances: &types.AzureSpotInstances{
+										Enabled: false,
+									},
+								},
+							},
+							AvailabilityZones: &types.AvailabilityZonesDefinition{
+								Zones: []string{"2", "3"},
+							},
+						},
+						{
+							Name: "Another node pool with defaults",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range testCases {

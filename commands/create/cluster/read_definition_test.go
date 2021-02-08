@@ -474,6 +474,41 @@ nodepools:
 				},
 			},
 		},
+		// Azure spot instances.
+		{
+			[]byte(`api_version: v5
+owner: myorg
+nodepools:
+- name: Database
+  availability_zones:
+    zones:
+    - 1
+    - 2
+    - 3
+  node_spec:
+    azure:
+      spot_instances:
+        enabled: true
+        max_price: 0.01235
+`),
+			&types.ClusterDefinitionV5{
+				APIVersion: "v5",
+				Owner:      "myorg",
+				NodePools: []*types.NodePoolDefinition{
+					{
+						Name:              "Database",
+						AvailabilityZones: &types.AvailabilityZonesDefinition{Zones: []string{"1", "2", "3"}},
+						NodeSpec: &types.NodeSpec{Azure: &types.AzureSpecificDefinition{
+							AzureSpotInstances: &types.AzureSpotInstances{
+								Enabled:  true,
+								MaxPrice: 0.01235,
+							},
+						},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range testCases {

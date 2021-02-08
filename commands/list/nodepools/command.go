@@ -39,19 +39,20 @@ var (
 The result will be a table of all node pools of a specific cluster with the following details in
 columns:
 
-	ID:              Node pool identifier (unique within the cluster)
-	NAME:            Name specified for the node pool, usually indicating the purpose
-	AZ:              Availability zone letters used by the node pool, separated by comma
-	INSTANCE TYPES:  EC2 instance types used for worker nodes
-	ALIKE:           If similar instance types are allowed in your node pool. This list is maintained by Giant Swarm at the moment. Eg if you select m5.xlarge then the node pool can fall back on m4.xlarge too
-	ON-DEMAND BASE:  Number of on-demand instances that this node pool needs to have until spot instances are used.
-	SPOT PERCENTAGE: Percentage of spot instances used once the on-demand base capacity is fullfilled. A number of 40 means that 60% will be on-demand and 40% will be spot instances.
-	NODES MIN/MAX:   The minimum and maximum number of worker nodes in this pool
-	NODES DESIRED:   Current desired number of nodes as determined by the autoscaler
-	NODES READY:     Number of nodes that are in the Ready state in kubernetes
-	SPOT INSTANCES:  Number of spot instances in this node pool
-	CPUS:            Sum of CPU cores in nodes that are in state Ready
-	RAM (GB):        Sum of memory in GB of all nodes that are in state Ready
+	ID:                    Node pool identifier (unique within the cluster)
+	NAME:                  Name specified for the node pool, usually indicating the purpose
+	AZ:                    Availability zone letters used by the node pool, separated by comma
+	INSTANCE TYPES:        EC2 instance types used for worker nodes
+	ALIKE:                 If similar instance types are allowed in your node pool. This list is maintained by Giant Swarm at the moment. Eg if you select m5.xlarge then the node pool can fall back on m4.xlarge too
+	ON-DEMAND BASE:        Number of on-demand instances that this node pool needs to have until spot instances are used. (AWS only)
+	SPOT PERCENTAGE:       Percentage of spot instances used once the on-demand base capacity is fullfilled. A number of 40 means that 60% will be on-demand and 40% will be spot instances. (AWS only)
+	NODES MIN/MAX:         The minimum and maximum number of worker nodes in this pool
+	NODES DESIRED:         Current desired number of nodes as determined by the autoscaler
+	NODES READY:           Number of nodes that are in the Ready state in kubernetes
+	SPOT INSTANCES COUNT:  Number of spot instances in this node pool (AWS ony)
+	SPOT INSTANCES:        Whether spot instances are used or not (Azure only)
+	CPUS:                  Sum of CPU cores in nodes that are in state Ready
+	RAM (GB):              Sum of memory in GB of all nodes that are in state Ready
 
 To see all available details for a cluster, use 'gsctl show nodepool <cluster-id>/<nodepool-id>'.
 
@@ -245,7 +246,7 @@ func getOutputAWS(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 		color.CyanString("NODES MIN/MAX"),
 		color.CyanString("NODES DESIRED"),
 		color.CyanString("NODES READY"),
-		color.CyanString("SPOT INSTANCES"),
+		color.CyanString("SPOT INSTANCES COUNT"),
 		color.CyanString("CPUS"),
 		color.CyanString("RAM (GB)"),
 	}
@@ -346,6 +347,7 @@ func getOutputAzure(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 		color.CyanString("NODES MIN/MAX"),
 		color.CyanString("NODES DESIRED"),
 		color.CyanString("NODES READY"),
+		color.CyanString("SPOT INSTANCES"),
 		color.CyanString("CPUS"),
 		color.CyanString("RAM (GB)"),
 	}
@@ -395,6 +397,15 @@ func getOutputAzure(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 			scalingMin = *np.Scaling.Min
 		}
 
+		var spotInstances string
+		{
+			if np.NodeSpec.Azure.SpotInstances != nil && np.NodeSpec.Azure.SpotInstances.Enabled {
+				spotInstances = "ON"
+			} else {
+				spotInstances = "OFF"
+			}
+		}
+
 		table = append(table, strings.Join([]string{
 			np.ID,
 			np.Name,
@@ -403,6 +414,7 @@ func getOutputAzure(nps []*models.V5GetNodePoolsResponseItems) (string, error) {
 			fmt.Sprintf("%s/%s", strconv.FormatInt(scalingMin, 10), strconv.FormatInt(np.Scaling.Max, 10)),
 			strconv.FormatInt(np.Status.Nodes, 10),
 			formatNodesReady(np.Status.Nodes, np.Status.NodesReady),
+			spotInstances,
 			sumCPUs,
 			sumMemory,
 		}, "|"))

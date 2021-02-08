@@ -26,18 +26,18 @@ func Test_ListNodePools(t *testing.T) {
                 {"id": "a6bf4", "name": "New node pool", "availability_zones": ["eu-west-1c"], "scaling": {"min": 3, "max": 3}, "node_spec": {"aws": {"instance_type": "m5.2xlarge", "instance_distribution": {"on_demand_base_capacity": 0, "on_demand_percentage_above_base_capacity": 0}}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}}
             ]`,
 			outputFormat: "table",
-			output: `ID     NAME                    AZ     INSTANCE TYPE  ALIKE  ON-DEMAND BASE  SPOT PERCENTAGE  NODES MIN/MAX  NODES DESIRED  NODES READY  SPOT INSTANCES  CPUS  RAM (GB)
-6feel  Application servers     A,B,C  p3.2xlarge     false               0              100           3/15             10            9               0    72     549.0
-a6bf4  New node pool           C      m5.2xlarge     false               0              100            3/3              0            0               0     0       0.0
-a7rc4  Batch number crunching  D      p3.8xlarge     false               0              100            2/5              4            4               0   128     976.0`,
+			output: `ID     NAME                    AZ     INSTANCE TYPE  ALIKE  ON-DEMAND BASE  SPOT PERCENTAGE  NODES MIN/MAX  NODES DESIRED  NODES READY  SPOT INSTANCES COUNT  CPUS  RAM (GB)
+6feel  Application servers     A,B,C  p3.2xlarge     false               0              100           3/15             10            9                     0    72     549.0
+a6bf4  New node pool           C      m5.2xlarge     false               0              100            3/3              0            0                     0     0       0.0
+a7rc4  Batch number crunching  D      p3.8xlarge     false               0              100            2/5              4            4                     0   128     976.0`,
 		},
 		{
 			npResponse: `[
                 {"id": "a6bf4", "name": "New node pool", "availability_zones": ["eu-west-1c"], "scaling": {"min": 3, "max": 3}, "node_spec": {"aws": {"instance_type": "m5.2xlarge", "instance_distribution": {"on_demand_base_capacity": 0, "on_demand_percentage_above_base_capacity": 0}}, "volume_sizes_gb": {"docker": 100, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}}
             ]`,
 			outputFormat: "table",
-			output: `ID     NAME           AZ  INSTANCE TYPE  ALIKE  ON-DEMAND BASE  SPOT PERCENTAGE  NODES MIN/MAX  NODES DESIRED  NODES READY  SPOT INSTANCES  CPUS  RAM (GB)
-a6bf4  New node pool  C   m5.2xlarge     false               0              100            3/3              0            0               0     0       0.0`,
+			output: `ID     NAME           AZ  INSTANCE TYPE  ALIKE  ON-DEMAND BASE  SPOT PERCENTAGE  NODES MIN/MAX  NODES DESIRED  NODES READY  SPOT INSTANCES COUNT  CPUS  RAM (GB)
+a6bf4  New node pool  C   m5.2xlarge     false               0              100            3/3              0            0                     0     0       0.0`,
 		},
 		{
 			npResponse: `[
@@ -76,18 +76,20 @@ a6bf4  New node pool  C   m5.2xlarge     false               0              100 
                 {"id": "np001-1", "name": "np001-1", "availability_zones": ["2"], "scaling": {"min": 1, "max": 2}, "node_spec": {"azure": {"vm_size": "Standard_D4s_v3"}, "volume_sizes_gb": {"docker": 50, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}}
             ]`,
 			outputFormat: "table",
-			output: `ID       NAME     AZ  VM SIZE          NODES MIN/MAX  NODES DESIRED  NODES READY  CPUS  RAM (GB)
-np001-1  np001-1  2   Standard_D4s_v3            1/2              0            0     0  0.0`,
+			output: `ID       NAME     AZ  VM SIZE          NODES MIN/MAX  NODES DESIRED  NODES READY  SPOT INSTANCES  CPUS  RAM (GB)
+np001-1  np001-1  2   Standard_D4s_v3            1/2              0            0             OFF  0     0.0`,
 		},
 		{
 			npResponse: `[
                 {"id": "np002-1", "name": "np002-1", "availability_zones": ["1"], "scaling": {"min": 1, "max": 2}, "node_spec": {"azure": {"vm_size": "Standard_D4s_v3"}, "volume_sizes_gb": {"docker": 50, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}},
-                {"id": "np002-2", "name": "np002-2", "availability_zones": ["2", "3"], "scaling": {"min": 1, "max": 3}, "node_spec": {"azure": {"vm_size": "Standard_D4s_v3"}, "volume_sizes_gb": {"docker": 50, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}}
+                {"id": "np002-2", "name": "np002-2", "availability_zones": ["2", "3"], "scaling": {"min": 1, "max": 3}, "node_spec": {"azure": {"vm_size": "Standard_D4s_v3", "spot_instances": {"enabled": true, "max_price": 0.05312}}, "volume_sizes_gb": {"docker": 50, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}},
+                {"id": "np002-3", "name": "np002-3", "availability_zones": ["2"], "scaling": {"min": 3, "max": 10}, "node_spec": {"azure": {"vm_size": "Standard_D4s_v3", "spot_instances": {"enabled": false}}, "volume_sizes_gb": {"docker": 50, "kubelet": 100}}, "status": {"nodes": 0, "nodes_ready": 0}}
             ]`,
 			outputFormat: "table",
-			output: `ID       NAME     AZ   VM SIZE          NODES MIN/MAX  NODES DESIRED  NODES READY  CPUS  RAM (GB)
-np002-1  np002-1  1    Standard_D4s_v3            1/2              0            0     0  0.0
-np002-2  np002-2  2,3  Standard_D4s_v3            1/3              0            0     0  0.0`,
+			output: `ID       NAME     AZ   VM SIZE          NODES MIN/MAX  NODES DESIRED  NODES READY  SPOT INSTANCES  CPUS  RAM (GB)
+np002-1  np002-1  1    Standard_D4s_v3            1/2              0            0             OFF  0     0.0
+np002-2  np002-2  2,3  Standard_D4s_v3            1/3              0            0              ON  0     0.0
+np002-3  np002-3  2    Standard_D4s_v3           3/10              0            0             OFF  0     0.0`,
 		},
 		{
 			npResponse: `[
