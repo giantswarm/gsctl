@@ -18,7 +18,7 @@ var (
 	// to use in an node pool
 	AWSSpotPercentage int64
 
-	// AzureSpotInstances determines if spot insntances are used in a node pool.
+	// AzureSpotInstances determines if spot instances are used in a node pool.
 	AzureSpotInstances bool
 
 	// AzureSpotInstancesMaxPrice represents the maximum value that
