@@ -126,7 +126,7 @@ Examples:
 
   gsctl create nodepool f01r4 --azure-spot-instances --azure-spot-instances-max-price 0.00315
 
-  By setting this value to '0', the maximum price will be set
+  By setting this value to '-1', the maximum price will be set
   to the on-demand price of the instance.
 
 `,
@@ -167,7 +167,7 @@ func initFlags() {
 	Command.Flags().Int64VarP(&flags.AWSOnDemandBaseCapacity, "aws-on-demand-base-capacity", "", 0, "Number of on-demand instances that this node pool needs to have until spot instances are used (AWS only). Default is 0")
 	Command.Flags().Int64VarP(&flags.AWSSpotPercentage, "aws-spot-percentage", "", 0, "Percentage of spot instances used once the on-demand base capacity is fullfilled (AWS only). A number of 40 would mean that 60% will be on-demand and 40% will be spot instances.")
 	Command.Flags().BoolVarP(&flags.AzureSpotInstances, "azure-spot-instances", "", false, "Whether the node pool must use spot instances or on-demand.")
-	Command.Flags().Float64VarP(&flags.AzureSpotInstancesMaxPrice, "azure-spot-instances-max-price", "", 0, "Max bid hourly price for a single instance. 0 means on-demand price.")
+	Command.Flags().Float64VarP(&flags.AzureSpotInstancesMaxPrice, "azure-spot-instances-max-price", "", -1, "Max bid hourly price for a single instance. 0 means on-demand price.")
 }
 
 // Arguments defines the arguments this command can take into consideration.
@@ -332,7 +332,7 @@ func verifyPreconditions(args Arguments) error {
 			return microerror.Mask(errors.NotPercentage)
 		}
 	} else if args.Provider == provider.Azure {
-		if !args.AzureSpotInstances && args.AzureSpotInstancesMaxPrice != 0 {
+		if !args.AzureSpotInstances && args.AzureSpotInstancesMaxPrice != -1 {
 			return microerror.Maskf(errors.ConflictingFlagsError, "the flag --azure-spot-instances-max-price cannot be set if spot instances are not enabled.")
 		}
 	}
