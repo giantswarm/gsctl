@@ -11,24 +11,6 @@ var (
 	// Warning: YAML in Golang is super fragile. There must not be any tabs in this string, otherwise
 	// the marshalling will fail. However we will likely detect this in CI when running tests.
 	azureVMSizesYAML = `
-Standard_A4_v2:
-  description: Av2-series, general purpose, 100 ACU, no premium storage
-  additionalProperties: {}
-  maxDataDiskCount: 8
-  memoryInMb: 8589.934592
-  name: Standard_A4_v2
-  numberOfCores: 4
-  osDiskSizeInMb: 1047552
-  resourceDiskSizeInMb: 42949.67296
-Standard_A8_v2:
-  description: Av2-series, general purpose, 100 ACU, no premium storage
-  additionalProperties: {}
-  maxDataDiskCount: 16
-  memoryInMb: 17179.869184
-  name: Standard_A8_v2
-  numberOfCores: 8
-  osDiskSizeInMb: 1047552
-  resourceDiskSizeInMb: 85899.34592
 Standard_D4_v3:
   description: Dv3-series, general purpose, 160-190 ACU, no premium storage
   additionalProperties: {}
