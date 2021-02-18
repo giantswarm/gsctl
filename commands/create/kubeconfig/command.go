@@ -7,9 +7,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"regexp"
 	"runtime"
 	"strings"
+	"syscall"
 
 	"github.com/fatih/color"
 	"github.com/giantswarm/gscliauth/config"
@@ -110,6 +112,7 @@ type Arguments struct {
 	scheme            string
 	selfContainedPath string
 	ttlHours          int32
+	useKubie          bool
 	userProvidedToken string
 	verbose           bool
 }
@@ -164,6 +167,7 @@ func collectArguments(cmd *cobra.Command) (Arguments, error) {
 		scheme:            scheme,
 		selfContainedPath: cmdKubeconfigSelfContained,
 		ttlHours:          int32(ttl.Hours()),
+		useKubie:          flags.UseKubie,
 		userProvidedToken: flags.Token,
 		verbose:           flags.OutputFormat != formatting.OutputFormatJSON && flags.Verbose,
 	}, nil
@@ -210,6 +214,7 @@ func init() {
 	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation. Also, there will not be any confirmation for TTL > 30d.")
 	Command.Flags().BoolVarP(&flags.TenantInternal, "tenant-internal", "", false, "Replaced by --internal-api.")
 	Command.Flags().BoolVarP(&flags.InternalAPI, "internal-api", "", false, "If set, kubeconfig will be issued with the internal Kubernetes API address instead of the public one.")
+	Command.Flags().BoolVarP(&flags.UseKubie, "kubie", "k", false, "Use kubie to set context (requires kubie binary in your path)")
 	Command.Flags().StringVarP(&flags.TTL, "ttl", "", "1d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
 	Command.Flags().StringVarP(&flags.OutputFormat, "output", "", "", fmt.Sprintf("Output format. Specifying '%s' will change output to be JSON formatted.", formatting.OutputFormatJSON))
 
@@ -552,18 +557,37 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 			result.contextName = "giantswarm-" + clusterID
 		}
 
-		// edit kubectl config
-		if err := util.KubectlSetCluster(clusterID, result.apiEndpoint, result.caCertPath); err != nil {
-			return result, microerror.Mask(util.CouldNotSetKubectlClusterError)
-		}
-		if err := util.KubectlSetCredentials(clusterID, result.clientKeyPath, result.clientCertPath); err != nil {
-			return result, microerror.Mask(util.CouldNotSetKubectlCredentialsError)
-		}
-		if err := util.KubectlSetContext(result.contextName, clusterID); err != nil {
-			return result, microerror.Mask(util.CouldNotSetKubectlContextError)
-		}
-		if err := util.KubectlUseContext(result.contextName); err != nil {
-			return result, microerror.Mask(util.CouldNotUseKubectlContextError)
+		if args.useKubie {
+			bin, err := exec.LookPath("kubie")
+			if err != nil {
+				return result, microerror.Mask(err)
+			}
+
+			args := []string{
+				"kubie",
+				"ctx",
+				"--",
+				result.contextName,
+			}
+
+			err = syscall.Exec(bin, args, os.Environ())
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			// edit kubectl config
+			if err := util.KubectlSetCluster(clusterID, result.apiEndpoint, result.caCertPath); err != nil {
+				return result, microerror.Mask(util.CouldNotSetKubectlClusterError)
+			}
+			if err := util.KubectlSetCredentials(clusterID, result.clientKeyPath, result.clientCertPath); err != nil {
+				return result, microerror.Mask(util.CouldNotSetKubectlCredentialsError)
+			}
+			if err := util.KubectlSetContext(result.contextName, clusterID); err != nil {
+				return result, microerror.Mask(util.CouldNotSetKubectlContextError)
+			}
+			if err := util.KubectlUseContext(result.contextName); err != nil {
+				return result, microerror.Mask(util.CouldNotUseKubectlContextError)
+			}
 		}
 	} else {
 		// create a self-contained kubeconfig
