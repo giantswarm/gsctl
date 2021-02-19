@@ -129,6 +129,22 @@ func collectArguments(cmd *cobra.Command) (Arguments, error) {
 		description = "Added by user " + config.Config.Email + " using 'gsctl create kubeconfig'"
 	}
 
+	// hack..
+	// cobra sets defaults from other commands to the OutputFormat flag
+	// but we don't have "table" here, so if it's "table", set it to empty string
+	if flags.OutputFormat == "table" {
+		flags.OutputFormat = ""
+	}
+
+	if flags.UseKubie {
+		if len(cmdKubeconfigSelfContained) > 0 {
+			return Arguments{}, microerror.Maskf(errors.ConflictingFlagsError, "--kubie and --self-contained can not be used together")
+		}
+		if len(flags.OutputFormat) > 0 {
+			return Arguments{}, microerror.Maskf(errors.ConflictingFlagsError, "--kubie and --output can not be used together")
+		}
+	}
+
 	contextName := cmdKubeconfigContextName
 
 	ttl, err := util.ParseDuration(flags.TTL)
@@ -143,13 +159,6 @@ func collectArguments(cmd *cobra.Command) (Arguments, error) {
 	// apply deprecated flag if used
 	if cmd.Flags().Changed("tenant-internal") && !cmd.Flags().Changed("internal-api") {
 		flags.InternalAPI = flags.TenantInternal
-	}
-
-	// hack..
-	// cobra sets defaults from other commands to the OutputFormat flag
-	// but we don't have "table" here, so if it's "table", set it to empty string
-	if flags.OutputFormat == "table" {
-		flags.OutputFormat = ""
 	}
 
 	return Arguments{
@@ -214,7 +223,7 @@ func init() {
 	Command.Flags().BoolVarP(&flags.Force, "force", "", false, "If set, --self-contained will overwrite existing files without interactive confirmation. Also, there will not be any confirmation for TTL > 30d.")
 	Command.Flags().BoolVarP(&flags.TenantInternal, "tenant-internal", "", false, "Replaced by --internal-api.")
 	Command.Flags().BoolVarP(&flags.InternalAPI, "internal-api", "", false, "If set, kubeconfig will be issued with the internal Kubernetes API address instead of the public one.")
-	Command.Flags().BoolVarP(&flags.UseKubie, "kubie", "k", false, "Use kubie to set context (requires kubie binary in your path)")
+	Command.Flags().BoolVarP(&flags.UseKubie, "kubie", "", false, "Use kubie to set context (requires kubie binary in your path)")
 	Command.Flags().StringVarP(&flags.TTL, "ttl", "", "1d", "Lifetime of the created key pair, e.g. 3h. Allowed units: h, d, w, m, y.")
 	Command.Flags().StringVarP(&flags.OutputFormat, "output", "", "", fmt.Sprintf("Output format. Specifying '%s' will change output to be JSON formatted.", formatting.OutputFormatJSON))
 
@@ -402,6 +411,31 @@ func createKubeconfigRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
 		fmt.Println(color.YellowString("    export KUBECONFIG=" + result.selfContainedPath))
 		fmt.Println(color.YellowString("    kubectl cluster-info\n"))
 
+	} else if arguments.useKubie {
+		if arguments.verbose {
+			fmt.Println(color.WhiteString("Certificate and key files written to:"))
+			fmt.Println(color.WhiteString(result.caCertPath))
+			fmt.Println(color.WhiteString(result.clientCertPath))
+			fmt.Println(color.WhiteString(result.clientKeyPath))
+		}
+		fmt.Println(color.GreenString("\nLaunching kubie with following context:\n"))
+		fmt.Println(color.YellowString("    " + result.contextName + "\n"))
+
+		bin, err := exec.LookPath("kubie")
+		if err != nil {
+			panic(err)
+		}
+		args := []string{
+			"kubie",
+			"ctx",
+			"--",
+			result.contextName,
+		}
+
+		err = syscall.Exec(bin, args, os.Environ())
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		if arguments.verbose {
 			fmt.Println(color.WhiteString("Certificate and key files written to:"))
@@ -557,24 +591,7 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 			result.contextName = "giantswarm-" + clusterID
 		}
 
-		if args.useKubie {
-			bin, err := exec.LookPath("kubie")
-			if err != nil {
-				return result, microerror.Mask(err)
-			}
-
-			args := []string{
-				"kubie",
-				"ctx",
-				"--",
-				result.contextName,
-			}
-
-			err = syscall.Exec(bin, args, os.Environ())
-			if err != nil {
-				panic(err)
-			}
-		} else {
+		if !args.useKubie {
 			// edit kubectl config
 			if err := util.KubectlSetCluster(clusterID, result.apiEndpoint, result.caCertPath); err != nil {
 				return result, microerror.Mask(util.CouldNotSetKubectlClusterError)
