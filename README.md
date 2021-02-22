@@ -59,7 +59,7 @@ Whenever you want to switch to using this context:
     kubectl config use-context giantswarm-xl8t1
 ```
 
-Note: You can launch the context using Kubie by using `--kubie` or `-k` switch
+Note: You can launch the context using Kubie by using `--kubie` switch
 
 #### Cluster acccess via internal networks
 
