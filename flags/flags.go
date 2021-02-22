@@ -67,6 +67,9 @@ var (
 	// InputYAMLFile is the path to the input file used optionally as cluster definition
 	InputYAMLFile string
 
+	// UseKubie is used to set the context with Kubie
+	UseKubie bool
+
 	// Label contains label changes passed as multiple flags.
 	Label []string
 

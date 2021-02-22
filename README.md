@@ -59,6 +59,8 @@ Whenever you want to switch to using this context:
     kubectl config use-context giantswarm-xl8t1
 ```
 
+Note: You can launch the context using Kubie by using `--kubie` or `-k` switch
+
 #### Cluster acccess via internal networks
 
 The internal Kubernetes API endpoint allows you to talk to Kubernetes via the internal load balancer. That can be useful for peered networks.
