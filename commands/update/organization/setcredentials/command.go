@@ -35,8 +35,8 @@ credentials are set for an organization, this currently cannot be undone.
 
 For details on how to prepare the account/subscription, consult the documentation at
 
-  - https://docs.giantswarm.io/guides/prepare-aws-account-for-tenant-clusters/ (AWS)
-  - https://docs.giantswarm.io/guides/prepare-azure-subscription-for-tenant-clusters/ (Azure)
+  - https://docs.giantswarm.io/getting-started/cloud-provider-accounts/aws/ (AWS)
+  - https://docs.giantswarm.io/getting-started/cloud-provider-accounts/azure/ (Azure)
 
 `,
 		Example: `

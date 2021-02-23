@@ -11,7 +11,7 @@ The command deals with a few delicacies/spiecialties:
   or by passing a YAML definition. When passing a YAML definition, some
   attributes from that definition can even be overridden using flags.
 
-- On AWS, starting from a certain release version, clusters will have
+- On AWS and Azure, starting from a certain release version, clusters will have
   node pools and will be created using the v5 API endpoint. On other providers
   as well as on AWS for older releases, the v4 API endpoint has to be used.
 
@@ -133,18 +133,19 @@ var (
 	Command = &cobra.Command{
 		Use:   "cluster",
 		Short: "Create cluster",
-		Long: `Creates a new Kubernetes cluster.
+		Long: `Creates a new workload cluster.
 
-You can specify a few cluster attributes like name, owner and release version
-using command line flags. Additional attributes regarding the worker node
-specification can be added using a YAML definition file.
+You can specify a few cluster attributes like name, owner and workload cluster
+release using command line flags. Additional attributes, e. g. regarding the
+worker node specification and for the use of availability zones, can be added
+using a YAML definition file.
 
 For details about the cluster definition YAML format, see
 
-  https://docs.giantswarm.io/reference/cluster-definition/
+  https://docs.giantswarm.io/ui-api/gsctl/cluster-definition/
 
-Note that you can also command line flags override settings from the YAML
-definition.
+Note that you can also use command line flags to override some settings
+from the YAML definition.
 
 Defaults
 --------
@@ -154,19 +155,19 @@ get some information on these defaults using the 'gsctl info' command, as they
 might be specific for the installation you are working with. Here are some
 general defaults:
 
-- Release: the latest release is used.
-- Workers
-  - On AWS and when using the latest release, and when not specifying node pool
-    details via a cluster definition, the cluster will be created with a
-    default node pool. You may define node pools in your cluster definition
-    YAML or add node pools one by one using 'gsctl create nodepool'.
-  - On AWS with releases prior to node pools, and with Azure and KVM, the
-    cluster will have three worker nodes by default, using pretty much the
-    minimal spec for a working cluster.
-  - Autoscaling will be inactive initially, as the minimum and maximum of the
-    scaling range  will be set to 3.
+- Release: the latest workload cluster release for the given provider (AWS,
+  Azure, or on-premises/KVM) is used.
+- Worker nodes
+  - On AWS and Azure, when using the latest workload cluster release, and when not
+    specifying node pool details via a cluster definition, the cluster will be
+	created with a default node pool. You may define node pools in your cluster
+	definition YAML or add node pools one by one using 'gsctl create nodepool'.
+  - On AWS and Azure with releases prior to node pools, and with KVM, the
+    cluster will have three worker nodes by default.
+  - Where autoscaling and node pools are available AWS, Azure), node pools will
+    have a scaling range of min=3, max=10 configured by default.
   - All worker nodes will be in the same availability zone.
-  - The cluster will have a generic name.
+  - The cluster will have a generic name which can be changed later.
 
 Examples:
 
@@ -188,18 +189,17 @@ need for a file:
 gsctl create cluster -f - <<EOF
 owner: acme
 name: Test cluster using two AZs
-release_version: 8.2.0
+release_version: 14.0.0
 availability_zones: 2
 EOF
 
-For v5 clusters (those with node pool support) gsctl automatically creates a
-node pool using default settings, if you don't specify your own node pools.
-You can suppress the creation of the default node pool by setting the
-flag --create-default-nodepool to false. Example:
+For clusters with node pool support, gsctl automatically creates a node pool
+using default settings, if you don't specify your own node pools. You can
+suppress the creation of the default node pool by setting the flag
+--create-default-nodepool to false. Example:
 
   gsctl create cluster \
     --owner acme \
-    --name "Empty cluster" \
     --create-default-nodepool=false
 `,
 		PreRun: printValidation,
@@ -222,8 +222,8 @@ func initFlags() {
 	Command.Flags().StringVarP(&flags.InputYAMLFile, "file", "f", "", "Path to a cluster definition YAML file. Use '-' to read from STDIN.")
 	Command.Flags().StringVarP(&flags.ClusterName, "name", "n", "", "Cluster name")
 	Command.Flags().StringVarP(&flags.Owner, "owner", "o", "", "Organization to own the cluster")
-	Command.Flags().StringVarP(&flags.Release, "release", "r", "", "Release version to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
-	Command.Flags().BoolVar(&flags.MasterHA, "master-ha", true, "This means the cluster will have three master nodes. Requires High-Availability Master support.")
+	Command.Flags().StringVarP(&flags.Release, "release", "r", "", "Workload cluster release to use, e. g. '1.2.3'. Defaults to the latest. See 'gsctl list releases --help' for details.")
+	Command.Flags().BoolVar(&flags.MasterHA, "master-ha", true, "When true, the cluster will provide high-availability Kubernetes masters.")
 	Command.Flags().BoolVarP(&flags.CreateDefaultNodePool, "create-default-nodepool", "", true, "Whether a default node pool should be created if none is specified in the definition. Requires node pool support.")
 	Command.Flags().StringVarP(&flags.OutputFormat, "output", "", "", fmt.Sprintf("Output format. Specifying '%s' will change output to be JSON formatted.", formatting.OutputFormatJSON))
 }
@@ -298,7 +298,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 			}
 		case IsMustProvideSingleMasterType(err):
 			headline = "Conflicting master node configuration"
-			subtext = "The release version you're trying to use supports master node high availability.\nPlease remove the 'master' attribute from your cluster definition and use the 'master_nodes' attribute instead."
+			subtext = "The workload cluster release you're trying to use supports master node high availability.\nPlease remove the 'master' attribute from your cluster definition and use the 'master_nodes' attribute instead."
 		case errors.IsClusterOwnerMissingError(err):
 			headline = "No owner organization set"
 			subtext = "Please specify an owner organization for the cluster via the --owner flag."
@@ -324,7 +324,7 @@ func printResult(cmd *cobra.Command, positionalArgs []string) {
 			}
 		case errors.IsIncompatibleSettings(err):
 			headline = "Incompatible settings"
-			subtext = "The provided cluster details/definition are not compatible with the capabilities of the installation and/or release.\n"
+			subtext = "The provided cluster details/definition are not compatible with the capabilities of the installation and/or workload cluster release.\n"
 			subtext += fmt.Sprintf("Error details: %s", err.Error())
 		case errors.IsCouldNotCreateJSONRequestBodyError(err):
 			headline = "Could not create the JSON body for cluster creation API request"
@@ -570,7 +570,7 @@ func addCluster(args Arguments) (*creationResult, error) {
 		}
 
 		if args.Verbose {
-			fmt.Println(color.WhiteString("Determined release version %s is the latest, so this will be used.", latest))
+			fmt.Println(color.WhiteString("Determined workload cluster release version %s is the latest, so this will be used.", latest))
 		}
 		wantedRelease = latest
 	}
@@ -593,9 +593,9 @@ func addCluster(args Arguments) (*creationResult, error) {
 	// - User uses v5 definition, but the release version requires v4.
 	// - User uses v4 definition, but the release version requires v5.
 	if nodePoolsEnabled && usesV4Definition {
-		return nil, microerror.Maskf(errors.IncompatibleSettingsError, "please use a v5 definition or specify a release version that allows v4")
+		return nil, microerror.Maskf(errors.IncompatibleSettingsError, "please use a v5 definition or specify a workload cluster release that allows v4")
 	} else if !nodePoolsEnabled && usesV5Definition {
-		return nil, microerror.Maskf(errors.IncompatibleSettingsError, "please use a v4 definition or specify a release version that allows v5")
+		return nil, microerror.Maskf(errors.IncompatibleSettingsError, "please use a v4 definition or specify a workload cluster release that allows v5")
 	}
 
 	result := &creationResult{}

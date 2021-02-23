@@ -31,10 +31,37 @@ var (
 	// Command performs the "list releases" function
 	Command = &cobra.Command{
 		Use:   "releases",
-		Short: "List releases to be used with clusters",
-		Long: `Prints detail on all available releases.
+		Short: "List workload cluster releases",
+		Long: `Prints all available workload cluster releases.
 
-A release is a software bundle that constitutes a cluster. It is identified by its semantic version number.`,
+A workload cluster release is a software bundle that constitutes a cluster. It is identified
+by its semantic version number. To learn more about the concept, please visit
+
+    https://docs.giantswarm.io/general/releases/
+
+Output
+------
+
+- VERSION: The version number identifying the workload cluster release.
+
+- STATUS: The release status. Possible values:
+  - active: The release can be used to create new clusters and the clusters can be upgraded
+    to this release.
+  - inactive: Clusters cannot be upgraded to this release. New clusters can only be created
+    with this release if there are still other clusters running using this release.
+
+- CREATED: Date and time of creation
+
+- KUBERNETES: The Kubernetes version provided. After the Kubernetes version is considered
+  "end of life", and indicator "EOL" is also shown.
+
+- CONTAINERLINUX: The Flatcar Container Linux version provided as an operating system in
+  Kubernetes nodes.
+
+- COREDNS: The CodeDNS version provided.
+
+- CALICO: The Project Calico version provided.
+`,
 		PreRun: printValidation,
 		Run:    printResult,
 	}
