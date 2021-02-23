@@ -11,7 +11,7 @@
 
 Call `gsctl` without any arguments to get an overview on commands. Some usage examples:
 
-#### Log in using your Giant Swarm credentials
+### Log in using your Giant Swarm credentials
 
 ```nohighlight
 $ gsctl login demo@example.com -e <giant-swarm-api-endpoint>
@@ -19,7 +19,7 @@ Password for demo@example.com at <giant-swarm-api-endpoint>:
 Successfully logged in!
 ```
 
-#### Show your clusters
+### Show your clusters
 
 ```nohighlight
 $ gsctl list clusters
@@ -28,7 +28,7 @@ ID     NAME                CREATED                 ORGANIZATION
 xl8t1  Staging Cluster     2017 May 11, 09:30 UTC  acme
 ```
 
-#### Create a cluster
+### Create a cluster
 
 ```nohighlight
 $ gsctl create cluster --owner acme --name "Test Cluster" --num-workers 5
@@ -36,9 +36,9 @@ Requesting new cluster for organization 'acme'
 New cluster with ID 'h8d0j' is launching.
 ```
 
-More in the [docs](https://docs.giantswarm.io/reference/gsctl/create-cluster/)
+More in the [docs](https://docs.giantswarm.io/ui-api/gsctl/create-cluster/)
 
-#### Configure `kubectl` to access a cluster
+### Configure `kubectl` to access a cluster
 
 ```nohighlight
 $ gsctl create kubeconfig -c h8d0j
@@ -61,7 +61,7 @@ Whenever you want to switch to using this context:
 
 Note: You can launch the context using Kubie by using `--kubie` switch
 
-#### Cluster acccess via internal networks
+### Cluster acccess via internal networks
 
 The internal Kubernetes API endpoint allows you to talk to Kubernetes via the internal load balancer. That can be useful for peered networks.
 
@@ -77,15 +77,15 @@ This will render a kubeconfig with the internal Kubernetes API host name `intern
 
 ## Install
 
-See the [`gsctl` reference docs](https://docs.giantswarm.io/reference/gsctl/#install)
+See the [`gsctl` reference docs](https://docs.giantswarm.io/ui-api/gsctl/#install)
 
 ## Configuration
 
-See the [`gsctl` reference docs](https://docs.giantswarm.io/reference/gsctl/#configuration)
+See the [`gsctl` reference docs](https://docs.giantswarm.io/ui-api/gsctl/#configuration)
 
 ## Changelog
 
-See [Releases](https://github.com/giantswarm/gsctl/releases)
+See [Releases](https://docs.giantswarm.io/changes/gsctl/)
 
 ## Development
 
@@ -98,4 +98,3 @@ We welcome contributions! Please read our additional information on [how to cont
 ## Publishing a Release
 
 See [docs/Release.md](https://github.com/giantswarm/gsctl/blob/master/docs/Release.md)
-

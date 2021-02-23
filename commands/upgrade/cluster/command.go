@@ -26,7 +26,7 @@ const (
 	// upgradeClusterActivityName assigns API requests to named activities
 	upgradeClusterActivityName = "upgrade-cluster"
 
-	upgradeDocsURL = "https://docs.giantswarm.io/reference/cluster-upgrades/"
+	upgradeDocsURL = "https://docs.giantswarm.io/general/cluster-upgrades/"
 )
 
 var (

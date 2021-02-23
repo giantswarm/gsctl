@@ -24,11 +24,11 @@ var (
 	ShowReleaseCommand = &cobra.Command{
 		Use:   "release",
 		Short: "Show release details",
-		Long: `Display details of a release
+		Long: `Display details of a workload cluster release
 
 Examples:
 
-  gsctl show release 4.2.2
+  gsctl show release 14.0.0
 `,
 
 		// PreRun checks a few general things, like authentication.

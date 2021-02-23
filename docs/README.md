@@ -1,6 +1,6 @@
 # Supplemental documentation on gsctl
 
-For user documentation, please see the [gsctl reference](https://docs.giantswarm.io/reference/gsctl/).
+For user documentation, please see the [gsctl reference](https://docs.giantswarm.io/ui-api/gsctl/).
 
 ## Contents
 

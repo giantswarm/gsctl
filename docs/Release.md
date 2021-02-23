@@ -8,7 +8,7 @@ All you have to do is create and push a new tag.
 
 In the command below, replace `<MAJOR.MINOR.PATCH>` with the actual version number you want to publish.
 
-```
+```nohighlight
 export VERSION=<MAJOR.MINOR.PATCH>
 git checkout master
 git pull
@@ -18,7 +18,7 @@ git push origin ${VERSION}
 
 This will push your the new tag to the GitHub repository where it will show up as a tag without release.
 
-Follow CircleCI's progress in https://circleci.com/gh/giantswarm/gsctl/. Do not do anything until CI is finished.
+Follow CircleCI's progress in [https://circleci.com/gh/giantswarm/gsctl/](https://circleci.com/gh/giantswarm/gsctl/). Do not do anything until CI is finished.
 
 CircleCI should have created a new Release draft. Edit this draft.
 
@@ -32,7 +32,7 @@ The release draft will attach itself to the tag you've pushed in the first step.
 
 ## Release docs
 
-The gsctl reference hosted at [https://docs.giantswarm.io/reference/gsctl/](https://docs.giantswarm.io/reference/gsctl/) contains the latest releasd gsctl version. ([Relevant code](https://github.com/giantswarm/docs/blob/master/Makefile#L49))
+The gsctl reference hosted at [https://docs.giantswarm.io/ui-api/gsctl/](https://docs.giantswarm.io/ui-api/gsctl/) contains the latest releasd gsctl version. ([Relevant code](https://github.com/giantswarm/docs/blob/master/Makefile#L49))
 
 To update this, read the [Deploying](https://github.com/giantswarm/docs#deploying) section in the giantswarm/docs Readme.
 

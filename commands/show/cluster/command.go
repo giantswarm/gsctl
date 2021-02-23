@@ -424,7 +424,7 @@ func printV4Result(
 	output = append(output, color.YellowString("Created:")+"|"+formatDate(clusterDetails.CreateDate))
 	output = append(output, color.YellowString("Organization:")+"|"+clusterDetails.Owner)
 	output = append(output, color.YellowString("Kubernetes API endpoint:")+"|"+clusterDetails.APIEndpoint)
-	output = append(output, color.YellowString("Release version:")+"|"+stringOrPlaceholder(clusterDetails.ReleaseVersion))
+	output = append(output, color.YellowString("Workload cluster release:")+"|"+stringOrPlaceholder(clusterDetails.ReleaseVersion))
 
 	{
 		kubernetesVersion := formatKubernetesVersion(releaseInfo, clusterDetails.ReleaseVersion)
