@@ -591,17 +591,17 @@ func createKubeconfig(ctx context.Context, args Arguments) (createKubeconfigResu
 			result.contextName = "giantswarm-" + clusterID
 		}
 
+		// edit kubectl config
+		if err := util.KubectlSetCluster(clusterID, result.apiEndpoint, result.caCertPath); err != nil {
+			return result, microerror.Mask(util.CouldNotSetKubectlClusterError)
+		}
+		if err := util.KubectlSetCredentials(clusterID, result.clientKeyPath, result.clientCertPath); err != nil {
+			return result, microerror.Mask(util.CouldNotSetKubectlCredentialsError)
+		}
+		if err := util.KubectlSetContext(result.contextName, clusterID); err != nil {
+			return result, microerror.Mask(util.CouldNotSetKubectlContextError)
+		}
 		if !args.useKubie {
-			// edit kubectl config
-			if err := util.KubectlSetCluster(clusterID, result.apiEndpoint, result.caCertPath); err != nil {
-				return result, microerror.Mask(util.CouldNotSetKubectlClusterError)
-			}
-			if err := util.KubectlSetCredentials(clusterID, result.clientKeyPath, result.clientCertPath); err != nil {
-				return result, microerror.Mask(util.CouldNotSetKubectlCredentialsError)
-			}
-			if err := util.KubectlSetContext(result.contextName, clusterID); err != nil {
-				return result, microerror.Mask(util.CouldNotSetKubectlContextError)
-			}
 			if err := util.KubectlUseContext(result.contextName); err != nil {
 				return result, microerror.Mask(util.CouldNotUseKubectlContextError)
 			}
