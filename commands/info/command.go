@@ -261,6 +261,7 @@ func getEnvironmentVariables() map[string]string {
 	vars := []string{
 		"GSCTL_CAFILE",
 		"GSCTL_CAPATH",
+		"GSCTL_CONFIG_DIR",
 		"GSCTL_DISABLE_CMDLINE_TRACKING",
 		"GSCTL_DISABLE_COLORS",
 		"GSCTL_ENDPOINT",
