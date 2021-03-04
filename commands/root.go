@@ -56,8 +56,14 @@ func init() {
 	// if it exists.
 	tokenFromEnv := os.Getenv("GSCTL_AUTH_TOKEN")
 
+	defaultConfigDir := config.DefaultConfigDirPath
+	configDirFromEnv := os.Getenv("GSCTL_CONFIG_DIR")
+	if (configDirFromEnv != "") {
+		defaultConfigDir = configDirFromEnv
+	}
+
 	RootCommand.PersistentFlags().StringVarP(&flags.Token, "auth-token", "", tokenFromEnv, "Authorization token to use")
-	RootCommand.PersistentFlags().StringVarP(&flags.ConfigDirPath, "config-dir", "", config.DefaultConfigDirPath, "Configuration directory path to use")
+	RootCommand.PersistentFlags().StringVarP(&flags.ConfigDirPath, "config-dir", "", defaultConfigDir, "Configuration directory path to use")
 	RootCommand.PersistentFlags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Print more information")
 	RootCommand.PersistentFlags().BoolVarP(&flags.SilenceHTTPEndpointWarning, "silence-http-endpoint-warning", "", false, "Dont't print warnings when deliberately using an insecure HTTP endpoint")
 	RootCommand.Flags().Bool("version", false, version.Command.Short)
