@@ -7,6 +7,8 @@
 
 `gsctl` is the cross-platform command line utility to manage your Kubernetes clusters at Giant Swarm.
 
+> gsctl and the [REST API](https://docs.giantswarm.io/ui-api/rest-api/) are being phased out. We don't have an end-of-life date yet. However, we recommend to familiarize yourself with our [Management API](https://docs.giantswarm.io/ui-api/management-api/) and the [kubectl gs](https://docs.giantswarm.io/ui-api/kubectl-gs/) plugin as a future-proof replacement.
+
 ## Usage
 
 Call `gsctl` without any arguments to get an overview on commands. Some usage examples:
