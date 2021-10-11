@@ -153,6 +153,8 @@ github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatibl
 github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatible/go.mod h1:V/9Aa/R3o321yAbarEACmGhTg0SiPge6nFDtIH7CTvE=
 github.com/giantswarm/gscliauth v0.2.3 h1:ptDvNh8OUf4FzWR5mPq8BX2iwliYj1aijsrI5N51pls=
 github.com/giantswarm/gscliauth v0.2.3/go.mod h1:Ys1puKDjd31rt6VDUwbJg8G3RkoLNLwisOwHxTjyKIc=
+github.com/giantswarm/gscliauth v0.2.5-0.20211011090212-bf706afb3904 h1:0EwaE6nqRzfjLofhX4GGDJkhRwgavJ5hmdAcm5iz3Uo=
+github.com/giantswarm/gscliauth v0.2.5-0.20211011090212-bf706afb3904/go.mod h1:+EaBKowZeEY0vRYBdqyWD065nSAV05L5p3EmOhApzg4=
 github.com/giantswarm/gsclientgen/v2 v2.1.0 h1:GD3GmqKZRvNjfoQhd6ZcZUWv5+tSKkd7oLoK/1rN+Is=
 github.com/giantswarm/gsclientgen/v2 v2.1.0/go.mod h1:ZADsWfynt29F7HV1AeKfZCdMxAPw8O5hHSSY+Z6Hx3U=
 github.com/giantswarm/k8sclient/v4 v4.0.0 h1:K18A0FomGjxTMElcGrjO3uLkYobUtcNh8e8PhTgFr2w=
