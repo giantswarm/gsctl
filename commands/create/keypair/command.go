@@ -28,9 +28,14 @@ import (
 var (
 	// Command performs the "create keypair" function,
 	Command = &cobra.Command{
-		Use:    "keypair",
-		Short:  "Create key pair",
-		Long:   `Creates a new key pair for a cluster`,
+		Use:   "keypair",
+		Short: "Create key pair",
+		Long: `Creates a new key pair for a cluster
+`,
+		Deprecated: `gsctl is being phased out in favour of our 'kubectl gs' plugin.
+We recommend you familiarize yourself with the 'kubectl gs login' command as a replacement for this.
+For more details see: https://docs.giantswarm.io/ui-api/kubectl-gs/login/
+`,
 		PreRun: printValidation,
 		Run:    printResult,
 	}
