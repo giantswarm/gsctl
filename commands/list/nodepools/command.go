@@ -56,7 +56,12 @@ columns:
 
 To see all available details for a cluster, use 'gsctl show nodepool <cluster-id>/<nodepool-id>'.
 
-To list all clusters you have access to, use 'gsctl list clusters'.`,
+To list all clusters you have access to, use 'gsctl list clusters'.
+`,
+		Deprecated: `gsctl is being phased out in favour of our 'kubectl gs' plugin.
+We recommend you familiarize yourself with the 'kubectl gs get nodepools' command as a replacement for this.
+For more details see: https://docs.giantswarm.io/ui-api/kubectl-gs/get-nodepools/
+`,
 		PreRun: printValidation,
 		Run:    printResult,
 	}
