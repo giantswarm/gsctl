@@ -48,7 +48,7 @@ Examples:
   gsctl list clusters --sort org
 `,
 		Deprecated: `gsctl is being phased out in favour of our 'kubectl gs' plugin.
-We recommened you familiarize yourself with the 'kubectl gs get' command as a replacement for this.
+We recommend you familiarize yourself with the 'kubectl gs get clusters' command as a replacement for this.
 For more details see: https://docs.giantswarm.io/ui-api/kubectl-gs/get-clusters/
 `,
 		PreRun: printValidation,
