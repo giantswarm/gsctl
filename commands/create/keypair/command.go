@@ -12,6 +12,7 @@ import (
 
 	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/gsctl/confirm"
+	"github.com/giantswarm/gsctl/pkg/provider"
 
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/afero"
@@ -32,13 +33,11 @@ var (
 		Short: "Create key pair",
 		Long: `Creates a new key pair for a cluster
 `,
-		Deprecated: `gsctl is being phased out in favour of our 'kubectl gs' plugin.
-We recommend you familiarize yourself with the 'kubectl gs login' command as a replacement for this.
-For more details see: https://docs.giantswarm.io/ui-api/kubectl-gs/login/
-`,
 		PreRun: printValidation,
 		Run:    printResult,
 	}
+
+	deprecated = util.Deprecated("create keypair", "login", "https://docs.giantswarm.io/ui-api/kubectl-gs/login/")
 
 	arguments Arguments
 )
@@ -131,6 +130,10 @@ func init() {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
+	if config.Config.Provider != provider.KVM {
+		fmt.Println(deprecated)
+	}
+
 	var argsErr error
 
 	arguments, argsErr = collectArguments()

@@ -17,6 +17,7 @@ import (
 
 	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/gsctl/formatting"
+	"github.com/giantswarm/gsctl/pkg/provider"
 	"github.com/giantswarm/gsctl/pkg/sortable"
 	"github.com/giantswarm/gsctl/pkg/table"
 
@@ -47,13 +48,11 @@ Examples:
 
   gsctl list clusters --sort org
 `,
-		Deprecated: `gsctl is being phased out in favour of our 'kubectl gs' plugin.
-We recommend you familiarize yourself with the 'kubectl gs get clusters' command as a replacement for this.
-For more details see: https://docs.giantswarm.io/ui-api/kubectl-gs/get-clusters/
-`,
 		PreRun: printValidation,
 		Run:    printResult,
 	}
+
+	deprecated = util.Deprecated("list clusters", "get clusters", "https://docs.giantswarm.io/ui-api/kubectl-gs/get-clusters/")
 
 	cmdShowDeleted bool
 
@@ -125,6 +124,10 @@ func collectArguments() Arguments {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
+	if config.Config.Provider != provider.KVM {
+		fmt.Println(deprecated)
+	}
+
 	arguments = collectArguments()
 	err := verifyListClusterPreconditions(arguments)
 

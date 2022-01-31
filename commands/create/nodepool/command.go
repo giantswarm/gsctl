@@ -20,6 +20,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/pkg/provider"
+	"github.com/giantswarm/gsctl/util"
 )
 
 var (
@@ -130,18 +131,14 @@ Examples:
   to the on-demand price of the instance.
 
 `,
-
-		Deprecated: `gsctl is being phased out in favour of our 'kubectl gs' plugin.
-We recommend you familiarize yourself with the 'kubectl gs template nodepool' command as a replacement for this.
-For more details see: https://docs.giantswarm.io/ui-api/kubectl-gs/template-nodepool/
-`,
-
 		// PreRun checks a few general things, like authentication.
 		PreRun: printValidation,
 
 		// Run calls the business function and prints results and errors.
 		Run: printResult,
 	}
+
+	deprecated = util.Deprecated("create nodepool", "template nodepool", "https://docs.giantswarm.io/ui-api/kubectl-gs/template-nodepool/")
 
 	cmdAwsEc2InstanceType   string
 	cmdAvailabilityZonesNum int
@@ -346,6 +343,10 @@ func verifyPreconditions(args Arguments) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
+	if config.Config.Provider != provider.KVM {
+		fmt.Println(deprecated)
+	}
+
 	var err error
 
 	arguments, err = collectArguments(cmd, positionalArgs)

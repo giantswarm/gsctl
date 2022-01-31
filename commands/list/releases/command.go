@@ -13,6 +13,7 @@ import (
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/v2/models"
+	"github.com/giantswarm/gsctl/pkg/provider"
 	"github.com/giantswarm/gsctl/pkg/releaseinfo"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
@@ -62,13 +63,11 @@ Output
 
 - CALICO: The Project Calico version provided.
 `,
-		Deprecated: `gsctl is being phased out in favour of our 'kubectl gs' plugin.
-We recommend you familiarize yourself with the 'kubectl gs get releases' command as a replacement for this.
-For more details see: https://docs.giantswarm.io/ui-api/kubectl-gs/get-releases/
-`,
 		PreRun: printValidation,
 		Run:    printResult,
 	}
+
+	deprecated = util.Deprecated("list releases", "get releases", "https://docs.giantswarm.io/ui-api/kubectl-gs/get-releases/")
 
 	arguments Arguments
 )
@@ -112,6 +111,10 @@ func collectArguments() Arguments {
 // printValidation does our pre-checks and shows errors, in case
 // something is missing.
 func printValidation(cmd *cobra.Command, extraArgs []string) {
+	if config.Config.Provider != provider.KVM {
+		fmt.Println(deprecated)
+	}
+
 	arguments = collectArguments()
 	err := listReleasesPreconditions(&arguments)
 
