@@ -12,7 +12,6 @@ import (
 
 	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/gsctl/confirm"
-	"github.com/giantswarm/gsctl/pkg/provider"
 
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/afero"
@@ -36,8 +35,6 @@ var (
 		PreRun: printValidation,
 		Run:    printResult,
 	}
-
-	deprecated = util.Deprecated("create keypair", "login", "https://docs.giantswarm.io/ui-api/kubectl-gs/login/")
 
 	arguments Arguments
 )
@@ -130,9 +127,7 @@ func init() {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	if config.Config.Provider != provider.KVM {
-		fmt.Println(deprecated)
-	}
+	fmt.Print(util.GetDeprecatedNotice(config.Config.Provider, "create keypair", "login", "https://docs.giantswarm.io/ui-api/kubectl-gs/login/"))
 
 	var argsErr error
 

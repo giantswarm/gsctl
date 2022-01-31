@@ -13,7 +13,6 @@ import (
 	"github.com/giantswarm/columnize"
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsclientgen/v2/models"
-	"github.com/giantswarm/gsctl/pkg/provider"
 	"github.com/giantswarm/gsctl/pkg/releaseinfo"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
@@ -67,8 +66,6 @@ Output
 		Run:    printResult,
 	}
 
-	deprecated = util.Deprecated("list releases", "get releases", "https://docs.giantswarm.io/ui-api/kubectl-gs/get-releases/")
-
 	arguments Arguments
 )
 
@@ -111,9 +108,7 @@ func collectArguments() Arguments {
 // printValidation does our pre-checks and shows errors, in case
 // something is missing.
 func printValidation(cmd *cobra.Command, extraArgs []string) {
-	if config.Config.Provider != provider.KVM {
-		fmt.Println(deprecated)
-	}
+	fmt.Print(util.GetDeprecatedNotice(config.Config.Provider, "list releases", "get releases", "https://docs.giantswarm.io/ui-api/kubectl-gs/get-releases/"))
 
 	arguments = collectArguments()
 	err := listReleasesPreconditions(&arguments)

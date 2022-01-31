@@ -17,7 +17,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/clustercache"
-	"github.com/giantswarm/gsctl/pkg/provider"
 	"github.com/giantswarm/gsctl/util"
 
 	"github.com/giantswarm/gsctl/client"
@@ -63,7 +62,6 @@ To list all clusters you have access to, use 'gsctl list clusters'.
 		PreRun: printValidation,
 		Run:    printResult,
 	}
-	deprecated = util.Deprecated("list nodepools", "get nodepools", "https://docs.giantswarm.io/ui-api/kubectl-gs/get-nodepools/")
 
 	arguments Arguments
 )
@@ -120,9 +118,7 @@ func verifyPreconditions(args Arguments, positionalArgs []string) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	if config.Config.Provider != provider.KVM {
-		fmt.Println(deprecated)
-	}
+	fmt.Print(util.GetDeprecatedNotice(config.Config.Provider, "list nodepools", "get nodepools", "https://docs.giantswarm.io/ui-api/kubectl-gs/get-nodepools/"))
 
 	arguments = collectArguments(positionalArgs)
 	err := verifyPreconditions(arguments, positionalArgs)

@@ -138,8 +138,6 @@ Examples:
 		Run: printResult,
 	}
 
-	deprecated = util.Deprecated("create nodepool", "template nodepool", "https://docs.giantswarm.io/ui-api/kubectl-gs/template-nodepool/")
-
 	cmdAwsEc2InstanceType   string
 	cmdAvailabilityZonesNum int
 	cmdAvailabilityZones    []string
@@ -343,9 +341,7 @@ func verifyPreconditions(args Arguments) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	if config.Config.Provider != provider.KVM {
-		fmt.Println(deprecated)
-	}
+	fmt.Print(util.GetDeprecatedNotice(config.Config.Provider, "create nodepool", "template nodepool", "https://docs.giantswarm.io/ui-api/kubectl-gs/template-nodepool/"))
 
 	var err error
 

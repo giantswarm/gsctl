@@ -17,7 +17,6 @@ import (
 
 	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/gsctl/formatting"
-	"github.com/giantswarm/gsctl/pkg/provider"
 	"github.com/giantswarm/gsctl/pkg/sortable"
 	"github.com/giantswarm/gsctl/pkg/table"
 
@@ -51,8 +50,6 @@ Examples:
 		PreRun: printValidation,
 		Run:    printResult,
 	}
-
-	deprecated = util.Deprecated("list clusters", "get clusters", "https://docs.giantswarm.io/ui-api/kubectl-gs/get-clusters/")
 
 	cmdShowDeleted bool
 
@@ -124,9 +121,7 @@ func collectArguments() Arguments {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
-	if config.Config.Provider != provider.KVM {
-		fmt.Println(deprecated)
-	}
+	fmt.Print(util.GetDeprecatedNotice(config.Config.Provider, "list clusters", "get clusters", "https://docs.giantswarm.io/ui-api/kubectl-gs/get-clusters/"))
 
 	arguments = collectArguments()
 	err := verifyListClusterPreconditions(arguments)

@@ -18,7 +18,6 @@ import (
 	"github.com/giantswarm/gsclientgen/v2/client/key_pairs"
 	"github.com/giantswarm/gsclientgen/v2/models"
 	"github.com/giantswarm/gsctl/clustercache"
-	"github.com/giantswarm/gsctl/pkg/provider"
 	"github.com/giantswarm/k8sclient/v4/pkg/k8srestconfig"
 	kubeconfig "github.com/giantswarm/kubeconfig/v2"
 	"github.com/giantswarm/microerror"
@@ -67,8 +66,6 @@ Examples:
 		PreRun: createKubeconfigPreRunOutput,
 		Run:    createKubeconfigRunOutput,
 	}
-
-	deprecated = util.Deprecated("create kubeconfig", "login", "https://docs.giantswarm.io/ui-api/kubectl-gs/login/")
 
 	// cmdKubeconfigSelfContained is the command line flag for output of a
 	// self-contained kubeconfig file
@@ -238,9 +235,7 @@ func init() {
 
 // createKubeconfigPreRunOutput shows our pre-check results
 func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
-	if config.Config.Provider != provider.KVM {
-		fmt.Println(deprecated)
-	}
+	fmt.Print(util.GetDeprecatedNotice(config.Config.Provider, "create kubeconfig", "login", "https://docs.giantswarm.io/ui-api/kubectl-gs/login/"))
 
 	var argsErr error
 

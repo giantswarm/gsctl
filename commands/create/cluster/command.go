@@ -39,7 +39,6 @@ import (
 	"github.com/giantswarm/gsctl/commands/types"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/formatting"
-	"github.com/giantswarm/gsctl/pkg/provider"
 	"github.com/giantswarm/gsctl/util"
 )
 
@@ -208,8 +207,6 @@ suppress the creation of the default node pool by setting the flag
 		Run:    printResult,
 	}
 
-	deprecated = util.Deprecated("create cluster", "template cluster", "https://docs.giantswarm.io/ui-api/kubectl-gs/template-cluster/")
-
 	// the client wrapper we will use in this command.
 	clientWrapper *client.Wrapper
 
@@ -236,9 +233,7 @@ func initFlags() {
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
-	if config.Config.Provider != provider.KVM {
-		fmt.Println(deprecated)
-	}
+	fmt.Print(util.GetDeprecatedNotice(config.Config.Provider, "create cluster", "template cluster", "https://docs.giantswarm.io/ui-api/kubectl-gs/template-cluster/"))
 
 	arguments = collectArguments(cmd)
 
