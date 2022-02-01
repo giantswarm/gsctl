@@ -19,8 +19,8 @@ func TestGetDeprecatedNotice(t *testing.T) {
 			gsctlCmd:     "list something",
 			kubectlgsCmd: "get something",
 			docsURL:      "https://docs.giantswarm.io/ui-api/kubectl-gs/get-something/",
-			output: `Command "list something" is deprecated, gsctl is being phased out in favor of our 'kubectl gs' plugin.
-We recommend you familiarize yourself with the "kubectl gs get something" command as a replacement for this.
+			output: `Command list something is deprecated, gsctl is being phased out in favor of our kubectl-gs plugin.
+We recommend you familiarize yourself with the kubectl gs get something command as a replacement for this.
 For more details see: https://docs.giantswarm.io/ui-api/kubectl-gs/get-something/
 
 `,
@@ -30,8 +30,8 @@ For more details see: https://docs.giantswarm.io/ui-api/kubectl-gs/get-something
 			gsctlCmd:     "list something",
 			kubectlgsCmd: "get something",
 			docsURL:      "https://docs.giantswarm.io/ui-api/kubectl-gs/get-something/",
-			output: `Command "list something" is deprecated, gsctl is being phased out in favor of our 'kubectl gs' plugin.
-We recommend you familiarize yourself with the "kubectl gs get something" command as a replacement for this.
+			output: `Command list something is deprecated, gsctl is being phased out in favor of our kubectl-gs plugin.
+We recommend you familiarize yourself with the kubectl gs get something command as a replacement for this.
 For more details see: https://docs.giantswarm.io/ui-api/kubectl-gs/get-something/
 
 `,
