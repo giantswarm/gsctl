@@ -17,6 +17,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/clustercache"
+	"github.com/giantswarm/gsctl/util"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
@@ -57,10 +58,6 @@ columns:
 To see all available details for a cluster, use 'gsctl show nodepool <cluster-id>/<nodepool-id>'.
 
 To list all clusters you have access to, use 'gsctl list clusters'.
-`,
-		Deprecated: `gsctl is being phased out in favour of our 'kubectl gs' plugin.
-We recommend you familiarize yourself with the 'kubectl gs get nodepools' command as a replacement for this.
-For more details see: https://docs.giantswarm.io/ui-api/kubectl-gs/get-nodepools/
 `,
 		PreRun: printValidation,
 		Run:    printResult,
@@ -121,6 +118,8 @@ func verifyPreconditions(args Arguments, positionalArgs []string) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
+	fmt.Print(util.GetDeprecatedNotice(config.Config.Provider, "list nodepools", "get nodepools", "https://docs.giantswarm.io/ui-api/kubectl-gs/get-nodepools/"))
+
 	arguments = collectArguments(positionalArgs)
 	err := verifyPreconditions(arguments, positionalArgs)
 	if err != nil {

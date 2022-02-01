@@ -63,10 +63,6 @@ Examples:
 
   gsctl create kubeconfig -c "Development cluster" --certificate-organizations system:masters
 `,
-		Deprecated: `gsctl is being phased out in favour of our 'kubectl gs' plugin.
-We recommend you familiarize yourself with the 'kubectl gs login' command as a replacement for this.
-For more details see: https://docs.giantswarm.io/ui-api/kubectl-gs/login/
-`,
 		PreRun: createKubeconfigPreRunOutput,
 		Run:    createKubeconfigRunOutput,
 	}
@@ -239,6 +235,8 @@ func init() {
 
 // createKubeconfigPreRunOutput shows our pre-check results
 func createKubeconfigPreRunOutput(cmd *cobra.Command, cmdLineArgs []string) {
+	fmt.Print(util.GetDeprecatedNotice(config.Config.Provider, "create kubeconfig", "login", "https://docs.giantswarm.io/ui-api/kubectl-gs/login/"))
+
 	var argsErr error
 
 	arguments, argsErr = collectArguments(cmd)

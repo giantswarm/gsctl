@@ -39,6 +39,7 @@ import (
 	"github.com/giantswarm/gsctl/commands/types"
 	"github.com/giantswarm/gsctl/flags"
 	"github.com/giantswarm/gsctl/formatting"
+	"github.com/giantswarm/gsctl/util"
 )
 
 // Arguments contains all possible input parameter needed
@@ -202,10 +203,6 @@ suppress the creation of the default node pool by setting the flag
     --owner acme \
     --create-default-nodepool=false
 `,
-		Deprecated: `gsctl is being phased out in favour of our 'kubectl gs' plugin.
-We recommend you familiarize yourself with the 'kubectl gs template cluster' command as a replacement for this.
-For more details see: https://docs.giantswarm.io/ui-api/kubectl-gs/template-cluster/
-`,
 		PreRun: printValidation,
 		Run:    printResult,
 	}
@@ -236,6 +233,8 @@ func initFlags() {
 // If errors occur, error info is printed to STDOUT/STDERR
 // and the program will exit with non-zero exit codes.
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
+	fmt.Print(util.GetDeprecatedNotice(config.Config.Provider, "create cluster", "template cluster", "https://docs.giantswarm.io/ui-api/kubectl-gs/template-cluster/"))
+
 	arguments = collectArguments(cmd)
 
 	headline := ""
