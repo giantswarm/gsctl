@@ -2,12 +2,11 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.15.2
+      - image: cimg/go:1.17
 
     # We use 'large' because with 'medium' an 'medium#' we saw tests fail due to memory problems and too many threads.
     resource_class: large
 
-    working_directory: /go/src/github.com/giantswarm/gsctl
     steps:
       - checkout
       - run:
@@ -32,8 +31,7 @@ jobs:
       - run:
           name: Update Coveralls
           command: |
-            go get golang.org/x/tools/cmd/cover
-            go get github.com/mattn/goveralls
+            go install github.com/mattn/goveralls@latest
             go test ./... -v -covermode=count -coverprofile=coverage.out
             goveralls -coverprofile=coverage.out -service=circle-ci -repotoken $COVERALLS_TOKEN
   dist:
