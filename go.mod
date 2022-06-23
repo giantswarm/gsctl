@@ -53,6 +53,7 @@ require (
 	github.com/gobuffalo/packd v0.3.0 // indirect
 	github.com/gobuffalo/packr/v2 v2.5.1 // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
+	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/googleapis/gnostic v0.3.1 // indirect
@@ -94,5 +95,10 @@ require (
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 
-// Use v1.3.2 of gogo/protobuf to fix nancy alert for https://nvd.nist.gov/vuln/detail/CVE-2021-3121
-replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
+replace (
+
+	// Mitigate CVE-2020-26160
+	github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt/v4 v4.1.0
+	// Use v1.3.2 of gogo/protobuf to fix nancy alert for https://nvd.nist.gov/vuln/detail/CVE-2021-3121
+	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
+)
