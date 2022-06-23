@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.17.3
+      - image: cimg/go:1.17.3
 
     # We use 'large' because with 'medium' an 'medium#' we saw tests fail due to memory problems and too many threads.
     resource_class: large
