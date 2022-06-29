@@ -70,6 +70,8 @@ func collectArguments() Arguments {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
+	fmt.Print(util.GetDeprecatedNotice(config.Config.Provider, "show release", "get releases", "https://docs.giantswarm.io/ui-api/kubectl-gs/get-releases/"))
+
 	arguments = collectArguments()
 	err := verifyShowReleasePreconditions(arguments, cmdLineArgs)
 

@@ -3,6 +3,7 @@ package release
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/giantswarm/gscliauth/config"
@@ -209,7 +210,7 @@ selected_endpoint: ` + releasesMockServer.URL
 		ShowReleaseCommand.Execute()
 	})
 	//t.Logf("%q\n", output)
-	if output != expected {
+	if !strings.Contains(output, expected) {
 		t.Errorf("Command output did not match expectations:\n%q", output)
 	}
 
