@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/clustercache"
+	"github.com/giantswarm/gsctl/util"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/commands/errors"
@@ -105,6 +106,8 @@ func verifyPreconditions(args *Arguments) error {
 }
 
 func printValidation(cmd *cobra.Command, positionalArgs []string) {
+	fmt.Print(util.GetDeprecatedNotice(config.Config.Provider, "show nodepool", "get nodepools", "https://docs.giantswarm.io/ui-api/kubectl-gs/get-nodepools/"))
+
 	args, err := collectArguments(positionalArgs)
 	if err == nil {
 		err = verifyPreconditions(args)

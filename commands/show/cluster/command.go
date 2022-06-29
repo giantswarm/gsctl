@@ -89,6 +89,8 @@ func collectArguments() Arguments {
 }
 
 func printValidation(cmd *cobra.Command, cmdLineArgs []string) {
+	fmt.Print(util.GetDeprecatedNotice(config.Config.Provider, "show cluster", "get clusters", "https://docs.giantswarm.io/ui-api/kubectl-gs/get-clusters/"))
+
 	arguments = collectArguments()
 	err := verifyPreconditions(arguments, cmdLineArgs)
 
