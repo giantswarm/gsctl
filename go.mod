@@ -10,7 +10,7 @@ require (
 	github.com/fatih/color v1.9.0
 	github.com/giantswarm/apiextensions/v2 v2.1.0
 	github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatible
-	github.com/giantswarm/gscliauth v0.2.3
+	github.com/giantswarm/gscliauth v0.2.6-0.20220701111548-fa4edf67d636
 	github.com/giantswarm/gsclientgen/v2 v2.1.0
 	github.com/giantswarm/k8sclient/v4 v4.0.0
 	github.com/giantswarm/kubeconfig/v2 v2.0.0
@@ -36,7 +36,6 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/go-kit/kit v0.10.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.0 // indirect
 	github.com/go-openapi/analysis v0.19.10 // indirect
@@ -53,7 +52,7 @@ require (
 	github.com/gobuffalo/packd v0.3.0 // indirect
 	github.com/gobuffalo/packr/v2 v2.5.1 // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
-	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
+	github.com/golang-jwt/jwt v3.2.1+incompatible // indirect
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/googleapis/gnostic v0.3.1 // indirect
@@ -96,7 +95,6 @@ require (
 )
 
 replace (
-
 	// Mitigate CVE-2020-26160
 	github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt/v4 v4.1.0
 	// Use v1.3.2 of gogo/protobuf to fix nancy alert for https://nvd.nist.gov/vuln/detail/CVE-2021-3121

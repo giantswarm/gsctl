@@ -10,6 +10,7 @@ import (
 	"github.com/giantswarm/gscliauth/config"
 	"github.com/giantswarm/gsctl/clustercache"
 	"github.com/giantswarm/gsctl/formatting"
+	"github.com/giantswarm/gsctl/util"
 	"github.com/giantswarm/microerror"
 	"github.com/spf13/cobra"
 
@@ -55,7 +56,7 @@ type JSONOutput struct {
 func collectArguments(positionalArgs []string) Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
-	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
+	scheme := util.ChooseScheme(endpoint, flags.Token, flags.TokenSchemeBearer)
 
 	clusterNameOrID := ""
 	if len(positionalArgs) > 0 {

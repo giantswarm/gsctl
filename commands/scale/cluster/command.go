@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/gsctl/clustercache"
+	"github.com/giantswarm/gsctl/util"
 
 	"github.com/giantswarm/gsctl/client"
 	"github.com/giantswarm/gsctl/client/clienterror"
@@ -130,7 +131,7 @@ func collectArguments(cmd *cobra.Command, positionalArgs []string) (Arguments, e
 
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
-	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
+	scheme := util.ChooseScheme(endpoint, flags.Token, flags.TokenSchemeBearer)
 
 	args := Arguments{
 		APIEndpoint:         endpoint,

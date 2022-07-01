@@ -64,7 +64,7 @@ type Arguments struct {
 func collectArguments(cmd *cobra.Command) Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
-	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
+	scheme := util.ChooseScheme(endpoint, flags.Token, flags.TokenSchemeBearer)
 
 	var haMasters *bool
 	if cmd.Flag("master-ha").Changed {

@@ -97,6 +97,9 @@ var (
 	// MasterHA enables or disabled master node high availability.
 	MasterHA bool
 
+	// TokenSchemeBearer sets the auth token scheme to "Bearer" instead of "giantswarm" by default.
+	TokenSchemeBearer bool
+
 	// TenantInternal represents the type of Kubernetes API endpoints
 	// used to generate kubeconfig
 	TenantInternal bool

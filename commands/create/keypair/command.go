@@ -68,7 +68,7 @@ type Arguments struct {
 func collectArguments() (Arguments, error) {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
-	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
+	scheme := util.ChooseScheme(endpoint, flags.Token, flags.TokenSchemeBearer)
 
 	description := flags.Description
 	if description == "" {

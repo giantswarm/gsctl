@@ -41,6 +41,10 @@ const (
 	`
 )
 
+const (
+	authTokenSchemeBearerFlag = "auth-token-scheme-bearer"
+)
+
 // RootCommand is the main command of the CLI
 var RootCommand = &cobra.Command{
 	Use: config.ProgramName,
@@ -58,7 +62,7 @@ func init() {
 
 	defaultConfigDir := config.DefaultConfigDirPath
 	configDirFromEnv := os.Getenv("GSCTL_CONFIG_DIR")
-	if (configDirFromEnv != "") {
+	if configDirFromEnv != "" {
 		defaultConfigDir = configDirFromEnv
 	}
 
@@ -67,6 +71,10 @@ func init() {
 	RootCommand.PersistentFlags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Print more information")
 	RootCommand.PersistentFlags().BoolVarP(&flags.SilenceHTTPEndpointWarning, "silence-http-endpoint-warning", "", false, "Dont't print warnings when deliberately using an insecure HTTP endpoint")
 	RootCommand.Flags().Bool("version", false, version.Command.Short)
+
+	// Add hidden flags
+	RootCommand.PersistentFlags().BoolVarP(&flags.TokenSchemeBearer, authTokenSchemeBearerFlag, "", false, "sets the auth token scheme to bearer instead of giantswarm by default")
+	_ = RootCommand.Flags().MarkHidden(authTokenSchemeBearerFlag)
 
 	// add subcommands
 	RootCommand.AddCommand(CompletionCommand)

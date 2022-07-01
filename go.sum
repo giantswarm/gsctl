@@ -137,8 +137,8 @@ github.com/giantswarm/apiextensions/v2 v2.1.0/go.mod h1:/qSx5jA2F5um0ipvVDMZJz+r
 github.com/giantswarm/backoff v0.2.0/go.mod h1:Z3WRsFilSJ5H5VlFa4XhraoPr+9pmZgYasoY2OSfNOk=
 github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatible h1:PVeLghTCfbUCfYE8h+W2L8zDrMO+mxLvEWyYEKCL2HA=
 github.com/giantswarm/columnize v2.0.3-0.20190718092621-cc99d98ffb29+incompatible/go.mod h1:V/9Aa/R3o321yAbarEACmGhTg0SiPge6nFDtIH7CTvE=
-github.com/giantswarm/gscliauth v0.2.3 h1:ptDvNh8OUf4FzWR5mPq8BX2iwliYj1aijsrI5N51pls=
-github.com/giantswarm/gscliauth v0.2.3/go.mod h1:Ys1puKDjd31rt6VDUwbJg8G3RkoLNLwisOwHxTjyKIc=
+github.com/giantswarm/gscliauth v0.2.6-0.20220701111548-fa4edf67d636 h1:j9rg9OlAW1JB1Wjxz67ZGC4xgXWmEAeYh55AVmL075Q=
+github.com/giantswarm/gscliauth v0.2.6-0.20220701111548-fa4edf67d636/go.mod h1:+EaBKowZeEY0vRYBdqyWD065nSAV05L5p3EmOhApzg4=
 github.com/giantswarm/gsclientgen/v2 v2.1.0 h1:GD3GmqKZRvNjfoQhd6ZcZUWv5+tSKkd7oLoK/1rN+Is=
 github.com/giantswarm/gsclientgen/v2 v2.1.0/go.mod h1:ZADsWfynt29F7HV1AeKfZCdMxAPw8O5hHSSY+Z6Hx3U=
 github.com/giantswarm/k8sclient/v4 v4.0.0 h1:K18A0FomGjxTMElcGrjO3uLkYobUtcNh8e8PhTgFr2w=
@@ -274,10 +274,9 @@ github.com/gobuffalo/syncx v0.0.0-20190224160051-33c29581e754/go.mod h1:HhnNqWY9
 github.com/gogo/googleapis v1.1.0/go.mod h1:gf4bu3Q80BeJ6H1S1vYPm8/ELATdvryBaNFGgqEef3s=
 github.com/gogo/protobuf v1.3.2 h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=
 github.com/gogo/protobuf v1.3.2/go.mod h1:P1XiOD3dCwIKUDQYPy72D8LYyHL2YPYrpS2s69NZV8Q=
-github.com/golang-jwt/jwt/v4 v4.1.0 h1:XUgk2Ex5veyVFVeLm0xhusUTQybEbexJXrvPNOKkSY0=
+github.com/golang-jwt/jwt v3.2.1+incompatible h1:73Z+4BJcrTC+KczS6WvTPvRGOp1WmfEP4Q1lOd9Z/+c=
+github.com/golang-jwt/jwt v3.2.1+incompatible/go.mod h1:8pz2t5EyA70fFQQSrl6XZXzqecmYZeUEB8OUGHkxJ+I=
 github.com/golang-jwt/jwt/v4 v4.1.0/go.mod h1:/xlHOz8bRuivTWchD4jCa+NbatV+wEUSzwAxVc6locg=
-github.com/golang-jwt/jwt/v4 v4.4.2 h1:rcc4lwaZgFMCZ5jxF9ABolDcIHdBytAFgqFPbSJQAYs=
-github.com/golang-jwt/jwt/v4 v4.4.2/go.mod h1:m21LjoU+eqJr34lmDMbreY2eSTRJ1cv77w39/MY0Ch0=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=
 github.com/golang/groupcache v0.0.0-20160516000752-02826c3e7903/go.mod h1:cIg4eruTrX1D+g88fzRXU5OdNfaM+9IcxsU14FzY7Hc=
 github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef/go.mod h1:cIg4eruTrX1D+g88fzRXU5OdNfaM+9IcxsU14FzY7Hc=

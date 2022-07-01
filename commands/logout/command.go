@@ -15,6 +15,7 @@ import (
 	"github.com/giantswarm/gsctl/client/clienterror"
 	"github.com/giantswarm/gsctl/commands/errors"
 	"github.com/giantswarm/gsctl/flags"
+	"github.com/giantswarm/gsctl/util"
 )
 
 const (
@@ -47,7 +48,7 @@ type Arguments struct {
 func collectArguments() Arguments {
 	endpoint := config.Config.ChooseEndpoint(flags.APIEndpoint)
 	token := config.Config.ChooseToken(endpoint, flags.Token)
-	scheme := config.Config.ChooseScheme(endpoint, flags.Token)
+	scheme := util.ChooseScheme(endpoint, flags.Token, flags.TokenSchemeBearer)
 
 	return Arguments{
 		apiEndpoint:       endpoint,
