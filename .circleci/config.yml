@@ -28,12 +28,6 @@ jobs:
           name: Execute the built binary
           command: ./gsctl info
 
-      - run:
-          name: Update Coveralls
-          command: |
-            go install github.com/mattn/goveralls@latest
-            go test ./... -v -covermode=count -coverprofile=coverage.out
-            goveralls -coverprofile=coverage.out -service=circle-ci -repotoken $COVERALLS_TOKEN
   dist:
     machine: true
     steps:

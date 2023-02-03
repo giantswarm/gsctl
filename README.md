@@ -1,13 +1,8 @@
-![Repo Image](https://repository-images.githubusercontent.com/74132145/691bf000-70de-11e9-89d3-2f4693461d00)
+# `gsctl` - The Giant Swarm CLI (deprecated)
 
-[![Coverage Status](https://coveralls.io/repos/github/giantswarm/gsctl/badge.svg?branch=master)](https://coveralls.io/github/giantswarm/gsctl?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/giantswarm/gsctl)](https://goreportcard.com/report/github.com/giantswarm/gsctl)
+gsctl and the [REST API](https://docs.giantswarm.io/use-the-api/rest-api/) are being phased out. We recommend to familiarize yourself with our [Management API](https://docs.giantswarm.io/use-the-api/management-api/) and the [kubectl gs](https://docs.giantswarm.io/use-the-api/kubectl-gs/) plugin as a future-proof replacement.
 
-# `gsctl` - The Giant Swarm CLI
-
-`gsctl` is the cross-platform command line utility to manage your Kubernetes clusters at Giant Swarm.
-
-> gsctl and the [REST API](https://docs.giantswarm.io/ui-api/rest-api/) are being phased out. We don't have an end-of-life date yet. However, we recommend to familiarize yourself with our [Management API](https://docs.giantswarm.io/ui-api/management-api/) and the [kubectl gs](https://docs.giantswarm.io/ui-api/kubectl-gs/) plugin as a future-proof replacement.
+For customers still using the Giant Swarm REST API, `gsctl` is a cross-platform command line utility to manage clusters.
 
 ## Usage
 
